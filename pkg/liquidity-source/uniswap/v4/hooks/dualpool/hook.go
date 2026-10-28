@@ -267,3 +267,9 @@ func subFloor(a, b *uint256.Int) *uint256.Int {
 	}
 	return new(uint256.Int).Sub(a, b)
 }
+
+// NewStateReader lets derived DualPool hooks reuse the existing snapshot reads.
+// It does not register an address or select a deployment on the caller's behalf.
+func NewStateReader(address common.Address) *Hook {
+	return &Hook{Hook: &uniswapv4.BaseHook{}, hook: address}
+}

@@ -143,7 +143,7 @@ func TestMalformedExtrasDoNotPanic(t *testing.T) {
 		{"mq twap all uninit", mut(mqPath, func(m map[string]any) {
 			tw := mq(m)["ConvTwap"].(map[string]any)
 			obs := map[string]any{}
-			for i := 0; i < 4; i++ {
+			for i := range 4 {
 				obs[fmt.Sprint(i)] = map[string]any{"Timestamp": 1, "TickCumulative": 0, "Initialized": false}
 			}
 			obs["0"] = map[string]any{"Timestamp": 1, "TickCumulative": 0, "Initialized": true}
@@ -417,7 +417,7 @@ func TestDecodeExtraRecoversDecoderPanic(t *testing.T) {
 		return false
 	}
 	panics := 0
-	for i := 0; i < 200; i++ {
+	for range 200 {
 		var x Extra
 		require.NoError(t, decodeExtra(long, &x))
 		if raw(short) {

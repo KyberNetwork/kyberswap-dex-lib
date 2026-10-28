@@ -35,7 +35,7 @@ func loadVectors(t *testing.T, path string) []vector {
 	return v
 }
 func newHook(s Extra) *Hook {
-	return &Hook{BaseHook: uniswapv4.BaseHook{Exchange: "uniswap-v4-inverse"}, State: s}
+	return &Hook{Exchange: "uniswap-v4-inverse", State: s}
 }
 func TestSolidityDifferential(t *testing.T) {
 	testDifferential(t, vectors(t))

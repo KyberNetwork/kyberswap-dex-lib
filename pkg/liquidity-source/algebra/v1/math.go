@@ -83,7 +83,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	var step PriceMovementCache
 	// swap until there is remaining input or output tokens, or we reach the price limit.
 	// limit by maxSwapLoop to make sure we won't loop infinitely because of a bug somewhere
-	for i := 0; i < maxSwapLoop; i++ {
+	for range maxSwapLoop {
 		step.stepSqrtPrice = currentPrice
 
 		if step.nextTick, step.initialized, err = p.ticks.NextInitializedTickWithinOneWord(currentTick, zeroToOne,

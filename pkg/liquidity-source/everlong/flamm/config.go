@@ -54,7 +54,7 @@ type Config struct {
 	QuoteDonatedVenues bool `json:"quoteDonatedVenues,omitempty"`
 
 	// Gas overrides the measured gas defaults per venue and direction.
-	Gas GasConfig `json:"gas,omitempty"`
+	Gas GasConfig `json:"gas"`
 }
 
 // GasConfig overrides one gas default per venue and direction (a zero keeps the measured default, constant.go). A

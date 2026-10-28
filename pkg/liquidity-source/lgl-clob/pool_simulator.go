@@ -23,10 +23,14 @@ type PoolSimulator struct {
 	*OrderBook
 	*StaticExtra
 	makerQuoteGas *MakerQuoteGas
+	maker         string
 	cumAmtOutF    float64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var (
+	_ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+	_ = pool.RegisterUseSwapLimit(valueobject.ExchangeHanji)
+)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -40,7 +44,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -48,11 +52,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves: []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]),
 				bignumber.NewBig10(entityPool.Reserves[1])},
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		swapFee:       uint256.NewInt(uint64(entityPool.SwapFee * 1e18)),
 		OrderBook:     &extra.OrderBook,
 		StaticExtra:   &staticExtra,
 		makerQuoteGas: extra.MakerQuoteGas,
+		maker:         extra.Maker,
 	}, nil
 }
 
@@ -141,6 +146,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	reserveOutF, _ := p.GetReserves()[indexOut].Float64()
 	if p.cumAmtOutF+executedAmountOut.Float64() > reserveOutF*safetyBuffer {
 		return nil, ErrExceededSafetyBuffer
+	}
+	if !p.withinLimit(param.Limit, tokenOut, executedAmountOut) {
+		return nil, pool.ErrNotEnoughInventory
 	}
 
 	var feesTokenY, remainingAmountIn *uint256.Int
@@ -288,6 +296,9 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	if p.cumAmtOutF+executedAmountOut.Float64() > reserveOutF*safetyBuffer {
 		return nil, ErrExceededSafetyBuffer
 	}
+	if !p.withinLimit(param.Limit, tokenAmountOut.Token, executedAmountOut) {
+		return nil, pool.ErrNotEnoughInventory
+	}
 
 	var feesTokenY *uint256.Int
 	var amtIn *uint256.Int
@@ -324,7 +335,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
-	cloned.OrderBook = lo.ToPtr(*p.OrderBook)
+	cloned.OrderBook = new(*p.OrderBook)
 	return &cloned
 }
 
@@ -346,6 +357,41 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	amtOutF, _ := params.TokenAmountOut.Amount.Float64()
 	p.cumAmtOutF += amtOutF
+	if params.SwapLimit != nil && p.maker != "" {
+		_, _, _ = params.SwapLimit.UpdateLimit(p.limitKey(params.TokenAmountOut.Token),
+			p.limitKey(params.TokenAmountIn.Token), params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
+	}
+}
+
+// CalculateLimit is what the pool's market maker can pay of each token, the
+// safety buffer of its book. A market maker posts its whole balance on each of
+// its pools, so the most any of them shows is what it holds, and an order
+// through one pool takes from what the others can pay.
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	if p.maker == "" {
+		return nil
+	}
+	limits := make(map[string]*big.Int, len(p.Info.Tokens))
+	for i, token := range p.Info.Tokens {
+		limit, _ := new(big.Float).Mul(new(big.Float).SetInt(p.Info.Reserves[i]), big.NewFloat(safetyBuffer)).Int(nil)
+		limits[p.limitKey(token)] = limit
+	}
+	return limits
+}
+
+// withinLimit reports whether the pool's market maker can still pay amountOut
+// of tokenOut, after what an order took from it through any of its pools. A
+// pool without a market maker, or a limit without its key, has no limit.
+func (p *PoolSimulator) withinLimit(limit pool.SwapLimit, tokenOut string, amountOut *uint256.Int) bool {
+	if limit == nil || p.maker == "" {
+		return true
+	}
+	remaining := limit.GetLimit(p.limitKey(tokenOut))
+	return remaining == nil || amountOut.ToBig().Cmp(remaining) <= 0
+}
+
+func (p *PoolSimulator) limitKey(token string) string {
+	return p.maker + ":" + token
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {

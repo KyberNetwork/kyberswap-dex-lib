@@ -110,10 +110,9 @@ func feedUsd8(r OracleReading, now uint64) (uint64, error) {
 	if !r.Ok || r.Answer == nil || r.Answer.IsZero() {
 		return 0, ErrBadOracleAnswer
 	}
-	updatedAt := r.UpdatedAt
-	if now < updatedAt {
-		updatedAt = now // clock-skew guard; never treat a future timestamp as making the reading stale
-	}
+	updatedAt := min(now,
+		// clock-skew guard; never treat a future timestamp as making the reading stale
+		r.UpdatedAt)
 	if now-updatedAt > maxPriceAgeSecs {
 		return 0, ErrStalePrice
 	}

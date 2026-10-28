@@ -80,7 +80,37 @@ type Hook struct {
 	HaircutBpsAtStaleThreshold uint64 `json:"h"`
 	FreshThresholdSec          uint64 `json:"fs"`
 	StaleThresholdSec          uint64 `json:"ss"`
-	TrackedAt                  uint64 `json:"t"` // unix ts when Track last ran; used as the staleness-ramp age baseline
+	// TrackedAt is the legacy tracker clock. Track no longer writes it; it is read only while the
+	// pool has no Extra "lv" (see trackedAt).
+	TrackedAt uint64 `json:"t,omitempty"`
+
+	liveAt int64 // Extra "lv": when the tracker last confirmed this state; the staleness-ramp age baseline
+	// quoteAt is the indexing clock (HookParam.QuoteAt); 0 means the wall clock.
+	quoteAt int64
+}
+
+// livenessInterval is how often the tracker restamps a quiet pool; far below the 3600 s fresh threshold.
+const livenessInterval = 5 * time.Minute
+
+func (h *Hook) LivenessInterval() time.Duration { return livenessInterval }
+
+// TracksActivity: hX holds only chain state, so a changed hX bumps Timestamp/BlockNumber.
+func (h *Hook) TracksActivity() {}
+
+// trackedAt is the age baseline: the tracker's lv, else the legacy hX clock.
+func (h *Hook) trackedAt() uint64 {
+	if h.liveAt > 0 {
+		return uint64(h.liveAt)
+	}
+	return h.TrackedAt
+}
+
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (h *Hook) now() uint64 {
+	if h.quoteAt > 0 {
+		return uint64(h.quoteAt)
+	}
+	return uint64(time.Now().Unix())
 }
 
 type SwapInfo struct {
@@ -93,6 +123,8 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4AegisProp},
 	}
 	_ = param.HookExtra.Unmarshal(hook)
+	hook.liveAt = param.TrackedAt
+	hook.quoteAt = param.QuoteAt
 	return hook
 }, HookAddresses...)
 
@@ -156,7 +188,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	h.HaircutBpsAtStaleThreshold = uint64(poolConfig.HaircutBpsAtStaleThreshold)
 	h.FreshThresholdSec = uint64(poolConfig.FreshThresholdSec)
 	h.StaleThresholdSec = uint64(poolConfig.StaleThresholdSec)
-	h.TrackedAt = uint64(time.Now().Unix())
+	h.TrackedAt = 0
 
 	return json.Marshal(h)
 }
@@ -184,13 +216,13 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		}, nil
 	}
 
-	now := uint64(time.Now().Unix())
+	now := h.now()
 	if h.Expiration != 0 && now >= h.Expiration {
 		return nil, ErrStaleLadder
 	}
 
-	age := now - h.TrackedAt
-	if now < h.TrackedAt {
+	age := now - h.trackedAt()
+	if now < h.trackedAt() {
 		age = 0
 	}
 	haircutBps, freshEnough := stalenessHaircutBps(age, h.FreshThresholdSec, h.StaleThresholdSec, uint16(h.HaircutBpsAtStaleThreshold))

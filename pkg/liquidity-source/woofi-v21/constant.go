@@ -1,6 +1,8 @@
 package woofiv21
 
 import (
+	"time"
+
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
 )
@@ -19,12 +21,16 @@ const (
 	wooracleMethodDecimals      = "decimals"
 	wooracleMethodClOracles     = "clOracles"
 	wooracleMethodTimestamp     = "timestamp"
+	wooracleMethodPaused        = "paused"
 	wooracleMethodBound         = "bound"
 	wooracleMethodStaleDuration = "staleDuration"
 
 	cloracleMethodLatestRoundData = "latestRoundData"
 
 	erc20MethodDecimals = "decimals"
+
+	// WooFi rotates quote tokens occasionally; re-read the token list this often.
+	tokensRefreshInterval = time.Hour
 )
 
 var (

@@ -516,7 +516,6 @@ func TestDirectProtocolMatch(t *testing.T) {
 	assert.Len(t, sim.extra.Ladder1, 5)
 
 	for _, row := range directMatchRows {
-		row := row
 		t.Run(row.name, func(t *testing.T) {
 			res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: row.tokenIn, Amount: row.amountIn},

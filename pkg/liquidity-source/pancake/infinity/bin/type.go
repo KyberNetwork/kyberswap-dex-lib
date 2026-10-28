@@ -44,6 +44,7 @@ type Slot0Data struct {
 type FetchRPCResult struct {
 	Slot0       Slot0Data `json:"slot0"`
 	SwapFee     uint64    `json:"swapFee"`
+	HookSwapFee uint32    `json:"-"`
 	BlockNumber uint64    `json:"-"`
 }
 
@@ -58,6 +59,7 @@ type Extra struct {
 	ProtocolFee uint32 `json:"protocolFee"`
 	ActiveBinID uint32 `json:"activeBinId"`
 	Bins        []Bin  `json:"bins"`
+	HookSwapFee uint32 `json:"hsf,omitempty"` // SwapFeeHook fee in pips
 }
 
 type PoolMetaInfo struct {

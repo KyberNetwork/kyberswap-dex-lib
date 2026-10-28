@@ -21,7 +21,7 @@ type UniSwapXClient struct {
 }
 
 func NewUniSwapXClient(baseURL string) *UniSwapXClient {
-	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient)))
+	client := resty.NewWithClient(new(lo.FromPtr(http.DefaultClient)))
 	client.SetBaseURL(baseURL)
 	client.SetTimeout(defaultTimeout)
 

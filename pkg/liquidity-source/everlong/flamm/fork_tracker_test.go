@@ -452,7 +452,7 @@ func TestForkTrackerTamper(t *testing.T) {
 		copy(sel[:], viewCalls[k].CallData[:4])
 		name := fmt.Sprintf("%d:%s", k, names[sel])
 		words := len(baseOuts[k].ReturnData) / 32
-		for j := 0; j < words; j++ {
+		for j := range words {
 			k, j := k, j
 			run(fmt.Sprintf("%s word %d", name, j), func(req *proxyRPCReq, resp *proxyRPCResp) {
 				if !isView(req) {
@@ -479,7 +479,7 @@ func TestForkTrackerTamper(t *testing.T) {
 		// turns a sentinel off (a pending implementation, a pending hook), and the generic mutation above never
 		// produces it on a non-zero word. Every word that is not already zero and fits an address is zeroed.
 		hi := new(uint256.Int).Lsh(uOne, 160)
-		for j := 0; j < words; j++ {
+		for j := range words {
 			var w uint256.Int
 			w.SetBytes(baseOuts[k].ReturnData[j*32 : (j+1)*32])
 			if w.IsZero() || !w.Lt(hi) {

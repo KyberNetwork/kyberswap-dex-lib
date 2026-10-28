@@ -36,16 +36,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     strings.ToLower(entityPool.Address),
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				BlockNumber: entityPool.BlockNumber,
-				Tokens:      []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
-				Reserves: []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]),
-					bignumber.NewBig10(entityPool.Reserves[1])},
-			},
+		Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			BlockNumber: entityPool.BlockNumber,
+			Tokens:      []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
+			Reserves: []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]),
+				bignumber.NewBig10(entityPool.Reserves[1])},
 		},
 		PoolInfo: extra,
 	}, nil

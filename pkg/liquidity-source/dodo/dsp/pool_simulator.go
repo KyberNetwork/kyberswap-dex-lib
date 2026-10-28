@@ -77,9 +77,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: info,
-		},
+		Info:     info,
 		PMMState: poolState,
 		Meta:     meta,
 		gas:      shared.V2DefaultGas,

@@ -146,7 +146,7 @@ func TestKneeSamplesBracketCapOnset(t *testing.T) {
 	require.Less(t, worstKneeBps(t, sampleLadder(nil, false)), int64(-100), "without knee samples the last chord underquotes")
 
 	var pts []Point
-	for cycle := 0; cycle < 6; cycle++ { // cycle 0 is the cold start
+	for cycle := range 6 { // cycle 0 is the cold start
 		pts = sampleLadder(pts, true)
 		require.Greater(t, worstKneeBps(t, pts), int64(-30), "cycle %d", cycle)
 	}

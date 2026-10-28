@@ -12,7 +12,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -25,10 +24,8 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 	}
 
 	d := &PoolTracker{
-		PoolTracker: algebra.PoolTracker[Timepoint, TimepointRPC]{
-			EthrpcClient: ethrpc.NewWithClient(lo.Must(ethclient.Dial("https://bsc-rpc.kyberswap.com"))).
-				SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
-		},
+		EthrpcClient: ethrpc.NewWithClient(lo.Must(ethclient.Dial("https://bsc-rpc.kyberswap.com"))).
+			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 		config: &Config{
 			DexID:              valueobject.ExchangeThenaFusionV3,
 			AllowSubgraphError: true,

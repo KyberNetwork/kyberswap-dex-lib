@@ -74,7 +74,7 @@ func TestTrackReadRevertPublishesFailClosed(t *testing.T) {
 	}{{"control", nil, nil}, {"feed revert", errRevertRead, nil}, {"float revert", nil, errRevertRead}} {
 		h, c := integrationHook(t, "testdata/fixtures/navjit2-buy-1kusd.json")
 		raw, err := h.trackMarket(context.Background(), &uniswapv4.HookParam{BlockNumber: big.NewInt(123)},
-			trackerOf(c), &failingLoader{fixtureLoader{c}, tc.feed, tc.float}, c.Pre.Lot.Address, time.Now())
+			trackerOf(c), &failingLoader{fixtureLoader{c}, tc.feed, tc.float}, c.Pre.Lot.Address)
 		if tc.feed == nil && tc.float == nil {
 			require.NoError(t, err)
 			require.NotNil(t, h.Market, "control publishes a market")
@@ -92,7 +92,7 @@ func TestTrackTransportErrorPublishesNothing(t *testing.T) {
 		h, c := integrationHook(t, "testdata/fixtures/navjit2-buy-1kusd.json")
 		before := h.Market
 		raw, err := h.trackMarket(context.Background(), &uniswapv4.HookParam{BlockNumber: big.NewInt(123)},
-			trackerOf(c), &failingLoader{fixtureLoader{c}, tc.feed, tc.float}, c.Pre.Lot.Address, time.Now())
+			trackerOf(c), &failingLoader{fixtureLoader{c}, tc.feed, tc.float}, c.Pre.Lot.Address)
 		require.ErrorIs(t, err, errTransport, tc.name)
 		require.Nil(t, raw, tc.name)
 		require.Same(t, before, h.Market, tc.name+": nothing installed")
@@ -227,20 +227,21 @@ func TestStockAdmissionReadClassification(t *testing.T) {
 	require.Positive(t, failed, "a transport error on an admission read must not silently drop the source")
 }
 
-// F3: TrackedAt is the time Track STARTED (before its reads), so the StaleCheck age of a state includes
-// the time its reads took. Track on recorded state over a slow RPC (250 ms per request).
-func TestTrackedAtIsTrackStart(t *testing.T) {
+// hX is pure chain state: Track writes no clock or block, so two Tracks of the same chain state at
+// different times give byte-identical output. The tracker's Extra "lv" carries the liveness instead.
+func TestTrackWritesNoClock(t *testing.T) {
 	v := liveVenues[1]
-	h, _, err, ctr, start := tapeTrackTimed(t, v, replayFaults{delay: 250 * time.Millisecond})
+	h, first, err, _ := tapeTrack(t, v, replayFaults{})
 	require.NoError(t, err)
-	took := time.Since(start)
-	require.Greater(t, took, 2*time.Second, "instrument: the slow RPC makes Track take seconds (%d requests)",
-		ctr.Requests)
-	require.LessOrEqual(t, h.TrackedAt, start.Unix(), "TrackedAt must not postdate the start of the reads")
-	age := time.Now().Unix() - h.TrackedAt
-	require.GreaterOrEqual(t, age, int64(took/time.Second), "StaleCheck age includes the Track duration")
-	t.Logf("Track took %s over %d requests; TrackedAt = start (%d), age at return %d s", took, ctr.Requests,
-		h.TrackedAt, age)
+	require.Zero(t, h.TrackedAt)
+	time.Sleep(1100 * time.Millisecond) // a Unix-second clock in hX would differ now
+	_, second, err, _ := tapeTrack(t, v, replayFaults{})
+	require.NoError(t, err)
+	require.Equal(t, string(first), string(second))
+	var m map[string]any
+	require.NoError(t, json.Unmarshal(first, &m))
+	require.NotContains(t, m, "trackedAt")
+	require.NotContains(t, m, "block")
 }
 
 // Chain gate (#1740 navjit hook.go QuoterByChain; evplusai hook.go): LOTFLOW tracks and quotes only on
@@ -280,9 +281,9 @@ func TestChainGate(t *testing.T) {
 // F-N3: a caller deadline that lands during the 429 back-off is a transport failure (Track returns it
 // and publishes nothing), never an unclassified error that Track would publish as an empty market.
 func TestCtxDeadlineDuring429BackoffIsTransport(t *testing.T) {
-	var n int64
+	var n atomic.Int64
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt64(&n, 1)
+		n.Add(1)
 		w.WriteHeader(http.StatusTooManyRequests)
 		_, _ = w.Write([]byte("Rate Limit"))
 	}))
@@ -293,7 +294,7 @@ func TestCtxDeadlineDuring429BackoffIsTransport(t *testing.T) {
 	_, err := m.get(ctx, "0x0000000000000000000000000000000000000001", sel("foo()"))
 	require.Error(t, err)
 	require.ErrorIs(t, err, context.DeadlineExceeded)
-	require.True(t, isTransport(err), "%v (%T) after %d requests", err, err, atomic.LoadInt64(&n))
+	require.True(t, isTransport(err), "%v (%T) after %d requests", err, err, n.Load())
 	require.NotErrorIs(t, err, ErrReverted)
 }
 
@@ -303,13 +304,13 @@ func TestTrackCancelledContextPublishesNothing(t *testing.T) {
 	before := h.Extra
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	raw, err := h.trackMarket(ctx, &uniswapv4.HookParam{}, &Tracker{Cfg: h.cfg()}, ctxLoader{}, h.Lot, time.Now())
+	raw, err := h.trackMarket(ctx, &uniswapv4.HookParam{}, &Tracker{Cfg: h.cfg()}, ctxLoader{}, h.Lot)
 	require.Nil(t, raw)
 	require.True(t, isTransport(err), "%v", err)
 	require.Equal(t, before, h.Extra)
 	// control: the same unclassified error under a live context is the chain's answer (fail-closed)
 	raw, err = h.trackMarket(context.Background(), &uniswapv4.HookParam{}, &Tracker{Cfg: h.cfg()}, ctxLoader{},
-		h.Lot, time.Now())
+		h.Lot)
 	require.NoError(t, err)
 	require.NotNil(t, raw)
 	require.True(t, h.Tracked)

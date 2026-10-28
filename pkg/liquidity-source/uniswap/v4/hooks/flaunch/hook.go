@@ -58,8 +58,8 @@ type Hook struct {
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	h := &Hook{
-		Hook:  &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Flaunch},
-		Extra: Extra{SwapFee: DefaultSwapFee},
+		Hook:    &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Flaunch},
+		SwapFee: DefaultSwapFee,
 	}
 	if len(param.HookExtra) > 0 {
 		var persisted Extra

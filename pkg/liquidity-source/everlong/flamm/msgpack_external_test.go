@@ -92,7 +92,7 @@ func TestMsgpackProductionEncoder(t *testing.T) {
 		if !sell {
 			lo, hi = 100, 20_000_000_000
 		}
-		for i := 0; i < 40; i++ {
+		for i := range 40 {
 			a := lo + (hi-lo)*uint64(i*i)/1600
 			want := renderResult(t, sim, swapParams(sim, sell, a))
 			got := renderResult(t, dec, swapParams(dec, sell, a))

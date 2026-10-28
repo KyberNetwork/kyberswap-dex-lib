@@ -318,15 +318,9 @@ func nativeSwap(start *big.Int, tick int, liq, input *big.Int, zero bool, fee, p
 		}
 		var next int
 		if zero {
-			next = (compressed >> 8) * 256 * 60
-			if next < minTick {
-				next = minTick
-			}
+			next = max((compressed>>8)*256*60, minTick)
 		} else {
-			next = (((compressed+1)>>8)*256 + 255) * 60
-			if next > maxTick {
-				next = maxTick
-			}
+			next = min((((compressed+1)>>8)*256+255)*60, maxTick)
 		}
 		target := sqrtTick(next)
 		sn, si, so, sf, e := computeSwapStepExactIn(u(end), u(target), u(liq), u(remaining), uint64(fee))

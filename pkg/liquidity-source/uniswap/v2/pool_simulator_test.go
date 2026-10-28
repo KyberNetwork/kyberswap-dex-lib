@@ -2,18 +2,18 @@ package uniswapv2
 
 import (
 	"fmt"
-	"math/big"
-	"testing"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
-	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
-	"github.com/samber/lo"
-	"github.com/stretchr/testify/assert"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"math/big"
+	"testing"
 )
 
 var (
@@ -284,13 +284,11 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	testutil.TestCalcAmountIn(t, poolSim)
 
 	taxPoolSim := &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address: "0x70000c1cb3ee34a7323211607ac3162665b49549",
-				Tokens: []string{
-					"0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b",
-					"0xff8104251e7761163fac3211ef5583fb3f8583d6",
-				},
+		Info: pool.PoolInfo{
+			Address: "0x70000c1cb3ee34a7323211607ac3162665b49549",
+			Tokens: []string{
+				"0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b",
+				"0xff8104251e7761163fac3211ef5583fb3f8583d6",
 			},
 		},
 		reserves: []*uint256.Int{
@@ -385,13 +383,13 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 // token0 = VIRTUAL (no tax), token1 = agent token (0xff81..., buy=sell=100bp).
 func newTaxPoolSim() *PoolSimulator {
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address: "0x70000c1cb3ee34a7323211607ac3162665b49549",
 			Tokens: []string{
 				"0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b",
 				"0xff8104251e7761163fac3211ef5583fb3f8583d6",
 			},
-		}},
+		},
 		reserves: []*uint256.Int{
 			uint256.MustFromDecimal("64759685176877841920"),
 			uint256.MustFromDecimal("2092201468546951388637"),

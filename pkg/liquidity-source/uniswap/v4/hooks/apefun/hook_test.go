@@ -46,7 +46,7 @@ func solidityFees(gross *big.Int, taxBps, elapsed int64, buy bool) (fee, tax *bi
 }
 
 func hookAt(tax int64, quote0 bool) *Hook {
-	return &Hook{Extra: Extra{Live: true, QuoteIsCurrency0: quote0, TaxBps: tax, Launched: launched}}
+	return &Hook{Live: true, QuoteIsCurrency0: quote0, TaxBps: tax, Launched: launched}
 }
 
 func pinClock(t testing.TB, now int64) {

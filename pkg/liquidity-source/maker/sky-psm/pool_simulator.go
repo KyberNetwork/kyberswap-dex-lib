@@ -38,14 +38,14 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     p.Address,
 			Exchange:    p.Exchange,
 			Type:        p.Type,
 			Tokens:      lo.Map(p.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
 			Reserves:    lo.Map(p.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: p.BlockNumber,
-		}},
+		},
 		rate:           extra.Rate,
 		usdcPrecision:  big256.TenPow(p.Tokens[0].Decimals),
 		usdsPrecision:  big256.TenPow(p.Tokens[1].Decimals),

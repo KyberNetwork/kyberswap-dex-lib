@@ -94,6 +94,10 @@ func (t *PoolTracker) getNewPoolState(
 }
 
 func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) error {
+	var mintHeadroom *uint256.Int
+	if state.MintHeadroom != nil {
+		mintHeadroom = uint256.MustFromBig(state.MintHeadroom)
+	}
 	extraBytes, err := json.Marshal(Extra{
 		Gas:          Gas(vaultCfg.Gas),
 		MaxDeposit:   uint256.MustFromBig(state.MaxDeposit),
@@ -102,14 +106,17 @@ func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 		DepositRates: lo.Map(state.DepositRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 		RedeemRates:  lo.Map(state.RedeemRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 		TotalAssets:  uint256.MustFromBig(state.TotalAssets),
+
+		DepositsPaused: state.Paused,
+		MintHeadroom:   mintHeadroom,
+		MaxAge:         vaultCfg.MaxAge,
 	})
 	if err != nil {
 		return errors.WithMessage(err, "json.Marshal extra")
 	}
 
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = entity.PoolReserves{lo.CoalesceOrEmpty(state.MaxDeposit, state.TotalAssets, bignumber.ZeroBI).String(),
-		lo.CoalesceOrEmpty(state.MaxRedeem, state.TotalSupply, bignumber.ZeroBI).String()}
+	p.Reserves = Reserves(vaultCfg, state)
 	p.Extra = string(extraBytes)
 	p.BlockNumber = state.BlockNumber
 	return nil
@@ -145,6 +152,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			Target: vaultAddr,
 			Method: Erc4626MethodTotalAssets,
 		}, []any{&poolState.TotalAssets})
+		AddLimitCalls(func(c *ethrpc.Call, out []any) { req.AddCall(c, out) }, vaultAddr, vaultAddr, vaultCfg, &poolState)
 		if vaultCfg.MinDepositMethod != "" {
 			req.AddCall(&ethrpc.Call{
 				ABI:    Uint256GetterABI(vaultCfg.MinDepositMethod),
@@ -162,18 +170,28 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			}, []any{&poolState.DepositRates[i]})
 		}
 	}
+	if vaultCfg.Gas.Deposit > 0 && vaultCfg.Gas.Redeem == 0 && !vaultCfg.SupplyReadByLimits() {
+		// deposit-only: the supply converts maxDeposit (assets) into shares for the reserves
+		req.AddCall(&ethrpc.Call{
+			ABI:    ABI,
+			Target: vaultAddr,
+			Method: Erc4626MethodTotalSupply,
+		}, []any{&poolState.TotalSupply})
+	}
 	if vaultCfg.Gas.Redeem > 0 {
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
 			Method: Erc4626MethodMaxRedeem,
 			Params: []any{AddrDummy},
-		}, []any{&poolState.MaxRedeem}).AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: Erc4626MethodTotalSupply,
-		}, []any{&poolState.TotalSupply})
-
+		}, []any{&poolState.MaxRedeem})
+		if !vaultCfg.SupplyReadByLimits() { // else AddLimitCalls already read it
+			req.AddCall(&ethrpc.Call{
+				ABI:    ABI,
+				Target: vaultAddr,
+				Method: Erc4626MethodTotalSupply,
+			}, []any{&poolState.TotalSupply})
+		}
 		for i, amt := range PrefetchAmounts {
 			req.AddCall(&ethrpc.Call{
 				ABI:    ABI,
@@ -188,6 +206,9 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	if err != nil {
 		return assetToken, nil, err
 	}
+	if err = poolState.ResolveLimits(vaultCfg); err != nil {
+		return assetToken, nil, err
+	}
 
 	if poolState.MaxDeposit == nil || poolState.MaxDeposit.Sign() == 0 {
 		poolState.MaxDeposit = poolState.TotalAssets // fallback to a sensible value
@@ -197,7 +218,9 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	if poolState.MinDeposit != nil && poolState.MinDeposit.Sign() == 0 {
 		poolState.MinDeposit = nil
 	}
-	if poolState.MaxRedeem == nil || poolState.MaxRedeem.Sign() == 0 {
+	if vaultCfg.Gas.Redeem == 0 { // redeem unsupported: totalSupply is read only for the deposit conversion
+		poolState.MaxRedeem = nil
+	} else if poolState.MaxRedeem == nil || poolState.MaxRedeem.Sign() == 0 {
 		poolState.MaxRedeem = poolState.TotalSupply // fallback to a sensible value
 	} else if poolState.MaxRedeem.Cmp(bignumber.MaxUint128) > 0 {
 		poolState.MaxRedeem = nil // no limit

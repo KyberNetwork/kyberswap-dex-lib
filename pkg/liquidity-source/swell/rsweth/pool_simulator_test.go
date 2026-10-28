@@ -24,10 +24,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			// tx: 0x90f5fa71ae5473246317d2fdadb47512c9a99654d9d1be1881ef94f2c0eb2e63
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{common.WETH, common.RSWETH},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{common.WETH, common.RSWETH},
 				},
 				paused:          false,
 				ethToRswETHRate: bignumber.NewBig("995131146747098421"),

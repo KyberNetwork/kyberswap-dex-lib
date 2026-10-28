@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -28,8 +29,20 @@ type Hook struct {
 	Reserve0 *uint256.Int `json:"r0"`
 	Reserve1 *uint256.Int `json:"r1"`
 
-	TrackedAt uint64 `json:"t"`
+	// quoteAt is the indexing clock (HookParam.QuoteAt); 0 means the wall clock.
+	quoteAt int64
 }
+
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (h *Hook) now() int64 {
+	if h.quoteAt > 0 {
+		return h.quoteAt
+	}
+	return time.Now().Unix()
+}
+
+// stalenessMarginSec covers the gap between quote and on-chain execution.
+const stalenessMarginSec = 5
 
 type SwapInfo struct {
 	NewReserve0 *uint256.Int
@@ -45,6 +58,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		hook.Reserve0, _ = uint256.FromDecimal(param.Pool.Reserves[0])
 		hook.Reserve1, _ = uint256.FromDecimal(param.Pool.Reserves[1])
 	}
+	hook.quoteAt = param.QuoteAt
 	return hook
 }, HookAddresses...)
 
@@ -116,18 +130,20 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	h.UpdatedAt = price.Data.UpdatedAt.Uint64()
 	h.SpreadBps = price.Data.SpreadBps.Uint64()
 	h.MaxStaleness = maxStaleness.Uint64()
-	if param.BlockNumber != nil {
-		h.TrackedAt = param.BlockNumber.Uint64()
-	}
 
 	return json.Marshal(h)
 }
+
+// TracksActivity opts in to the tracker bumping Timestamp/BlockNumber when hX changes:
+// hX holds only chain state (no tracker clock), so a change means the pool moved.
+func (h *Hook) TracksActivity() {}
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.Price == 0 {
 		return nil, ErrNoPriceSet
 	}
-	if h.MaxStaleness > 0 && h.TrackedAt > h.UpdatedAt+h.MaxStaleness {
+	// PropAMMHook.sol reverts when block.timestamp > updatedAt + maxStaleness (seconds).
+	if h.MaxStaleness > 0 && uint64(h.now()+stalenessMarginSec) > h.UpdatedAt+h.MaxStaleness {
 		return nil, ErrStalePrice
 	}
 

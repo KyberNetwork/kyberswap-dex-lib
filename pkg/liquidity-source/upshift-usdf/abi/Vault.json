@@ -1,0 +1,6 @@
+[
+  {"type":"function","name":"startOfYearTimestamp","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+  {"type":"function","name":"currentPeriod","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+  {"type":"function","name":"minDepositAmount","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+  {"type":"function","name":"getSnapshot","stateMutability":"view","inputs":[{"name":"i","type":"uint256"}],"outputs":[{"name":"apr","type":"uint256"},{"name":"tokenPrice","type":"uint256"},{"name":"totalDeposited","type":"uint256"},{"name":"dailyInterest","type":"uint256"}]}
+]

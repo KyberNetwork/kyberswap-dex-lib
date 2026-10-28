@@ -66,7 +66,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
 	precisions := make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 		precisions[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
@@ -77,16 +77,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	priceOracle := bignumber.NewBig10(extraStr.PriceOracle)
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     strings.ToLower(entityPool.Address),
-				SwapFee:     bignumber.ZeroBI,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			SwapFee:     bignumber.ZeroBI,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		Precisions: precisions,
 		A:          bignumber.NewBig10(extraStr.A),

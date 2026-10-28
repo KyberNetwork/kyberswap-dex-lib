@@ -25,7 +25,7 @@ var (
 
 func GetAttestationController(config HookConfig) *AttestationController {
 	once.Do(func() {
-		httpClient := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
+		httpClient := resty.NewWithClient(new(lo.FromPtr(http.DefaultClient))).
 			SetBaseURL(config.HTTP.BaseURL).
 			SetTimeout(config.HTTP.Timeout.Duration).
 			SetRetryCount(config.HTTP.RetryCount).

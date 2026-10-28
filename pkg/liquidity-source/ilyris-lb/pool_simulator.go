@@ -55,14 +55,14 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	}
 
 	p := &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     strings.ToLower(ep.Address),
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      []string{strings.ToLower(ep.Tokens[0].Address), strings.ToLower(ep.Tokens[1].Address)},
 			Reserves:    []*big.Int{sumX.ToBig(), sumY.ToBig()},
 			BlockNumber: ep.BlockNumber,
-		}},
+		},
 		binStepBps:     se.BinStepBps,
 		activeID:       ex.ActiveID,
 		bins:           bins,

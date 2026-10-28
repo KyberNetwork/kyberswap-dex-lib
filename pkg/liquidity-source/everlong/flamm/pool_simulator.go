@@ -67,6 +67,10 @@ func NewPoolSimulatorFromParams(params pool.FactoryParams) (*PoolSimulator, erro
 		if err := sim.fresh(sim.now()); err != nil {
 			return nil, err
 		}
+	} else if t := pool.QuoteTime(false, params.EntityPool.Timestamp); !t.IsZero() {
+		// Indexing prices the snapshot: quote at its time, not the wall clock.
+		at := uint64(t.Unix())
+		sim.nowFn = func() uint64 { return at }
 	}
 	return sim, nil
 }
@@ -98,14 +102,14 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 		return nil, ErrNotAttested
 	}
 	sim := &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     strings.ToLower(p.Address),
 			Exchange:    p.Exchange,
 			Type:        p.Type,
 			Tokens:      lo.Map(p.Tokens, func(t *entity.PoolToken, _ int) string { return strings.ToLower(t.Address) }),
 			Reserves:    lo.Map(p.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
 			BlockNumber: p.BlockNumber,
-		}},
+		},
 		StaticExtra: se,
 		Venues:      extra.Venues,
 		OracleAhead: extra.OracleAhead,

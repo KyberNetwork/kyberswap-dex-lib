@@ -23,10 +23,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			// tx: 0xc10375968ca89dc807568cb40f57eef2792cae5a6438f083834b4609691ceef2
 			name: "it should return correct amount (deposit)",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0xae78736cd615f374d3085123a210448e74fc6393"},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0xae78736cd615f374d3085123a210448e74fc6393"},
 				},
 				depositEnabled:         true,
 				minimumDeposit:         bignumber.NewBig("10000000000000000"),
@@ -49,10 +47,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			// tx: 0x8eb5a21d1d0bddd30a74628bb246db25c7f28826130c408c45a94a64ee8b5701
 			name: "it should return correct amount (burn)",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Tokens: []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0xae78736cd615f374d3085123a210448e74fc6393"},
-					},
+				Info: poolpkg.PoolInfo{
+					Tokens: []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0xae78736cd615f374d3085123a210448e74fc6393"},
 				},
 				totalETHBalance: bignumber.NewBig("612577958207564412422016"),
 				totalRETHSupply: bignumber.NewBig("557175055422211468874658"),

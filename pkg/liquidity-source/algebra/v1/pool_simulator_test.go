@@ -325,7 +325,7 @@ const poolEncoded = `{"address":"0x521aa84ab3fcc4c05cabac24dc3682339887b126","re
 func RandNumberString(maxLen int) string {
 	sLen := rand.Intn(maxLen-1) + 1
 	s := make([]rune, sLen)
-	for i := 0; i < sLen; i++ {
+	for i := range sLen {
 		var c int
 		if i == 0 {
 			c = rand.Intn(9) + 1

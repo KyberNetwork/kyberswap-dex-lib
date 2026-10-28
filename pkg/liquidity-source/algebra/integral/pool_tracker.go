@@ -46,7 +46,7 @@ func NewPoolTracker(
 	graphqlClient *graphqlpkg.Client,
 ) *PoolTracker {
 	return &PoolTracker{
-		PoolTracker:   algebra.PoolTracker[Timepoint, TimepointRPC]{EthrpcClient: ethrpcClient},
+		EthrpcClient:  ethrpcClient,
 		config:        cfg,
 		graphqlClient: graphqlClient,
 	}
@@ -133,7 +133,7 @@ func (d *PoolTracker) BootstrapPoolState(
 		GlobalState:      rpcData.State,
 		Ticks:            ticks,
 		TickSpacing:      int32(rpcData.TickSpacing.Int64()),
-		ExtraTimepoint:   ExtraTimepoint{Timepoints: rpcData.Timepoints},
+		Timepoints:       rpcData.Timepoints,
 		VolatilityOracle: rpcData.VolatilityOracle,
 		SlidingFee:       rpcData.SlidingFee,
 		DynamicFee:       rpcData.DynamicFee,
@@ -682,7 +682,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		GlobalState:      rpcState.State,
 		Ticks:            entityPoolTicks,
 		TickSpacing:      int32(rpcState.TickSpacing.Int64()),
-		ExtraTimepoint:   ExtraTimepoint{Timepoints: rpcState.Timepoints},
+		Timepoints:       rpcState.Timepoints,
 		VolatilityOracle: rpcState.VolatilityOracle,
 		DynamicFee:       rpcState.DynamicFee,
 		SlidingFee:       rpcState.SlidingFee,

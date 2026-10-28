@@ -66,7 +66,7 @@ func (er *ExchangeRates) ratesAndUpdatedTimeForCurrencyLastNRounds(
 		}
 	}
 
-	for i := uint(0); i < numRounds; i++ {
+	for i := range numRounds {
 		// fetch the rate and treat is as current, so inverse limits if frozen will always be applied
 		// regardless of current rate
 		rates[i], times[i], err = er._getRateAndTimestampAtRound(currencyKey, roundId)

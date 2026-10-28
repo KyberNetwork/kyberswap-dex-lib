@@ -21,6 +21,9 @@ const (
 
 	binChunk = 100
 
+	// Extra gas of a SwapFeeHook mint, avg of 4 quoter deltas (in/out x both directions).
+	hookSwapFeeGas int64 = 29443
+
 	methodGetBin = "getBin"
 )
 
@@ -28,6 +31,7 @@ var (
 	_ONE                      = uint256.NewInt(1)
 	_MAX_LIQUIDITY_PER_BIN, _ = uint256.FromDecimal("65251743116719673010965625540244653191619923014385985379600384103134737")
 	_PIPS_DENOMINATOR         = uint64(1_000_000)
+	_PIPS                     = uint256.NewInt(1_000_000)
 	_ONE_E12                  = uint256.NewInt(1e12)
 	_PRECISION                = uint256.NewInt(1e18) // 1e18
 	_SCALE                    = new(uint256.Int).Lsh(_ONE, _SCALE_OFFSET)

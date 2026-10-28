@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -147,9 +146,8 @@ func newTrackerOnChain(t *testing.T, chain *fakeChain) *PoolTracker {
 	require.NoError(t, srv.RegisterName("eth", &ethAPI{chain}))
 	client := rpc.DialInProc(srv)
 	t.Cleanup(func() { client.Close(); srv.Stop() })
-	return &PoolTracker{PoolTracker: algebra.PoolTracker[Timepoint, TimepointRPC]{
-		EthrpcClient: ethrpc.NewWithClient(ethclient.NewClient(client)),
-	}}
+	return &PoolTracker{
+		EthrpcClient: ethrpc.NewWithClient(ethclient.NewClient(client))}
 }
 
 func (c *fakeChain) fetch(t *testing.T, tr *PoolTracker, cache map[uint16]Timepoint) map[uint16]Timepoint {

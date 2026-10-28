@@ -42,7 +42,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:         pool.Pool{Info: info},
+		Info:         info,
 		StaticExtra:  staticExtra,
 		Extra:        extra,
 		Gas:          DefaultGas,
@@ -305,7 +305,7 @@ func compactLevels(levels []OrderBookLevel) []OrderBookLevel {
 	return levels[:n]
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return pool.MetaInfo{
 		ApprovalAddress: s.StaticExtra.Router,
 		BlockNumber:     s.Info.BlockNumber,

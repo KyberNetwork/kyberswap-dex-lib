@@ -75,7 +75,7 @@ func TestRangeMath_CalcOutGivenIn_MatchesWeightedMath(t *testing.T) {
 		wIn, wOut := wp[0], wp[1]
 		for _, vIn := range balances() {
 			for _, vOut := range balances() {
-				for i := 0; i < 8; i++ {
+				for range 8 {
 					// amountIn strictly under the 30% MAX_IN_RATIO so WeightedMath
 					// doesn't throw: frac up to ~29% of vIn.
 					frac := uint256.NewInt(uint64(rand() * 29_0000))
@@ -111,7 +111,7 @@ func TestRangeMath_CalcInGivenOut_MatchesWeightedMath(t *testing.T) {
 		wIn, wOut := wp[0], wp[1]
 		for _, vIn := range balances() {
 			for _, vOut := range balances() {
-				for i := 0; i < 8; i++ {
+				for range 8 {
 					// amountOut under 30% of vOut so WeightedMath doesn't throw.
 					frac := uint256.NewInt(uint64(rand() * 29_0000))
 					amountOut := new(uint256.Int).Div(

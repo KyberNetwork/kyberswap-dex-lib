@@ -30,7 +30,7 @@ var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	entityPool := params.EntityPool
-	if time.Since(time.Unix(entityPool.Timestamp, 0)) > maxAge {
+	if params.Opts.StaleCheck && time.Since(time.Unix(entityPool.Timestamp, 0)) > maxAge {
 		return nil, ErrInvalidPrices
 	}
 	router, ok := Router[params.ChainID]
@@ -69,14 +69,14 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		approvalInfo:    pool.ApprovalInfo{ApprovalAddress: hexutil.Encode(router[:])},
 		decimals:        decimals,
 		reserves:        uReserves,

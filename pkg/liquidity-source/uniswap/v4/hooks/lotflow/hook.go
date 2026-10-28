@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
 	"strings"
 	"time"
@@ -63,9 +64,10 @@ var (
 
 // Extra is the hook state Track stores in the pool's extra.
 type Extra struct {
-	Tracked   bool    `json:"tracked"`
-	TrackedAt int64   `json:"trackedAt"`
-	Block     uint64  `json:"block"`
+	Tracked bool `json:"tracked"`
+	// TrackedAt is the legacy tracker clock. Track no longer writes it (nor the old pinned block);
+	// it is read only while the pool has no Extra "lv" (see trackedAt).
+	TrackedAt int64   `json:"trackedAt,omitempty"`
 	Lot       string  `json:"lot"`
 	Usdg      string  `json:"usdg"`
 	V3Factory string  `json:"v3Factory"`
@@ -76,6 +78,21 @@ type Hook struct {
 	*uniswapv4.BaseHook
 	Extra
 	staleCheck bool
+	liveAt     int64 // Extra "lv": when the tracker last confirmed this state
+}
+
+// livenessInterval is how often the tracker restamps a quiet pool; the worst quote age is this plus
+// one tracker interval, under MaxAgeSec.
+const livenessInterval = 20 * time.Second
+
+func (h *Hook) LivenessInterval() time.Duration { return livenessInterval }
+
+// trackedAt is the age baseline: the tracker's lv, else the legacy extra clock.
+func (h *Hook) trackedAt() int64 {
+	if h.liveAt > 0 {
+		return h.liveAt
+	}
+	return h.TrackedAt
 }
 
 // SwapInfo is what BeforeSwap hands to UpdateBalance.
@@ -84,7 +101,7 @@ type SwapInfo struct {
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	h := &Hook{BaseHook: &uniswapv4.BaseHook{Exchange: Exchange}, staleCheck: param.StaleCheck}
+	h := &Hook{BaseHook: &uniswapv4.BaseHook{Exchange: Exchange}, staleCheck: param.StaleCheck, liveAt: param.TrackedAt}
 	// An extra that does not decode, or decodes into a state Track cannot have produced, is untracked.
 	// So is an extra on another chain (a nil Cfg is a caller without chain context, as in evplusai).
 	if err := decodeExtra(param.HookExtra, &h.Extra); err != nil || validateExtra(&h.Extra) != nil ||
@@ -291,7 +308,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if !h.Tracked || h.Market == nil || h.Market.Venue == nil {
 		return nil, ErrNotTracked
 	}
-	if h.staleCheck && time.Now().Unix()-h.TrackedAt > MaxAgeSec {
+	if h.staleCheck && time.Now().Unix()-h.trackedAt() > MaxAgeSec {
 		return nil, ErrStale
 	}
 	if !params.CalcOut {
@@ -352,9 +369,7 @@ func cloneMarket(m *Market) *Market {
 	c.Constituents = make([]MarketConstituent, len(m.Constituents))
 	for i, mc := range m.Constituents {
 		mc.Pools = make(map[string]*LegPool, len(m.Constituents[i].Pools))
-		for id, p := range m.Constituents[i].Pools {
-			mc.Pools[id] = p
-		}
+		maps.Copy(mc.Pools, m.Constituents[i].Pools)
 		c.Constituents[i] = mc
 	}
 	return &c
@@ -392,7 +407,6 @@ func (h *Hook) GetReserves(context.Context, *uniswapv4.HookParam) (_ entity.Pool
 // Track loads the venue's state through RPCLoader on the pool-service RPC client, at param.BlockNumber
 // (resolved once if nil, so every read is one snapshot). State overrides are rejected, not ignored.
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
-	started := time.Now() // TrackedAt: the StaleCheck age counts from before the reads
 	if len(param.Overrides) != 0 {
 		return nil, ErrOverrides
 	}
@@ -470,7 +484,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	if err := l.prefetch(ctx, tr, lot); err != nil {
 		return nil, err
 	}
-	raw, err := h.trackMarket(ctx, param, tr, l, lot, started)
+	raw, err := h.trackMarket(ctx, param, tr, l, lot)
 	st := mc.Stats()
 	if w := statsWarning(st); w != "" {
 		logger.Warnf("lotflow: Track %s at block %s: %s", p.Address, block, w)
@@ -531,10 +545,9 @@ type twapPrefetcher interface {
 	PrefetchTwap(ctx context.Context, m *Market) error
 }
 
-// trackMarket loads the venue's market through tr and l and returns the hook extra, stamped with the
-// time the tracking started.
+// trackMarket loads the venue's market through tr and l and returns the hook extra.
 func (h *Hook) trackMarket(ctx context.Context, param *uniswapv4.HookParam, tr *Tracker, l Loader,
-	lot string, started time.Time) (json.RawMessage, error) {
+	lot string) (json.RawMessage, error) {
 	// A transport failure publishes nothing (the error is returned). Anything else that stops the
 	// market (a read that reverted on chain, a failed NAV check) publishes an empty market, as V15
 	// publishes empty ladders, so a previously valid quote cannot survive it.
@@ -568,12 +581,7 @@ func (h *Hook) trackMarket(ctx context.Context, param *uniswapv4.HookParam, tr *
 	if market != nil && validateMarket(market) != nil {
 		market = nil
 	}
-	var bn uint64
-	if param.BlockNumber != nil {
-		bn = param.BlockNumber.Uint64()
-	}
-	next := Extra{Tracked: true, TrackedAt: started.Unix(), Block: bn, Lot: lot, Usdg: tr.Cfg.Usdg,
-		V3Factory: tr.Cfg.V3Factory, Market: market}
+	next := Extra{Tracked: true, Lot: lot, Usdg: tr.Cfg.Usdg, V3Factory: tr.Cfg.V3Factory, Market: market}
 	raw, err := json.Marshal(next)
 	if err == nil {
 		h.Extra = next // GetReserves runs on this instance in the outer v4 tracker.

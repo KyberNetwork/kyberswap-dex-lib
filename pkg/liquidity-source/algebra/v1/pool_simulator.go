@@ -54,14 +54,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tickMax := extra.Ticks[len(extra.Ticks)-1].Index
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     strings.ToLower(entityPool.Address),
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		globalState: extra.GlobalState,
 		liquidity:   extra.Liquidity,
 		ticks:       ticks,

@@ -246,7 +246,7 @@ func TestFeeDirSkewRampIdenticalOutsideTheRamp(t *testing.T) {
 			if dev >= 5e17 {
 				break
 			}
-			for side := 0; side < 2; side++ {
+			for side := range 2 {
 				var s feeState
 				if side == 0 {
 					s = feeTestState(t, feeTestW(-1, dev), &wadUp)

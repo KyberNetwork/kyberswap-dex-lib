@@ -62,14 +62,14 @@ func NewPoolSimulator(ep entity.Pool, basePoolMap map[string]pool.IPoolSimulator
 	gradThresh := orZero(staticExtra.GraduationThresholdUsd)
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     strings.ToLower(ep.Address),
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
 			Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
 			BlockNumber: ep.BlockNumber,
-		}},
+		},
 		reserveToken:           orZero(extra.ReserveToken),
 		reserveAsset:           orZero(extra.ReserveAsset),
 		k:                      orZero(extra.K),

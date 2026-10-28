@@ -1,0 +1,5 @@
+{
+ "bootstrap/subgraph": "block=777 fee=3000 reserves=[0 0] extra={\"liquidity\":1000,\"sqrtPriceX96\":79228162514264337593543950336,\"tickSpacing\":60,\"tick\":0,\"ticks\":[{\"index\":-60,\"liquidityGross\":300,\"liquidityNet\":300},{\"index\":60,\"liquidityGross\":300,\"liquidityNet\":-300}]}",
+ "fetchTicks/0": "[{Index:-60 LiquidityGross:+300 LiquidityNet:+300} {Index:120 LiquidityGross:+500 LiquidityNet:-500}] blocks=[latest]",
+ "fetchTicks/5000": "[{Index:-60 LiquidityGross:+300 LiquidityNet:+300} {Index:120 LiquidityGross:+500 LiquidityNet:-500}] blocks=[0x1388]"
+}

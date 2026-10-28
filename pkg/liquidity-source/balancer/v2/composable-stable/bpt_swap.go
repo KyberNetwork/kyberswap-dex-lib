@@ -160,7 +160,7 @@ func (s *bptSimulator) _joinSwapExactTokenInForBptOut(
 	preJoinExitInvariant *uint256.Int,
 ) (*uint256.Int, *uint256.Int, error) {
 	amountsIn := make([]*uint256.Int, len(balances))
-	for i := 0; i < len(balances); i++ {
+	for i := range balances {
 		amountsIn[i] = uint256.NewInt(0)
 	}
 	amountsIn[indexIn] = amountIn
@@ -323,7 +323,7 @@ func (s *bptSimulator) _exitSwapExactTokenOutForBptIn(
 	// empty one and only set the amount for the token involved.
 
 	amountsOut := make([]*uint256.Int, len(balances))
-	for i := 0; i < len(balances); i++ {
+	for i := range balances {
 		amountsOut[i] = uint256.NewInt(0)
 	}
 	amountsOut[indexOut] = amountOut
@@ -619,7 +619,7 @@ func (s *bptSimulator) _getAdjustedBalanceV1(
 	totalTokensWithoutBpt := len(balances)
 	adjustedBalances := make([]*uint256.Int, totalTokensWithoutBpt)
 
-	for i := 0; i < totalTokensWithoutBpt; i++ {
+	for i := range totalTokensWithoutBpt {
 		skipBptIndex := i
 		if i >= s.bptIndex {
 			skipBptIndex++
@@ -692,7 +692,7 @@ func (s *bptSimulator) _getAdjustedBalanceV2(balances []*uint256.Int) ([]*uint25
 	totalTokensWithoutBpt := len(balances)
 	adjustedBalances := make([]*uint256.Int, totalTokensWithoutBpt)
 
-	for i := 0; i < totalTokensWithoutBpt; i++ {
+	for i := range totalTokensWithoutBpt {
 		skipBptIndex := i
 		if i >= s.bptIndex {
 			skipBptIndex++

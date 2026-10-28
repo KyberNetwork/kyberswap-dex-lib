@@ -72,7 +72,7 @@ func TestUseSwapLimit(t *testing.T) {
 
 func TestPoolListerFactory(t *testing.T) {
 	t.Parallel()
-	poolListers := []string{"uniswap", "uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
+	poolListers := []string{"uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
 		"muteswitch", "ramses-v2", "solidly-v2", "solidly-v3", "platypus", "biswap", "maker-psm", "curve",
 		"curve-stable-plain", "curve-stable-ng", "curve-stable-meta-ng", "curve-tricrypto-ng", "curve-twocrypto-ng",
 		"oneswap", "saddle", "dodo-classical", "dodo-dpp", "dodo-dsp", "dodo-dvm", "nerve", "synthetix",
@@ -91,7 +91,7 @@ func TestPoolListerFactory(t *testing.T) {
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
 		"ekubo-v3", "erc4626", "hyeth", "brownfi", "midas", "arbera-den", "cusd", "arbera-zap", "kelp-rseth-l2",
-		"unipool", "valantis-stex", "nabla", "lunarbase", "ghost", "ilyris-lb", "ammalgam"}
+		"unipool", "valantis-stex", "nabla", "lunarbase", "ghost", "ilyris-lb", "saturn-usdat", "upshift-usdf", "upshift-vaultv2", "ammalgam"}
 
 	for _, poolLister := range poolListers {
 		t.Run(poolLister, func(t *testing.T) {
@@ -103,7 +103,7 @@ func TestPoolListerFactory(t *testing.T) {
 
 func TestPoolTrackerFactory(t *testing.T) {
 	t.Parallel()
-	poolTrackers := []string{"uniswap", "uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
+	poolTrackers := []string{"uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
 		"muteswitch", "ramses-v2", "solidly-v2", "solidly-v3", "dodo-classical", "dodo-dpp", "dodo-dsp",
 		"dodo-dvm", "biswap", "platypus", "maker-psm", "curve", "curve-stable-plain", "curve-stable-ng",
 		"curve-stable-meta-ng", "curve-tricrypto-ng", "curve-twocrypto-ng", "oneswap", "saddle", "nerve",
@@ -121,7 +121,7 @@ func TestPoolTrackerFactory(t *testing.T) {
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
-		"ekubo-v3", "erc4626", "hyeth", "brownfi", "cusd", "kelp-rseth-l2", "unipool", "valantis-stex", "nabla", "lunarbase", "ghost", "ilyris-lb", "ammalgam"}
+		"ekubo-v3", "erc4626", "hyeth", "brownfi", "cusd", "kelp-rseth-l2", "unipool", "valantis-stex", "nabla", "lunarbase", "ghost", "ilyris-lb", "saturn-usdat", "upshift-usdf", "upshift-vaultv2", "ammalgam"}
 	t.Logf("%#v", poolTrackers)
 
 	for _, poolTracker := range poolTrackers {
@@ -144,12 +144,10 @@ func TestTicksBasedPoolTrackerFactory(t *testing.T) {
 			got := pooltrack.Factory(poolTracker)
 			assert.NotNil(t, got)
 			handler, err := got(string(poolTracker), pooltrack.FactoryParams{
-				Exchange:   string(poolTracker),
-				Properties: nil,
-				Dependencies: pooltrack.Dependencies{
-					EthrpcClient:  nil,
-					GraphqlClient: nil,
-				},
+				Exchange:      string(poolTracker),
+				Properties:    nil,
+				EthrpcClient:  nil,
+				GraphqlClient: nil,
 			})
 			assert.NoError(t, err)
 			_, ok := handler.(pool.ITicksBasedPoolTracker)

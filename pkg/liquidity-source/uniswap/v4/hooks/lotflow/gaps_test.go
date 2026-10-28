@@ -63,9 +63,9 @@ func TestValidatePoolBoundaries(t *testing.T) {
 // The per-call path (pool-service tooling): a context that ends during a 429 back-off is a transport
 // error, not a revert.
 func TestPerCallCtxDuring429IsTransport(t *testing.T) {
-	var n int64
+	var n atomic.Int64
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt64(&n, 1)
+		n.Add(1)
 		w.WriteHeader(http.StatusTooManyRequests)
 		_, _ = w.Write([]byte("Rate Limit"))
 	}))
@@ -75,7 +75,7 @@ func TestPerCallCtxDuring429IsTransport(t *testing.T) {
 	defer cancel()
 	_, err := l.call(ctx, "0x0000000000000000000000000000000000000001", sel("foo()"))
 	require.ErrorIs(t, err, context.DeadlineExceeded)
-	require.True(t, isTransport(err), "%v (%T) after %d requests", err, err, atomic.LoadInt64(&n))
+	require.True(t, isTransport(err), "%v (%T) after %d requests", err, err, n.Load())
 }
 
 // ctxTwapFault ends the caller's context once the market is loaded, and every TWAP slot read then
@@ -102,7 +102,7 @@ func TestCheckedNavCancelledPublishesNothing(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	h := &Hook{}
-	raw, err := h.trackMarket(ctx, param, tr, ctxTwapFault{l, cancel}, lot, time.Now())
+	raw, err := h.trackMarket(ctx, param, tr, ctxTwapFault{l, cancel}, lot)
 	require.True(t, isTransport(err), "%v", err)
 	require.Nil(t, raw)
 	require.False(t, h.Tracked)

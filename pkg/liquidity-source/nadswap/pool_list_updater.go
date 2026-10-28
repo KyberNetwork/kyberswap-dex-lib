@@ -107,7 +107,7 @@ func (u *PoolsListUpdater) getBatchSize(length, limit, offset int) int {
 func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset, batchSize int) ([]common.Address, error) {
 	results := make([]common.Address, batchSize)
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < batchSize; i++ {
+	for i := range batchSize {
 		req.AddCall(&ethrpc.Call{
 			ABI:    factoryABI,
 			Target: u.config.FactoryAddress,

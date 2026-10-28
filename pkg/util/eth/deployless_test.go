@@ -3,6 +3,7 @@ package eth
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -26,9 +27,7 @@ func fakeNode(t *testing.T, reply map[string]any) (*rpc.Client, *[]json.RawMessa
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
 		params = req.Params
 		resp := map[string]any{"jsonrpc": "2.0", "id": req.ID}
-		for k, v := range reply {
-			resp[k] = v
-		}
+		maps.Copy(resp, reply)
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(resp)
 	}))

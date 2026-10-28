@@ -71,14 +71,14 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	tokens := []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      tokens,
 			Reserves:    bigReserves,
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		approvalInfo: pool.ApprovalInfo{ApprovalAddress: hexutil.Encode(router[:])},
 		StaticExtra:  staticExtra,
 		Extra:        extra,

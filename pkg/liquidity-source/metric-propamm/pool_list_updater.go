@@ -1,0 +1,121 @@
+package metricpropamm
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+)
+
+var _ = poolpkg.RegisterFactory(DexType, NewPoolSimulatorFromParams)
+
+type MetadataResponse struct {
+	Data       []PairMetadata `json:"data"`
+	Total      int            `json:"total"`
+	NextOffset *int64         `json:"nextOffset"` // nil on the last page
+}
+
+type PairMetadata struct {
+	Pair                    string   `json:"pair"`
+	PoolAddress             string   `json:"poolAddress"`
+	Token0                  string   `json:"token0"`
+	Token1                  string   `json:"token1"`
+	Token0Decimals          uint8    `json:"token0Decimals"`
+	Token1Decimals          uint8    `json:"token1Decimals"`
+	PoolFactoryAddress      string   `json:"poolFactoryAddress"`
+	SwapWhitelistingEnabled bool     `json:"swapWhitelistingEnabled"`
+	Extensions              []string `json:"extensions"`
+}
+
+type PoolsListUpdater struct {
+	config *Config
+	client *resty.Client
+}
+
+var _ = poollist.RegisterFactoryC(DexType, NewPoolsListUpdater)
+
+func NewPoolsListUpdater(config *Config) *PoolsListUpdater {
+	return &PoolsListUpdater{config: config, client: newClient(config)}
+}
+
+// newClient sends the API key on every request: without it Metric returns only the
+// public view (e.g. /metadata answers "Unknown chainId" for key-gated chains).
+func newClient(config *Config) *resty.Client {
+	client := resty.NewWithClient(new(lo.FromPtr(http.DefaultClient))).
+		SetBaseURL(config.HTTPConfig.BaseURL).
+		SetTimeout(config.HTTPConfig.Timeout.Duration).
+		SetRetryCount(config.HTTPConfig.RetryCount)
+	if config.HTTPConfig.APIKey != "" {
+		client.SetAuthToken(config.HTTPConfig.APIKey)
+	}
+	return client
+}
+
+func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+	pairMetadata, err := fetchAllPairMetadata(ctx, u.client, u.config.ChainID)
+	if err != nil {
+		return nil, metadataBytes, err
+	}
+
+	pools := lo.Map(pairMetadata, func(pm PairMetadata, _ int) entity.Pool {
+		staticExtra, _ := json.Marshal(StaticExtra{
+			Pair:                    pm.Pair,
+			SwapWhitelistingEnabled: pm.SwapWhitelistingEnabled,
+		})
+
+		extra, _ := json.Marshal(Extra{QuoteAvailable: false, MaxAge: u.config.MaxAge, IsV2: true})
+		return entity.Pool{
+			Address:  strings.ToLower(pm.PoolAddress),
+			Reserves: []string{"0", "0"},
+			Tokens: []*entity.PoolToken{
+				{Address: strings.ToLower(pm.Token0), Decimals: pm.Token0Decimals, Swappable: true},
+				{Address: strings.ToLower(pm.Token1), Decimals: pm.Token1Decimals, Swappable: true},
+			},
+			Exchange:    u.config.DexID,
+			Type:        DexType,
+			StaticExtra: string(staticExtra),
+			Extra:       string(extra),
+			Timestamp:   time.Now().Unix(),
+		}
+	})
+	return pools, metadataBytes, nil
+}
+
+func fetchAllPairMetadata(ctx context.Context, client *resty.Client, chainID int64) ([]PairMetadata, error) {
+	var (
+		all    []PairMetadata
+		offset int64
+	)
+	for {
+		var resp MetadataResponse
+		res, err := client.R().
+			SetContext(ctx).
+			SetQueryParams(map[string]string{
+				"count":  strconv.Itoa(metadataPageSize),
+				"offset": strconv.FormatInt(offset, 10),
+			}).
+			SetResult(&resp).
+			Get(fmt.Sprintf("/public/v1/evm/%d/metadata", chainID))
+		if err != nil {
+			return nil, err
+		} else if res.IsError() {
+			return nil, fmt.Errorf("metadata API error: %s", res.String())
+		}
+		all = append(all, resp.Data...)
+
+		if resp.NextOffset == nil || *resp.NextOffset <= offset || len(resp.Data) == 0 {
+			return all, nil
+		}
+		offset = *resp.NextOffset
+	}
+}

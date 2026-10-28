@@ -54,14 +54,14 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     ep.Address,
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			BlockNumber: ep.BlockNumber,
-		}},
+		},
 		staticExtra: staticExtra,
 		extra:       extra,
 	}, nil

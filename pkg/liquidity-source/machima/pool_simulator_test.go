@@ -46,7 +46,7 @@ func newSimWithTokens(t *testing.T, token0, token1, tradedToken string, mutate f
 
 	liquidity := big.NewInt(1e18)
 
-	extra := Extra{Extra: uniswapv3.Extra{
+	extra := Extra{
 		SqrtPriceX96: sqrtPriceAtTick0,
 		Tick:         big.NewInt(0),
 		Liquidity:    liquidity,
@@ -54,8 +54,7 @@ func newSimWithTokens(t *testing.T, token0, token1, tradedToken string, mutate f
 		Ticks: []uniswapv3.Tick{
 			{Index: -2000, LiquidityGross: liquidity, LiquidityNet: big.NewInt(1e18)},
 			{Index: 2000, LiquidityGross: liquidity, LiquidityNet: big.NewInt(-1e18)},
-		},
-	}}
+		}}
 	if mutate != nil {
 		mutate(&extra)
 	}
@@ -339,13 +338,11 @@ func TestAntiSniperWindow(t *testing.T) {
 // divides by zero when grossing up.
 func TestRejectsImpossibleTax(t *testing.T) {
 	extra := Extra{
-		Extra: uniswapv3.Extra{
-			SqrtPriceX96: sqrtPriceAtTick0,
-			Tick:         big.NewInt(0),
-			Liquidity:    big.NewInt(1),
-			TickSpacing:  defaultTickSpacing,
-		},
-		ProtocolState: ProtocolState{HasTax: true, BuyTaxBps: bpsDenominator},
+		SqrtPriceX96: sqrtPriceAtTick0,
+		Tick:         big.NewInt(0),
+		Liquidity:    big.NewInt(1),
+		TickSpacing:  defaultTickSpacing,
+		HasTax:       true, BuyTaxBps: bpsDenominator,
 	}
 	extraBytes, err := json.Marshal(extra)
 	require.NoError(t, err)
@@ -485,21 +482,17 @@ func TestExtraRoundTripsBothDirections(t *testing.T) {
 	require.True(t, ok)
 
 	machimaExtra := Extra{
-		Extra: uniswapv3.Extra{
-			Liquidity:    big.NewInt(123456789),
-			SqrtPriceX96: sqrtPrice,
-			TickSpacing:  defaultTickSpacing,
-			Tick:         big.NewInt(-183000), // negative current tick
-			Ticks: []uniswapv3.Tick{
-				{Index: -887200, LiquidityGross: big.NewInt(1000), LiquidityNet: big.NewInt(1000)},
-				{Index: 887200, LiquidityGross: big.NewInt(1000), LiquidityNet: big.NewInt(-1000)},
-			},
+		Liquidity:    big.NewInt(123456789),
+		SqrtPriceX96: sqrtPrice,
+		TickSpacing:  defaultTickSpacing,
+		Tick:         big.NewInt(-183000), // negative current tick
+		Ticks: []uniswapv3.Tick{
+			{Index: -887200, LiquidityGross: big.NewInt(1000), LiquidityNet: big.NewInt(1000)},
+			{Index: 887200, LiquidityGross: big.NewInt(1000), LiquidityNet: big.NewInt(-1000)},
 		},
-		ProtocolState: ProtocolState{
-			HasTax: true, BuyTaxBps: 100, SellTaxBps: 100,
-			PoolDeploymentTime:    1234567890,
-			XmaSellSqrtPriceLimit: sqrtPrice,
-		},
+		HasTax: true, BuyTaxBps: 100, SellTaxBps: 100,
+		PoolDeploymentTime:    1234567890,
+		XmaSellSqrtPriceLimit: sqrtPrice,
 	}
 
 	// machima -> v3: this is what FetchPoolTicks does.
@@ -573,17 +566,13 @@ func TestUnmarshalExtraReadsUint256Shape(t *testing.T) {
 // hasTax false and the pool quotes untaxed — so it has to be asserted explicitly.
 func TestProtocolStateSurvivesUniswapV3Rewrite(t *testing.T) {
 	full := Extra{
-		Extra: uniswapv3.Extra{
-			Liquidity:    big.NewInt(1),
-			SqrtPriceX96: sqrtPriceAtTick0,
-			TickSpacing:  defaultTickSpacing,
-			Tick:         big.NewInt(0),
-		},
-		ProtocolState: ProtocolState{
-			HasTax: true, BuyTaxBps: 100, SellTaxBps: 100,
-			PoolDeploymentTime:    1784700554,
-			XmaSellSqrtPriceLimit: big.NewInt(745547668962671613),
-		},
+		Liquidity:    big.NewInt(1),
+		SqrtPriceX96: sqrtPriceAtTick0,
+		TickSpacing:  defaultTickSpacing,
+		Tick:         big.NewInt(0),
+		HasTax:       true, BuyTaxBps: 100, SellTaxBps: 100,
+		PoolDeploymentTime:    1784700554,
+		XmaSellSqrtPriceLimit: big.NewInt(745547668962671613),
 	}
 
 	// Simulate what uniswapv3.FetchPoolTicks does: read our Extra, rewrite it as a uniswapv3.Extra.

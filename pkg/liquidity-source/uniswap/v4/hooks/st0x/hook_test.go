@@ -72,7 +72,7 @@ func TestPoolSimulatorWithMissingHookExtraReserves(t *testing.T) {
 	sim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainID(8453))
 	require.NoError(t, err)
 	params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: token0, Amount: big.NewInt(10)}, TokenOut: token1}
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		result, err := sim.CalcAmountOut(params)
 		require.NoError(t, err)
 		require.Equal(t, big.NewInt(10), result.TokenAmountOut.Amount)
@@ -89,4 +89,58 @@ func TestBeforeSwapMissingReserves(t *testing.T) {
 			}
 		}
 	}
+}
+
+// The contract reverts when block.timestamp > updatedAt + maxStaleness (seconds), so the gate must
+// compare quote-clock seconds, with a margin for the quote-to-execution gap. The old gate compared
+// a block number with unix seconds and never refused.
+func TestBeforeSwapStalenessGate(t *testing.T) {
+	const updatedAt, maxStaleness = uint64(1_800_000_000), uint64(60)
+
+	for name, tc := range map[string]struct {
+		now     int64
+		maxStal uint64
+		stale   bool
+	}{
+		"fresh":                       {int64(updatedAt) + 10, maxStaleness, false},
+		"just before margin":          {int64(updatedAt+maxStaleness) - stalenessMarginSec, maxStaleness, false},
+		"inside margin":               {int64(updatedAt+maxStaleness) - stalenessMarginSec + 1, maxStaleness, true},
+		"past deadline":               {int64(updatedAt+maxStaleness) + 1, maxStaleness, true},
+		"tracker dead for a day":      {int64(updatedAt) + 86_400, maxStaleness, true},
+		"no staleness limit on-chain": {int64(updatedAt) + 86_400, 0, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			h := &Hook{
+				Price: 1e18, UpdatedAt: updatedAt, MaxStaleness: tc.maxStal,
+				Reserve0: uint256.NewInt(1000), Reserve1: uint256.NewInt(1000),
+				quoteAt: tc.now,
+			}
+			_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(10)})
+			if tc.stale {
+				require.ErrorIs(t, err, ErrStalePrice)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+// Routing builds carry no snapshot clock, so the gate keeps reading the wall clock.
+func TestBeforeSwapStalenessGateUsesWallClockWhenUnset(t *testing.T) {
+	h := &Hook{
+		Price: 1e18, UpdatedAt: 1, MaxStaleness: 1,
+		Reserve0: uint256.NewInt(1000), Reserve1: uint256.NewInt(1000),
+	}
+	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(10)})
+	require.ErrorIs(t, err, ErrStalePrice)
+}
+
+// hX must stay pure chain state: no tracker clock, or the tracker's activity bump would fire on
+// every refresh.
+func TestHookExtraHasNoTrackerClock(t *testing.T) {
+	b, err := json.Marshal(&Hook{Price: 1, UpdatedAt: 2, MaxStaleness: 3})
+	require.NoError(t, err)
+	var m map[string]any
+	require.NoError(t, json.Unmarshal(b, &m))
+	require.NotContains(t, m, "t")
 }

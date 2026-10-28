@@ -208,7 +208,7 @@ func (s *stableMath) ComputeInvariant(amplificationParameter *uint256.Int, balan
 	denom := new(uint256.Int)
 	diff := new(uint256.Int)
 
-	for i := 0; i < 255; i++ {
+	for range 255 {
 		prevInvariant.Set(invariant)
 
 		// D_P = D^(n+1)/(n^n * P)

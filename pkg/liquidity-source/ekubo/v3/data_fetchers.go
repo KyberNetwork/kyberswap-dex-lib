@@ -245,11 +245,9 @@ func (f *dataFetchers) fetchPools(
 			}
 
 			fetchedPools = append(fetchedPools, fetchedPool{
-				PoolWithBlockNumber: PoolWithBlockNumber{
-					Pool:        pools.NewVe33Pool(underlying, data.SwapFee),
-					blockNumber: blockNumber,
-				},
-				key: poolKey,
+				Pool:        pools.NewVe33Pool(underlying, data.SwapFee),
+				blockNumber: blockNumber,
+				key:         poolKey,
 			})
 		}
 	}

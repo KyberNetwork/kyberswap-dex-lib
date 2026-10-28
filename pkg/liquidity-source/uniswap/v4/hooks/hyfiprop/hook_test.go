@@ -52,10 +52,9 @@ func loadSeq(t testing.TB) (*seqFixture, *Hook) {
 	return &f, h
 }
 
-func setNow(t testing.TB, now uint64) {
+func setNow(t testing.TB, h *Hook, now uint64) {
 	t.Helper()
-	unixNow = func() uint64 { return now }
-	t.Cleanup(func() { unixNow = defaultUnixNow })
+	h.quoteAt = now
 }
 
 // The walk pointer a trade leaves in slot0 decides the next trade's price. Only UpdateBalance carries it,
@@ -63,7 +62,7 @@ func setNow(t testing.TB, now uint64) {
 func TestUpdateBalance_WalkPointerMatchesChain(t *testing.T) {
 	f, h := loadSeq(t)
 	for i, s := range f.Steps {
-		setNow(t, s.Now)
+		setNow(t, h, s.Now)
 		amt := u(s.In)
 		res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: s.ZeroForOne,
 			AmountSpecified: amt.ToBig()})
@@ -84,7 +83,7 @@ func TestUpdateBalance_WalkPointerMatchesChain(t *testing.T) {
 // A swap quoted on a clone must not move the original's pointer or inventory.
 func TestCloneState_Independent(t *testing.T) {
 	f, h := loadSeq(t)
-	setNow(t, f.Steps[0].Now)
+	setNow(t, h, f.Steps[0].Now)
 	before := *h
 	clone := h.CloneState().(*Hook)
 	amt := u(f.Steps[0].In)
@@ -99,7 +98,7 @@ func TestCloneState_Independent(t *testing.T) {
 
 func TestBeforeSwap_Refusals(t *testing.T) {
 	f, h := loadSeq(t)
-	setNow(t, f.Steps[0].Now)
+	setNow(t, h, f.Steps[0].Now)
 	swap := func(zfo bool, amt string) error {
 		a := u(amt)
 		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zfo, AmountSpecified: a.ToBig()})
@@ -115,7 +114,7 @@ func TestBeforeSwap_Refusals(t *testing.T) {
 	assert.NoError(t, swap(true, "100000000000000"))
 
 	// a book older than 1e6/feePerSecond seconds is all fee
-	setNow(t, f.Steps[0].Now+1_000_000/uint64(f.FeePerSecond))
+	setNow(t, h, f.Steps[0].Now+1_000_000/uint64(f.FeePerSecond))
 	h.Inventory[1] = u("1000000000000000000000000")
 	assert.ErrorIs(t, swap(true, "1000000000000000000"), ErrZeroOutput)
 
@@ -126,8 +125,7 @@ func TestBeforeSwap_Refusals(t *testing.T) {
 // CalcAmountIn inverts the exact-in quote: the min input whose output reaches the target.
 func TestCalcAmountIn_RoundTrip(t *testing.T) {
 	f, h := loadSeq(t)
-	setNow(t, f.Steps[0].Now)
-	sim := hooktest.NewPoolSimulator(t, HookAddresses[0], h)
+	sim := hooktest.NewPoolSimulatorAt(t, HookAddresses[0], h, int64(f.Steps[0].Now))
 	for _, out := range []string{"1000000", "123456789", "2000000000"} {
 		want, _ := new(big.Int).SetString(out, 10)
 		in, err := sim.CalcAmountIn(pool.CalcAmountInParams{TokenIn: tokenBase,
@@ -149,8 +147,7 @@ func TestCalcAmountIn_RoundTrip(t *testing.T) {
 // hook state survives the JSON round trip pool-service stores.
 func TestPoolSimulator_QuotesAndGas(t *testing.T) {
 	f, h := loadSeq(t)
-	setNow(t, f.Steps[0].Now)
-	sim := hooktest.NewPoolSimulator(t, HookAddresses[0], h)
+	sim := hooktest.NewPoolSimulatorAt(t, HookAddresses[0], h, int64(f.Steps[0].Now))
 	s := f.Steps[0]
 	in := u(s.In)
 	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenOut: tokenQuote,
@@ -172,3 +169,7 @@ func TestPoolSimulator_QuotesAndGas(t *testing.T) {
 	assert.Equal(t, h.Cfg, back.Cfg)
 	assert.Equal(t, h.Inventory, back.Inventory)
 }
+
+// hyfiprop's hX holds only chain state, so it must opt in to the tracker's activity bump; without
+// it a task-only refresh never moves Timestamp and the pool is archived while the book is live.
+var _ uniswapv4.HookTracksActivity = (*Hook)(nil)

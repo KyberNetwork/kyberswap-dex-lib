@@ -166,7 +166,7 @@ func rateLimited(err error) bool {
 // retryLimited retries f while the upstream rate-limits, up to ~3 minutes.
 func retryLimited(ctx context.Context, f func() error) error {
 	var err error
-	for i := 0; i < 36; i++ {
+	for range 36 {
 		if err = f(); !rateLimited(err) {
 			return err
 		}
@@ -615,7 +615,7 @@ func (l *RPCLoader) loadTicks(ctx context.Context, wlo, whi, spacing int, wordRe
 			return nil, fmt.Errorf("bitmap word %d: %w", wlo+i, r.err)
 		}
 		bm := wordAt(r.out, 0)
-		for b := 0; b < 256; b++ {
+		for b := range 256 {
 			if bm.Bit(b) == 1 {
 				ticks = append(ticks, ((wlo+i)*256+b)*spacing)
 			}

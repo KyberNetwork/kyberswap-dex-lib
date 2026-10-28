@@ -32,6 +32,11 @@ The tracker reads curve and authenticated canonical-market state at one block, d
 
 Native parent pools and a graduated token's own canonical pool are exposed via `GetBasePools` and can be relinked via `SetBasePool`. Router-service only relinks the indexed external bases (`basePools`), so each pool keeps its own copy of parent and canonical liquidity. Clones own all mutable liquidity; stale quote replay is validated entirely before any shared pool is modified. Same-factory graduated parents only, maximum depth two, no cycles.
 
+Refresh triggers: the pool address is the launch token, and every settlement trade (curve or
+graduated market) emits a log from it, so the pool refreshes itself. Dependencies are only the
+factory (global config) and native parent tokens. Don't add PoolManager or the market adapter:
+the updater would refresh every launch on every V4 log on the chain.
+
 Known limitation (accepted): a parent's canonical market is copied into the parent's own pool and
 into each child routing through it. A route using both (e.g. P -> WETH on pool P, then WETH -> C on
 child pool C, which buys P in the same market) prices each leg against the market's pre-trade state,

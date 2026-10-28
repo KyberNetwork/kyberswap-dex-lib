@@ -122,7 +122,7 @@ func (p *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 	rpcRequest := p.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
-	for i := 0; i < len(pairAddresses); i++ {
+	for i := range pairAddresses {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: pairAddresses[i].Hex(),

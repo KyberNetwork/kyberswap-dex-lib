@@ -24,14 +24,12 @@ func TestCalcAmountOut(t *testing.T) {
 		reserves[2], _ = new(big.Int).SetString("8897791020011100123456", 10)
 
 		s := PoolSimulator{
-			Pool: pool.Pool{
-				Info: pool.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0xdac17f958d2ee523a2206206994597c13d831ec7",
-						"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-						"0x6b175474e89094c44da98b954eedeac495271d0f",
-					},
+			Info: pool.PoolInfo{
+				Reserves: reserves,
+				Tokens: []string{
+					"0xdac17f958d2ee523a2206206994597c13d831ec7",
+					"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+					"0x6b175474e89094c44da98b954eedeac495271d0f",
 				},
 			},
 			swapFeePercentage: uint256.NewInt(50000000000000),
@@ -64,14 +62,12 @@ func TestCalcAmountOut(t *testing.T) {
 		reserves[2], _ = new(big.Int).SetString("13288977911102200123456", 10)
 
 		s := PoolSimulator{
-			Pool: pool.Pool{
-				Info: pool.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0xdac17f958d2ee523a2206206994597c13d831ec7",
-						"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-						"0x6b175474e89094c44da98b954eedeac495271d0f",
-					},
+			Info: pool.PoolInfo{
+				Reserves: reserves,
+				Tokens: []string{
+					"0xdac17f958d2ee523a2206206994597c13d831ec7",
+					"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+					"0x6b175474e89094c44da98b954eedeac495271d0f",
 				},
 			},
 			swapFeePercentage: uint256.NewInt(50000000000000),
@@ -112,14 +108,12 @@ func TestCalcAmountOut(t *testing.T) {
 		reserves[2], _ = new(big.Int).SetString("1328897131447911102200123456", 10)
 
 		s := PoolSimulator{
-			Pool: pool.Pool{
-				Info: pool.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0xdac17f958d2ee523a2206206994597c13d831ec7",
-						"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-						"0x6b175474e89094c44da98b954eedeac495271d0f",
-					},
+			Info: pool.PoolInfo{
+				Reserves: reserves,
+				Tokens: []string{
+					"0xdac17f958d2ee523a2206206994597c13d831ec7",
+					"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+					"0x6b175474e89094c44da98b954eedeac495271d0f",
 				},
 			},
 			swapFeePercentage: uint256.NewInt(53332221119995),
@@ -358,30 +352,24 @@ func TestCanSwapTo(t *testing.T) {
 	t.Parallel()
 	// Setup base pools
 	basePool1 := &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address: "pool1",
-				Tokens:  []string{"pool1", "ETH", "USDT"},
-			},
+		Info: pool.PoolInfo{
+			Address: "pool1",
+			Tokens:  []string{"pool1", "ETH", "USDT"},
 		},
 	}
 
 	basePool2 := &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address: "pool2",
-				Tokens:  []string{"pool2", "BTC", "USDT"},
-			},
+		Info: pool.PoolInfo{
+			Address: "pool2",
+			Tokens:  []string{"pool2", "BTC", "USDT"},
 		},
 	}
 
 	// Setup main pool
 	pool := &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address: "main_pool",
-				Tokens:  []string{"pool1", "pool2", "USDC"},
-			},
+		Info: pool.PoolInfo{
+			Address: "main_pool",
+			Tokens:  []string{"pool1", "pool2", "USDC"},
 		},
 		basePools: map[string]shared.IBasePool{
 			"pool1": basePool1,
@@ -402,7 +390,12 @@ func TestCanSwapTo(t *testing.T) {
 		{
 			name:     "Token exists in base pool 1",
 			input:    "ETH",
-			expected: []string{"pool1", "pool2", "BTC", "USDT", "USDC"},
+			expected: []string{"pool2", "BTC", "USDT", "USDC"},
+		},
+		{
+			name:     "BPT of base pool 1",
+			input:    "pool1",
+			expected: []string{"pool2", "USDC", "BTC", "USDT"},
 		},
 		{
 			name:     "Token exists in multiple pools",

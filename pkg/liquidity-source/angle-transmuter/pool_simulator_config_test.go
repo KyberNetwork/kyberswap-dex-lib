@@ -11,9 +11,9 @@ import (
 
 func getPool() PoolSimulator {
 	return PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Tokens: []string{"0x1abaea1f7c830bd89acc67ec4af516284b1bc33c", "0x1a7e4e63778b4f12a199c062f3efdd288afcbce8"},
-		}},
+		},
 		Decimals: []uint8{6, 18},
 		Transmuter: TransmuterState{
 			TotalStablecoinIssued: setUInt("11600921906778307242249332"),
@@ -193,9 +193,9 @@ func getPool() PoolSimulator {
 // Tx on chain: 0x0138aa67f964465cdfc6dcac3581471c63ac044f7dce3d283e75ce23790c7093
 func getMintPool() PoolSimulator {
 	return PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Tokens: []string{"0x1abaea1f7c830bd89acc67ec4af516284b1bc33c", "0x1a7e4e63778b4f12a199c062f3efdd288afcbce8"},
-		}},
+		},
 		Decimals: []uint8{6, 18},
 		Transmuter: TransmuterState{
 			TotalStablecoinIssued: setUInt("11600921906778307242249332"),
@@ -255,9 +255,9 @@ func getMintPool() PoolSimulator {
 // Tx on chain: 0xd1462167e4f79bdd69dcccdc9ff9c0b6fed665b2e44de993ebd8285fb0079411
 func getMintPoolUSD() PoolSimulator {
 	return PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Tokens: []string{"0xbeef01735c132ada46aa9aa4c54623caa92a64cb", "0x0000206329b97db379d5e1bf586bbdb969c63274"},
-		}},
+		},
 		Decimals: []uint8{18, 18},
 		Transmuter: TransmuterState{
 			TotalStablecoinIssued: setUInt("12394643135438408381545155"),
@@ -306,13 +306,13 @@ func getMintPoolUSD() PoolSimulator {
 
 func getParallelPool() PoolSimulator {
 	return PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Tokens: []string{
 				"0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE", // scUSD
 				"0xA19ebd8f9114519bF947671021c01d152c3777E4", // ygami_scUSD
 				"0x08417cdb7F52a5021bB4eb6E0deAf3f295c3f182", // USDp
 			},
-		}},
+		},
 		Decimals: []uint8{6, 6, 18},
 		Transmuter: TransmuterState{
 			TotalStablecoinIssued: setUInt("493987443536936298347938"),

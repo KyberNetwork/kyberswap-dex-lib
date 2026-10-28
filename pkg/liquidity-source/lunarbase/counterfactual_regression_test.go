@@ -125,7 +125,7 @@ func TestCounterfactualQuotePurityCloneAndSequence(t *testing.T) {
 	base := cfEntity(t)
 	rows := []map[string]any{}
 	success, errors := 0, 0
-	for scenario := 0; scenario < 120; scenario++ {
+	for scenario := range 120 {
 		p := base
 		var extra Extra
 		if e := json.Unmarshal([]byte(p.Extra), &extra); e != nil {
@@ -154,7 +154,7 @@ func TestCounterfactualQuotePurityCloneAndSequence(t *testing.T) {
 			p.Reserves[j] = v.String()
 		}
 		s := cfSimulator(t, p)
-		for step := 0; step < 30; step++ {
+		for step := range 30 {
 			side := random.Intn(2)
 			in := new(big.Int).Set(s.reserves[side].ToBig())
 			in.Div(in, big.NewInt(int64(20+random.Intn(5000))))

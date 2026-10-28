@@ -162,7 +162,7 @@ func (e *forkEnv) scenarioSeq(t *testing.T, rep *forkReport, area string, sim *P
 	ts := s.Timestamp
 	gasMax := map[string]uint64{}
 	adopted, refused := 0, 0
-	for i := 0; i < steps; i++ {
+	for i := range steps {
 		venue := rng.Intn(3) - 1
 		if leverBias && rng.Intn(2) == 0 {
 			venue = int(VenueLever)
@@ -511,7 +511,6 @@ func TestForkScenarios(t *testing.T) {
 		}},
 	}
 	for _, leftover := range []int64{0, 2_500_000, 300_000_000} {
-		leftover := leftover
 		scenarios = append(scenarios, forkScenario{name: fmt.Sprintf("liquidity-squeeze-%d", leftover),
 			apply: func(t *testing.T, e *forkEnv, _ *PoolSimulator) bool {
 				coll := big.NewInt(3_000_000_000_000) // 30,000 cbBTC

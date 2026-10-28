@@ -46,4 +46,39 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
 	assert.NotZero(t, p.BlockNumber)
 	assert.NotZero(t, extra.MeasuredAt, "a pool never measured is measured")
+	assert.Empty(t, extra.Maker, "the pool has no market maker")
+}
+
+// TestPoolTracker_SharedMaker checks that pools quoted by one market maker are
+// tracked with it, which is what lets them share a limit.
+func TestPoolTracker_SharedMaker(t *testing.T) {
+	t.Parallel()
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
+
+	pt := &PoolTracker{
+		config: &Config{
+			DexID:         DexType,
+			HelperAddress: "0x237dB58fea34A35A8543b44C217d221606cE7788",
+			ChainId:       valueobject.ChainIDMonad,
+		},
+		ethrpcClient: ethrpc.New("https://rpc.monad.xyz").
+			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
+	}
+	var makers []string
+	// MON/WETH and cbBTC/WETH, whose bids both pay WETH.
+	for _, poolAddress := range []string{"0xc4adcb94d0dce7fc84e180fae3621df13ad37e06",
+		"0x05e028d33fa727168bc9396bdac5cab387c8a196"} {
+		p, err := pt.GetNewPoolState(context.Background(),
+			entity.Pool{Address: poolAddress, StaticExtra: `{"sX":"1","sY":"1"}`},
+			pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+
+		var extra Extra
+		require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
+		require.NotEmpty(t, extra.Maker)
+		makers = append(makers, extra.Maker)
+	}
+	assert.Equal(t, makers[0], makers[1])
 }

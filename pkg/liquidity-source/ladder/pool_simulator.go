@@ -78,14 +78,14 @@ func NewPoolSimulatorWith(ep entity.Pool, maxAge time.Duration) (*PoolSimulator,
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     ep.Address,
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
 			Reserves:    lo.Map(ep.Reserves, func(s string, _ int) *big.Int { return bignum.NewBig(s) }),
 			BlockNumber: ep.BlockNumber,
-		}},
+		},
 		Extra:    extra,
 		Reserve0: r0,
 		Reserve1: r1,

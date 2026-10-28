@@ -19,6 +19,7 @@ import (
 
 var (
 	ErrSameBasePoolSwapNotAllowed = errors.New("swapping between tokens in the same base pool is not allowed")
+	ErrBasePoolBptSwapNotAllowed  = errors.New("swapping a token for its own base pool BPT through the main pool is not allowed")
 	ErrTokenNotRegistered         = errors.New("TOKEN_NOT_REGISTERED")
 	ErrInvalidReserve             = errors.New("invalid reserve")
 	ErrInvalidAmountIn            = errors.New("invalid amount in")
@@ -132,7 +133,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	}
 
 	p := &PoolSimulator{
-		Pool:                      pool.Pool{Info: poolInfo},
+		Info:                      poolInfo,
 		basePools:                 basePools,
 		paused:                    extra.Paused,
 		swapFeePercentage:         extra.SwapFeePercentage,
@@ -326,7 +327,7 @@ func (s *PoolSimulator) swapDirect(tokenIn, tokenOut string, amountIn *uint256.I
 }
 
 func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *uint256.Int) (*pool.CalcAmountOutResult, error) {
-	basePool, err := s.getBasePool(tokenIn)
+	basePool, err := s.getBasePool(tokenIn, tokenOut)
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +378,7 @@ func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *ui
 }
 
 func (s *PoolSimulator) swapFromMain2Base(tokenIn, tokenOut string, amountIn *uint256.Int) (*pool.CalcAmountOutResult, error) {
-	basePool, err := s.getBasePool(tokenOut)
+	basePool, err := s.getBasePool(tokenOut, tokenIn)
 	if err != nil {
 		return nil, err
 	}
@@ -429,12 +430,12 @@ func (s *PoolSimulator) swapFromMain2Base(tokenIn, tokenOut string, amountIn *ui
 }
 
 func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn *uint256.Int) (*pool.CalcAmountOutResult, error) {
-	basePoolIn, err := s.getBasePool(tokenIn)
+	basePoolIn, err := s.getBasePool(tokenIn, "")
 	if err != nil {
 		return nil, err
 	}
 
-	basePoolOut, err := s.getBasePool(tokenOut)
+	basePoolOut, err := s.getBasePool(tokenOut, "")
 	if err != nil {
 		return nil, err
 	}
@@ -542,15 +543,23 @@ func (s *PoolSimulator) buildSwapResult(tokenOut string, amountOut *uint256.Int,
 	}
 }
 
-func (s *PoolSimulator) getBasePool(token string) (shared.IBasePool, error) {
+// getBasePool returns a base pool containing token whose BPT is not excludedBpt. Routing a token
+// through the base pool whose BPT is the other side of the swap would add a BPT -> same BPT hop
+// in the main pool, which the Vault rejects (BAL#509).
+func (s *PoolSimulator) getBasePool(token, excludedBpt string) (shared.IBasePool, error) {
+	err := ErrTokenNotRegistered
 	for _, basePool := range s.basePools {
-		index := basePool.GetTokenIndex(token)
-		if index >= 0 {
-			return basePool, nil
+		if basePool.GetTokenIndex(token) < 0 {
+			continue
 		}
+		if basePool.GetAddress() == excludedBpt {
+			err = ErrBasePoolBptSwapNotAllowed
+			continue
+		}
+		return basePool, nil
 	}
 
-	return nil, ErrTokenNotRegistered
+	return nil, err
 }
 
 // https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F7#L32
@@ -892,6 +901,23 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 					result[underlyingToken] = struct{}{}
 				}
 			}
+		}
+	}
+
+	// Drop main pool <-> base pool pairs that CalcAmountOut rejects because the only base pool
+	// route goes through the BPT on the other side of the swap.
+	for token := range result {
+		if (tokenIndex < 0) == (s.GetTokenIndex(token) < 0) {
+			continue
+		}
+		var err error
+		if tokenIndex < 0 {
+			_, err = s.getBasePool(address, token)
+		} else {
+			_, err = s.getBasePool(token, address)
+		}
+		if err != nil {
+			delete(result, token)
 		}
 	}
 
