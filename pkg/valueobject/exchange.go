@@ -168,6 +168,7 @@ const (
 	ExchangeKrptoDex                    = "kryptodex"
 	ExchangeKTX                         = "ktx"
 	ExchangeKuruOB                      = "kuru-ob"
+	ExchangeKuruOBV2                    = "kuru-ob-v2"
 	ExchangeKyberPMM                    = "kyber-pmm"
 	ExchangeKipseliProp                 = "kipseli-prop"
 	ExchangeKipseliPamm                 = "kipseli-pamm"
@@ -406,6 +407,7 @@ const (
 	ExchangePrmFun                      = "prm-fun"
 	ExchangeTitanProp                   = "titan-prop"
 	ExchangeOdysFun                     = "odys-fun"
+	ExchangeStelaxisProp                = "stelaxis-prop"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
@@ -501,6 +503,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapV4HyFiProp:  {},
 	ExchangePancakeProp:        {},
 	ExchangeBiconomyProp:       {},
+	ExchangeStelaxisProp:       {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {

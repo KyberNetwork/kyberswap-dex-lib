@@ -105,6 +105,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			UniversalRouterAddress: common.HexToAddress(u.config.UniversalRouterAddress),
 			Permit2Address:         common.HexToAddress(u.config.Permit2Address),
 			Multicall3Address:      common.HexToAddress(u.config.Multicall3Address),
+			PoolManager:            u.config.poolManager(),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)
@@ -116,7 +117,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		pool := entity.Pool{
 			Address:     p.ID,
 			SwapFee:     float64(fee),
-			Exchange:    hook.GetExchange(),
+			Exchange:    ForkExchange(hook.GetExchange(), u.config.DexID),
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    entity.PoolReserves{"0", "0"},
