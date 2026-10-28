@@ -405,6 +405,7 @@ const (
 	ExchangePrmFun                      = "prm-fun"
 	ExchangeTitanProp                   = "titan-prop"
 	ExchangeOdysFun                     = "odys-fun"
+	ExchangeStelaxisProp                = "stelaxis-prop"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
@@ -500,6 +501,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapV4HyFiProp:  {},
 	ExchangePancakeProp:        {},
 	ExchangeBiconomyProp:       {},
+	ExchangeStelaxisProp:       {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
