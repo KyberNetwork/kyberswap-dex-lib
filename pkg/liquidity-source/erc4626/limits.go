@@ -14,15 +14,22 @@ func (c VaultCfg) SupplyReadByLimits() bool {
 	return c.Gas.Deposit > 0 && c.MaxSupplyMethod != ""
 }
 
-// AddLimitCalls adds the VaultV2 gate reads and the optional pause and supply-cap reads of a deposit-enabled vault.
-// shareAddr is the contract whose totalSupply is the share supply. The supply lands in state.TotalSupply, so
+// AddLimitCalls adds the VaultV2 permission reads and the optional pause and supply-cap reads of a deposit-enabled
+// vault. shareAddr is the contract whose totalSupply is the share supply. The supply lands in state.TotalSupply, so
 // the redeem block must skip its own read when SupplyReadByLimits is true.
 func AddLimitCalls(addFn func(*ethrpc.Call, []any), vaultAddr, shareAddr string, cfg VaultCfg, state *PoolState) {
-	// an address is one word, so it decodes as uint256 and stays nil when the getter is missing
-	addFn(&ethrpc.Call{ABI: Uint256GetterABI(VaultV2MethodReceiveSharesGate), Target: vaultAddr,
-		Method: VaultV2MethodReceiveSharesGate}, []any{&state.ReceiveSharesGate})
-	addFn(&ethrpc.Call{ABI: Uint256GetterABI(VaultV2MethodSendAssetsGate), Target: vaultAddr,
-		Method: VaultV2MethodSendAssetsGate}, []any{&state.SendAssetsGate})
+	// a bool decodes as uint256 and stays nil when the vault has no such view
+	for _, c := range []struct {
+		method string
+		out    **big.Int
+	}{
+		{VaultV2MethodCanReceiveShares, &state.CanReceiveShares},
+		{VaultV2MethodCanSendShares, &state.CanSendShares},
+		{VaultV2MethodCanSendAssets, &state.CanSendAssets},
+	} {
+		addFn(&ethrpc.Call{ABI: uint256OfAddressABI(c.method), Target: vaultAddr, Method: c.method,
+			Params: []any{AddrDummy}}, []any{c.out})
+	}
 	if m := cfg.DepositsPausedMethod; m != "" {
 		// a bool is one 0/1 word, so it decodes as uint256 (ethrpc cannot fill a nil *bool on a failed call)
 		addFn(&ethrpc.Call{ABI: Uint256GetterABI(m), Target: vaultAddr, Method: m}, []any{&state.RawPaused})
@@ -33,21 +40,26 @@ func AddLimitCalls(addFn func(*ethrpc.Call, []any), vaultAddr, shareAddr string,
 	}
 }
 
-// ResolveMaxDeposit falls back to totalAssets when the maxDeposit read failed or the vault is an ungated Morpho
-// VaultV2, whose maxDeposit is always 0 by design. Any other 0 means deposits revert (cap reached, frozen, ...).
-func (s *PoolState) ResolveMaxDeposit() {
-	if s.MaxDeposit == nil || (s.MaxDeposit.Sign() == 0 && s.ungatedVaultV2()) {
+// ResolveMaxDeposit falls back to totalAssets when the maxDeposit read failed or its 0 does not mean closed: a
+// Morpho VaultV2 open to any account (its maxDeposit is always 0 by design), or a vault configured with
+// IgnoreZeroMaxDeposit. Any other 0 means deposits revert (cap reached, frozen, gated, ...).
+func (s *PoolState) ResolveMaxDeposit(cfg VaultCfg) {
+	if s.MaxDeposit == nil || (s.MaxDeposit.Sign() == 0 && (cfg.IgnoreZeroMaxDeposit || s.openVaultV2())) {
 		s.MaxDeposit = s.TotalAssets
 	} else if s.MaxDeposit.Cmp(bignumber.MaxUint128) > 0 {
 		s.MaxDeposit = nil // no limit
 	}
 }
 
-// ungatedVaultV2 reports a VaultV2 with no gate on deposits: its deposit checks canReceiveShares(onBehalf) and
-// canSendAssets(msg.sender), which only a set gate can refuse.
-func (s *PoolState) ungatedVaultV2() bool {
-	return s.ReceiveSharesGate != nil && s.SendAssetsGate != nil &&
-		s.ReceiveSharesGate.Sign() == 0 && s.SendAssetsGate.Sign() == 0
+// openVaultV2 reports a VaultV2 that lets any account deposit and pass the shares on: deposit checks
+// canReceiveShares(onBehalf) and canSendAssets(msg.sender), and the transfer out checks canSendShares.
+func (s *PoolState) openVaultV2() bool {
+	for _, v := range []*big.Int{s.CanReceiveShares, s.CanSendShares, s.CanSendAssets} {
+		if v == nil || v.Sign() == 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // ResolveLimits derives Paused and MintHeadroom from the raw reads. A configured read that failed is an error,

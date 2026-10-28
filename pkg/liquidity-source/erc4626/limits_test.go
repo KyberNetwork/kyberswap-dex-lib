@@ -42,21 +42,29 @@ func TestResolveLimitsFailsOnMissingRead(t *testing.T) {
 
 func TestResolveMaxDeposit(t *testing.T) {
 	t.Parallel()
-	zero, gate, total := big.NewInt(0), big.NewInt(0xbeef), big.NewInt(561)
+	no, yes, total := big.NewInt(0), big.NewInt(1), big.NewInt(561)
+	vaultV2 := func(recvShares, sendShares, sendAssets *big.Int) PoolState {
+		return PoolState{MaxDeposit: no, CanReceiveShares: recvShares, CanSendShares: sendShares, CanSendAssets: sendAssets}
+	}
+	ignoreZero := VaultCfg{IgnoreZeroMaxDeposit: true}
 	for name, tc := range map[string]struct {
 		s    PoolState
+		cfg  VaultCfg
 		want *big.Int
 	}{
-		"read failed":     {PoolState{}, total},
-		"closed":          {PoolState{MaxDeposit: zero}, zero}, // e.g. Aave stata over its supply cap
-		"ungated vaultV2": {PoolState{MaxDeposit: zero, ReceiveSharesGate: zero, SendAssetsGate: zero}, total},
-		"gated vaultV2":   {PoolState{MaxDeposit: zero, ReceiveSharesGate: zero, SendAssetsGate: gate}, zero},
-		"half read gates": {PoolState{MaxDeposit: zero, ReceiveSharesGate: zero}, zero},
-		"bounded":         {PoolState{MaxDeposit: big.NewInt(7), ReceiveSharesGate: zero, SendAssetsGate: zero}, big.NewInt(7)},
-		"no limit":        {PoolState{MaxDeposit: new(big.Int).Lsh(big.NewInt(1), 200)}, nil},
+		"read failed":         {PoolState{}, VaultCfg{}, total},
+		"closed":              {PoolState{MaxDeposit: no}, VaultCfg{}, no}, // e.g. Aave stata over its supply cap
+		"open vaultV2":        {vaultV2(yes, yes, yes), VaultCfg{}, total},
+		"gated assets":        {vaultV2(yes, yes, no), VaultCfg{}, no}, // sendAssetsGate refuses any account
+		"gated share receive": {vaultV2(no, yes, yes), VaultCfg{}, no},
+		"gated share send":    {vaultV2(yes, no, yes), VaultCfg{}, no},
+		"half read":           {vaultV2(yes, yes, nil), VaultCfg{}, no},
+		"ignore zero":         {PoolState{MaxDeposit: no}, ignoreZero, total},
+		"bounded":             {PoolState{MaxDeposit: big.NewInt(7)}, ignoreZero, big.NewInt(7)},
+		"no limit":            {PoolState{MaxDeposit: new(big.Int).Lsh(big.NewInt(1), 200)}, VaultCfg{}, nil},
 	} {
 		tc.s.TotalAssets = total
-		tc.s.ResolveMaxDeposit()
+		tc.s.ResolveMaxDeposit(tc.cfg)
 		assert.Equal(t, tc.want, tc.s.MaxDeposit, name)
 	}
 }

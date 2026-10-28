@@ -21,9 +21,10 @@ const (
 	Erc4626MethodPreviewRedeem   = "previewRedeem"
 	Erc4626MethodConvertToAssets = "convertToAssets"
 
-	// Morpho VaultV2 deposit gates, see PoolState.ResolveMaxDeposit
-	VaultV2MethodReceiveSharesGate = "receiveSharesGate"
-	VaultV2MethodSendAssetsGate    = "sendAssetsGate"
+	// Morpho VaultV2 permission views, see PoolState.ResolveMaxDeposit
+	VaultV2MethodCanReceiveShares = "canReceiveShares"
+	VaultV2MethodCanSendShares    = "canSendShares"
+	VaultV2MethodCanSendAssets    = "canSendAssets"
 )
 
 var (

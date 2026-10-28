@@ -210,7 +210,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		return assetToken, nil, err
 	}
 
-	poolState.ResolveMaxDeposit()
+	poolState.ResolveMaxDeposit(vaultCfg)
 	if poolState.MinDeposit != nil && poolState.MinDeposit.Sign() == 0 {
 		poolState.MinDeposit = nil
 	}

@@ -194,7 +194,7 @@ func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr, tokenAddr string,
 }
 
 func normalizePoolState(cfg erc4626.VaultCfg, state *erc4626.PoolState) {
-	state.ResolveMaxDeposit()
+	state.ResolveMaxDeposit(cfg)
 	if state.MinDeposit != nil && state.MinDeposit.Sign() == 0 {
 		state.MinDeposit = nil
 	}
