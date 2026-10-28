@@ -28,7 +28,6 @@ const (
 	borrowYIndex  = 5
 
 	defaultRefreshInterval = 5 * time.Minute
-	interestPeriodForSwap  = uint32(24*time.Hour/time.Second) - 1
 )
 
 var (
@@ -198,14 +197,9 @@ func resolveSwapState(snapshot trackerSnapshot) ([2]*big.Int, totalAssetsAndShar
 	if reserves[0] == nil || reserves[1] == nil {
 		return reserves, totalAssetsAndSharesRPC{}, ErrInvalidPool
 	}
-	selected := snapshot.RawTotals
-	// Solidity intentionally uses uint32 timestamp subtraction so the clock
-	// continues to work across its wrap boundary.
-	if snapshot.BlockTimestamp-snapshot.Storage.LastLendingTimestamp < interestPeriodForSwap {
-		return [2]*big.Int{new(big.Int).Set(reserves[0]), new(big.Int).Set(reserves[1])}, selected, nil
-	}
-
-	selected = snapshot.AccruedTotals
+	// executeAmmalgam checkpoints the pair first (validateOnUpdate, no throttle), so any elapsed
+	// lending time accrues; pair.swap alone would wait for INTEREST_PERIOD_FOR_SWAP (86399s).
+	selected := snapshot.AccruedTotals
 	for i, indices := range [2][2]int{{depositXIndex, borrowXIndex}, {depositYIndex, borrowYIndex}} {
 		depositIndex, borrowIndex := indices[0], indices[1]
 		rawDeposit, rawBorrow := snapshot.RawTotals.AllAssets[depositIndex], snapshot.RawTotals.AllAssets[borrowIndex]

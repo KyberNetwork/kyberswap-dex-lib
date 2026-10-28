@@ -72,32 +72,9 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 	require.Equal(t, "0x3333333333333333333333333333333333333333", staticExtra.PairImplementation)
 }
 
-func TestResolveSwapStateUsesRawStateBeforeLendingCheckpoint(t *testing.T) {
+func TestResolveSwapStateAccruesAnyElapsedLendingTime(t *testing.T) {
 	snapshot := trackerSnapshot{
-		BlockTimestamp: 1_000 + interestPeriodForSwap - 1,
-		Storage: pairStorage{
-			ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000), LastLendingTimestamp: 1_000,
-		},
-		RawTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
-			big.NewInt(0), big.NewInt(100), big.NewInt(200),
-			big.NewInt(0), big.NewInt(200), big.NewInt(150),
-		}},
-		AccruedTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
-			big.NewInt(0), big.NewInt(107), big.NewInt(203),
-			big.NewInt(0), big.NewInt(212), big.NewInt(154),
-		}},
-	}
-
-	reserves, totals, err := resolveSwapState(snapshot)
-	require.NoError(t, err)
-	require.Equal(t, int64(1_000), reserves[0].Int64())
-	require.Equal(t, int64(2_000), reserves[1].Int64())
-	require.Same(t, snapshot.RawTotals.AllAssets[borrowXIndex], totals.AllAssets[borrowXIndex])
-}
-
-func TestResolveSwapStateAccruesAtLendingCheckpoint(t *testing.T) {
-	snapshot := trackerSnapshot{
-		BlockTimestamp: 1_000 + interestPeriodForSwap,
+		BlockTimestamp: 1_000 + 60, // far below the 86399s swap throttle: the helper checkpoints anyway
 		Storage: pairStorage{
 			ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000), LastLendingTimestamp: 1_000,
 		},
