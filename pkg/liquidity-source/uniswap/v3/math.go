@@ -281,7 +281,7 @@ func (p *Pool) swap(zeroForOne bool, amountSpecified, sqrtPriceLimitX96 uint256.
 			return SwapResult{}, err
 		}
 
-		record := last != nil && !(amountIn.IsZero() && feeAmount.IsZero())
+		record := last != nil && (!amountIn.IsZero() || !feeAmount.IsZero())
 		if record {
 			last.start, last.target, last.liquidity, last.tick = sqrtPriceStartX96, targetValue, liquidity, tick
 			last.amountIn.Add(&amountIn, &feeAmount)
