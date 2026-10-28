@@ -1,10 +1,10 @@
 package biconomyprop
 
 import (
-	_ "embed"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -21,12 +21,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-// Recorded from GET /venue/boards?chainId=8453 (Base, 2026-10-27). Maker 0x960f quotes both
-// directions, maker 0x72A2 is dark.
-//
-//go:embed testdata/feed_base.json
-var feedFixture []byte
-
 var (
 	weth = common.HexToAddress("0x4200000000000000000000000000000000000006")
 	usdc = common.HexToAddress("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")
@@ -37,7 +31,11 @@ const feedVenue = "0x0000009e5f98cdb4dd1e1d2e15b220217c88b3b8"
 func loadFeed(t *testing.T) *feedResponse {
 	t.Helper()
 	var r feedResponse
-	require.NoError(t, json.Unmarshal(feedFixture, &r))
+	// Recorded from GET /venue/boards?chainId=8453 (Base, 2026-10-27). Maker 0x960f quotes both
+	// directions, maker 0x72A2 is dark.
+	fixture, err := os.ReadFile("testdata/feed_base.json")
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(fixture, &r))
 	return &r
 }
 
