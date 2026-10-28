@@ -4,9 +4,9 @@ import "errors"
 
 const (
 	DexType = "ammalgam"
-	// Average of 30 cold fork measurements of tokenIn transfer + pair.swap on mainnet
-	// block 26181046 (no daily lending checkpoint). Executor overhead is not included.
-	defaultGas = int64(167_534)
+	// Average of 12 executeAmmalgam helper-frame gas measurements (6 mainnet pairs x 2 directions,
+	// Tenderly sims). It includes validateOnUpdate's unthrottled lending checkpoint (~350k).
+	defaultGas = int64(402_047)
 )
 
 var (
