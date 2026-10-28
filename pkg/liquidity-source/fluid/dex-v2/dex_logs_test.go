@@ -44,6 +44,13 @@ func TestDecodePoolAddressesFromDexLogs(t *testing.T) {
 
 // TestTicksFromDexLogs: the pool's liquidity logs, applied as the tracker applies them, give the
 // ticks the pool holds on chain after them.
+//
+// The fixture's logs are those of the dex 0x7822b394 on Polygon for the pool, from its
+// LogInitialize at block 79889908 (tx 0xaafc296f) to its last LogSwapIn at block 93210176
+// (tx 0xbcccb2bd); its last liquidity log is a LogWithdraw at block 84438661 (tx 0x529f8eba).
+// Each log equals the log of its transaction's receipt. The expected ticks are every tick set in
+// the pool's tick bitmap (slot 2) with its liquidityGross and liquidityNet (slots 3 and 4), read
+// at blocks 84438661, 93210176 and 96265000, where they are the same.
 func TestTicksFromDexLogs(t *testing.T) {
 	fx := loadDexLogs(t)
 	tr := &PoolTracker{}
