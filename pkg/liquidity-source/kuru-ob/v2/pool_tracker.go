@@ -3,8 +3,10 @@ package kuruobv2
 import (
 	"context"
 	"math/big"
+	"sync/atomic"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -12,11 +14,13 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
+	limiter      atomic.Pointer[common.Address] // AccountCore's WithdrawalLimiter; immutable once bound
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -34,6 +38,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		return p, ErrInvalidStaticExtra
 	}
 
+	limiter, err := t.withdrawalLimiter(ctx)
+	if err != nil {
+		return p, err
+	}
+
 	var book L2Book
 	var takerFeeCap, defaultTakerFee *big.Int
 	var marketState uint8
@@ -47,14 +56,30 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			[]any{&defaultTakerFee}).
 		AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: t.config.AccountCore, Method: "protocolPaused"},
 			[]any{&protocolPaused})
-	resp, err := req.Aggregate()
+	// Every swap withdraws both tokens (output and unused input). The limiter's price check reverts
+	// InvalidWithdrawalPrice when a token's feed is stale (e.g. off-hours), so such a market can't settle.
+	for _, token := range p.Tokens {
+		addr := common.HexToAddress(token.Address)
+		if staticExtra.HasNative && valueobject.IsWrappedNative(token.Address, t.config.ChainId) {
+			addr = common.Address{} // AccountCore keys native as address(0)
+		}
+		req.AddCall(&ethrpc.Call{ABI: kuruV2ABI, Target: limiter.Hex(), Method: "requireFreshPrice",
+			Params: []any{addr}}, []any{&struct{}{}}) // void: ethrpc still indexes Output
+	}
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return p, err
 	}
+	for _, ok := range resp.Result[:numStateCalls] {
+		if !ok {
+			return p, ErrCallFailed
+		}
+	}
+	feedsFresh := resp.Result[numStateCalls] && resp.Result[numStateCalls+1]
 
 	var extra Extra
 	var baseReserve, quoteReserve uint256.Int
-	if marketState == marketStateLive && !protocolPaused {
+	if marketState == marketStateLive && !protocolPaused && feedsFresh {
 		// The market value is only a cap; AccountCore charges min(default tier, cap) (matches
 		// effectiveSpotTakerFeePps for accounts without a tier).
 		extra.TakerFeePps = min(takerFeeCap.Uint64(), defaultTakerFee.Uint64())
@@ -81,6 +106,20 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	p.Extra = string(extraBytes)
 	p.BlockNumber = resp.BlockNumber.Uint64()
 	return p, nil
+}
+
+// withdrawalLimiter reads (once) the limiter AccountCore routes withdrawals through.
+func (t *PoolTracker) withdrawalLimiter(ctx context.Context) (common.Address, error) {
+	if l := t.limiter.Load(); l != nil {
+		return *l, nil
+	}
+	var l common.Address
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{ABI: kuruV2ABI,
+		Target: t.config.AccountCore, Method: "withdrawalLimiter"}, []any{&l}).Call(); err != nil {
+		return l, err
+	}
+	t.limiter.Store(&l)
+	return l, nil
 }
 
 // toLevels keeps the non-empty prefix of one L2 side (zero price pads the fixed-depth arrays).

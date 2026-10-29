@@ -152,5 +152,29 @@
         "type": "uint256"
       }
     ]
+  },
+  {
+    "type": "function",
+    "name": "withdrawalLimiter",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "requireFreshPrice",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "outputs": []
   }
 ]
