@@ -3,6 +3,7 @@ package kuruobv2
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -76,11 +78,11 @@ func init() {
 }
 
 func newTestSim(t *testing.T, m testMarket) *PoolSimulator {
-	sim, err := NewPoolSimulator(entity.Pool{
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
 		Address: "market", Exchange: DexType, Type: DexType, Reserves: entity.PoolReserves{"1", "1"},
 		Tokens: []*entity.PoolToken{{Address: "base"}, {Address: "quote"}},
 		Extra:  string(lo.Must(json.Marshal(m.extra))), StaticExtra: string(lo.Must(json.Marshal(m.staticExtra))),
-	})
+	}})
 	require.NoError(t, err)
 	return sim
 }
@@ -173,8 +175,8 @@ func TestNewPoolSimulator_RejectsBadParams(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			m := testMarkets[1]
 			mutate(&m)
-			_, err := NewPoolSimulator(entity.Pool{Tokens: []*entity.PoolToken{{}, {}},
-				Extra: string(lo.Must(json.Marshal(m.extra))), StaticExtra: string(lo.Must(json.Marshal(m.staticExtra)))})
+			_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{Tokens: []*entity.PoolToken{{}, {}},
+				Extra: string(lo.Must(json.Marshal(m.extra))), StaticExtra: string(lo.Must(json.Marshal(m.staticExtra)))}})
 			require.ErrorIs(t, err, ErrInvalidStaticExtra)
 		})
 	}
@@ -219,4 +221,20 @@ func BenchmarkCloneAndUpdate(b *testing.B) {
 	for b.Loop() {
 		sim.CloneState().UpdateBalance(params)
 	}
+}
+
+// Route finding (StaleCheck=true) must drop a snapshot older than orderbook.MaxAge, while the liquidity
+// indexer (StaleCheck=false) must still build the simulator from it.
+func TestNewPoolSimulator_StaleCheck(t *testing.T) {
+	m := testMarkets[1]
+	ep := entity.Pool{Tokens: []*entity.PoolToken{{Address: "base"}, {Address: "quote"}},
+		Extra: string(lo.Must(json.Marshal(m.extra))), StaticExtra: string(lo.Must(json.Marshal(m.staticExtra)))}
+	build := func(age time.Duration, check bool) error {
+		ep.Timestamp = time.Now().Add(-age).Unix()
+		_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: ep, Opts: pool.FactoryOpts{StaleCheck: check}})
+		return err
+	}
+	require.NoError(t, build(0, true))
+	require.ErrorIs(t, build(2*orderbook.MaxAge, true), orderbook.ErrLevelsTooOld)
+	require.NoError(t, build(2*orderbook.MaxAge, false))
 }

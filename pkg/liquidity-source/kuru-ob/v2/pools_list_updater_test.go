@@ -42,7 +42,7 @@ func TestListAndTrack_Mainnet(t *testing.T) {
 		require.NoError(t, err)
 		t.Logf("%s reserves=%v block=%d static=%s", p.Address, p.Reserves, p.BlockNumber, p.StaticExtra)
 
-		sim, err := NewPoolSimulator(p)
+		sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: p})
 		require.NoError(t, err)
 		if len(sim.Bids) == 0 || len(sim.Asks) == 0 {
 			continue
