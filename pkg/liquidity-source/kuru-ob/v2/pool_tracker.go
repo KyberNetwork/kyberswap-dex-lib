@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"sync/atomic"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -102,6 +103,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		return p, err
 	}
 
+	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{baseReserve.Dec(), quoteReserve.Dec()}
 	p.Extra = string(extraBytes)
 	p.BlockNumber = resp.BlockNumber.Uint64()

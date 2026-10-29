@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -146,6 +147,7 @@ func TestTrackerEmptiesBookOnStaleFeed(t *testing.T) {
 			require.Equal(t, tc.live, len(extra.Bids) > 0 && len(extra.Asks) > 0)
 			require.Equal(t, tc.live, p.Reserves[0] != "0" && p.Reserves[1] != "0")
 			require.EqualValues(t, 7, p.BlockNumber)
+			require.InDelta(t, time.Now().Unix(), p.Timestamp, 5) // the simulator's StaleCheck reads this
 		})
 	}
 }
