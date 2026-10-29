@@ -18,7 +18,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/ethereum/go-ethereum v1.17.4
 	github.com/go-resty/resty/v2 v2.17.2
-	github.com/goccy/go-json v0.10.5
+	github.com/goccy/go-json v0.12.0
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/holiman/uint256 v1.3.2
