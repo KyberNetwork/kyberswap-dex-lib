@@ -483,11 +483,8 @@ recomputed at the quote clock anyway.
 ## Configuration
 
 Keys are the JSON tags below (`config.go`). pool-service decodes them with `pool.PropertiesToStruct`, which matches
-case-insensitively, so `chainID`, `chainId` and `ChainID` are the same key -- but only while `Config` stays at or
-below sixteen JSON fields, goccy/go-json's limit for that (`allowOptimizeMaxFieldLen`). Past it only the exact tag
-matches. `Config` has thirteen fields, the gas overrides nested in `gas` to keep it there, and
-`TestConfigFieldCount` fails if one is added past the limit. `DexID` is tagged with the exact key the lister and
-tracker factories inject, so the dex id lands either way.
+case-insensitively, so `chainID`, `chainId` and `ChainID` are the same key. `DexID` is tagged with the exact key the
+lister and tracker factories inject.
 
 | key | default | effect |
 | --- | --- | --- |
