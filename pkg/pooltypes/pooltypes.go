@@ -59,6 +59,7 @@ import (
 	curvetwocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng/lazy"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
+	daikonprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/daikon-prop"
 	deepstateob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deepstate-ob"
 	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
@@ -515,6 +516,7 @@ type Types struct {
 	FlywheelFun                string
 	Prop1010                   string
 	BiconomyProp               string
+	DaikonProp                 string
 	FermiProp                  string
 	Machima                    string
 	MetronomeSwap              string
@@ -783,6 +785,7 @@ var (
 		FlywheelFun:                flywheelfun.DexType,
 		Prop1010:                   prop1010.DexType,
 		BiconomyProp:               biconomyprop.DexType,
+		DaikonProp:                 daikonprop.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
 		MetronomeSwap:              metronomeswap.DexType,
