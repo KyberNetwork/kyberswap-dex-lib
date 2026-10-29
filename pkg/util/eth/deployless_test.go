@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"maps"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/assert"
@@ -122,4 +124,14 @@ func TestDeploylessCallWithGas_SendsGas(t *testing.T) {
 	var call map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal((*params)[0], &call))
 	assert.JSONEq(t, `"0x1c9c380"`, string(call["gas"]))
+}
+
+func TestDeploylessCallWithGasPricePreservesCallerFeeContext(t *testing.T) {
+	client, params := fakeNode(t, map[string]any{"error": map[string]any{"code": 3, "message": "execution reverted", "data": "0x01"}})
+	_, err := DeploylessCallWithGasPrice(context.Background(), client, []byte{0}, 3_000_000, (*hexutil.Big)(big.NewInt(1)), nil, nil)
+	require.NoError(t, err)
+	var call map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal((*params)[0], &call))
+	assert.JSONEq(t, `"0x1"`, string(call["gasPrice"]))
+	assert.NotContains(t, call, "to")
 }

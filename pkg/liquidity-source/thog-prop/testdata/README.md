@@ -46,3 +46,34 @@ model-3 validation. Production reads strictly require schema/wire/model 8/8/3.
 
 The nested `go.mod` keeps these files out of downstream module archives; tests
 read them from a checkout rather than embedding them.
+
+`lens-monad.json.gz` records one creation `eth_call` of the committed lens on
+October 29 at block **117733377**, with nonzero simulation gas price and no state
+overrides. The payload includes the page and all five listed xStock issuers.
+The captured policy has maximum age 5. The fixture records the lens bytecode hash.
+Rebuild the lens using `build_lens.py`; capture a new observation using:
+
+```sh
+python3 pkg/liquidity-source/thog-prop/testdata/refresh_probe.py \
+  --rpc https://rpc.monad.xyz --count 1 --capture /tmp/lens-monad.json.gz \
+  --output /tmp/thog-refresh-probe.json
+```
+
+`lens-age15-monad.json.gz` is an additional 32-case age regression. It uses
+deployed bytecode and the lens state from that block on a local Anvil Monad fork.
+Only the control word's maximum-age field is changed from 5 to 15; all other
+control bits, inventory, issuer data, valuations, and bytecode are preserved.
+Evaluation blocks range from snapshot+1 through snapshot+16. USDC→WMON and
+USDC→xStock produce 30 exact successes and two stale rejections. These are
+controlled execution-age tests, not a historical price-movement replay.
+
+```sh
+anvil --network monad --fork-url https://rpc.monad.xyz \
+  --fork-block-number 117733377 --no-mining --port 18549
+python3 pkg/liquidity-source/thog-prop/testdata/capture_lens_age.py \
+  pkg/liquidity-source/thog-prop/testdata/lens-monad.json.gz \
+  http://127.0.0.1:18549 /tmp/lens-age15-monad.json.gz
+```
+
+The capture tool refuses non-local endpoints. It uses read-only `eth_call` state
+and block overrides, and broadcasts no transactions.

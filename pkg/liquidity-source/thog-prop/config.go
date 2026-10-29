@@ -14,4 +14,10 @@ type Config struct {
 	// verify this against live state rather than trusting the constant
 	// blindly.
 	PoolId string `json:"poolId"`
+	// Zero selects the defaults: 300 ms/block, 15 s snapshot age, 2 s/attempt.
+	BlockTimeMs      int64 `json:"blockTimeMs"`
+	MaxSnapshotAgeMs int64 `json:"maxSnapshotAgeMs"`
+	RequestTimeoutMs int64 `json:"requestTimeoutMs"`
+	// Use the page-first number-pinned reader for providers without creation eth_call.
+	DisableLens bool `json:"disableLens"`
 }
