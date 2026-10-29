@@ -34,12 +34,15 @@ func TestCalculateFeeFactorsFollowsThePlugin(t *testing.T) {
 			wantZto, wantOtz = two, big.NewInt(0)
 		}
 
-		p := &PoolSimulator{slidingFee: &SlidingFeeConfig{
+		factors := &SlidingFeeConfig{
 			ZeroToOneFeeFactor: uint256.MustFromBig(zto),
 			OneToZeroFeeFactor: uint256.MustFromBig(otz),
-		}}
-		got, err := p.calculateFeeFactors(delta, 0, priceChangeFactor)
+			PriceChangeFactor:  priceChangeFactor,
+		}
+		got, err := calculateFeeFactors(factors, delta, 0)
 		require.NoError(t, err)
+		assert.Equal(t, zto.String(), factors.ZeroToOneFeeFactor.Dec(), "delta %d: factors changed", delta)
+		assert.Equal(t, otz.String(), factors.OneToZeroFeeFactor.Dec(), "delta %d: factors changed", delta)
 		assert.Equal(t, wantZto.String(), got.ZeroToOneFeeFactor.Dec(), "delta %d", delta)
 		assert.Equal(t, wantOtz.String(), got.OneToZeroFeeFactor.Dec(), "delta %d", delta)
 	}

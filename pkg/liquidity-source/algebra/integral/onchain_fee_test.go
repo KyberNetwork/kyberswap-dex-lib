@@ -2,6 +2,7 @@ package integral
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -25,57 +26,79 @@ import (
 // factors by a negative price change, which the plugin divides as an int256. Each of its quotes is
 // the pool's own swap in an eth_call at that block.
 func TestCalcAmountMatchesChain(t *testing.T) {
-	files, err := filepath.Glob("testdata/onchain/*.json")
-	require.NoError(t, err)
-	require.NotEmpty(t, files)
-
-	oldBlockTimestamp := blockTimestamp
-	t.Cleanup(func() { blockTimestamp = oldBlockTimestamp })
-	for _, file := range files {
-		t.Run(filepath.Base(file), func(t *testing.T) {
-			b, err := os.ReadFile(file)
-			require.NoError(t, err)
-			var fixture struct {
-				BlockTimestamp uint32      `json:"blockTimestamp"`
-				Pool           entity.Pool `json:"pool"`
-				Quotes         []struct {
-					Kind      string `json:"kind"`
-					Amount    string `json:"amount"`
-					ZeroToOne bool   `json:"zeroToOne"`
-					Result    string `json:"result"`
-				} `json:"quotes"`
-			}
-			require.NoError(t, json.Unmarshal(b, &fixture))
-			blockTimestamp = func() uint32 { return fixture.BlockTimestamp }
-
-			token0, token1 := fixture.Pool.Tokens[0].Address, fixture.Pool.Tokens[1].Address
+	for name, fixture := range loadOnchainFeeFixtures(t) {
+		t.Run(name, func(t *testing.T) {
+			setBlockTimestamp(t, fixture.BlockTimestamp)
 			for _, q := range fixture.Quotes {
-				in, out := token0, token1
-				if !q.ZeroToOne {
-					in, out = token1, token0
-				}
-				amount, _ := new(big.Int).SetString(q.Amount, 10)
-				msg := []any{"%s %s, zeroToOne %v", q.Amount, q.Kind, q.ZeroToOne}
 				sim, err := NewPoolSimulator(fixture.Pool) // a quote writes the block's timepoint once
 				require.NoError(t, err)
-				var got *big.Int
-				if q.Kind == "in" {
-					res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-						TokenAmountIn: pool.TokenAmount{Token: in, Amount: amount}, TokenOut: out})
-					if !assert.NoError(t, err, msg...) {
-						continue
-					}
-					got = res.TokenAmountOut.Amount
-				} else {
-					res, err := sim.CalcAmountIn(pool.CalcAmountInParams{
-						TokenAmountOut: pool.TokenAmount{Token: out, Amount: amount}, TokenIn: in})
-					if !assert.NoError(t, err, msg...) {
-						continue
-					}
-					got = res.TokenAmountIn.Amount
+				got, err := fixture.quote(sim, q)
+				if assert.NoError(t, err, q) {
+					assert.Equal(t, q.Result, got, q)
 				}
-				assert.Equal(t, q.Result, got.String(), msg...)
 			}
 		})
 	}
+}
+
+type onchainFeeQuote struct {
+	Kind      string `json:"kind"` // "in": the output of an amount in; "out": the input of an amount out
+	Amount    string `json:"amount"`
+	ZeroToOne bool   `json:"zeroToOne"`
+	Result    string `json:"result"`
+}
+
+func (q onchainFeeQuote) String() string {
+	return fmt.Sprintf("%s %s, zeroToOne %v", q.Amount, q.Kind, q.ZeroToOne)
+}
+
+type onchainFeeFixture struct {
+	BlockTimestamp uint32            `json:"blockTimestamp"`
+	Pool           entity.Pool       `json:"pool"`
+	Quotes         []onchainFeeQuote `json:"quotes"`
+}
+
+func loadOnchainFeeFixtures(t *testing.T) map[string]onchainFeeFixture {
+	files, err := filepath.Glob("testdata/onchain/*.json")
+	require.NoError(t, err)
+	require.NotEmpty(t, files)
+	fixtures := make(map[string]onchainFeeFixture, len(files))
+	for _, file := range files {
+		b, err := os.ReadFile(file)
+		require.NoError(t, err)
+		var fixture onchainFeeFixture
+		require.NoError(t, json.Unmarshal(b, &fixture), file)
+		fixtures[filepath.Base(file)] = fixture
+	}
+	return fixtures
+}
+
+// setBlockTimestamp makes the simulators take ts as the time of a swap until the test ends.
+func setBlockTimestamp(t *testing.T, ts uint32) {
+	old := blockTimestamp
+	t.Cleanup(func() { blockTimestamp = old })
+	blockTimestamp = func() uint32 { return ts }
+}
+
+// quote returns what sim quotes for q: the output of an amount in, or the input of an amount out.
+func (f onchainFeeFixture) quote(sim *PoolSimulator, q onchainFeeQuote) (string, error) {
+	in, out := f.Pool.Tokens[0].Address, f.Pool.Tokens[1].Address
+	if !q.ZeroToOne {
+		in, out = out, in
+	}
+	amount, _ := new(big.Int).SetString(q.Amount, 10)
+	if q.Kind == "in" {
+		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: in, Amount: amount}, TokenOut: out})
+		if err != nil {
+			return "", err
+		}
+		return res.TokenAmountOut.Amount.String(), nil
+	}
+	res, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: out, Amount: amount}, TokenIn: in})
+	if err != nil {
+		return "", err
+	}
+	return res.TokenAmountIn.Amount.String(), nil
 }

@@ -438,7 +438,9 @@ func (s *TimepointStorage) binarySearchInternal(currentTime, target, left, right
 	return beforeOrAt, beforeOrAt, indexBeforeOrAt
 }
 
-func (p *PoolSimulator) calculateFeeFactors(currentTick, lastTick int32, priceChangeFactor uint16) (*SlidingFeeConfig, error) {
+// calculateFeeFactors is the plugin's _calculateFeeFactors: factors moved by the price change from
+// lastTick to currentTick. It returns new factors and leaves factors as they are.
+func calculateFeeFactors(factors *SlidingFeeConfig, currentTick, lastTick int32) (*SlidingFeeConfig, error) {
 	tickDelta := lo.Clamp(currentTick-lastTick, utils.MinTick, utils.MaxTick)
 
 	var sqrtPriceDelta v3Utils.Uint160
@@ -454,23 +456,22 @@ func (p *PoolSimulator) calculateFeeFactors(currentTick, lastTick int32, priceCh
 	priceChangeRatio := priceRatioSquared.Sub(priceRatioSquared, FEE_FACTOR_MULTIPLIER)
 
 	var factor uint256.Int
-	factor.SetUint64(uint64(priceChangeFactor))
+	factor.SetUint64(uint64(factors.PriceChangeFactor))
 	// The ratio is negative when the price fell; the plugin divides it as an int256, which SDiv does.
 	feeFactorImpact := priceChangeRatio.Mul(priceChangeRatio, &factor).SDiv(priceChangeRatio, FACTOR_DENOMINATOR)
 
-	feeFactors := p.slidingFee
-	newZeroToOneFeeFactor := feeFactors.ZeroToOneFeeFactor.Sub(feeFactors.ZeroToOneFeeFactor, feeFactorImpact)
-	if 0 < newZeroToOneFeeFactor.Sign() && newZeroToOneFeeFactor.Cmp(DOUBLE_FEE_MULTIPLIER) < 0 {
-		feeFactors.ZeroToOneFeeFactor = newZeroToOneFeeFactor
-		feeFactors.OneToZeroFeeFactor.Add(feeFactors.OneToZeroFeeFactor, feeFactorImpact)
-	} else if newZeroToOneFeeFactor.Sign() <= 0 {
-		feeFactors.ZeroToOneFeeFactor.Clear()
-		feeFactors.OneToZeroFeeFactor.Set(DOUBLE_FEE_MULTIPLIER)
+	next := *factors
+	next.ZeroToOneFeeFactor = new(uint256.Int).Sub(factors.ZeroToOneFeeFactor, feeFactorImpact)
+	if 0 < next.ZeroToOneFeeFactor.Sign() && next.ZeroToOneFeeFactor.Cmp(DOUBLE_FEE_MULTIPLIER) < 0 {
+		next.OneToZeroFeeFactor = new(uint256.Int).Add(factors.OneToZeroFeeFactor, feeFactorImpact)
+	} else if next.ZeroToOneFeeFactor.Sign() <= 0 {
+		next.ZeroToOneFeeFactor.Clear()
+		next.OneToZeroFeeFactor = DOUBLE_FEE_MULTIPLIER.Clone()
 	} else {
-		feeFactors.ZeroToOneFeeFactor.Set(DOUBLE_FEE_MULTIPLIER)
-		feeFactors.OneToZeroFeeFactor.Clear()
+		next.ZeroToOneFeeFactor.Set(DOUBLE_FEE_MULTIPLIER)
+		next.OneToZeroFeeFactor = new(uint256.Int)
 	}
-	return feeFactors, nil
+	return &next, nil
 }
 
 func getInputTokenDelta01(res, to, from, liquidity *uint256.Int) error {
