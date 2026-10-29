@@ -99,7 +99,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Router:    hexutil.Encode(common.HexToAddress(u.config.Router).Bytes()),
 		Manager:   hexutil.Encode(manager[:]),
 		PartnerID: u.config.PartnerID,
-		FeePpm:    min(u.config.FeePpm, maxFeePpm),
+		FeePpm:    min(u.config.FeePpm, MaxFeePpm),
 	})
 	if err != nil {
 		return nil, metadataBytes, err

@@ -36,7 +36,7 @@ func tierPrice(res, price *uint256.Int, spreadBps uint64, buy bool) *uint256.Int
 // the rounding is pinned by TestQuoteMatchesOnChain.
 func (e *Extra) quoteExactIn(amountIn *uint256.Int, buy bool, feePpm uint64, amountOut *uint256.Int,
 	info *SwapInfo) error {
-	feePpm = min(feePpm, maxFeePpm)
+	feePpm = min(feePpm, MaxFeePpm)
 	// Decimals are validated <= 18 in NewPoolSimulator. TenPow(18-d) takes native units to WAD.
 	qs, bs := big256.TenPow(18-e.QuoteDecimals), big256.TenPow(18-e.BaseDecimals)
 	var ppm uint256.Int

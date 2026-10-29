@@ -9,6 +9,6 @@ type Config struct {
 	Router string `json:"router"`
 	// PartnerID attributes swaps to us in swapData.
 	PartnerID uint64 `json:"partnerId"`
-	// FeePpm is the swapData fee in millionths of the quote-token amount, capped at maxFeePpm.
+	// FeePpm is the swapData fee in millionths of the quote-token amount, capped at MaxFeePpm.
 	FeePpm uint64 `json:"feePpm"`
 }

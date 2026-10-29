@@ -15,8 +15,8 @@ const (
 	methodAllPairs       = "allPairs"
 	methodGetMarketState = "getMarketState"
 
-	// maxFeePpm is the 5% cap the pair applies to swapData fees; larger values are cut.
-	maxFeePpm = 50_000
+	// MaxFeePpm is the 5% cap the pair applies to swapData fees; larger values are cut.
+	MaxFeePpm = 50_000
 
 	// Hop gas measured with Tenderly through executeGeneric on Base (test-dex): identical across
 	// amounts and runs, so each is its own average.

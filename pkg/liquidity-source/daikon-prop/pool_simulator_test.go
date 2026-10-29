@@ -154,3 +154,31 @@ func TestUpdateBalanceSpendsCapacity(t *testing.T) {
 	assert.Equal(t, "1060000000", clone.SellC1.String())
 	assert.Equal(t, "2123923513991954515930", clone.VaultBase.Dec())
 }
+
+// A per-swap fee (the alpha fee path) must price exactly like the static fee the same on-chain
+// rows were taken with, in both directions and above the 5% cap.
+func TestCalcAmountOutWithFeeMatchesOnChain(t *testing.T) {
+	sim := newTestSim(t, testExtra, false, 0)
+	for _, c := range []struct {
+		buy         bool
+		amount, out string
+		fee         uint64
+	}{
+		{true, "1000000", "1634063253800702699", 2500},
+		{true, "12345", "20206686953014203", 777},
+		{true, "100000000", "155625071790543114215", 60000},
+		{false, "1000000000000000000", "605877", 2500},
+		{false, "123456789012345678", "74912", 999},
+		{false, "1000000000000000000000", "577027044", 60000},
+	} {
+		in, out := testBase, testQuote
+		if c.buy {
+			in, out = out, in
+		}
+		a, _ := new(big.Int).SetString(c.amount, 10)
+		res, err := sim.CalcAmountOutWithFee(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: in, Amount: a}, TokenOut: out}, c.fee)
+		require.NoError(t, err)
+		assert.Equal(t, c.out, res.TokenAmountOut.Amount.String(), "buy=%v amount=%s fee=%d", c.buy, c.amount, c.fee)
+	}
+}

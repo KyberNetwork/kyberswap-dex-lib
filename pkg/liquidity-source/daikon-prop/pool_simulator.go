@@ -58,6 +58,12 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	return s.CalcAmountOutWithFee(params, s.FeePpm)
+}
+
+// CalcAmountOutWithFee quotes with a per-swap swapData fee instead of the static one, which is
+// how the RFQ handler prices the alpha fee. feePpm above MaxFeePpm is cut, as the pair does.
+func (s *PoolSimulator) CalcAmountOutWithFee(params pool.CalcAmountOutParams, feePpm uint64) (*pool.CalcAmountOutResult, error) {
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenOut)
 	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
 		return nil, ErrInvalidToken
@@ -80,7 +86,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	buy := indexIn == 1 // quote in is BuyBase
 	var amountOut uint256.Int
 	var info SwapInfo
-	if err := s.quoteExactIn(&amountIn, buy, s.FeePpm, &amountOut, &info); err != nil {
+	if err := s.quoteExactIn(&amountIn, buy, feePpm, &amountOut, &info); err != nil {
 		return nil, err
 	}
 	if amountOut.IsZero() {
@@ -136,7 +142,7 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 		Router:          s.Router,
 		ApprovalAddress: s.Router,
 		PartnerID:       s.PartnerID,
-		FeePpm:          min(s.FeePpm, maxFeePpm),
+		FeePpm:          min(s.FeePpm, MaxFeePpm),
 		BlockNumber:     s.Info.BlockNumber,
 	}
 }
