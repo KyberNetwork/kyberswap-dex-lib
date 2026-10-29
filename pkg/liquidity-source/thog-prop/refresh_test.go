@@ -50,7 +50,7 @@ func TestSnapshotLensLiveCapture(t *testing.T) {
 	require.NoError(t, err)
 	z, err := gzip.NewReader(bytes.NewReader(compressed))
 	require.NoError(t, err)
-	defer z.Close()
+	defer func() { require.NoError(t, z.Close()) }()
 	data, err := io.ReadAll(z)
 	require.NoError(t, err)
 	var capture struct {
