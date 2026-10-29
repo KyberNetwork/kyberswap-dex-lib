@@ -78,8 +78,8 @@ func (t *PoolTracker) GetNewPoolState(
 		ladders[dir] = ladder.CollectLadder(amountsIn[dir], outs)
 	}
 
-	// Without a fresh override the pAMM quoter reverts every quote; persisting
-	// anyway would also drop SO, which downstream uses to tell the variants apart.
+	// Without a fresh override the pAMM quoter reverts every quote, so the
+	// ladders would be all zero.
 	if t.cfg.usesTitan() && (len(titanState.Overrides) == 0 || allEmpty(ladders)) {
 		logger.WithFields(logger.Fields{"dexId": t.cfg.DexID, "pool": p.Address}).
 			Warn("all quotes returned 0 (price stale), skipping pool update")
