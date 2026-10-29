@@ -24,6 +24,7 @@ var (
 	U2Pow95  = new(uint256.Int).Lsh(U1, 95)
 	U2Pow96  = new(uint256.Int).Lsh(U1, 96)
 	U2Pow98  = new(uint256.Int).Lsh(U1, 98)
+	U2Pow112 = new(uint256.Int).Lsh(U1, 112)
 	U2Pow127 = new(uint256.Int).Lsh(U1, 127)
 	U2Pow128 = new(uint256.Int).Lsh(U1, 128)
 	U2Pow160 = new(uint256.Int).Lsh(U1, 160)
@@ -32,6 +33,7 @@ var (
 	UMaxU34  = new(uint256.Int).SubUint64(U2Pow34, 1)
 	UMaxU66  = new(uint256.Int).SubUint64(U2Pow66, 1)
 	UMaxU98  = new(uint256.Int).SubUint64(U2Pow98, 1)
+	UMaxU112 = new(uint256.Int).SubUint64(U2Pow112, 1)
 	UMaxU128 = new(uint256.Int).SubUint64(U2Pow128, 1)
 	UMax     = new(uint256.Int).SetAllOne()
 

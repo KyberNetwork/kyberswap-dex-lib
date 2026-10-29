@@ -2,18 +2,20 @@ package uniswapv2
 
 import (
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
-	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
-	"github.com/samber/lo"
-	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
 var (
@@ -475,6 +477,186 @@ func TestPoolSimulator_UpdateBalance_Tax(t *testing.T) {
 		wantAgent := new(uint256.Int).Sub(reserveAgent0, uint256.MustFromBig(swapInfo.GrossAmountOut))
 		assert.Equal(t, wantAgent, s.reserves[1])
 	})
+}
+
+// Real bsc pools whose input-side reserve sits at the 2^112-1 uint112 cap
+// (reserveIn decoded from getReserves() at the pool's stored block).
+const (
+	grimex   = "0x89671544190ee39e469c8393009875df6565457a"
+	cerberus = "0x8b3268a23131dafbd77165690767f285c1aac6c5"
+	wbnb     = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
+
+	// pool 0xc69eb845f8b6ff661662e5221d3456b256834bec at block 129779318
+	grimexReserveIn  = "5192296858506341833872111247107717"
+	grimexReserveOut = "11739047184173395082"
+	grimexHeadroom   = "28485794658385082112378" // 2^112-1 - reserveIn
+
+	// pool 0xe1204dc80c7024a81ac686252d74d8c0e310e87b at block 130293679
+	cerberusReserveIn  = "5192295996538253138108296683024756"
+	cerberusReserveOut = "531571818567058080"
+)
+
+// newCapPoolSim builds a pancake-fee (25/10000) pool with the reserves of the real bsc pairs above.
+func newCapPoolSim(token0, token1, reserve0, reserve1 string) PoolSimulator {
+	return PoolSimulator{
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
+				Address: "0xc69eb845f8b6ff661662e5221d3456b256834bec",
+				Tokens:  []string{token0, token1},
+			},
+		},
+		reserves:     []*uint256.Int{uint256.MustFromDecimal(reserve0), uint256.MustFromDecimal(reserve1)},
+		fee:          number.NewUint256("25"),
+		feePrecision: number.NewUint256("10000"),
+	}
+}
+
+// TestPoolSimulator_CalcAmountOut_Uint112Overflow covers the pair's uint112 balance cap:
+// _update reverts with "<NAME>: OVERFLOW" when reserveIn + effectiveAmountIn exceeds 2^112-1.
+func TestPoolSimulator_CalcAmountOut_Uint112Overflow(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		name              string
+		poolSimulator     PoolSimulator
+		tokenAmountIn     pool.TokenAmount
+		tokenOut          string
+		expectedAmountOut *big.Int
+		expectedError     error
+	}{
+		{
+			name:          "GRIMEX=>WBNB: real router request when reserveIn is at the cap should return ErrUint112Overflow",
+			poolSimulator: newCapPoolSim(grimex, wbnb, grimexReserveIn, grimexReserveOut),
+			tokenAmountIn: pool.TokenAmount{
+				Amount: bignumber.NewBig("399746421784028250112000000000000"),
+				Token:  grimex,
+			},
+			tokenOut:      wbnb,
+			expectedError: ErrUint112Overflow,
+		},
+		{
+			name:          "GRIMEX=>WBNB: amountIn that puts the input balance exactly at the cap should swap",
+			poolSimulator: newCapPoolSim(grimex, wbnb, grimexReserveIn, grimexReserveOut),
+			tokenAmountIn: pool.TokenAmount{
+				Amount: bignumber.NewBig(grimexHeadroom), // balance0 == 2^112-1 passes the on-chain <= check
+				Token:  grimex,
+			},
+			tokenOut:          wbnb,
+			expectedAmountOut: bignumber.NewBig("64241337"),
+		},
+		{
+			name:          "GRIMEX=>WBNB: amountIn one wei over the cap should return ErrUint112Overflow",
+			poolSimulator: newCapPoolSim(grimex, wbnb, grimexReserveIn, grimexReserveOut),
+			tokenAmountIn: pool.TokenAmount{
+				Amount: new(big.Int).Add(bignumber.NewBig(grimexHeadroom), big.NewInt(1)),
+				Token:  grimex,
+			},
+			tokenOut:      wbnb,
+			expectedError: ErrUint112Overflow,
+		},
+		{
+			name:          "GRIMEX=>WBNB: small amountIn with headroom should still swap",
+			poolSimulator: newCapPoolSim(grimex, wbnb, grimexReserveIn, grimexReserveOut),
+			tokenAmountIn: pool.TokenAmount{
+				Amount: bignumber.NewBig("100000000000000000000"),
+				Token:  grimex,
+			},
+			tokenOut:          wbnb,
+			expectedAmountOut: bignumber.NewBig("225520"),
+		},
+		{
+			// CERBERUS has a 9% sell tax: the pair receives only 91% of amountIn, so the
+			// cap check must use effectiveAmountIn — the tax cannot push it under the cap.
+			name: "CERBERUS=>WBNB: 9% sell tax, raw amountIn whose effective amount crosses the cap should return ErrUint112Overflow",
+			poolSimulator: func() PoolSimulator {
+				s := newCapPoolSim(cerberus, wbnb, cerberusReserveIn, cerberusReserveOut)
+				s.taxHandler = tokentax.NewHandler(&tokentax.TaxInfo{
+					Token:      cerberus,
+					SellTaxBps: uint256.NewInt(900),
+				})
+				return s
+			}(),
+			tokenAmountIn: pool.TokenAmount{
+				Amount: bignumber.NewBig("339463138900289775527830724651785"), // effectiveAmountIn 3.09e32 >> headroom 8.62e26
+				Token:  cerberus,
+			},
+			tokenOut:      wbnb,
+			expectedError: ErrUint112Overflow,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return tc.poolSimulator.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: tc.tokenAmountIn,
+					TokenOut:      tc.tokenOut,
+					Limit:         nil,
+				})
+			})
+
+			if tc.expectedError != nil {
+				assert.ErrorIs(t, err, tc.expectedError)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut.Amount)
+			}
+		})
+	}
+}
+
+// TestPoolSimulator_CalcAmountIn_Uint112Overflow covers the pair's uint112 balance cap
+// in the exact-out direction: the chargeable effectiveAmountIn must also fit under 2^112-1.
+func TestPoolSimulator_CalcAmountIn_Uint112Overflow(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		name             string
+		poolSimulator    PoolSimulator
+		tokenAmountOut   pool.TokenAmount
+		tokenIn          string
+		expectedAmountIn *big.Int
+		expectedError    error
+	}{
+		{
+			// reserveOut-1 passes the grossAmountOut < reserveOut check, but the fee-bear
+			// effectiveAmountIn needed to move the reserve pushes the uint112 balance over the cap.
+			name:          "GRIMEX<=WBNB: amountOut whose required input exceeds the cap headroom should return ErrUint112Overflow",
+			poolSimulator: newCapPoolSim(grimex, wbnb, grimexReserveIn, grimexReserveOut),
+			tokenAmountOut: pool.TokenAmount{
+				Amount: bignumber.NewBig("11739047184173395081"), // reserveOut - 1
+				Token:  wbnb,
+			},
+			tokenIn:       grimex,
+			expectedError: ErrUint112Overflow,
+		},
+		{
+			name:          "GRIMEX<=WBNB: amountOut whose required input stays under the cap should swap",
+			poolSimulator: newCapPoolSim(grimex, wbnb, grimexReserveIn, grimexReserveOut),
+			tokenAmountOut: pool.TokenAmount{
+				Amount: big.NewInt(6000),
+				Token:  wbnb,
+			},
+			tokenIn:          grimex,
+			expectedAmountIn: bignumber.NewBig("2660510713778587847"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := tc.poolSimulator.CalcAmountIn(pool.CalcAmountInParams{
+				TokenAmountOut: tc.tokenAmountOut,
+				TokenIn:        tc.tokenIn,
+				Limit:          nil,
+			})
+
+			if tc.expectedError != nil {
+				assert.ErrorIs(t, err, tc.expectedError)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, 0, tc.expectedAmountIn.Cmp(result.TokenAmountIn.Amount),
+					"expected amountIn == %s, got %s", tc.expectedAmountIn, result.TokenAmountIn.Amount)
+			}
+		})
+	}
 }
 
 func TestPoolSimulator_getAmountOut(t *testing.T) {
