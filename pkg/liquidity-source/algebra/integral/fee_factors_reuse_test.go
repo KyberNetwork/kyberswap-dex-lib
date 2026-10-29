@@ -1,7 +1,10 @@
 package integral
 
 import (
+	"encoding/json"
 	"math/big"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -119,6 +122,84 @@ func TestFirstQuotesConcurrently(t *testing.T) {
 					})
 				}
 				wg.Wait()
+			}
+		})
+	}
+}
+
+type recordedSwap struct {
+	ZeroToOne bool   `json:"zeroToOne"`
+	ExactIn   bool   `json:"exactIn"`
+	Amount    string `json:"amount"`
+	In        string `json:"in"`
+	Out       string `json:"out"`
+}
+
+// TestSwapsInARowMatchChain replays the swaps in testdata/swaps, which the pools of four on-chain
+// fixtures made at two blocks each: the fixture's block, and the last block in the second of the
+// plugin's last timepoint, where a swap writes no timepoint. An entry is one swap, or swaps in a row
+// in one eth_call. The simulator quotes every single swap on one simulator, and swaps in a row on a
+// clone of it with UpdateBalance between them. Each swap must take and pay what the pool did, to the
+// wei, and the entries are replayed twice, so that the single swaps also run after the clones'.
+func TestSwapsInARowMatchChain(t *testing.T) {
+	fixtures := loadOnchainFeeFixtures(t)
+	files, err := filepath.Glob("testdata/swaps/*.json")
+	require.NoError(t, err)
+	require.NotEmpty(t, files)
+	for _, file := range files {
+		name := filepath.Base(file)
+		t.Run(name, func(t *testing.T) {
+			fixture, ok := fixtures[name]
+			require.True(t, ok, "no on-chain fixture for %s", name)
+			b, err := os.ReadFile(file)
+			require.NoError(t, err)
+			var recorded struct {
+				Blocks []struct {
+					Block          uint64           `json:"block"`
+					BlockTimestamp uint32           `json:"blockTimestamp"`
+					Swaps          [][]recordedSwap `json:"swaps"`
+				} `json:"blocks"`
+			}
+			require.NoError(t, json.Unmarshal(b, &recorded))
+			token0, token1 := fixture.Pool.Tokens[0].Address, fixture.Pool.Tokens[1].Address
+
+			for _, blk := range recorded.Blocks {
+				setBlockTimestamp(t, blk.BlockTimestamp)
+				sim, err := NewPoolSimulator(fixture.Pool)
+				require.NoError(t, err)
+				for range 2 {
+					for _, swaps := range blk.Swaps {
+						s := sim
+						if len(swaps) > 1 {
+							s = sim.CloneState().(*PoolSimulator)
+						}
+						for i, sw := range swaps {
+							in, out := token0, token1
+							if !sw.ZeroToOne {
+								in, out = token1, token0
+							}
+							amount, _ := new(big.Int).SetString(sw.Amount, 10)
+							var gotIn, gotOut *big.Int
+							var info any
+							if sw.ExactIn {
+								res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+									TokenAmountIn: pool.TokenAmount{Token: in, Amount: amount}, TokenOut: out})
+								require.NoError(t, err, "block %d swap %d of %+v", blk.Block, i, swaps)
+								gotIn, gotOut, info = amount, res.TokenAmountOut.Amount, res.SwapInfo
+							} else {
+								res, err := s.CalcAmountIn(pool.CalcAmountInParams{
+									TokenAmountOut: pool.TokenAmount{Token: out, Amount: amount}, TokenIn: in})
+								require.NoError(t, err, "block %d swap %d of %+v", blk.Block, i, swaps)
+								gotIn, gotOut, info = res.TokenAmountIn.Amount, amount, res.SwapInfo
+							}
+							require.Equal(t, sw.In, gotIn.String(), "block %d swap %d of %+v: in", blk.Block, i, swaps)
+							require.Equal(t, sw.Out, gotOut.String(), "block %d swap %d of %+v: out", blk.Block, i, swaps)
+							if len(swaps) > 1 {
+								s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: info})
+							}
+						}
+					}
+				}
 			}
 		})
 	}
