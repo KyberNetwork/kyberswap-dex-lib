@@ -1,0 +1,280 @@
+{
+ "chain": "bsc",
+ "blockTimestamp": 1793103670,
+ "pool": {
+  "address": "0x359e47781c1ed39863138a7bf5ac794b392b326a",
+  "exchange": "thena-fusion-v3",
+  "type": "algebra-integral",
+  "reserves": [
+   "339177962191566941",
+   "78300957061452532003"
+  ],
+  "tokens": [
+   {
+    "address": "0x55d398326f99059ff775485246999027b3197955",
+    "swappable": true
+   },
+   {
+    "address": "0xabe8e5cabe24cb36df9540088fd7ce1175b9bc52",
+    "swappable": true
+   }
+  ],
+  "extra": "{\"dF\":{\"a1\":500,\"a2\":1200,\"b1\":360,\"b2\":40000,\"bF\":2900,\"g1\":59,\"g2\":8500},\"gS\":{\"cF\":120,\"lF\":3414,\"pC\":193,\"price\":\"1190216230819894281506827938151\",\"tick\":54193,\"un\":true},\"liq\":\"4761528642836730213\",\"sF\":{\"0to1fF\":\"79228162514264337593543950336\",\"1to0fF\":\"79228162514264337593543950336\",\"bF\":3000,\"dE\":false,\"pCF\":1000,\"sE\":false},\"tP\":{\"0\":{\"avgT\":31396,\"init\":true,\"tick\":31396,\"ts\":1748417052,\"vo\":\"0\"},\"7835\":{\"avgT\":54193,\"cum\":1886276534443,\"init\":true,\"tick\":54193,\"ts\":1789771886,\"vo\":\"14295441319861\",\"wsI\":7834},\"7836\":{\"vo\":\"0\"},\"7837\":{\"vo\":\"0\"}},\"tS\":60,\"ticks\":[{\"Index\":-887220,\"LiquidityGross\":\"4761528642836730213\",\"LiquidityNet\":\"4761528642836730213\"},{\"Index\":887220,\"LiquidityGross\":\"4761528642836730213\",\"LiquidityNet\":\"-4761528642836730213\"}],\"vo\":{\"init\":true,\"lastTs\":1789771886,\"tpIdx\":7835}}",
+  "staticExtra": "{\"poolId\":\"0x359e47781c1ed39863138a7bf5ac794b392b326a\"}",
+  "blockNumber": 130088457
+ },
+ "quotes": [
+  {
+   "kind": "in",
+   "amount": "100",
+   "zeroToOne": true,
+   "result": "22342"
+  },
+  {
+   "kind": "out",
+   "amount": "100",
+   "zeroToOne": true,
+   "result": "2"
+  },
+  {
+   "kind": "in",
+   "amount": "10000",
+   "zeroToOne": true,
+   "result": "2250026"
+  },
+  {
+   "kind": "out",
+   "amount": "10000",
+   "zeroToOne": true,
+   "result": "46"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000",
+   "zeroToOne": true,
+   "result": "225023010"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000",
+   "zeroToOne": true,
+   "result": "4445"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000",
+   "zeroToOne": true,
+   "result": "22502301006"
+  },
+  {
+   "kind": "out",
+   "amount": "100000000",
+   "zeroToOne": true,
+   "result": "444400"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000000",
+   "zeroToOne": true,
+   "result": "2250230030528"
+  },
+  {
+   "kind": "out",
+   "amount": "10000000000",
+   "zeroToOne": true,
+   "result": "44439901"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000000000",
+   "zeroToOne": true,
+   "result": "225022302251432"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000000000",
+   "zeroToOne": true,
+   "result": "4443990032"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000000000",
+   "zeroToOne": true,
+   "result": "22495224414373984"
+  },
+  {
+   "kind": "out",
+   "amount": "100000000000000",
+   "zeroToOne": true,
+   "result": "444399618252"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000000000000",
+   "zeroToOne": true,
+   "result": "2181600807542501844"
+  },
+  {
+   "kind": "out",
+   "amount": "10000000000000000",
+   "zeroToOne": true,
+   "result": "44446113266702"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000000000000000",
+   "zeroToOne": true,
+   "result": "54277045968999678481"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000000000000000",
+   "zeroToOne": true,
+   "result": "4506997820042228"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000000000000000",
+   "zeroToOne": true,
+   "result": "71304071992393588229"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000000000000000000",
+   "zeroToOne": true,
+   "result": "71528460948025210711"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000000000000000000000",
+   "zeroToOne": true,
+   "result": "71530711969783995882"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000000000000000000000",
+   "zeroToOne": true,
+   "result": "71530734480717071176"
+  },
+  {
+   "kind": "out",
+   "amount": "100",
+   "zeroToOne": false,
+   "result": "22634"
+  },
+  {
+   "kind": "in",
+   "amount": "10000",
+   "zeroToOne": false,
+   "result": "44"
+  },
+  {
+   "kind": "out",
+   "amount": "10000",
+   "zeroToOne": false,
+   "result": "2263385"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000",
+   "zeroToOne": false,
+   "result": "4418"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000",
+   "zeroToOne": false,
+   "result": "226338384"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000",
+   "zeroToOne": false,
+   "result": "441816"
+  },
+  {
+   "kind": "out",
+   "amount": "100000000",
+   "zeroToOne": false,
+   "result": "22633838295"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000000",
+   "zeroToOne": false,
+   "result": "44181635"
+  },
+  {
+   "kind": "out",
+   "amount": "10000000000",
+   "zeroToOne": false,
+   "result": "2263383900050"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000000000",
+   "zeroToOne": false,
+   "result": "4418163518"
+  },
+  {
+   "kind": "out",
+   "amount": "1000000000000",
+   "zeroToOne": false,
+   "result": "226339096964618"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000000000",
+   "zeroToOne": false,
+   "result": "441815742171"
+  },
+  {
+   "kind": "out",
+   "amount": "100000000000000",
+   "zeroToOne": false,
+   "result": "22640981524613378"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000000000000",
+   "zeroToOne": false,
+   "result": "44175478040819"
+  },
+  {
+   "kind": "out",
+   "amount": "10000000000000000",
+   "zeroToOne": false,
+   "result": "2337120054633913053"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000000000000000",
+   "zeroToOne": false,
+   "result": "4357424040131764"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000000000000000",
+   "zeroToOne": false,
+   "result": "184556748759427493"
+  },
+  {
+   "kind": "in",
+   "amount": "10000000000000000000000",
+   "zeroToOne": false,
+   "result": "314699195155290162"
+  },
+  {
+   "kind": "in",
+   "amount": "1000000000000000000000000",
+   "zeroToOne": false,
+   "result": "316934094648321216"
+  },
+  {
+   "kind": "in",
+   "amount": "100000000000000000000000000",
+   "zeroToOne": false,
+   "result": "316956603957668140"
+  }
+ ]
+}
