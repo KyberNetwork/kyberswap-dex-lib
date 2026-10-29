@@ -51,6 +51,7 @@ const (
 	ExchangeBeethovenXV3Weighted        = "beethovenx-v3-weighted"
 	ExchangeBeethovenXWeighted          = "beethovenx-weighted"
 	ExchangeBiconomyProp                = "biconomy-prop"
+	ExchangeDaikonProp                  = "daikon-prop"
 	ExchangeBeetsSS                     = "beets-ss"
 	ExchangeBeracaine                   = "beracaine"
 	ExchangeBeraSwapComposableStable    = "beraswap-composable-stable"
@@ -504,6 +505,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapV4HyFiProp:  {},
 	ExchangePancakeProp:        {},
 	ExchangeBiconomyProp:       {},
+	ExchangeDaikonProp:         {},
 	ExchangeStelaxisProp:       {},
 }
 
