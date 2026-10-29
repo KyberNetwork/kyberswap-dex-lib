@@ -48,7 +48,7 @@ func TestCanCalcAmountIn(t *testing.T) {
 	dexes := []string{"algebra-integral", "algebra-v1", "balancer-v2-composable-stable", "balancer-v2-stable",
 		"balancer-v2-weighted", "balancer-v3-eclp", "balancer-v3-stable", "balancer-v3-weighted", "bancor-v3",
 		"curve-compound", "curve-lending", "curve-llamma", "curve-stable-meta-ng", "curve-stable-ng",
-		"curve-stable-plain", "curve-tricrypto-ng", "curve-twocrypto-ng", "deltaswap-v1", "dodo-classical", "ekubo",
+		"curve-stable-plain", "curve-tricrypto-ng", "curve-twocrypto-ng", "deltaswap-v1", "ammalgam-dlex", "dodo-classical", "ekubo",
 		"ekubo-v3", "euler-swap", "fluid-dex-t1", "iziswap", "limit-order", "liquiditybook-v21", "baseline",
 		"maverick-v1", "muteswitch", "pancake-v3", "ringswap", "sky-psm", "slipstream", "solidly-v2", "solidly-v3",
 		"swap-x-v2", "syncswap-classic", "syncswap-stable", "syncswapv2-classic", "syncswapv2-stable", "unipool",
@@ -91,7 +91,7 @@ func TestPoolListerFactory(t *testing.T) {
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
 		"ekubo-v3", "erc4626", "hyeth", "brownfi", "midas", "arbera-den", "cusd", "arbera-zap", "kelp-rseth-l2",
-		"unipool", "valantis-stex", "nabla", "lunarbase", "ghost", "ilyris-lb", "saturn-usdat", "upshift-usdf", "upshift-vaultv2"}
+		"unipool", "valantis-stex", "nabla", "lunarbase", "ghost", "ilyris-lb", "saturn-usdat", "upshift-usdf", "upshift-vaultv2", "ammalgam-dlex"}
 
 	for _, poolLister := range poolListers {
 		t.Run(poolLister, func(t *testing.T) {
@@ -121,7 +121,7 @@ func TestPoolTrackerFactory(t *testing.T) {
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
-		"ekubo-v3", "erc4626", "hyeth", "brownfi", "cusd", "kelp-rseth-l2", "unipool", "valantis-stex", "nabla", "lunarbase", "ghost", "ilyris-lb", "saturn-usdat", "upshift-usdf", "upshift-vaultv2"}
+		"ekubo-v3", "erc4626", "hyeth", "brownfi", "cusd", "kelp-rseth-l2", "unipool", "valantis-stex", "nabla", "lunarbase", "ghost", "ilyris-lb", "saturn-usdat", "upshift-usdf", "upshift-vaultv2", "ammalgam-dlex"}
 	t.Logf("%#v", poolTrackers)
 
 	for _, poolTracker := range poolTrackers {

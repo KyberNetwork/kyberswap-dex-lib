@@ -8,6 +8,7 @@ import (
 	algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
 	altfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/alt-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ammalgam"
 	angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
@@ -117,6 +118,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
 	kipseliprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/prop"
+	kuruob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kuru-ob"
+	kuruobv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kuru-ob/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	limitorder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/limit-order"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
@@ -200,6 +203,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/evplusai"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/inverse"
+	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/reafund"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/ticker-dualpool"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/ticker-meme-v4"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/volatile"
@@ -420,6 +424,7 @@ type Types struct {
 	Clear                      string
 	Clipper                    string
 	DeltaSwapV1                string
+	Ammalgam                   string
 	SfrxETH                    string
 	SfrxETHConvertor           string
 	EtherfiVampire             string
@@ -530,6 +535,8 @@ type Types struct {
 	Gblin                      string
 	EverlongFlamm              string
 	BTRProp                    string
+	KuruOB                     string
+	KuruOBV2                   string
 }
 
 var (
@@ -685,6 +692,7 @@ var (
 		Clear:                      clear.DexType,
 		Clipper:                    clipper.DexType,
 		DeltaSwapV1:                deltaswapv1.DexType,
+		Ammalgam:                   ammalgam.DexType,
 		SfrxETH:                    sfrxeth.DexType,
 		SfrxETHConvertor:           sfrxethconvertor.DexType,
 		EtherfiVampire:             etherfivampire.DexType,
@@ -800,5 +808,7 @@ var (
 		Gblin:                      gblin.DexType,
 		EverlongFlamm:              everlongflamm.DexType,
 		BTRProp:                    btrprop.DexType,
+		KuruOB:                     kuruob.DexType,
+		KuruOBV2:                   kuruobv2.DexType,
 	}
 )

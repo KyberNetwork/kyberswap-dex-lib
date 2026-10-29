@@ -101,3 +101,39 @@ func TestZeroLiquidityJumpMatchesContract(t *testing.T) {
 		require.Equal(t, want, got, amount)
 	}
 }
+
+// TestWalkWordsFloatOvershootStepsBack: the exact-in swap of 572857042997820927 into the Base
+// aerodrome-cl USDC/USDbC pool 0x98c7a233, one full-range position of 6694992424 liquidity, reaches
+// tick -4097 on a word edge with 572856965202003819 left, and the next 1411 empty words cost
+// 572856965202003968 in float: 149 more than is left, as the float remainder rounds past the exact
+// one. The walk then gave up, the exact loop took one word and the walk started over, 172 times
+// over the run. It now walks one word fewer, which fits, and the contract walking those words takes
+// no more input and pays no less.
+func TestWalkWordsFloatOvershootStepsBack(t *testing.T) {
+	t.Parallel()
+
+	const liquidity, tick = "6694992424", -4097
+	start := *uint256.MustFromDecimal("64556580881331167221767657720")
+	remaining := *uint256.MustFromDecimal("572856965202003819")
+	// start is the edge of tick -4096; a swap that crossed down to it stands at tick -4097
+	p, err := NewPool(100, start, *uint256.MustFromDecimal(liquidity), tick+1, fullRangeTicks(1, liquidity), 1)
+	require.NoError(t, err)
+
+	l, price, rem := p.Liquidity, start, remaining
+	var calculated uint256.Int
+	_, words, err := p.walkWordsFloat(true, true, tick, -887272, &l, MinSqrtRatioU256P1, &price, &rem,
+		&calculated)
+	require.NoError(t, err)
+	require.Equal(t, 1410, words)
+	require.False(t, rem.Gt(&remaining), "the walk spends no more than is left")
+
+	var spent uint256.Int
+	spent.Sub(&remaining, &rem)
+	want, err := newRefPool(p).swap(true, spent)
+	require.NoError(t, err)
+	var got, paid uint256.Int
+	got.Neg(&calculated)
+	paid.Neg(&want.AmountCalculated)
+	require.False(t, got.Gt(&paid), "the float walk pays no more than the contract")
+	require.False(t, want.SqrtRatioX96.Gt(&price), "the contract reaches the walk's word edge")
+}

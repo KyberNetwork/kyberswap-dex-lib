@@ -38,6 +38,14 @@ type PoolSimulator struct {
 	slidingFee         *SlidingFeeConfig
 	writeTimePointOnce *sync.Once
 
+	// swapFeeFactors are the fee factors the next swap takes on a pool priced by its fee factors: the
+	// plugin's stored factors, moved by the price change since its last timepoint, whose tick and time
+	// are lastTick and lastTimepointTs. Quotes only read them, and UpdateBalance replaces them, so a
+	// quote never changes another quote, a clone's or a concurrent one.
+	swapFeeFactors  *SlidingFeeConfig
+	lastTick        int32
+	lastTimepointTs uint32
+
 	useBasePluginV2 bool
 }
 
@@ -78,7 +86,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tickMin := extra.Ticks[0].Index
 	tickMax := extra.Ticks[len(extra.Ticks)-1].Index
 
-	return &PoolSimulator{
+	p := &PoolSimulator{
 		Info: pool.PoolInfo{
 			Address:     strings.ToLower(entityPool.Address),
 			Exchange:    entityPool.Exchange,
@@ -98,7 +106,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		slidingFee:         extra.SlidingFee,
 		writeTimePointOnce: new(sync.Once),
 		useBasePluginV2:    staticExtra.UseBasePluginV2,
-	}, nil
+	}
+	if p.usesFeeFactors() && p.volatilityOracle != nil {
+		p.lastTick = p.getLastTick()
+		p.lastTimepointTs = p.volatilityOracle.LastTimepointTimestamp
+		if p.swapFeeFactors, err = p.nextFeeFactors(p.slidingFee, p.globalState.Tick); err != nil {
+			return nil, err
+		}
+	}
+	return p, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -209,7 +225,9 @@ func (p *PoolSimulator) swap(tokenIn, tokenOut string, amtRequired *uint256.Int,
 	zeroForOne := tokenInIndex == 0
 	var overrideFee, pluginFee uint32
 	var err error
-	if p.useBasePluginV2 && p.slidingFee.FeeType {
+	if p.slidingFee != nil && p.slidingFee.SlidingFeeEnabled {
+		overrideFee, pluginFee, err = p.beforeSwapSliding(zeroForOne)
+	} else if p.useBasePluginV2 && p.slidingFee != nil && p.slidingFee.FeeType {
 		overrideFee, pluginFee, err = p.beforeSwapV2(zeroForOne)
 	} else {
 		overrideFee, pluginFee, err = p.beforeSwapV1(zeroForOne)
@@ -239,6 +257,19 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		logger.Warnf("failed to UpdateBalance for Algebra %v %v pool, wrong swapInfo type",
 			p.Info.Address, p.Info.Exchange)
 		return
+	}
+	if p.swapFeeFactors != nil {
+		// The swap stored the factors it took, and wrote a timepoint at the tick it started from,
+		// unless the plugin had written one in that second already.
+		if now := blockTimestamp(); now != p.lastTimepointTs {
+			p.lastTick, p.lastTimepointTs = p.globalState.Tick, now
+		}
+		next, err := p.nextFeeFactors(p.swapFeeFactors, si.Tick)
+		if err != nil {
+			logger.Warnf("failed to update the fee factors of Algebra %v %v pool: %v",
+				p.Info.Address, p.Info.Exchange, err)
+		}
+		p.swapFeeFactors = next
 	}
 	p.liquidity = si.Liquidity
 	p.globalState.Price = si.Price
@@ -329,51 +360,63 @@ func (p *PoolSimulator) beforeSwapV1(zeroForOne bool) (uint32, uint32, error) {
 	})
 }
 
-func (p *PoolSimulator) beforeSwapV2(zeroToOne bool) (uint32, uint32, error) {
-	currentTick := p.globalState.Tick
-	lastTick := p.getLastTick()
-
-	newFee, err := p.getFeeAndUpdateFactors(zeroToOne, currentTick, lastTick)
-	if err != nil {
-		return 0, 0, err
+// beforeSwapSliding prices a swap as the base plugins of Camelot, Cypher and Sheriff do: the dynamic
+// fee when that is on, else s_baseFee, scaled by the fee factor of the swap's direction.
+func (p *PoolSimulator) beforeSwapSliding(zeroToOne bool) (uint32, uint32, error) {
+	if p.swapFeeFactors == nil {
+		return 0, 0, ErrNotInitialized
 	}
-
+	baseFee := p.slidingFee.BaseFee
+	if p.slidingFee.DynamicFeeEnabled {
+		if _, _, err := p.beforeSwapV1(zeroToOne); err != nil {
+			return 0, 0, err
+		}
+		baseFee = p.globalState.LastFee
+	}
 	if err := p.writeTimepoint(nil); err != nil {
 		return 0, 0, err
 	}
-
-	return uint32(newFee), 0, nil
+	return uint32(scaleFee(zeroToOne, p.swapFeeFactors, baseFee)), 0, nil
 }
 
-func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, lastTick int32) (uint16, error) {
-	var currentFeeFactors *SlidingFeeConfig
-
-	if currentTick != lastTick {
-		var err error
-		currentFeeFactors, err = p.calculateFeeFactors(currentTick, lastTick, p.slidingFee.PriceChangeFactor)
-		if err != nil {
-			return 0, err
-		}
-
-		p.slidingFee = currentFeeFactors
-	} else {
-		currentFeeFactors = p.slidingFee
+func (p *PoolSimulator) beforeSwapV2(zeroToOne bool) (uint32, uint32, error) {
+	if p.swapFeeFactors == nil {
+		return 0, 0, ErrNotInitialized
 	}
+	if err := p.writeTimepoint(nil); err != nil {
+		return 0, 0, err
+	}
+	return uint32(scaleFee(zeroToOne, p.swapFeeFactors, p.slidingFee.BaseFee)), 0, nil
+}
 
-	adjustedFee := uint256.NewInt(uint64(p.slidingFee.BaseFee))
+// usesFeeFactors tells whether swaps on the pool take a fee scaled by the plugin's fee factors.
+func (p *PoolSimulator) usesFeeFactors() bool {
+	return p.slidingFee != nil && (p.slidingFee.SlidingFeeEnabled || p.useBasePluginV2 && p.slidingFee.FeeType)
+}
+
+// nextFeeFactors are the factors a swap at currentTick takes and stores, from the stored factors, as
+// the plugin's _getFeeAndUpdateFactors moves them against the last timepoint's tick.
+func (p *PoolSimulator) nextFeeFactors(factors *SlidingFeeConfig, currentTick int32) (*SlidingFeeConfig, error) {
+	if currentTick == p.lastTick {
+		return factors, nil
+	}
+	return calculateFeeFactors(factors, currentTick, p.lastTick)
+}
+
+// scaleFee is the fee of _getFeeAndUpdateFactors: baseFee scaled by the factor of the swap's direction.
+func scaleFee(zeroToOne bool, factors *SlidingFeeConfig, baseFee uint16) uint16 {
+	adjustedFee := uint256.NewInt(uint64(baseFee))
 	adjustedFee = adjustedFee.Rsh(
-		adjustedFee.Mul(adjustedFee,
-			lo.Ternary(zeroToOne, currentFeeFactors.ZeroToOneFeeFactor, currentFeeFactors.OneToZeroFeeFactor),
-		),
+		adjustedFee.Mul(adjustedFee, lo.Ternary(zeroToOne, factors.ZeroToOneFeeFactor, factors.OneToZeroFeeFactor)),
 		FEE_FACTOR_SHIFT,
 	)
 
 	if adjustedFee.BitLen() > 16 {
-		return math.MaxUint16, nil
+		return math.MaxUint16
 	} else if adjustedFee.IsZero() {
-		return 1, nil
+		return 1
 	}
-	return uint16(adjustedFee.Uint64()), nil
+	return uint16(adjustedFee.Uint64())
 }
 
 func (p *PoolSimulator) getLastTick() int32 {

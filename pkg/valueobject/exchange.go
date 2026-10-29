@@ -13,6 +13,7 @@ const (
 	ExchangeAltFun                      = "alt-fun"
 	ExchangeFlywheelFun                 = "flywheel-fun"
 	ExchangeAmbient                     = "ambient"
+	ExchangeAmmalgamDLEX                = "ammalgam-dlex"
 	ExchangeApeSwap                     = "apeswap"
 	ExchangeArberaDen                   = "arbera-den"
 	ExchangeArberaDenAmm                = "arbera-den-amm"
@@ -168,6 +169,7 @@ const (
 	ExchangeKrptoDex                    = "kryptodex"
 	ExchangeKTX                         = "ktx"
 	ExchangeKuruOB                      = "kuru-ob"
+	ExchangeKuruOBV2                    = "kuru-ob-v2"
 	ExchangeKyberPMM                    = "kyber-pmm"
 	ExchangeKipseliProp                 = "kipseli-prop"
 	ExchangeKipseliPamm                 = "kipseli-pamm"
@@ -364,6 +366,7 @@ const (
 	ExchangeUniswapV4OneToken           = "uniswap-v4-onetoken"
 	ExchangeUniswapV4PonsV2             = "uniswap-v4-pons-v2"
 	ExchangeUniswapV4Prm                = "uniswap-v4-prm"
+	ExchangeUniswapV4Reafund            = "uniswap-v4-reafund"
 	ExchangeUniswapV4Renzo              = "uniswap-v4-renzo"
 	ExchangeUniswapV4ST0x               = "uniswap-v4-st0x"
 	ExchangeUniswapV4StableStable       = "uniswap-v4-stable-stable"
@@ -406,6 +409,7 @@ const (
 	ExchangePrmFun                      = "prm-fun"
 	ExchangeTitanProp                   = "titan-prop"
 	ExchangeOdysFun                     = "odys-fun"
+	ExchangeStelaxisProp                = "stelaxis-prop"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
@@ -502,6 +506,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangePancakeProp:        {},
 	ExchangeBiconomyProp:       {},
 	ExchangeDaikonProp:         {},
+	ExchangeStelaxisProp:       {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {

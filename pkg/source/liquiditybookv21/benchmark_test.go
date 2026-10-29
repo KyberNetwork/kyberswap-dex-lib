@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -59,8 +60,9 @@ func BenchmarkOptimizePoolSimulator(b *testing.B) {
 // BenchmarkOptimizeGetPriceFromID-16    	 2771323	       425.7 ns/op	      32 B/op	       1 allocs/op
 func BenchmarkOptimizeGetPriceFromID(b *testing.B) {
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		_, err := getPriceFromID(8349152, 5)
+	var price uint256.Int
+	for b.Loop() {
+		err := getPriceFromID(&price, 8349152, 5)
 		assert.Nil(b, err)
 	}
 }

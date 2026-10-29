@@ -207,6 +207,11 @@ type SlidingFeeConfig struct {
 	PriceChangeFactor  uint16       `json:"pCF,omitempty"`
 	BaseFee            uint16       `json:"bF,omitempty"`
 	FeeType            bool         `json:"feeType,omitempty"` // false = v1, true = v2 - used by thena fusion v3
+	// DynamicFeeEnabled and SlidingFeeEnabled are the switches of the base plugins of Camelot, Cypher,
+	// Sheriff and the like, which have no feeType: with sliding fee on, the fee is the dynamic fee
+	// (s_baseFee when the dynamic fee is off) scaled by the fee factor of the swap's direction.
+	DynamicFeeEnabled bool `json:"dE,omitempty"`
+	SlidingFeeEnabled bool `json:"sE,omitempty"`
 }
 
 type SlidingFeeConfigRPC struct {

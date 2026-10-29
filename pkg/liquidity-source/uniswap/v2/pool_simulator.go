@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -23,6 +24,15 @@ type PoolSimulator struct {
 	fee          *uint256.Int
 	feePrecision *uint256.Int
 	taxHandler   tokentax.Handler
+}
+
+// CheckUint112Overflow reports whether reserveIn + amountIn exceeds UMaxU112 (2^112-1), the
+// uint112 balance cap of UniswapV2-style pairs: _update reverts with "<NAME>: OVERFLOW" when a
+// swap would push a balance past it. Huge-supply tokens can park a pair's reserve near the cap,
+// leaving little headroom. Note the pair receives the *effective* (pair-side) input amount.
+func CheckUint112Overflow(reserveIn, amountIn *uint256.Int) bool {
+	sum, overflow := new(uint256.Int).AddOverflow(reserveIn, amountIn)
+	return overflow || sum.Gt(big256.UMaxU112)
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -87,6 +97,12 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// Reserves move by the pair-side amounts (effectiveAmountIn / grossAmountOut), carried in SwapInfo.
 	effectiveAmountIn := s.taxHandler.ApplySellTax(s.Info.Tokens[indexIn], amountIn)
 
+	// The pair keeps balances in uint112; a swap that pushes the input-side balance past 2^112-1
+	// reverts on-chain with OVERFLOW. Headroom can be near zero for huge-supply tokens.
+	if CheckUint112Overflow(reserveIn, effectiveAmountIn) {
+		return nil, ErrUint112Overflow
+	}
+
 	grossAmountOut := s.getAmountOut(effectiveAmountIn, reserveIn, reserveOut)
 	if !grossAmountOut.Lt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
@@ -139,6 +155,12 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, err
 	} else if effectiveAmountIn.Sign() <= 0 {
 		return nil, ErrInsufficientInputAmount
+	}
+
+	// The pair keeps balances in uint112; a swap that pushes the input-side balance past 2^112-1
+	// reverts on-chain with OVERFLOW. Headroom can be near zero for huge-supply tokens.
+	if CheckUint112Overflow(reserveIn, effectiveAmountIn) {
+		return nil, ErrUint112Overflow
 	}
 
 	amountIn := s.taxHandler.GrossUpSellTax(s.Info.Tokens[indexIn], effectiveAmountIn)
