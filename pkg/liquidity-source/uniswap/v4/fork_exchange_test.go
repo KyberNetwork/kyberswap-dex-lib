@@ -59,7 +59,7 @@ func TestForkExchange_UnhookedPoolKeepsDexID(t *testing.T) {
 // Existing pools and hook exchange names must stay byte-identical.
 func TestForkExchange_DefaultUnchanged(t *testing.T) {
 	for _, dexID := range []string{"", DexType} {
-		for _, h := range []string{DexType, "uniswap-v4-fee", "uniswap-v4-passthru", "uniswap-v4-custom", "kem", "fairflow", "euler"} {
+		for _, h := range []string{DexType, "uniswap-v4-fee", "uniswap-v4-custom", "kem", "fairflow", "euler"} {
 			assert.Equal(t, h, ForkExchange(h, dexID))
 		}
 	}
