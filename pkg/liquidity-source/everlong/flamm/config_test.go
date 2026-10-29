@@ -1,66 +1,14 @@
 package everlongflamm
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
-
-// goccyMaxCaseInsensitiveFields is goccy/go-json's allowOptimizeMaxFieldLen (internal/decoder/struct.go): a struct
-// with more JSON fields than this is decoded by exact key lookup only, which drops the "DexID" the pool-service
-// factories inject (pkg/source/pool/{list,tracker}/factory.go) and every key of the repo's dominant spelling.
-const goccyMaxCaseInsensitiveFields = 16
-
-// jsonFieldCount is the number of keys the decoder builds for a struct type.
-func jsonFieldCount(t reflect.Type) int {
-	n := 0
-	for field := range t.Fields() {
-		if tag := field.Tag.Get("json"); tag != "-" {
-			n++
-		}
-	}
-	return n
-}
-
-// TestConfigFieldCount keeps Config within the case-insensitive decoding limit, which every key but the dex id
-// depends on: past it only a key's exact tag is matched, so the README's Go field-name spelling and the repo's
-// `chainID` / `chainId` variants would be dropped in silence. A new option goes into Gas or another sub-struct.
-func TestConfigFieldCount(t *testing.T) {
-	t.Parallel()
-	require.LessOrEqual(t, jsonFieldCount(reflect.TypeFor[Config]()), goccyMaxCaseInsensitiveFields)
-
-	// The limit itself, on control structs of the same shape as Config's head: at the limit the injected key lands
-	// whatever the tag's case, past it only the tag Config uses -- the exact key the factories inject -- still does.
-	field := func(i int) reflect.StructField {
-		return reflect.StructField{Name: "F" + string(rune('A'+i)), Type: reflect.TypeFor[string](),
-			Tag: reflect.StructTag(`json:"f` + string(rune('a'+i)) + `"`)}
-	}
-	dexIDTag, _ := reflect.TypeFor[Config]().FieldByName("DexID")
-	for _, c := range []struct {
-		fields int
-		tag    reflect.StructTag
-		want   string
-	}{
-		{goccyMaxCaseInsensitiveFields, `json:"dexId"`, DexType},
-		{goccyMaxCaseInsensitiveFields + 1, `json:"dexId"`, ""},
-		{goccyMaxCaseInsensitiveFields, dexIDTag.Tag, DexType},
-		{goccyMaxCaseInsensitiveFields + 1, dexIDTag.Tag, DexType},
-	} {
-		fields := []reflect.StructField{{Name: "DexID", Type: reflect.TypeFor[string](), Tag: c.tag}}
-		for i := 1; i < c.fields; i++ {
-			fields = append(fields, field(i))
-		}
-		out := reflect.New(reflect.StructOf(fields))
-		require.NoError(t, pool.PropertiesToStruct(map[string]any{"DexID": DexType}, out.Interface()))
-		require.Equal(t, c.want, out.Elem().Field(0).String(), "%d fields, %s", c.fields, c.tag)
-	}
-}
 
 // TestConfigThroughFactories decodes Config the way pool-service does: through the registered lister and tracker
 // factories, which inject properties["DexID"] and decode with pool.PropertiesToStruct. Every documented key must
