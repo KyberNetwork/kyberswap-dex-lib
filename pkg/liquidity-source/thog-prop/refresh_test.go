@@ -190,7 +190,7 @@ func TestPageReaderPinsEveryDependentCallAndRejectsReorg(t *testing.T) {
 					reply := map[string]any{"jsonrpc": "2.0", "id": request.ID}
 					if call["to"] == "" {
 						require.Equal(t, "lens_gas", mode)
-						reply["error"] = map[string]any{"code": -32000, "message": "gas required exceeds allowance"}
+						reply["error"] = map[string]any{"code": -32000, "message": "user-specified gas exceeds provider limit"}
 						replies = append(replies, reply)
 						continue
 					}
@@ -276,6 +276,25 @@ func TestTrackerCancellationAndConfig(t *testing.T) {
 		require.True(t, lensUnsupported(errors.New(message)))
 	}
 	require.False(t, lensUnsupported(errors.New("issuer reverted")))
+}
+
+func TestLensCapabilityRefusalsPreserveContractAndTransportErrors(t *testing.T) {
+	for _, message := range []string{
+		"user-specified gas exceeds provider limit", "gas required exceeds allowance",
+		"requested gas limit is too high", "out of gas", "gas exceeds the gas cap",
+		"contract creation is not supported", "unsupported creation eth_call", "creation is disabled",
+	} {
+		require.True(t, lensUnsupported(errors.New(message)), message)
+	}
+	for _, err := range []error{
+		context.Canceled, context.DeadlineExceeded, errors.New("connection reset by peer"),
+		errors.New("HTTP 429 rate limit"), errors.New("HTTP 403 forbidden"),
+		refreshFailure("issuer", "lens read", errors.New("out of gas")),
+		refreshFailure("contract", "lens read", errors.New("gas limit exceeded")),
+		refreshFailure("validation", "lens result", errors.New("unsupported creation payload")),
+	} {
+		require.False(t, lensUnsupported(err), err.Error())
+	}
 }
 
 func TestTrackerAttemptTimeoutRetriesFromScratch(t *testing.T) {

@@ -43,8 +43,21 @@ precision; final execution simulation remains authoritative.
 
 For indexing (`StaleCheck=false`), elapsed-time and maximum-age rejection are
 skipped. The indexer uses snapshot block + 1 and retains the curve, pause, side,
-and inventory checks. Direct `NewPoolSimulator` construction enables live age
+and inventory checks. Unlike the previous adapter, an expired on-chain price can
+therefore still produce an index-time estimate; live routing continues to reject
+it. Direct `NewPoolSimulator` construction enables live age
 checks; historical tests explicitly choose their captured evaluation time.
+
+The current `CalcAmountOutParams` interface contains no routing-head block.
+A fully block-based clock therefore needs Kyber to pass the head it already
+tracks with each quote; the adapter can then compare that head with the snapshot
+and posted-price blocks. Fetching or polling a head inside the adapter would add
+network work to solve a context problem and is not part of this reader.
+
+Until that caller context is available, timestamp-based aging requires reasonably
+synchronized pool-service and router clocks. A capture time ahead of the router
+currently returns `ErrStaleSnapshot`. A two-second grace period would forgive
+about seven nominal 300 ms blocks of age, so it is not a free clock correction.
 
 Age widening enters the existing integer curve before the solve. No fixed
 short-horizon price margin is added. `GetMetaInfo` includes the snapshot block,
@@ -95,7 +108,10 @@ fallback. The default worst-case budget is therefore about **4.3 s**, not a
 promise of continuous availability within a 15-block price lifetime. A failure
 returns the original pool and an explicit error; logs include pool, dex, attempt,
 and `errorKind` (`transport`, `provider_lag`, `reorg`, `validation`, `contract`, or `issuer`).
-A lens-capability fallback is also logged explicitly.
+A lens-capability fallback is also logged explicitly. Capability matching covers
+provider variants such as "user-specified gas exceeds provider limit". Transport
+failures/timeouts and typed contract, issuer, or validation errors do not select
+a different reader: they keep the existing whole-refresh retry policy.
 
 Configuration fields (zero selects the default):
 
@@ -198,21 +214,25 @@ THOGAMM_FIXTURES=/path/to/full/fixtures GOTOOLCHAIN=go1.27.2 go test ./pkg/liqui
 
 ## Provider probe and rollout
 
-A fresh read-only probe on October 29 ran six reads per design. Latencies below
-are medians of successful complete reads, without retries; they are a small
-compatibility/latency sample, not production reliability estimates.
+The local October 29 probe ran six successful reads per design on
+`rpc.monad.xyz`: median complete-read latency was **149 ms** with a header/hash,
+**136 ms** with a header/number, **122 ms** page-first, and **61 ms** through the
+lens. These are small samples without retries, not reliability estimates.
 
-| Endpoint | Header + hash | Header + number | Page-first + number | Atomic lens |
-| --- | --- | --- | --- | --- |
-| `rpc.monad.xyz` | 6/6, 149 ms | 6/6, 136 ms | 6/6, 122 ms | 6/6, 61 ms |
-| `rpc1.monad.xyz` | HTTP 403 | HTTP 403 | HTTP 403 | HTTP 403 |
-| `rpc-mainnet.monadinfra.com` | HTTP 403 | HTTP 403 | HTTP 403 | HTTP 403 |
-| `rpc.ankr.com/monad` | HTTP 403 | HTTP 403 | HTTP 403 | HTTP 403 |
+A subsequent independent review supplied these additional live lens checks:
 
-The 403s occurred before usable RPC responses, so they do not establish protocol
-compatibility. The incident investigation separately reported hash-pinning
-failures on `rpc1.monad.xyz` and `rpc-mainnet.monadinfra.com`, with number-pinning
-succeeding there. Kyber should run the probe against its actual provider URLs:
+| Endpoint | Successful lens checks | Reported latency |
+| --- | --- | --- |
+| `rpc.monad.xyz` | Success; page matched a same-block direct read, five issuers decoded | 72 ms |
+| `rpc1.monad.xyz` | 3/3 | Not reported |
+| `rpc-mainnet.monadinfra.com` | 3/3 | Not reported |
+| Ankr | 3/3 | Not reported |
+| dRPC | 3/3 | Not reported |
+
+The reviewer supplied these results separately from the local probe. Earlier
+HTTP 403s in the local environment did not test RPC support; the subsequent
+successful checks establish lens compatibility on those providers. Kyber can
+run the committed probe against its own provider URLs:
 
 ```sh
 python3 pkg/liquidity-source/thog-prop/testdata/refresh_probe.py \
@@ -228,6 +248,9 @@ refresh-error rates, as well as the served snapshot/quote blocks.
 
 Integration requests for Kyber:
 
+- Pass the already-known routing-head block with quote context so aging can use
+  block numbers without adapter RPCs. This needs caller/interface wiring; the
+  current simulator interface carries only the stored snapshot block.
 - Keep the one-second schedule and confirm whether successful `MakerPageUpdated`
   publications can trigger refreshes sooner. The event indicates a publication;
   it is not a guarantee that the maker publishes in every block.

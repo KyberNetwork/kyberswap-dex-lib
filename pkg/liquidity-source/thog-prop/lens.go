@@ -3,6 +3,7 @@ package thogprop
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -112,11 +113,13 @@ func decodeSnapshotLens(data []byte, proxy common.Address) (State, uint64, error
 // Only a provider capability/gas rejection selects the number-pinned reader.
 // Contract/issuer errors and malformed payloads remain explicit refresh failures.
 func lensUnsupported(err error) bool {
-	message := strings.ToLower(err.Error())
-	for _, text := range []string{"out of gas", "gas required exceeds allowance", "exceeds the gas cap", "gas limit exceeds", "contract creation is not supported", "contract creation not supported", "creation eth_call is not supported"} {
-		if strings.Contains(message, text) {
-			return true
-		}
+	var readFailure *refreshError
+	if errors.As(err, &readFailure) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
 	}
-	return false
+	message := strings.ToLower(err.Error())
+	if strings.Contains(message, "gas") && (strings.Contains(message, "out of gas") || strings.Contains(message, "exceed") || strings.Contains(message, "limit") || strings.Contains(message, "allowance")) {
+		return true
+	}
+	return strings.Contains(message, "creat") && (strings.Contains(message, "unsupported") || strings.Contains(message, "not supported") || strings.Contains(message, "not allowed") || strings.Contains(message, "disabled"))
 }
