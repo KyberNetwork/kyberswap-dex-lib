@@ -11,13 +11,9 @@ import (
 // default (constant.go); an explicit 0 turns it off.
 //
 // The keys are decoded from pool-service's properties map by pool.PropertiesToStruct, which matches them
-// case-insensitively only while the struct stays at or below goccy/go-json's optimized field count
-// (internal/decoder.allowOptimizeMaxFieldLen = 16; above it only the exact tag matches). Every key below is
-// therefore accepted in any case -- the spelling of its tag, and the Go field name the README's table uses --
-// while the count stays within the limit: the gas overrides are nested in Gas to keep it at thirteen, and
-// TestConfigFieldCount fails if a field is added past it. DexID is tagged with the exact key the lister and
-// tracker factories inject (properties["DexID"], poollist/pooltrack factory.go), so the dex id lands through the
-// exact-tag lookup as well and does not depend on that limit at all.
+// case-insensitively: the spelling of each tag and the Go field name the README's table uses both land
+// (TestConfigThroughFactories). DexID is tagged with the exact key the lister and tracker factories inject
+// (properties["DexID"], poollist/pooltrack factory.go).
 type Config struct {
 	DexID   string              `json:"DexID"`
 	ChainID valueobject.ChainID `json:"chainID"`

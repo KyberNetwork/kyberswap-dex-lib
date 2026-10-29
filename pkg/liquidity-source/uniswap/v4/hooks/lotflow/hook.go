@@ -111,10 +111,8 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	return h
 }, HookAddresses...)
 
-// decodeExtra is HookExtra.Unmarshal behind a recover: goccy/go-json v0.10.5 can panic (index out of
-// range, internal/decoder/context.go:49) on a short truncated extra with an escape in a key (FuzzHookExtra
-// corpus 8e6fd1838d839f3e) when it follows a longer extra; not in isolation, as the decoder reads past
-// the input into its pooled buffer (TestDecodeExtraRecoversDecoderPanic).
+// decodeExtra is HookExtra.Unmarshal behind a recover: goccy/go-json v0.10.5 could panic on a short
+// truncated extra that followed a longer one (TestDecodeExtraRecoversDecoderPanic).
 func decodeExtra(raw uniswapv4.HookExtra, x *Extra) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
