@@ -18,7 +18,10 @@ const (
 	// maxFeePpm is the 5% cap the pair applies to swapData fees; larger values are cut.
 	maxFeePpm = 50_000
 
-	defaultGas int64 = 150_000
+	// Hop gas measured with Tenderly through executeGeneric on Base (test-dex): identical across
+	// amounts and runs, so each is its own average.
+	gasBuyBase  int64 = 109_759 // quote in
+	gasSellBase int64 = 115_276 // base in
 )
 
 var (
