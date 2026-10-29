@@ -75,7 +75,7 @@ func decodeSlot0(w [32]byte) Slot0Data {
 		SqrtPriceX96: sqrt.ToBig(),
 		Tick:         big.NewInt(tick),
 		ProtocolFee:  uint32(rest >> 24 & 0xffffff),
-		LpFee:        uint32(rest >> 48 & 0xffffff),
+		LpFee:        uint32(new(uint256.Int).Rsh(&v, 208).Uint64() & 0xffffff), // bits 208-231 exceed rest's 64-bit window
 	}
 }
 

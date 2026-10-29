@@ -45,6 +45,10 @@ func TestExtsloadSignedFields(t *testing.T) {
 	assert.Equal(t, uint32(3000), s0.LpFee)
 	assert.Equal(t, int64(1), s0.SqrtPriceX96.Int64())
 
+	// lpFee 1_000_000 (0x0f4240) spans bits 208-231, above 16 bits
+	s0 = decodeSlot0(common.HexToHash("0x000f4240000000fffffb0000000000000000000000000000000000000001"))
+	assert.Equal(t, uint32(1_000_000), s0.LpFee)
+
 	// liquidityNet = -7 (two's complement int128 in the high half), gross = 7
 	var neg [32]byte
 	new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(7)).FillBytes(neg[:16])
