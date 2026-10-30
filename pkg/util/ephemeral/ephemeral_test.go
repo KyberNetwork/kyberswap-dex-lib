@@ -289,6 +289,19 @@ func (c chain) ChainID(context.Context) (*big.Int, error) {
 	return new(big.Int).SetUint64(c.id), nil
 }
 
+// scanTwoPages scans two pages from pin on a node that reports every call at reported, and returns
+// the block read and each page's.
+func scanTwoPages(t *testing.T, pin Pinned, reported uint64) (uint64, []*big.Int) {
+	var blocks []*big.Int
+	read, err := Scan(t.Context(), 0, pin,
+		func(_ context.Context, cursor int, block *big.Int) (Page[int], error) {
+			blocks = append(blocks, block)
+			return Page[int]{Block: reported, Next: cursor + 1, Done: cursor == 1}, nil
+		})
+	require.NoError(t, err)
+	return read, blocks
+}
+
 // TestPinAsksNoHead: a read with no block runs its first call at the latest and takes the block
 // that call reports, asking the node for no head; one with a block keeps it.
 func TestPinAsksNoHead(t *testing.T) {
@@ -296,13 +309,7 @@ func TestPinAsksNoHead(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, pin.Block)
 
-	var blocks []*big.Int
-	read, err := Scan(t.Context(), 0, pin,
-		func(_ context.Context, cursor int, block *big.Int) (Page[int], error) {
-			blocks = append(blocks, block)
-			return Page[int]{Block: 500, Next: cursor + 1, Done: cursor == 1}, nil
-		})
-	require.NoError(t, err)
+	read, blocks := scanTwoPages(t, pin, 500)
 	assert.EqualValues(t, 500, read)
 	require.Len(t, blocks, 2)
 	assert.Nil(t, blocks[0], "the first call runs at the latest")
@@ -324,13 +331,7 @@ func TestPinTakesTheNextBlockOnlyOnEtherlink(t *testing.T) {
 	// its next call is pinned to 500, which the node reports as 501 again.
 	pin, err := Pin(t.Context(), etherlink, nil)
 	require.NoError(t, err)
-	var blocks []*big.Int
-	read, err := Scan(t.Context(), 0, pin,
-		func(_ context.Context, cursor int, block *big.Int) (Page[int], error) {
-			blocks = append(blocks, block)
-			return Page[int]{Block: 501, Next: cursor + 1, Done: cursor == 1}, nil
-		})
-	require.NoError(t, err)
+	read, blocks := scanTwoPages(t, pin, 501)
 	assert.EqualValues(t, 500, read)
 	assert.EqualValues(t, 500, blocks[1].Uint64())
 
