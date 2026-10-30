@@ -14,8 +14,8 @@ import (
 //go:embed abis/lens.json
 var lensJSON []byte
 
-// lens is V3Lens, released by KyberNetwork/ephemeral-contracts. A Native V3 pool keeps a
-// Uniswap V3 pool's slot0, tickBitmap and ticks, which is all the lens reads.
+// lens is V3Lens, built from pkg/util/ephemeral/contracts/uniswap/v3. A Native V3 pool
+// keeps a Uniswap V3 pool's slot0, tickBitmap and ticks, which is all the lens reads.
 var lens = ephemeral.MustLoad("V3Lens", lensJSON)
 
 // snapshot is what getSnapshot returns, one field per output in the ABI's order.

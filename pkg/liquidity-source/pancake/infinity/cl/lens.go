@@ -14,7 +14,7 @@ import (
 //go:embed abi/lens.json
 var lensJSON []byte
 
-// lens is PancakeInfinityCLLens, released by KyberNetwork/ephemeral-contracts.
+// lens is PancakeInfinityCLLens, built from pkg/util/ephemeral/contracts/pancake/infinity/cl.
 var lens = ephemeral.MustLoad("PancakeInfinityCLLens", lensJSON)
 
 // snapshot is what getSnapshot returns, one field per output in the ABI's order.

@@ -15,7 +15,7 @@ import (
 //go:embed abis/lens.json
 var lensJSON []byte
 
-// lens is AlgebraV1Lens, released by KyberNetwork/ephemeral-contracts.
+// lens is AlgebraV1Lens, built from pkg/util/ephemeral/contracts/algebra/v1.
 var lens = ephemeral.MustLoad("AlgebraV1Lens", lensJSON)
 
 // snapshot is what getSnapshot returns, one field per output in the ABI's order.

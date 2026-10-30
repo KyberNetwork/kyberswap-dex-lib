@@ -14,7 +14,7 @@ import (
 //go:embed abis/lens.json
 var lensJSON []byte
 
-// lens is FluidDexV2Lens, released by KyberNetwork/ephemeral-contracts.
+// lens is FluidDexV2Lens, built from pkg/util/ephemeral/contracts/fluid/dex-v2.
 var lens = ephemeral.MustLoad("FluidDexV2Lens", lensJSON)
 
 // snapshot is what getSnapshot returns, one field per output in the ABI's order.

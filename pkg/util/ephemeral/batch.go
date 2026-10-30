@@ -18,7 +18,7 @@ import (
 //go:embed batch.json
 var batchJSON []byte
 
-// lensBatch is LensBatch, released by KyberNetwork/ephemeral-contracts: many lens reads in one call.
+// lensBatch is LensBatch, built from contracts/batch: many lens reads in one call.
 var lensBatch = MustLoad("LensBatch", batchJSON)
 
 // BatchConfig sets how a Batcher gathers lens reads into one call.

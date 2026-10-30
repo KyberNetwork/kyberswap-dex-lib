@@ -18,7 +18,7 @@ import (
 //go:embed abis/lens.json
 var lensJSON []byte
 
-// lens is EulerSwapV2Lens, released by KyberNetwork/ephemeral-contracts.
+// lens is EulerSwapV2Lens, built from pkg/util/ephemeral/contracts/euler-swap/v2.
 var lens = ephemeral.MustLoad("EulerSwapV2Lens", lensJSON)
 
 // poolInput is one pool for the lens. Vaults is the tracker's deduplicated vault list, in its

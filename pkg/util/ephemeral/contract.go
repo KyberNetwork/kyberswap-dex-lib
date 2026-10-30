@@ -14,9 +14,9 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-// Contract is a contract released by ephemeral-contracts: the file a release writes next to the
-// tracker that runs it, {"abi": ..., "bytecode": ...}, parsed. It packs the call that runs the
-// contract and decodes what the contract reverts with: the outputs of the ABI's one function.
+// Contract is a contract built from contracts/: the file next to the tracker that runs it,
+// {"abi": ..., "bytecode": ...}, parsed. It packs the call that runs the contract and decodes what
+// the contract reverts with: the outputs of the ABI's one function.
 type Contract struct {
 	Name string
 

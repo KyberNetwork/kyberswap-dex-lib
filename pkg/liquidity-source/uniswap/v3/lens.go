@@ -14,7 +14,7 @@ import (
 //go:embed abis/lens.json
 var lensJSON []byte
 
-// lens is V3Lens, released by KyberNetwork/ephemeral-contracts.
+// lens is V3Lens, built from pkg/util/ephemeral/contracts/uniswap/v3.
 var lens = ephemeral.MustLoad("V3Lens", lensJSON)
 
 // snapshot is what getSnapshot returns, one field per output in the ABI's order.
