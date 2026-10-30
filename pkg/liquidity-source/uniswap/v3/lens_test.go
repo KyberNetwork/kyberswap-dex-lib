@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -31,7 +32,7 @@ func lensFixture(t *testing.T, name string) []byte {
 	return b
 }
 
-func checkLensState(t *testing.T, r snapshot) {
+func checkLensState(t *testing.T, r ephemeral.TickSnapshot) {
 	t.Helper()
 	if r.TickSpacing.Int64() != 10 || r.Tick.Int64() != 198408 || r.BlockNumber.Uint64() != 26224192 {
 		t.Errorf("spacing %d, tick %d, block %s", r.TickSpacing, r.Tick, r.BlockNumber)
@@ -64,7 +65,7 @@ func checkLensState(t *testing.T, r snapshot) {
 }
 
 func TestLensDecodesFullSnapshot(t *testing.T) {
-	var r snapshot
+	var r ephemeral.TickSnapshot
 	if err := lens.UnpackCall(lensFixture(t, "full.hex"), &r); err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +77,7 @@ func TestLensDecodesFullSnapshot(t *testing.T) {
 
 // TestLensDecodesPartialSnapshot: a scan that stopped short reports it and where to resume.
 func TestLensDecodesPartialSnapshot(t *testing.T) {
-	var r snapshot
+	var r ephemeral.TickSnapshot
 	if err := lens.UnpackCall(lensFixture(t, "partial.hex"), &r); err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +121,7 @@ func TestLensRejectsWhatIsNotAResult(t *testing.T) {
 		"spacing high bits":     with(0, word("10000000000000000000000000000000a")),
 		"price past uint160":    with(1, word("10000000000000000000000000000000000000000")),
 	} {
-		var r snapshot
+		var r ephemeral.TickSnapshot
 		if err := lens.UnpackCall(payload, &r); err == nil {
 			t.Errorf("%s: decoded", name)
 		}
