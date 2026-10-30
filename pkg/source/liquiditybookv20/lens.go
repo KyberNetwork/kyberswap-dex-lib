@@ -17,7 +17,7 @@ import (
 //go:embed abis/lens.json
 var lensJSON []byte
 
-// lens is LiquidityBookV20Lens, released by KyberNetwork/ephemeral-contracts.
+// lens is LiquidityBookV20Lens, built from pkg/util/ephemeral/contracts/liquiditybook/v20.
 var lens = ephemeral.MustLoad("LiquidityBookV20Lens", lensJSON)
 
 // snapshot is what getSnapshot returns, one field per output in the ABI's order.

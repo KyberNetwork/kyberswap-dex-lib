@@ -2,12 +2,14 @@
 // arguments are the data of an eth_call with no to address, and the constructor reverts with the
 // result, so one call reads what would otherwise take many, all from one block.
 //
-// The contracts come from KyberNetwork/ephemeral-contracts, whose release writes each one, its ABI
-// and creation code, to a JSON file next to the tracker that uses it (lens.json for its one lens). This package
-// is the protocol-agnostic part: loading such a file, running a call, telling a result from a
-// failure, and paging a scan that does not fit one call. To read a new dex through such a contract:
+// The contracts' Solidity is in contracts/, and forge build there gives each one's ABI and creation
+// code, which a JSON file in the ABI directory of the dex that uses it holds (abis/lens.json for its
+// one lens). This package is the protocol-agnostic part: loading such a file, running a call,
+// telling a result from a failure, and paging a scan that does not fit one call. To read a new dex
+// through such a contract:
 //
-//  1. Release the contract from ephemeral-contracts with a target in the dex's package.
+//  1. Write the contract in contracts/, build it, and write its abi and bytecode.object to a JSON
+//     file in the dex's ABI directory.
 //  2. Write the dex's adapter next to its tracker: embed the file and Load it, declare the result
 //     struct, run the call with Call, and page it with Scan when the contract returns a cursor.
 //  3. For a tick-based dex, check the ticks with CheckTicks before trusting them.

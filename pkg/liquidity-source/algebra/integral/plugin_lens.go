@@ -19,7 +19,7 @@ import (
 //go:embed abis/plugin.json
 var pluginLensJSON []byte
 
-// pluginLens is AlgebraIntegralPluginLens, released by KyberNetwork/ephemeral-contracts.
+// pluginLens is AlgebraIntegralPluginLens, built from pkg/util/ephemeral/contracts/algebra/integral.
 var pluginLens = ephemeral.MustLoad("AlgebraIntegralPluginLens", pluginLensJSON)
 
 // pluginWalk is how far the lens walks the oracle's timepoints: from the newest, or from Start, down

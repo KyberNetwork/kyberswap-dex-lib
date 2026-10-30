@@ -16,7 +16,7 @@ import (
 //go:embed abi/lens.json
 var lensJSON []byte
 
-// lens is V4Lens, released by KyberNetwork/ephemeral-contracts.
+// lens is V4Lens, built from pkg/util/ephemeral/contracts/uniswap/v4.
 var lens = ephemeral.MustLoad("V4Lens", lensJSON)
 
 // snapshot is what getSnapshot returns, one field per output in the ABI's order.
