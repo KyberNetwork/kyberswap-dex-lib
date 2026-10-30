@@ -20,6 +20,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
 func lensFixture(t *testing.T, name string) []byte {
@@ -34,7 +35,7 @@ func lensFixture(t *testing.T, name string) []byte {
 // TestLensDecodesPartialSnapshot: a walk that stopped short reports the state, the bins it read,
 // and where to resume.
 func TestLensDecodesPartialSnapshot(t *testing.T) {
-	var r snapshot
+	var r ephemeral.BinSnapshot
 	require.NoError(t, lens.UnpackCall(lensFixture(t, "partial.hex"), &r))
 
 	assert.EqualValues(t, 8375914, r.ActiveId.Int64())
@@ -88,7 +89,7 @@ func TestLensRejectsWhatIsNotAResult(t *testing.T) {
 		"bin id past 24":       with(8, word("1000000")),
 		"reserve past uint128": with(1, word("100000000000000000000000000000000")),
 	} {
-		var r snapshot
+		var r ephemeral.BinSnapshot
 		assert.Error(t, lens.UnpackCall(payload, &r), name)
 	}
 }
@@ -108,27 +109,6 @@ func TestLensPackCall(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "000000000000000000000000d446eb1660f766d533beceef890df7a69d26f7d1"+
 		"00000000000000000000000000000000000000000000000000000000007fce5c", hex.EncodeToString(data[len(data)-64:]))
-}
-
-func TestCheckBins(t *testing.T) {
-	bin := func(id uint32, x, y int64) Bin { return Bin{ID: id, ReserveX: big.NewInt(x), ReserveY: big.NewInt(y)} }
-	bins := []Bin{bin(10, 0, 5), bin(11, 3, 2), bin(12, 4, 0)}
-
-	assert.NoError(t, checkBins(bins, big.NewInt(7), big.NewInt(7)))
-	assert.NoError(t, checkBins(nil, big.NewInt(0), big.NewInt(0)), "a pair without liquidity")
-	for name, c := range map[string]struct {
-		bins []Bin
-		x, y int64
-	}{
-		"a bin missing":   {bins[:2], 7, 7},
-		"reserve Y off":   {bins, 7, 8},
-		"out of order":    {[]Bin{bins[1], bins[0], bins[2]}, 7, 7},
-		"a bin repeated":  {[]Bin{bins[0], bins[0], bins[1], bins[2]}, 7, 12},
-		"an empty bin":    {append([]Bin{bin(9, 0, 0)}, bins...), 7, 7},
-		"reserves absent": {bins, 0, 0},
-	} {
-		assert.ErrorIs(t, checkBins(c.bins, big.NewInt(c.x), big.NewInt(c.y)), errBinsInconsistent, name)
-	}
 }
 
 // TestHasState: the pair factory leaves the Extra empty; a pair the tracker has read keeps its bins

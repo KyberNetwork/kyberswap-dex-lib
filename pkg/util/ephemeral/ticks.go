@@ -80,8 +80,8 @@ func (p *TickPool) Check() error {
 	return CheckTicks(p.Ticks, p.Tick, p.Liquidity)
 }
 
-// TickNode is the node a bitmap lens reads through: *ethclient.Client is one.
-type TickNode interface {
+// Node is the node a lens read pins its block on and calls: *ethclient.Client is one.
+type Node interface {
 	Chain
 	Caller
 }
@@ -92,7 +92,7 @@ type TickNode interface {
 //
 // A tick without liquidityGross is left out: some forks (monday-v3) leave its bitmap bit set once
 // its liquidity is gone, and a swap would only pay to cross it.
-func ReadTicks(ctx context.Context, c TickNode, batch *BatchConfig, contract *Contract, gas uint64,
+func ReadTicks(ctx context.Context, c Node, batch *BatchConfig, contract *Contract, gas uint64,
 	lower, upper int16, block *big.Int, args ...any) (*TickPool, error) {
 	pin, err := Pin(ctx, c, block)
 	if err != nil {
