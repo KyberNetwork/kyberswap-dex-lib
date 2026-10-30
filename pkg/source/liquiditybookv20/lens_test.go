@@ -135,7 +135,8 @@ func TestResetPoolState(t *testing.T) {
 	p := entity.Pool{Address: "0xpair",
 		Extra: `{"activeBinId":8388608,"bins":[{"id":8388608,"reserveX":1,"reserveY":2}],"lensDue":120}`}
 
-	lensTracker := NewPoolTracker(&Config{UseLens: true}, nil, nil)
+	lensTracker := NewPoolTracker(&Config{
+		LensConfig: ephemeral.LensConfig{UseLens: true}}, nil, nil)
 	assert.Zero(t, lensTracker.NextUpdateAt(p), "a pair with bins waits for its events")
 	got, ok := lensTracker.ResetPoolState(p, 100)
 	assert.True(t, ok)
@@ -157,7 +158,8 @@ func TestResetPoolState(t *testing.T) {
 // again by id has nothing to add, and must not touch the node.
 func TestFetchPoolTicksWithLensKeepsThePair(t *testing.T) {
 	p := entity.Pool{Address: "0xpair", Extra: `{"bins":[{"id":1,"reserveX":1,"reserveY":0}]}`}
-	got, err := NewPoolTracker(&Config{UseLens: true}, nil, nil).FetchPoolTicks(t.Context(), p)
+	got, err := NewPoolTracker(&Config{
+		LensConfig: ephemeral.LensConfig{UseLens: true}}, nil, nil).FetchPoolTicks(t.Context(), p)
 	require.NoError(t, err)
 	assert.Equal(t, p, got)
 }

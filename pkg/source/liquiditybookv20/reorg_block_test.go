@@ -16,6 +16,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -87,7 +88,8 @@ func TestReorgReadsBinsWithThePair(t *testing.T) {
 // through the lens at the block the reserves were read at, the reorg's, not at the pair's newer one.
 func TestReorgReadsLensBinsWithThePair(t *testing.T) {
 	node, blocks, lensBlocks := zeroNode(t)
-	tracker := NewPoolTracker(&Config{UseLens: true}, node.Client(), nil)
+	tracker := NewPoolTracker(&Config{
+		LensConfig: ephemeral.LensConfig{UseLens: true}}, node.Client(), nil)
 
 	pair := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	p := entity.Pool{Address: strings.ToLower(pair.Hex()), BlockNumber: 120,

@@ -19,6 +19,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -104,7 +105,8 @@ func TestResetPoolState(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, p, kept)
 
-	reset, ok := (&PoolTracker{config: &Config{UseLens: true}}).ResetPoolState(p, 10)
+	reset, ok := (&PoolTracker{config: &Config{
+		LensConfig: ephemeral.LensConfig{UseLens: true}}}).ResetPoolState(p, 10)
 	require.True(t, ok)
 	assert.False(t, hasState(reset))
 	assert.JSONEq(t, `{"protocolFee":7,"activeBinId":5,"lensDue":10}`, reset.Extra)
@@ -132,7 +134,8 @@ func binChain(t *testing.T, activeID uint32) *testutil.NodeStub {
 // stamped with the time it was read, as every other read of it is.
 func TestLensBootstrapIsTimestamped(t *testing.T) {
 	const activeID = 8388608
-	tr := NewPoolTracker(&Config{ChainID: 56, UseLens: true,
+	tr := NewPoolTracker(&Config{ChainID: 56,
+		LensConfig:            ephemeral.LensConfig{UseLens: true},
 		BinPoolManagerAddress: "0xC697d2898e0D09264376196696c51D7aBbbAA4a9"}, binChain(t, activeID).Client(), nil)
 
 	p := entity.Pool{
@@ -178,7 +181,8 @@ func fallbackChain(t *testing.T, noProgress bool) (node *testutil.NodeStub, subg
 func TestLensBootstrapFallsBackWhereTheLensCannotRead(t *testing.T) {
 	for _, noProgress := range []bool{true, false} {
 		node, subgraph, subgraphAsked := fallbackChain(t, noProgress)
-		tr := NewPoolTracker(&Config{ChainID: 56, UseLens: true,
+		tr := NewPoolTracker(&Config{ChainID: 56,
+			LensConfig:            ephemeral.LensConfig{UseLens: true},
 			BinPoolManagerAddress: "0xC697d2898e0D09264376196696c51D7aBbbAA4a9"}, node.Client(), graphqlpkg.NewClient(subgraph.URL))
 		_, _ = tr.BootstrapPoolState(t.Context(), entity.Pool{
 			Address:     "0x" + strings.Repeat("ab", 32),

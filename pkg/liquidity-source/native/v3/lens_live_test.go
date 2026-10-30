@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -85,7 +86,7 @@ func checkLiveLens(t *testing.T, rpcURL string, lp livePool) {
 	ctx := t.Context()
 	live := testutil.DialLive(t, rpcURL)
 	client := live.Ethrpc
-	cfg := &Config{DexID: DexType, UseLens: true}
+	cfg := &Config{DexID: DexType, LensConfig: ephemeral.LensConfig{UseLens: true}}
 	tracker := NewPoolTracker(cfg, client, nil)
 
 	p, err := tracker.BootstrapPoolState(ctx, lp.pool(), sourcePool.GetNewPoolStateParams{})
@@ -141,7 +142,9 @@ func checkLiveLens(t *testing.T, rpcURL string, lp livePool) {
 	// batch's newest block, whatever logs the batch carries, and gets its underlying tokens. A new
 	// tracker, as the guard keeps the pool just read above in its cooldown.
 	head := p.BlockNumber
-	fresh, err := NewPoolTracker(&Config{DexID: DexType, UseLens: true}, client, nil).GetNewPoolState(ctx, lp.pool(), sourcePool.GetNewPoolStateParams{
+	fresh, err := NewPoolTracker(&Config{DexID: DexType,
+		LensConfig: ephemeral.LensConfig{UseLens: true}},
+		client, nil).GetNewPoolState(ctx, lp.pool(), sourcePool.GetNewPoolStateParams{
 		Logs:         []ethtypes.Log{{BlockNumber: head - 1}},
 		BlockHeaders: map[uint64]entity.BlockHeader{head - 1: {}, head: {}},
 	})

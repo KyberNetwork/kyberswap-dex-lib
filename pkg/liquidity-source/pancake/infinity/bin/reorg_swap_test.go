@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -52,7 +53,8 @@ func binNodeAt(t *testing.T, active uint32, bins map[uint32][2]int64) *testutil.
 func TestRemovedSwapRereadsTheBinsItCrossed(t *testing.T) {
 	chain := map[uint32][2]int64{100: {10, 10}, 101: {10, 0}, 102: {10, 0}, 103: {10, 0}, 104: {10, 0}, 105: {10, 0}}
 	manager := common.HexToAddress("0xC697d2898e0D09264376196696c51D7aBbbAA4a9")
-	tr := NewPoolTracker(&Config{ChainID: 56, UseLens: true, BinPoolManagerAddress: manager.Hex()},
+	tr := NewPoolTracker(&Config{ChainID: 56,
+		LensConfig: ephemeral.LensConfig{UseLens: true}, BinPoolManagerAddress: manager.Hex()},
 		binNodeAt(t, 100, chain).Client(), nil)
 
 	poolID := common.HexToHash("0x" + strings.Repeat("ab", 32))

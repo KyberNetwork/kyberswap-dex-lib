@@ -62,7 +62,8 @@ func checkLivePair(t *testing.T, rpcURL, address string) {
 	client := live.Ethrpc
 	// The guard's attempt timeout covers the pauses of a rate-limited shared endpoint.
 	guard := ephemeral.GuardConfig{TimeoutSecs: 300}
-	cfg := &Config{DexID: "liquiditybook-v21", UseLens: true, LensGuard: guard}
+	cfg := &Config{DexID: "liquiditybook-v21",
+		LensConfig: ephemeral.LensConfig{UseLens: true, LensGuard: guard}}
 	tracker := NewPoolTracker(cfg, client, nil)
 	stateless := entity.Pool{Address: address, Exchange: "liquiditybook-v21", Type: DexTypeLiquidityBookV21,
 		Reserves: entity.PoolReserves{"0", "0"}}
@@ -134,7 +135,8 @@ func checkLivePair(t *testing.T, rpcURL, address string) {
 		BlockHeaders: map[uint64]entity.BlockHeader{swap.BlockNumber: {}},
 	}
 	// A tracker of its own: the guard keeps this pair cooling down after the read above.
-	first := NewPoolTracker(&Config{DexID: "liquiditybook-v21", UseLens: true, LensGuard: guard}, client, nil)
+	first := NewPoolTracker(&Config{DexID: "liquiditybook-v21",
+		LensConfig: ephemeral.LensConfig{UseLens: true, LensGuard: guard}}, client, nil)
 	fresh, err := first.GetNewPoolState(ctx, stateless, param)
 	require.NoError(t, err)
 	assert.True(t, hasState(fresh))

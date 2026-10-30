@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -45,7 +46,7 @@ func TestLiveLens(t *testing.T) {
 		ChainID:          valueobject.ChainIDEthereum,
 		DexID:            "uniswap-v4",
 		StateViewAddress: "0x7ffe42c4a5deea5b0fec41c94c136cf115597227",
-		UseLens:          true,
+		LensConfig:       ephemeral.LensConfig{UseLens: true},
 	}
 	tracker := NewPoolTracker(cfg, client, nil)
 

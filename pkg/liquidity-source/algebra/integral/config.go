@@ -24,13 +24,5 @@ type Config struct {
 	// Its plugin is read through AlgebraIntegralPluginLens: the settings and the
 	// oracle's timepoints in one call, where multicalls take one for the settings and one for each
 	// page of timepoints, falling back to them on any lens error.
-	UseLens bool `json:"useLens,omitempty"`
-	// LensGas is the gas each lens call may use; 0 takes the node's eth_call cap, up to
-	// ephemeral.CallGasCeiling.
-	LensGas uint64 `json:"lensGas,omitempty"`
-	// LensGuard bounds the lens reads made while updating pools, which never wait for it.
-	LensGuard ephemeral.GuardConfig `json:"lensGuard"`
-	// LensBatch gathers the first lens read of pools read at the same block into one call, with
-	// every exchange that reads through the same node; nil reads each pool alone.
-	LensBatch *ephemeral.BatchConfig `json:"lensBatch,omitempty"`
+	ephemeral.LensConfig
 }

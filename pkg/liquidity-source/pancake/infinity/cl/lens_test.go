@@ -37,7 +37,9 @@ func TestFactoryPoolHasNoState(t *testing.T) {
 func TestStatelessPoolsAreScheduled(t *testing.T) {
 	tracked := entity.Pool{Extra: `{"liquidity":5,"sqrtPriceX96":79228162514264337593543950336}`}
 
-	tracker := NewPoolTracker(&Config{UseLens: true, LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}, nil, nil)
+	tracker := NewPoolTracker(&Config{
+		LensConfig: ephemeral.LensConfig{UseLens: true,
+			LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}}, nil, nil)
 	before := time.Now().Unix()
 	at := tracker.NextUpdateAt(fromFactory)
 	assert.GreaterOrEqual(t, at, before)
@@ -64,7 +66,8 @@ func TestResetPoolState(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, p, kept)
 
-	reset, ok := NewPoolTracker(&Config{UseLens: true}, nil, nil).ResetPoolState(p, 100)
+	reset, ok := NewPoolTracker(&Config{
+		LensConfig: ephemeral.LensConfig{UseLens: true}}, nil, nil).ResetPoolState(p, 100)
 	require.True(t, ok)
 	assert.False(t, tickspkg.HasState(reset))
 	assert.EqualValues(t, 100, tickspkg.LensDue(reset))

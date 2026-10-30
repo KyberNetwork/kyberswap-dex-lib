@@ -81,8 +81,9 @@ func TestLensLive(t *testing.T) {
 				SetMulticallContract(common.HexToAddress(cmp.Or(dex.multicall, "0xcA11bde05977b3631167028862bE2a173976CA11")))
 			// A free RPC tier answers slowly once rate-limited, so the guard's default timeout of an
 			// attempt would cut the stateless update short.
-			tracker := NewPoolTracker(&Config{DexID: dex.dexID, UseLens: true, UseBasePluginV2: true,
-				LensGuard: ephemeral.GuardConfig{TimeoutSecs: 600}}, rpc, nil)
+			tracker := NewPoolTracker(&Config{DexID: dex.dexID, UseBasePluginV2: true,
+				LensConfig: ephemeral.LensConfig{UseLens: true,
+					LensGuard: ephemeral.GuardConfig{TimeoutSecs: 600}}}, rpc, nil)
 
 			pools := livePools(ctx, t, client, dex)
 			require.GreaterOrEqual(t, len(pools), 2, "too few live pools to check")
