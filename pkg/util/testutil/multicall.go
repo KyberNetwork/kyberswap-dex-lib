@@ -16,20 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// multicallABI holds the Multicall3 methods ethrpc calls.
-const multicallABI = `[
-{"name":"aggregate","type":"function","stateMutability":"nonpayable",
-"inputs":[{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],
-"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"returnData","type":"bytes[]"}]},
-{"name":"tryAggregate","type":"function","stateMutability":"nonpayable",
-"inputs":[{"name":"requireSuccess","type":"bool"},{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],
-"outputs":[{"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]},
-{"name":"tryBlockAndAggregate","type":"function","stateMutability":"nonpayable",
-"inputs":[{"name":"requireSuccess","type":"bool"},{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],
-"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"blockHash","type":"bytes32"},{"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]},
-{"name":"getCurrentBlockTimestamp","type":"function","stateMutability":"view","inputs":[],
-"outputs":[{"name":"timestamp","type":"uint256"}]}]`
-
 // MulticallStub is a JSON-RPC server answering eth_call for code that reads through ethrpc. A call
 // is told from a multicall by its selector: a multicall (aggregate, tryAggregate,
 // tryBlockAndAggregate or getCurrentBlockTimestamp) answers each of its calls by respond, and any
