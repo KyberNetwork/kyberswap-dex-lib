@@ -48,10 +48,7 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client,
 		DexID:             cfg.DexID,
 		TickLensAddress:   cfg.TickLensAddress,
 		AlwaysUseTickLens: true,
-		UseLens:           cfg.UseLens,
-		LensGas:           cfg.LensGas,
-		LensGuard:         cfg.LensGuard,
-		LensBatch:         cfg.LensBatch,
+		LensConfig:        cfg.LensConfig,
 	}, ethrpcClient, graphqlClient)
 	if err != nil {
 		return nil, err

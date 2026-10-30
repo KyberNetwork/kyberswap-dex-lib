@@ -19,13 +19,5 @@ type Config struct {
 	// not fit. A bootstrap then asks no subgraph, and bins from logs that no longer add up to the
 	// reserves are replaced by the lens's set, which finds a bin the stored set lacked, rather than
 	// read again id by id.
-	UseLens bool `json:"useLens,omitempty"`
-	// LensGas is the gas each lens call may use; 0 takes the node's eth_call cap, up to
-	// ephemeral.CallGasCeiling.
-	LensGas uint64 `json:"lensGas,omitempty"`
-	// LensGuard bounds the lens reads made while updating pairs, which never wait for it.
-	LensGuard ephemeral.GuardConfig `json:"lensGuard"`
-	// LensBatch gathers the first lens read of pools read at the same block into one call, with
-	// every exchange that reads through the same node; nil reads each pool alone.
-	LensBatch *ephemeral.BatchConfig `json:"lensBatch,omitempty"`
+	ephemeral.LensConfig
 }

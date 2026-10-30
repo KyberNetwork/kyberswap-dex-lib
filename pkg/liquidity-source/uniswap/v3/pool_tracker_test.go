@@ -210,7 +210,9 @@ func TestResolveSlot0(t *testing.T) {
 func TestStatelessPoolsAreScheduled(t *testing.T) {
 	t.Parallel()
 
-	tr, err := NewTracker(&Config{UseLens: true, LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}, nil, nil)
+	tr, err := NewTracker(&Config{
+		LensConfig: ephemeral.LensConfig{UseLens: true,
+			LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}}, nil, nil)
 	require.NoError(t, err)
 	before := time.Now().Unix()
 	at := tr.NextUpdateAt(entity.Pool{Extra: `{}`})
@@ -272,7 +274,7 @@ func TestResetPoolState(t *testing.T) {
 	t.Parallel()
 
 	p := entity.Pool{Extra: `{"liquidity":7,"sqrtPriceX96":1,"ticks":[]}`}
-	lens, err := NewTracker(&Config{UseLens: true}, nil, nil)
+	lens, err := NewTracker(&Config{LensConfig: ephemeral.LensConfig{UseLens: true}}, nil, nil)
 	require.NoError(t, err)
 	got, ok := lens.ResetPoolState(p, 100)
 	assert.True(t, ok)

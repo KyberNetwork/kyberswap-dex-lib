@@ -14,14 +14,9 @@ type Config struct {
 	// TickLensAddress is the UniV3 TickLens used to enumerate initialized ticks.
 	TickLensAddress string `json:"tickLensAddress"`
 
-	// UseLens, LensGas and LensGuard are the UniV3 tracker's (see uniswapv3.Config): the UniV3
-	// half of a pool is read whole through V3Lens, in place of the TickLens sweep.
-	UseLens   bool                  `json:"useLens,omitempty"`
-	LensGas   uint64                `json:"lensGas,omitempty"`
-	LensGuard ephemeral.GuardConfig `json:"lensGuard"`
-	// LensBatch gathers the first lens read of pools read at the same block into one call, with
-	// every exchange that reads through the same node; nil reads each pool alone.
-	LensBatch *ephemeral.BatchConfig `json:"lensBatch,omitempty"`
+	// LensConfig is the UniV3 tracker's (see uniswapv3.Config): with UseLens, the UniV3 half of a
+	// pool is read whole through V3Lens, in place of the TickLens sweep.
+	ephemeral.LensConfig
 	// RouterAddress is the MachimaAggregatorRouter the executor approves and calls.
 	RouterAddress string `json:"routerAddress"`
 

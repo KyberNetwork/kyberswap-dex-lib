@@ -38,7 +38,9 @@ func TestStatelessPoolsAreScheduled(t *testing.T) {
 	fromFactory := entity.Pool{Extra: `{"sqrtPriceX96":79228162514264337593543950336,"tick":0}`, StaticExtra: noHook}
 	tracked := entity.Pool{Extra: `{"liquidity":5,"sqrtPriceX96":79228162514264337593543950336}`, StaticExtra: noHook}
 
-	lens := NewPoolTracker(&Config{UseLens: true, LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}, nil, nil)
+	lens := NewPoolTracker(&Config{
+		LensConfig: ephemeral.LensConfig{UseLens: true,
+			LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}}, nil, nil)
 	before := NowFn()
 	at := lens.NextUpdateAt(fromFactory)
 	assert.GreaterOrEqual(t, at, before)

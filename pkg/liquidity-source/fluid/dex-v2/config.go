@@ -18,13 +18,5 @@ type Config struct {
 	// subgraph, a pool without state, such as one the factory built from its LogInitialize, gets it
 	// whole on its next update, and ticks accumulated from logs that turn out invalid are replaced
 	// by the lens's set, which finds a tick the stored set lacked.
-	UseLens bool `json:"useLens,omitempty"`
-	// LensGas is the gas each lens call may use; 0 takes the node's eth_call cap, up to
-	// ephemeral.CallGasCeiling.
-	LensGas uint64 `json:"lensGas,omitempty"`
-	// LensGuard bounds the lens reads made while updating pools, which never wait for it.
-	LensGuard ephemeral.GuardConfig `json:"lensGuard"`
-	// LensBatch gathers the first lens read of pools read at the same block into one call, with
-	// every exchange that reads through the same node; nil reads each pool alone.
-	LensBatch *ephemeral.BatchConfig `json:"lensBatch,omitempty"`
+	ephemeral.LensConfig
 }
