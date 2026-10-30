@@ -156,6 +156,21 @@ preserve the contract's dust rules. `SwapInfo` carries both next balances and ne
 accounted units. `UpdateBalance` applies those values without recomputing, and
 clones copy all writable balance/share/word state. Quote calls do not mutate state.
 
+Quote failures are local to a request's pair and amount: no failed-pair flag,
+shared arithmetic error, or last-successful-quote cache is written. A failed
+quote cannot change another pair's result. Only a deliberate `UpdateBalance`
+after a selected successful fill changes portfolio state; routing alternatives
+must use `CloneState` before applying those updates.
+
+Callers should use the existing `pool.CalcAmountOut` helper, which converts a
+panic in one quote into an explicit error for that call. They should continue
+other pair/amount requests and should not discard an otherwise valid refreshed
+pool solely because one quote fails. Whether Kyber's surrounding service disables
+an entire source is a caller policy outside this adapter. Shared stale/paused or
+invalid snapshot state can still make all pairs unavailable, and a required
+issuer-read failure still fails the portfolio refresh: other pairs can depend on
+that issuer state through portfolio risk. Pair isolation does not omit that data.
+
 Gas estimates are 273,846 within a category and 564,978 across categories. They are
 the integer averages of the `swapWithExtraFees` frame gas in Tenderly simulations of
 router transactions on Monad (3 and 14 swaps; the ranges were 270,713-275,413 and
