@@ -93,7 +93,9 @@ func TestCaptureTimeFallbackBackstopAndClockErrors(t *testing.T) {
 		{"timestamp fallback fresh", 0, 100, 100000, 0, false},
 		{"timestamp fallback old", 0, 100, 120000, 0, true},
 		{"missing both", 0, 0, 100000, 0, true},
-		{"future capture", 100001, 0, 100000, 0, true},
+		{"future capture within allowance", 100001, 0, 100000, 0, false},
+		{"future capture allowance boundary", 101000, 0, 100000, 0, false},
+		{"future capture beyond allowance", 101001, 0, 100000, 0, true},
 		{"default backstop", 100000, 0, 115001, 0, true},
 		{"custom backstop", 100000, 0, 101001, 1000, true},
 		{"backstop equality", 100000, 0, 101000, 1000, false},
@@ -113,6 +115,35 @@ func TestCaptureTimeFallbackBackstopAndClockErrors(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestClockSkewAllowanceDoesNotDiscountPositiveAgeOrPriceExpiry(t *testing.T) {
+	s := stateFrom(t, fixture(t, "deployed-model3.json.gz").Snapshots[0])
+	s.Words[2] = setField(s.Words[2], 138, 8, u(15))
+	sim, err := NewPoolSimulator(entityFrom(t, s))
+	require.NoError(t, err)
+	sim.capturedAtMs = 100_000
+	for _, tc := range []struct {
+		now, age int64
+		elapsed  uint64
+	}{
+		{99_000, 0, 0}, {99_800, 0, 0}, {99_999, 0, 0},
+		{100_000, 0, 0}, {100_001, 1, 1}, {100_300, 300, 1}, {100_301, 301, 2},
+	} {
+		block, age, err := sim.quoteContext(tc.now)
+		require.NoError(t, err)
+		require.Equal(t, tc.age, age)
+		require.Equal(t, s.BlockNumber+tc.elapsed+1, block)
+	}
+	_, _, err = sim.quoteContext(98_999)
+	require.ErrorIs(t, err, ErrStaleSnapshot)
+	_, _, err = sim.quoteContext(-1)
+	require.ErrorIs(t, err, ErrStaleSnapshot)
+	// A permitted future capture cannot revive prices at the on-chain cutoff.
+	sim.state.BlockNumber = sim.state.small(2, 36, 32) + 15
+	_, age, err := sim.quoteContext(99_800)
+	require.Zero(t, age)
+	require.ErrorIs(t, err, ErrStaleSnapshot)
 }
 
 func TestIndexerSkipsExpiredOnChainAgeWithoutChangingState(t *testing.T) {
