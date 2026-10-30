@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
-	"strings"
+	"slices"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -18,6 +18,8 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	utilabi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 // gasCapProbe is the init code pkg/util/ephemeral sends to learn a node's gas cap: it returns the
@@ -125,13 +127,9 @@ func (s *NodeStub) Client() *ethrpc.Client {
 	return ethrpc.New(s.URL).SetMulticallContract(Multicall3)
 }
 
-var multicall = func() abi.ABI {
-	parsed, err := abi.JSON(strings.NewReader(multicallABI))
-	if err != nil {
-		panic(err)
-	}
-	return parsed
-}()
+// multicallMethods are the Multicall3 methods a stub answers itself, those ethrpc calls; any other
+// call, a Multicall3 getter among them, goes to respond.
+var multicallMethods = []string{"aggregate", "tryAggregate", "tryBlockAndAggregate", "getCurrentBlockTimestamp"}
 
 type stubCall struct {
 	Target   common.Address
@@ -151,8 +149,8 @@ type stubResult struct {
 func Multicall(to common.Address, data []byte, block, timestamp uint64,
 	respond func(target common.Address, callData []byte) (ok bool, ret []byte)) (ret []byte,
 	targets []common.Address, err error) {
-	method, err := multicall.MethodById(data)
-	if err != nil {
+	method, err := utilabi.Multicall3ABI.MethodById(data)
+	if err != nil || !slices.Contains(multicallMethods, method.Name) {
 		if ok, ret := respond(to, data); ok {
 			return ret, []common.Address{to}, nil
 		}
