@@ -1,23 +1,18 @@
 package algebrav1
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"math/big"
-	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/KyberNetwork/ethrpc"
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +21,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // liveExchange is an Algebra V1 deployment, how its tick table is indexed, and tokens common enough
@@ -88,11 +84,9 @@ func TestLiveLens(t *testing.T) {
 
 func liveExchangeLens(t *testing.T, ex liveExchange, rpcURL string) {
 	ctx := t.Context()
-	rc, err := rpc.DialOptions(ctx, rpcURL, rpc.WithHTTPClient(&http.Client{Transport: retrying{}}))
-	require.NoError(t, err)
-	ec := ethclient.NewClient(rc)
-	client := ethrpc.NewWithClient(ec).
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	live := testutil.DialLive(t, rpcURL)
+	ec := live.Eth
+	client := live.Ethrpc
 	tracker := NewPoolTracker(&Config{DexID: ex.dexID, UseDirectionalFee: ex.dirFee, SkipFeeCalculating: true,
 		UseLens: true}, client, nil)
 
@@ -202,25 +196,6 @@ func liveLog(t *testing.T, ctx context.Context, ec *ethclient.Client, pools []en
 		return p, &l
 	}
 	return entity.Pool{}, nil
-}
-
-// retrying retries a request the endpoint refused for its rate, as free endpoints do under load.
-type retrying struct{}
-
-func (retrying) RoundTrip(req *http.Request) (*http.Response, error) {
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
-	}
-	for wait := 250 * time.Millisecond; ; wait *= 2 {
-		req.Body = io.NopCloser(bytes.NewReader(body))
-		resp, err := http.DefaultTransport.RoundTrip(req)
-		if err != nil || resp.StatusCode != http.StatusTooManyRequests || wait > 16*time.Second {
-			return resp, err
-		}
-		_ = resp.Body.Close()
-		time.Sleep(wait)
-	}
 }
 
 func callWord(ctx context.Context, ec *ethclient.Client, to, selector string, args ...string) *big.Int {

@@ -1,20 +1,13 @@
 package bin
 
 import (
-	"bytes"
-	"io"
 	"math/big"
-	"net/http"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -24,28 +17,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
-
-// retryTransport sends a request the node rate-limited again, after a pause, so a shared
-// endpoint's limit does not fail the test.
-type retryTransport struct{}
-
-func (retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
-	}
-	for attempt := 0; ; attempt++ {
-		req.Body = io.NopCloser(bytes.NewReader(body))
-		resp, err := http.DefaultTransport.RoundTrip(req)
-		if err != nil || resp.StatusCode != http.StatusTooManyRequests || attempt == 20 {
-			return resp, err
-		}
-		_ = resp.Body.Close()
-		time.Sleep(time.Duration(attempt+1) * 250 * time.Millisecond)
-	}
-}
 
 // TestLiveLens: on BSC and Base, for pools of the Pancake, SquadSwap and Omni managers, a bootstrap
 // through the lens holds every bin getBin reports for those ids at the same block, the active bin
@@ -94,10 +68,8 @@ func TestLiveLens(t *testing.T) {
 
 func liveLens(t *testing.T, rpcURL string, chainID valueobject.ChainID, manager, id string) {
 	ctx := t.Context()
-	raw, err := rpc.DialOptions(ctx, rpcURL, rpc.WithHTTPClient(&http.Client{Transport: retryTransport{}}))
-	require.NoError(t, err)
-	client := ethrpc.NewWithClient(ethclient.NewClient(raw)).
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	live := testutil.DialLive(t, rpcURL)
+	client := live.Ethrpc
 	cfg := &Config{ChainID: int(chainID), BinPoolManagerAddress: manager, UseLens: true}
 	tracker := NewPoolTracker(cfg, client, nil)
 

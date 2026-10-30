@@ -1,22 +1,15 @@
 package liquiditybookv20
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"math/big"
-	"net/http"
 	"os"
-	"sync/atomic"
 	"testing"
-	"time"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -25,29 +18,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
-
-// countingTransport counts the HTTP requests a client makes that the node answered, and sends a
-// request the node rate-limited again, after a pause, so a shared endpoint's limit does not fail
-// the test.
-type countingTransport struct{ n atomic.Int64 }
-
-func (c *countingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
-	}
-	for attempt := 0; ; attempt++ {
-		req.Body = io.NopCloser(bytes.NewReader(body))
-		resp, err := http.DefaultTransport.RoundTrip(req)
-		if err != nil || resp.StatusCode != http.StatusTooManyRequests || attempt == 20 {
-			c.n.Add(1)
-			return resp, err
-		}
-		_ = resp.Body.Close()
-		time.Sleep(time.Duration(attempt+1) * 250 * time.Millisecond)
-	}
-}
 
 // TestLiveLens: on Avalanche, Arbitrum and Base, for two v2.0 pairs each, a bootstrap through the
 // lens holds every bin getBin reports for those ids at the same block and adds up to the reserves,
@@ -93,11 +65,9 @@ func TestLiveLens(t *testing.T) {
 
 func checkLivePair(t *testing.T, rpcURL, multicall, address string) {
 	ctx := t.Context()
-	counter := &countingTransport{}
-	rc, err := rpc.DialOptions(ctx, rpcURL, rpc.WithHTTPClient(&http.Client{Transport: counter}))
-	require.NoError(t, err)
-	eth := ethclient.NewClient(rc)
-	client := ethrpc.NewWithClient(eth).SetMulticallContract(common.HexToAddress(multicall))
+	live := testutil.DialLive(t, rpcURL)
+	eth := live.Eth
+	client := live.Ethrpc.SetMulticallContract(common.HexToAddress(multicall))
 	// The guard's attempt timeout covers the pauses of a rate-limited shared endpoint.
 	guard := ephemeral.GuardConfig{TimeoutSecs: 300}
 	cfg := &Config{DexID: "liquiditybook-v20", UseLens: true, LensGuard: guard}
@@ -130,15 +100,15 @@ func checkLivePair(t *testing.T, rpcURL, multicall, address string) {
 	require.NoError(t, tracker.validateBins(&p, extra.Bins))
 
 	block := new(big.Int).SetUint64(p.BlockNumber)
-	before := counter.n.Load()
+	before := live.Requests()
 	whole, err := tracker.snapshot(ctx, address, block)
 	require.NoError(t, err)
-	wholeCalls := counter.n.Load() - before
+	wholeCalls := live.Requests() - before
 	cfg.LensGas = 400_000
-	before = counter.n.Load()
+	before = live.Requests()
 	paged, err := tracker.snapshot(ctx, address, block)
 	require.NoError(t, err)
-	pagedCalls := counter.n.Load() - before
+	pagedCalls := live.Requests() - before
 	cfg.LensGas = 0
 	assert.Equal(t, p.BlockNumber, whole.block, "a read pinned to a block reports that block")
 	if len(whole.bins) > 30 {
