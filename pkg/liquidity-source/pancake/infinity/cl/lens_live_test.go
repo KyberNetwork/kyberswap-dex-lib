@@ -2,9 +2,7 @@ package cl
 
 import (
 	"math/big"
-	"net/http"
 	"os"
-	"sync/atomic"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -12,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -24,16 +21,9 @@ import (
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
-
-// countingTransport counts the HTTP requests a client makes.
-type countingTransport struct{ n atomic.Int64 }
-
-func (c *countingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	c.n.Add(1)
-	return http.DefaultTransport.RoundTrip(req)
-}
 
 type liveChain struct {
 	env     string
@@ -91,12 +81,9 @@ func TestLiveLens(t *testing.T) {
 
 func checkLivePool(t *testing.T, chain liveChain, rpcURL, id string) {
 	ctx := t.Context()
-	counter := &countingTransport{}
-	rc, err := rpc.DialOptions(ctx, rpcURL, rpc.WithHTTPClient(&http.Client{Transport: counter}))
-	require.NoError(t, err)
-	eth := ethclient.NewClient(rc)
-	client := ethrpc.NewWithClient(eth).
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	live := testutil.DialLive(t, rpcURL)
+	eth := live.Eth
+	client := live.Ethrpc
 	cfg := &Config{
 		ChainID:              int(chain.chainID),
 		DexID:                DexType,
@@ -152,15 +139,15 @@ func checkLivePool(t *testing.T, chain liveChain, rpcURL, id string) {
 	}
 
 	block := new(big.Int).SetUint64(p.BlockNumber)
-	before := counter.n.Load()
+	before := live.Requests()
 	whole, err := tracker.snapshot(ctx, id, block)
 	require.NoError(t, err)
-	wholeCalls := counter.n.Load() - before
+	wholeCalls := live.Requests() - before
 	cfg.LensGas = 1_000_000
-	before = counter.n.Load()
+	before = live.Requests()
 	paged, err := tracker.snapshot(ctx, id, block)
 	require.NoError(t, err)
-	pagedCalls := counter.n.Load() - before
+	pagedCalls := live.Requests() - before
 	cfg.LensGas = 0
 	assert.Greater(t, pagedCalls, wholeCalls, "the cap did not force paging")
 	assert.Equal(t, whole.ticks, paged.ticks, "paging changed the set")

@@ -1,23 +1,17 @@
 package integral
 
 import (
-	"bytes"
 	"cmp"
 	"context"
-	"io"
 	"math/big"
-	"net/http"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	gethrpc "github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
@@ -25,6 +19,7 @@ import (
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // liveDex is one Algebra Integral deployment: the RPC URL comes from env, the pools from its
@@ -76,17 +71,13 @@ var liveDexes = []liveDex{
 func TestLensLive(t *testing.T) {
 	for _, dex := range liveDexes {
 		t.Run(dex.dexID, func(t *testing.T) {
-			url := os.Getenv(dex.rpcEnv)
-			if url == "" {
-				t.Skipf("%s is not set", dex.rpcEnv)
-			}
+			url := testutil.LiveURL(t, dex.rpcEnv)
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Minute)
 			defer cancel()
 
-			raw, err := gethrpc.DialOptions(ctx, url, gethrpc.WithHTTPClient(&http.Client{Transport: retryOn429{}}))
-			require.NoError(t, err)
-			client := ethclient.NewClient(raw)
-			rpc := ethrpc.NewWithClient(client).
+			live := testutil.DialLive(t, url)
+			client := live.Eth
+			rpc := live.Ethrpc.
 				SetMulticallContract(common.HexToAddress(cmp.Or(dex.multicall, "0xcA11bde05977b3631167028862bE2a173976CA11")))
 			// A free RPC tier answers slowly once rate-limited, so the guard's default timeout of an
 			// attempt would cut the stateless update short.
@@ -251,26 +242,4 @@ func boundTicks(ticks []tickspkg.Tick) int {
 		}
 	}
 	return n
-}
-
-// retryOn429 retries a request a free RPC tier turned away for its rate, after a growing pause.
-type retryOn429 struct{}
-
-func (retryOn429) RoundTrip(req *http.Request) (*http.Response, error) {
-	var body []byte
-	if req.Body != nil {
-		var err error
-		if body, err = io.ReadAll(req.Body); err != nil {
-			return nil, err
-		}
-	}
-	for attempt := 0; ; attempt++ {
-		req.Body = io.NopCloser(bytes.NewReader(body))
-		resp, err := http.DefaultTransport.RoundTrip(req)
-		if err != nil || resp.StatusCode != http.StatusTooManyRequests || attempt == 8 {
-			return resp, err
-		}
-		_ = resp.Body.Close()
-		time.Sleep(time.Duration(250<<attempt) * time.Millisecond)
-	}
 }

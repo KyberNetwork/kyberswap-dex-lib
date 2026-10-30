@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -24,6 +23,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // pluginLiveDex is a deployment whose plugin reads TestPluginLensLive checks, at pools known to be
@@ -76,23 +76,19 @@ var pluginLiveDexes = []pluginLiveDex{
 func TestPluginLensLive(t *testing.T) {
 	for _, dex := range pluginLiveDexes {
 		t.Run(dex.dexID, func(t *testing.T) {
-			url := os.Getenv(dex.rpcEnv)
-			if url == "" {
-				t.Skipf("%s is not set", dex.rpcEnv)
-			}
+			url := testutil.LiveURL(t, dex.rpcEnv)
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Minute)
 			defer cancel()
 
-			calls := &recordCalls{next: retryOn429{}}
-			raw, err := gethrpc.DialOptions(ctx, url, gethrpc.WithHTTPClient(&http.Client{Transport: calls}))
-			require.NoError(t, err)
-			client := ethclient.NewClient(raw)
-			rpc := ethrpc.NewWithClient(client).SetMulticallContract(common.HexToAddress(dex.multicall))
+			calls := &recordCalls{next: testutil.RetryOn429{}}
+			live := testutil.DialLiveVia(t, url, calls)
+			client, raw := live.Eth, live.RPC
+			rpc := live.Ethrpc.SetMulticallContract(common.HexToAddress(dex.multicall))
 			byRPC := NewPoolTracker(&Config{DexID: dex.dexID, UseBasePluginV2: dex.useBasePluginV2}, rpc, nil)
 			byLens := NewPoolTracker(&Config{DexID: dex.dexID, UseBasePluginV2: dex.useBasePluginV2, UseLens: true},
 				rpc, nil)
 			// The node's gas cap is probed once per client, which no read would count.
-			_, err = ephemeral.GasCap(ctx, client)
+			_, err := ephemeral.GasCap(ctx, client)
 			require.NoError(t, err)
 
 			head, err := client.HeaderByNumber(ctx, nil)

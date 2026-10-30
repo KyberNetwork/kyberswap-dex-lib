@@ -2,16 +2,9 @@ package uniswapv4
 
 import (
 	"math/big"
-	"net/http"
-	"os"
-	"sync/atomic"
 	"testing"
 
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -20,16 +13,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
-
-// countingTransport counts the HTTP requests a client makes.
-type countingTransport struct{ n atomic.Int64 }
-
-func (c *countingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	c.n.Add(1)
-	return http.DefaultTransport.RoundTrip(req)
-}
 
 // livePool is Ethereum's ETH/USDC 0.05% Uniswap V4 pool, tick spacing 10, no hook.
 func livePool() entity.Pool {
@@ -51,16 +37,10 @@ func livePool() entity.Pool {
 //
 //	UNISWAP_V4_RPC_URL=https://... go test ./pkg/liquidity-source/uniswap/v4/ -run LiveLens -v
 func TestLiveLens(t *testing.T) {
-	rpcURL := os.Getenv("UNISWAP_V4_RPC_URL")
-	if rpcURL == "" || os.Getenv("CI") != "" {
-		t.Skip("set UNISWAP_V4_RPC_URL to an Ethereum endpoint to run this")
-	}
+	rpcURL := testutil.LiveURL(t, "UNISWAP_V4_RPC_URL")
 	ctx := t.Context()
-	counter := &countingTransport{}
-	rc, err := rpc.DialOptions(ctx, rpcURL, rpc.WithHTTPClient(&http.Client{Transport: counter}))
-	require.NoError(t, err)
-	client := ethrpc.NewWithClient(ethclient.NewClient(rc)).
-		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	live := testutil.DialLive(t, rpcURL)
+	client := live.Ethrpc
 	cfg := &Config{
 		ChainID:          valueobject.ChainIDEthereum,
 		DexID:            "uniswap-v4",
@@ -89,15 +69,15 @@ func TestLiveLens(t *testing.T) {
 	}
 
 	block := new(big.Int).SetUint64(p.BlockNumber)
-	before := counter.n.Load()
+	before := live.Requests()
 	whole, err := tracker.snapshot(ctx, p, block)
 	require.NoError(t, err)
-	wholeCalls := counter.n.Load() - before
+	wholeCalls := live.Requests() - before
 	cfg.LensGas = 1_000_000
-	before = counter.n.Load()
+	before = live.Requests()
 	paged, err := tracker.snapshot(ctx, p, block)
 	require.NoError(t, err)
-	assert.Greater(t, counter.n.Load()-before, wholeCalls, "the cap did not force paging")
+	assert.Greater(t, live.Requests()-before, wholeCalls, "the cap did not force paging")
 	assert.Equal(t, whole.ticks, paged.ticks, "paging changed the set")
 
 	// A stored set missing a tick, as logs can leave it, is replaced by the full one.
