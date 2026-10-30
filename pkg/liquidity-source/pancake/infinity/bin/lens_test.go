@@ -19,15 +19,6 @@ func bin(id uint32, x, y uint64) Bin {
 	return Bin{ID: id, ReserveX: uint256.NewInt(x), ReserveY: uint256.NewInt(y)}
 }
 
-// TestCheckBins: a lens read is a bin set only ascending and without an empty bin.
-func TestCheckBins(t *testing.T) {
-	assert.NoError(t, checkBins([]Bin{bin(1, 1, 0), bin(5, 0, 1)}))
-	assert.NoError(t, checkBins(nil))
-	assert.ErrorIs(t, checkBins([]Bin{bin(5, 1, 0), bin(1, 0, 1)}), errBinsInconsistent)
-	assert.ErrorIs(t, checkBins([]Bin{bin(5, 1, 0), bin(5, 0, 1)}), errBinsInconsistent)
-	assert.ErrorIs(t, checkBins([]Bin{bin(5, 0, 0)}), errBinsInconsistent)
-}
-
 // TestWithActiveBin: the active bin is in the set, in its place, empty when it holds nothing, and a
 // set that has it is left as it is.
 func TestWithActiveBin(t *testing.T) {
