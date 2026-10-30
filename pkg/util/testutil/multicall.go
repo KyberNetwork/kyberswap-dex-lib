@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,11 +11,9 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // multicallABI holds the Multicall3 methods ethrpc calls.
@@ -39,7 +36,6 @@ const multicallABI = `[
 // other call is answered by respond directly.
 type MulticallStub struct {
 	*httptest.Server
-	multicall abi.ABI
 
 	mu               sync.Mutex
 	block, timestamp uint64
@@ -50,9 +46,7 @@ type MulticallStub struct {
 // multicall it fails alone, anywhere else it reverts the eth_call.
 func NewMulticallStub(t testing.TB,
 	respond func(target common.Address, callData []byte) (ok bool, ret []byte)) *MulticallStub {
-	multicall, err := abi.JSON(strings.NewReader(multicallABI))
-	require.NoError(t, err)
-	s := &MulticallStub{multicall: multicall}
+	s := &MulticallStub{}
 	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ID     json.RawMessage   `json:"id"`
@@ -100,7 +94,7 @@ func (s *MulticallStub) At(block, timestamp uint64) *MulticallStub {
 // Client returns an ethrpc client reading from the stub. Its multicall address is Multicall3's, though
 // the stub takes any call with a multicall's selector for one.
 func (s *MulticallStub) Client() *ethrpc.Client {
-	return ethrpc.New(s.URL).SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	return ethrpc.New(s.URL).SetMulticallContract(Multicall3)
 }
 
 // Targets returns the targets of each eth_call received so far, a multicall's being its calls'.
@@ -108,16 +102,6 @@ func (s *MulticallStub) Targets() [][]common.Address {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return append([][]common.Address(nil), s.targets...)
-}
-
-type stubCall struct {
-	Target   common.Address
-	CallData []byte
-}
-
-type stubResult struct {
-	Success    bool
-	ReturnData []byte
 }
 
 func (s *MulticallStub) call(blockTag string, to common.Address, data []byte,
@@ -128,48 +112,11 @@ func (s *MulticallStub) call(blockTag string, to common.Address, data []byte,
 	if n, err := hexutil.DecodeUint64(blockTag); block > 0 && err == nil && n != block {
 		return nil, fmt.Errorf("a read at block %d of a chain at %d", n, block)
 	}
-
-	method, err := s.multicall.MethodById(data)
-	if err != nil {
-		s.record(to)
-		if ok, ret := respond(to, data); ok {
-			return ret, nil
-		}
-		return nil, fmt.Errorf("call to %s failed", to)
+	ret, targets, err := Multicall(to, data, block, timestamp, respond)
+	if targets != nil {
+		s.record(targets...)
 	}
-	if method.Name == "getCurrentBlockTimestamp" {
-		return method.Outputs.Pack(new(big.Int).SetUint64(timestamp))
-	}
-
-	args, err := method.Inputs.Unpack(data[4:])
-	if err != nil {
-		return nil, err
-	}
-	calls := *abi.ConvertType(args[len(args)-1], new([]stubCall)).(*[]stubCall)
-	targets := make([]common.Address, len(calls))
-	results := make([]stubResult, len(calls))
-	for i, c := range calls {
-		targets[i] = c.Target
-		results[i].Success, results[i].ReturnData = respond(c.Target, c.CallData)
-	}
-	s.record(targets...)
-
-	blockNumber := new(big.Int).SetUint64(block)
-	switch method.Name {
-	case "aggregate":
-		rets := make([][]byte, len(results))
-		for i, r := range results {
-			if !r.Success {
-				return nil, fmt.Errorf("call %d to %s failed", i, calls[i].Target)
-			}
-			rets[i] = r.ReturnData
-		}
-		return method.Outputs.Pack(blockNumber, rets)
-	case "tryAggregate":
-		return method.Outputs.Pack(results)
-	default:
-		return method.Outputs.Pack(blockNumber, common.Hash{}, results)
-	}
+	return ret, err
 }
 
 func (s *MulticallStub) record(targets ...common.Address) {

@@ -7,46 +7,20 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // positionLog builds a log of event ev whose bottomTick and topTick are bottom and top, every other
 // argument zero.
 func positionLog(t *testing.T, ev abi.Event, block uint64, removed bool, bottom, top int64) ethtypes.Log {
-	topics := []common.Hash{ev.ID}
-	var data []any
-	for _, in := range ev.Inputs {
-		var v any
-		switch {
-		case in.Name == "bottomTick":
-			v = big.NewInt(bottom)
-		case in.Name == "topTick":
-			v = big.NewInt(top)
-		case in.Type.T == abi.AddressTy:
-			v = common.Address{}
-		default:
-			v = new(big.Int)
-		}
-		if !in.Indexed {
-			data = append(data, v)
-			continue
-		}
-		if n, ok := v.(*big.Int); ok {
-			topics = append(topics, common.BigToHash(math.U256(new(big.Int).Set(n))))
-		} else {
-			topics = append(topics, common.Hash{})
-		}
-	}
-	packed, err := ev.Inputs.NonIndexed().Pack(data...)
-	require.NoError(t, err)
-	return ethtypes.Log{Address: common.HexToAddress("0x1"), Topics: topics, Data: packed, BlockNumber: block,
-		Removed: removed}
+	return testutil.EventLog(t, ev, common.HexToAddress("0x1"), block, removed,
+		map[string]any{"bottomTick": big.NewInt(bottom), "topTick": big.NewInt(top)})
 }
 
 // TestLateLogsReadTicksAtThePoolsBlock: the ticks a batch's logs touch are read at the pool's block
