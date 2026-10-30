@@ -1,5 +1,5 @@
 # Builds the contracts the trackers embed: forge build writes out/<File>.sol/<Contract>.json, whose
-# abi and bytecode.object are the abi and bytecode of the JSON file in the dex's ABI directory.
+# abi and bytecode.object main.go writes to the JSON file in the dex's ABI directory.
 [profile.default]
 src = '.'
 out = 'out'

@@ -21,3 +21,18 @@ in order to search for the optimal aggregated swapping route.
   b. CloneState should also be implemented
 
 * On-chain: Contribute encoding to https://github.com/KyberNetwork/ks-dex-adapter-lib
+
+## Lens contracts
+
+Some trackers read a pool through a contract that runs inside one `eth_call` and is never deployed
+(`pkg/util/ephemeral`). The contracts' Solidity is in `pkg/util/ephemeral/contracts`, and each
+package embeds its built contract as JSON, such as `abis/lens.json`. After changing the Solidity,
+rebuild every file with:
+
+```sh
+go generate -run ephemeral/contracts ./pkg/...
+```
+
+This needs [Foundry](https://getfoundry.sh) (`forge`), and nothing else in this repository does:
+without `forge` the command leaves the files as they are. `foundry.toml` there fixes the compiler
+and its settings, so an unchanged contract builds to the same file on every machine.

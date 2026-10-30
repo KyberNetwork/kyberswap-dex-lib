@@ -8,8 +8,8 @@
 // telling a result from a failure, and paging a scan that does not fit one call. To read a new dex
 // through such a contract:
 //
-//  1. Write the contract in contracts/, build it, and write its abi and bytecode.object to a JSON
-//     file in the dex's ABI directory.
+//  1. Write the contract in contracts/, and have go generate write its JSON file in the dex's ABI
+//     directory: contracts/main.go, run by a go:generate above the file's go:embed.
 //  2. Write the dex's adapter next to its tracker: embed the file and Load it, declare the result
 //     struct, run the call with Call, and page it with Scan when the contract returns a cursor.
 //  3. For a tick-based dex, check the ticks with CheckTicks before trusting them.
