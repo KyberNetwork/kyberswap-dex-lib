@@ -23,7 +23,7 @@ func TestSimulatorMsgpackPreservesSharesAndUpdatedInventory(t *testing.T) {
 		}
 		amount := number(t, c.Amount)
 		params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: s.Tokens[c.InputIndex].Address, Amount: amount.ToBig()}, TokenOut: s.Tokens[c.OutputIndex].Address}
-		expected, err := sim.CalcAmountOut(params)
+		expected, err := sim.quoteAtCapture(params)
 		if err != nil {
 			continue
 		}
@@ -38,7 +38,7 @@ func TestSimulatorMsgpackPreservesSharesAndUpdatedInventory(t *testing.T) {
 		decoder.SetForceAsArray(true)
 		require.NoError(t, decoder.Decode(&decoded))
 		require.Equal(t, sim.state, decoded.state)
-		actual, err := decoded.CalcAmountOut(params)
+		actual, err := decoded.quoteAtCapture(params)
 		require.NoError(t, err)
 		require.Equal(t, expected, actual)
 		decoded.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: actual.SwapInfo})
