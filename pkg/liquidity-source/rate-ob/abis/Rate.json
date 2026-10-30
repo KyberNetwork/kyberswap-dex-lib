@@ -1,0 +1,16 @@
+[
+{"type":"function","name":"lmp","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+{"type":"function","name":"getPrices","stateMutability":"view","inputs":[{"name":"isBid","type":"bool"},{"name":"n","type":"uint32"}],"outputs":[{"name":"","type":"uint256[]"}]},
+{"type":"function","name":"getOrders","stateMutability":"view","inputs":[{"name":"isBid","type":"bool"},{"name":"price","type":"uint256"},{"name":"n","type":"uint32"}],"outputs":[{"name":"","type":"tuple[]","components":[{"name":"owner","type":"address"},{"name":"price","type":"uint256"},{"name":"depositAmount","type":"uint256"},{"name":"deadline","type":"uint64"}]}]},
+{"type":"function","name":"getBaseQuote","stateMutability":"view","inputs":[],"outputs":[{"name":"base","type":"address"},{"name":"quote","type":"address"}]},
+{"type":"function","name":"convert","stateMutability":"view","inputs":[{"name":"price","type":"uint256"},{"name":"amount","type":"uint256"},{"name":"isBid","type":"bool"}],"outputs":[{"name":"converted","type":"uint256"}]},
+{"type":"function","name":"lmtSpreadLimits","stateMutability":"view","inputs":[{"name":"pair","type":"address"}],"outputs":[{"name":"buy","type":"uint32"},{"name":"sell","type":"uint32"}]},
+{"type":"function","name":"feeOf","stateMutability":"view","inputs":[{"name":"base","type":"address"},{"name":"quote","type":"address"},{"name":"account","type":"address"},{"name":"isMaker","type":"bool"}],"outputs":[{"name":"feeNum","type":"uint32"}]},
+{"type":"function","name":"maxMatches","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint32"}]},
+{"type":"function","name":"listingDates","stateMutability":"view","inputs":[{"name":"pair","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
+{"type":"function","name":"WETH","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]},
+{"type":"function","name":"nativeScale","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+{"type":"function","name":"orderbookFactory","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]},
+{"type":"function","name":"allPairsLength","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+{"type":"function","name":"allPairs","stateMutability":"view","inputs":[{"name":"","type":"uint256"}],"outputs":[{"name":"","type":"address"}]}
+]
