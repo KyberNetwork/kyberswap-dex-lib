@@ -46,7 +46,7 @@ func NewPoolTracker(
 	graphqlClient *graphqlpkg.Client,
 ) *PoolTracker {
 	return &PoolTracker{
-		PoolTracker:   algebra.PoolTracker[Timepoint, TimepointRPC]{EthrpcClient: ethrpcClient},
+		EthrpcClient:  ethrpcClient,
 		config:        cfg,
 		graphqlClient: graphqlClient,
 	}
@@ -133,7 +133,7 @@ func (d *PoolTracker) BootstrapPoolState(
 		GlobalState:      rpcData.State,
 		Ticks:            ticks,
 		TickSpacing:      int32(rpcData.TickSpacing.Int64()),
-		ExtraTimepoint:   ExtraTimepoint{Timepoints: rpcData.Timepoints},
+		Timepoints:       rpcData.Timepoints,
 		VolatilityOracle: rpcData.VolatilityOracle,
 		SlidingFee:       rpcData.SlidingFee,
 		DynamicFee:       rpcData.DynamicFee,
@@ -389,21 +389,40 @@ func (d *PoolTracker) getSlidingFeeData(req *ethrpc.Request, pluginAddress strin
 		Target: pluginAddress,
 		Method: slidingFeePluginBaseFeeMethod,
 	}, []any{&cfg.BaseFee})
+	// The calls above must succeed. The plugins have one of the calls below: feeType (Thena) or the two switches
+	// (Camelot, Cypher, Sheriff).
+	feeTypeCall := len(req.Calls)
 	req.AddCall(&ethrpc.Call{
 		ABI:    basePluginV2ABI,
 		Target: pluginAddress,
 		Method: slidingFeePluginFeeTypeMethod,
 	}, []any{&cfg.FeeType})
+	req.AddCall(&ethrpc.Call{
+		ABI:    basePluginV2ABI,
+		Target: pluginAddress,
+		Method: slidingFeePluginDynamicFeeEnabledMethod,
+	}, []any{&cfg.DynamicFeeEnabled})
+	req.AddCall(&ethrpc.Call{
+		ABI:    basePluginV2ABI,
+		Target: pluginAddress,
+		Method: slidingFeePluginSlidingFeeEnabledMethod,
+	}, []any{&cfg.SlidingFeeEnabled})
 
-	callsTo := len(req.Calls)
 	return &cfg, func(resp *ethrpc.Response) error {
-		for i := callsFrom; i < callsTo; i++ {
+		for i := callsFrom; i < feeTypeCall; i++ {
 			if !resp.Result[i] {
 				return errors.New("failed to fetch SlidingFeeConfig." + req.Calls[i].Method)
 			}
 		}
-		cfg.ZeroToOneFeeFactor = uint256.MustFromBig(result.OneToZeroFeeFactor)
-		cfg.OneToZeroFeeFactor = uint256.MustFromBig(result.ZeroToOneFeeFactor)
+		// s_feeFactors is (zeroToOneFeeFactor, oneToZeroFeeFactor), as the pool's own swaps confirm.
+		zeroToOne, oneToZero := result.ZeroToOneFeeFactor, result.OneToZeroFeeFactor
+		if resp.Result[feeTypeCall] {
+			// Thena's plugin, read the other way round since it was added; no Thena pool runs the sliding fee
+			// to check it against.
+			zeroToOne, oneToZero = oneToZero, zeroToOne
+		}
+		cfg.ZeroToOneFeeFactor = uint256.MustFromBig(zeroToOne)
+		cfg.OneToZeroFeeFactor = uint256.MustFromBig(oneToZero)
 		return nil
 	}
 }
@@ -682,7 +701,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		GlobalState:      rpcState.State,
 		Ticks:            entityPoolTicks,
 		TickSpacing:      int32(rpcState.TickSpacing.Int64()),
-		ExtraTimepoint:   ExtraTimepoint{Timepoints: rpcState.Timepoints},
+		Timepoints:       rpcState.Timepoints,
 		VolatilityOracle: rpcState.VolatilityOracle,
 		DynamicFee:       rpcState.DynamicFee,
 		SlidingFee:       rpcState.SlidingFee,

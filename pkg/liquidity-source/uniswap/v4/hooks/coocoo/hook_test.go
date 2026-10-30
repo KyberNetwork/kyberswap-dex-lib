@@ -40,8 +40,8 @@ func TestRegistered(t *testing.T) {
 // PonsV2MemeHook's bytecode, so the fee is floor(unspecified * feeBps / 10_000) of the
 // realized output on exact-in. CalcAmountIn reverses exact-in, so it charges no input fee.
 func TestAfterSwap_MatchesPonsV2(t *testing.T) {
-	ours := &Hook{Extra: ponsv2.Extra{Registered: true, FeeBps: 150}}
-	theirs := &ponsv2.Hook{Extra: ponsv2.Extra{Registered: true, FeeBps: 150}}
+	ours := &Hook{Registered: true, FeeBps: 150}
+	theirs := &ponsv2.Hook{Registered: true, FeeBps: 150}
 	for _, calcOut := range []bool{true, false} {
 		params := &uniswapv4.AfterSwapParams{
 			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: calcOut, AmountSpecified: big.NewInt(985_000)},
@@ -116,7 +116,7 @@ func TestAfterSwap_Unregistered_NoFee(t *testing.T) {
 
 // What Track hands back is what the factory restores from HookExtra on the next load.
 func TestExtraRoundTrip(t *testing.T) {
-	h := &Hook{Extra: ponsv2.Extra{Registered: true, FeeBps: 100}}
+	h := &Hook{Registered: true, FeeBps: 100}
 	raw, err := json.Marshal(h)
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"r":true,"f":100}`, string(raw))

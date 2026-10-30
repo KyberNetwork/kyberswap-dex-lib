@@ -44,7 +44,11 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	scale, quotable := extra.decayAt(time.Now())
+	now := pool.QuoteTime(params.Opts.StaleCheck, p.Timestamp)
+	if now.IsZero() {
+		now = time.Now()
+	}
+	scale, quotable := extra.decayAt(now)
 	if params.Opts.StaleCheck && !quotable {
 		return nil, ladder.ErrStale
 	}

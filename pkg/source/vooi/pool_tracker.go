@@ -68,7 +68,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if blockNumber != nil {
 		getPoolState.SetBlockNumber(blockNumber)
 	}
-	for i := 0; i < lastIndex; i++ {
+	for i := range lastIndex {
 		getPoolState.AddCall(
 			&ethrpc.Call{
 				ABI:    poolABI,

@@ -20,8 +20,8 @@ const goccyMaxCaseInsensitiveFields = 16
 // jsonFieldCount is the number of keys the decoder builds for a struct type.
 func jsonFieldCount(t reflect.Type) int {
 	n := 0
-	for i := 0; i < t.NumField(); i++ {
-		if tag := t.Field(i).Tag.Get("json"); tag != "-" {
+	for field := range t.Fields() {
+		if tag := field.Tag.Get("json"); tag != "-" {
 			n++
 		}
 	}
@@ -33,15 +33,15 @@ func jsonFieldCount(t reflect.Type) int {
 // `chainID` / `chainId` variants would be dropped in silence. A new option goes into Gas or another sub-struct.
 func TestConfigFieldCount(t *testing.T) {
 	t.Parallel()
-	require.LessOrEqual(t, jsonFieldCount(reflect.TypeOf(Config{})), goccyMaxCaseInsensitiveFields)
+	require.LessOrEqual(t, jsonFieldCount(reflect.TypeFor[Config]()), goccyMaxCaseInsensitiveFields)
 
 	// The limit itself, on control structs of the same shape as Config's head: at the limit the injected key lands
 	// whatever the tag's case, past it only the tag Config uses -- the exact key the factories inject -- still does.
 	field := func(i int) reflect.StructField {
-		return reflect.StructField{Name: "F" + string(rune('A'+i)), Type: reflect.TypeOf(""),
+		return reflect.StructField{Name: "F" + string(rune('A'+i)), Type: reflect.TypeFor[string](),
 			Tag: reflect.StructTag(`json:"f` + string(rune('a'+i)) + `"`)}
 	}
-	dexIDTag, _ := reflect.TypeOf(Config{}).FieldByName("DexID")
+	dexIDTag, _ := reflect.TypeFor[Config]().FieldByName("DexID")
 	for _, c := range []struct {
 		fields int
 		tag    reflect.StructTag
@@ -52,7 +52,7 @@ func TestConfigFieldCount(t *testing.T) {
 		{goccyMaxCaseInsensitiveFields, dexIDTag.Tag, DexType},
 		{goccyMaxCaseInsensitiveFields + 1, dexIDTag.Tag, DexType},
 	} {
-		fields := []reflect.StructField{{Name: "DexID", Type: reflect.TypeOf(""), Tag: c.tag}}
+		fields := []reflect.StructField{{Name: "DexID", Type: reflect.TypeFor[string](), Tag: c.tag}}
 		for i := 1; i < c.fields; i++ {
 			fields = append(fields, field(i))
 		}
@@ -79,15 +79,15 @@ func TestConfigThroughFactories(t *testing.T) {
 			"leverMinEdgeBps": 25, "priceBandMarginBps": 35, "maxSnapshotAgeSec": 120, "quoteDonatedVenues": true,
 			"gas": map[string]any{"swapSell": 1_400_000, "leverDown": 4_200_000}},
 			Config{DexID: DexType, ChainID: valueobject.ChainIDBase, Factory: factory, LeverRouting: true,
-				LeverMinEdgeBps: ptrU64(25), PriceBandMarginBps: ptrU64(35), MaxSnapshotAgeSec: ptrU64(120),
+				LeverMinEdgeBps: new(uint64(25)), PriceBandMarginBps: new(uint64(35)), MaxSnapshotAgeSec: new(uint64(120)),
 				QuoteDonatedVenues: true, Gas: GasConfig{SwapSell: 1_400_000, LeverDown: 4_200_000}}},
 		{"field-name-spelling", map[string]any{"ChainID": 8453, "Factory": factory, "LeverRouting": true,
 			"LeverMinEdgeBps": 0, "PriceBandMarginBps": 0, "PriceAgeMarginSec": 90, "SpreadAgeMarginSec": 15,
 			"DebtDriftSec": 0, "MaxSnapshotAgeSec": 300, "Pools": []string{c104.Pool.Hex()},
 			"Gas": map[string]any{"SwapSellPass": 7}},
 			Config{DexID: DexType, ChainID: valueobject.ChainIDBase, Factory: factory, LeverRouting: true,
-				LeverMinEdgeBps: ptrU64(0), PriceBandMarginBps: ptrU64(0), PriceAgeMarginSec: ptrU64(90),
-				SpreadAgeMarginSec: ptrU64(15), DebtDriftSec: ptrU64(0), MaxSnapshotAgeSec: ptrU64(300),
+				LeverMinEdgeBps: new(uint64(0)), PriceBandMarginBps: new(uint64(0)), PriceAgeMarginSec: new(uint64(90)),
+				SpreadAgeMarginSec: new(uint64(15)), DebtDriftSec: new(uint64(0)), MaxSnapshotAgeSec: new(uint64(300)),
 				Pools: []string{c104.Pool.Hex()}, Gas: GasConfig{SwapSellPass: 7}}},
 		{"chainid-lowercase-d", map[string]any{"chainId": 8453, "factory": factory},
 			Config{DexID: DexType, ChainID: valueobject.ChainIDBase, Factory: factory}},
@@ -109,5 +109,3 @@ func TestConfigThroughFactories(t *testing.T) {
 		})
 	}
 }
-
-func ptrU64(v uint64) *uint64 { return &v }

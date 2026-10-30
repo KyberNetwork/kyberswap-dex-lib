@@ -160,6 +160,9 @@ type HookParam struct {
 	// StaleCheck is pool.FactoryOpts.StaleCheck (set by route finding, not indexing): hooks that
 	// price off a tracked quote may refuse to quote once that quote is too old.
 	StaleCheck bool
+	// QuoteAt is the unix time a hook should price at, set only while indexing (StaleCheck
+	// false) from the pool snapshot timestamp. 0 means the hook uses the wall clock.
+	QuoteAt int64
 }
 
 type HookExtra json.RawMessage

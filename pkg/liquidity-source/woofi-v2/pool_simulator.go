@@ -37,9 +37,21 @@ type PoolSimulator struct {
 	isPaused   bool
 
 	gas Gas
+
+	// quoteAt is the indexing clock (snapshot time); 0 means the wall clock.
+	quoteAt int64
 }
 
-var _ = pool.RegisterFactory0(DexTypeWooFiV2, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexTypeWooFiV2, func(params pool.FactoryParams) (*PoolSimulator, error) {
+	sim, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	if t := pool.QuoteTime(params.Opts.StaleCheck, params.EntityPool.Timestamp); !t.IsZero() {
+		sim.quoteAt = t.Unix()
+	}
+	return sim, nil
+})
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -56,14 +68,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     entityPool.Address,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		quoteToken: extra.QuoteToken,
 		tokenInfos: extra.TokenInfos,
@@ -74,6 +84,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 		gas: DefaultGas,
 	}, nil
+}
+
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (s *PoolSimulator) now() int64 {
+	if s.quoteAt > 0 {
+		return s.quoteAt
+	}
+	return time.Now().Unix()
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -484,7 +502,7 @@ func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
 
 	cloPrice, _ := s._wooracleCloPriceInQuote(base, s.quoteToken)
 
-	woFeasible := !woPrice.Eq(number.Zero) && time.Now().Unix() <= s.wooracle.Timestamp+s.wooracle.StaleDuration
+	woFeasible := !woPrice.Eq(number.Zero) && s.now() <= s.wooracle.Timestamp+s.wooracle.StaleDuration
 
 	var bound uint256.Int
 	bound.SetUint64(s.wooracle.Bound)

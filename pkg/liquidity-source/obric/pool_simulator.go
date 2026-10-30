@@ -27,9 +27,21 @@ type PoolSimulator struct {
 	priceUpdateTime      uint64
 	isLocked             bool
 	enable               bool
+
+	// quoteAt is the indexing clock (snapshot time); 0 means the wall clock.
+	quoteAt int64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
+	sim, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	if t := pool.QuoteTime(params.Opts.StaleCheck, params.EntityPool.Timestamp); !t.IsZero() {
+		sim.quoteAt = t.Unix()
+	}
+	return sim, nil
+})
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -42,15 +54,13 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     ep.Address,
-				Exchange:    ep.Exchange,
-				Type:        ep.Type,
-				Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
-				Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
-				BlockNumber: ep.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     ep.Address,
+			Exchange:    ep.Exchange,
+			Type:        ep.Type,
+			Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
+			Reserves:    lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignumber.NewBig(r) }),
+			BlockNumber: ep.BlockNumber,
 		},
 		decimalsX:       ep.Tokens[0].Decimals,
 		decimalsY:       ep.Tokens[1].Decimals,
@@ -206,6 +216,14 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}, nil
 }
 
+// now is the quote clock: the indexing snapshot time when set, else the wall clock.
+func (s *PoolSimulator) now() int64 {
+	if s.quoteAt > 0 {
+		return s.quoteAt
+	}
+	return time.Now().Unix()
+}
+
 func (s *PoolSimulator) validate() error {
 	if !s.enable {
 		return ErrPoolDisabled
@@ -219,7 +237,7 @@ func (s *PoolSimulator) validate() error {
 		return ErrPoolLocked
 	}
 
-	now := uint64(time.Now().Unix())
+	now := uint64(s.now())
 	if now+priceBufferSeconds > s.priceUpdateTime+s.priceMaxAge {
 		return ErrPriceStale
 	}

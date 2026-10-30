@@ -199,11 +199,9 @@ func TestExtra_JSON(t *testing.T) {
 	t.Parallel()
 
 	extra := Extra{
-		OrderBook: OrderBook{
-			Bids: OrderBookLevels{
-				ArrayPrices: []*uint256.Int{uint256.NewInt(270069)},
-				ArrayShares: []*uint256.Int{uint256.NewInt(7405)},
-			},
+		Bids: OrderBookLevels{
+			ArrayPrices: []*uint256.Int{uint256.NewInt(270069)},
+			ArrayShares: []*uint256.Int{uint256.NewInt(7405)},
 		},
 		MakerQuoteGas: &MakerQuoteGas{
 			Bids: &LevelGas{First: 231_726, Next: 54_950},

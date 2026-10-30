@@ -72,7 +72,7 @@ func (ts *ParitySuite) SetupSuite() {
 func (ts *ParitySuite) buildSimulator(poolAddr string) (*base.PoolSimulator, entity.Pool) {
 	all := make(map[string]entity.Pool)
 	var meta []byte
-	for round := 0; round < 20; round++ {
+	for range 20 {
 		pools, next, err := ts.lister.GetNewPools(context.Background(), meta)
 		ts.Require().NoError(err)
 		for _, p := range pools {

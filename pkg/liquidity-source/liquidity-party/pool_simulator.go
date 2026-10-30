@@ -62,7 +62,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	qInternal := make([]*int256.Int, n)
 	bases := make([]*uint256.Int, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if extra.QInternal[i] == nil || extra.Bases[i] == nil {
 			return nil, ErrInvalidExtra
 		}
@@ -87,7 +87,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	copy(feesPpm, extra.FeesPpm)
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -95,7 +95,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item *entity.PoolToken, _ int) string { return item.Address }),
 			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		kappa:           kappa,
 		effectiveSigmaQ: effectiveSigmaQ,
 		qInternal:       qInternal,

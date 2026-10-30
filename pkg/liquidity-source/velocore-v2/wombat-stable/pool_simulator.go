@@ -44,7 +44,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		staticExtra StaticExtra
 	)
 
-	for i := 0; i < tokenNbr; i++ {
+	for i := range tokenNbr {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 	}
@@ -68,7 +68,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:            pool.Pool{Info: info},
+		Info:            info,
 		amp:             extra.Amp,
 		lpTokenBalances: extra.LpTokenBalances,
 		tokenInfo:       extra.TokenInfo,

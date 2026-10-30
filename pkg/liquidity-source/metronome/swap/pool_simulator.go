@@ -38,14 +38,14 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	decimals := lo.Map(p.Tokens, func(e *entity.PoolToken, _ int) uint8 { return e.Decimals })
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     p.Address,
 			Exchange:    p.Exchange,
 			Type:        p.Type,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			BlockNumber: p.BlockNumber,
-		}},
+		},
 		Extra:    extra,
 		Decimals: decimals,
 	}, nil

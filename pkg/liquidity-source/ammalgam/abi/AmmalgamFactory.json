@@ -1,0 +1,6 @@
+[
+  {"type":"function","name":"allPairsLength","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint256"}]},
+  {"type":"function","name":"allPairs","stateMutability":"view","inputs":[{"name":"index","type":"uint256"}],"outputs":[{"name":"pair","type":"address"}]},
+  {"type":"function","name":"pairBeacon","stateMutability":"view","inputs":[],"outputs":[{"name":"beacon","type":"address"}]},
+  {"type":"event","name":"PairCreated","anonymous":false,"inputs":[{"name":"tokenX","type":"address","indexed":true},{"name":"tokenY","type":"address","indexed":true},{"name":"pair","type":"address","indexed":false},{"name":"allPairsLength","type":"uint256","indexed":false}]}
+]

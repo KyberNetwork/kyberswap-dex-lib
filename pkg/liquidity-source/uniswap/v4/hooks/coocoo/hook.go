@@ -22,7 +22,7 @@ import (
 )
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	h := &Hook{BaseHook: uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4CooCoo}}
+	h := &Hook{Exchange: valueobject.ExchangeUniswapV4CooCoo}
 	_ = param.HookExtra.Unmarshal(&h.Extra)
 	return h
 }, HookAddresses...)

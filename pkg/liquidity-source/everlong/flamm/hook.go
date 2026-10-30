@@ -356,7 +356,7 @@ func (s *hookState) maxInForGrossCap(b *hookBook, stableIn bool, hiIn, capGross 
 	var lo, hi, mid uint256.Int
 	var evals uint64
 	hi.Set(hiIn)
-	for i := 0; i < 64; i++ {
+	for range 64 {
 		if _, overflow := mid.AddOverflow(&lo, &hi); overflow {
 			return lo, evals, errPanicArithmetic
 		}

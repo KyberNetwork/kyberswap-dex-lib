@@ -166,7 +166,7 @@ func (m *multicaller) recheck(ctx context.Context, reqs []*callReq) error {
 			"to": r.to, "data": hexutil.Bytes(r.data)}, block}}
 	}
 	var err error
-	for attempt := 0; attempt < mcAttempts; attempt++ {
+	for attempt := range mcAttempts {
 		if attempt > 0 {
 			select {
 			case <-ctx.Done():
@@ -204,7 +204,7 @@ func (m *multicaller) recheck(ctx context.Context, reqs []*callReq) error {
 func (m *multicaller) aggregate(ctx context.Context, chunk []*callReq) error {
 	var res *ethrpc.Response
 	var err error
-	for attempt := 0; attempt < mcAttempts; attempt++ {
+	for attempt := range mcAttempts {
 		if attempt > 0 {
 			select {
 			case <-ctx.Done():
@@ -299,7 +299,7 @@ func (l *RPCLoader) prefetch(ctx context.Context, tr *Tracker, lot string) error
 	if l.mc == nil {
 		return nil
 	}
-	for i := 0; i < maxPasses; i++ {
+	for range maxPasses {
 		more, err := l.mc.pass(ctx, func() { l.probe(ctx, tr, lot) })
 		if err != nil || !more {
 			return err

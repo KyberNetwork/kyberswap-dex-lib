@@ -1,0 +1,140 @@
+[
+ {
+  "type": "function",
+  "name": "manager",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "vault",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "pairCount",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "allPairs",
+  "stateMutability": "view",
+  "inputs": [
+   {
+    "name": "i",
+    "type": "uint256"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "getMarketState",
+  "stateMutability": "view",
+  "inputs": [
+   {
+    "name": "pair",
+    "type": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "pair",
+    "type": "address"
+   },
+   {
+    "name": "baseToken",
+    "type": "address"
+   },
+   {
+    "name": "quoteToken",
+    "type": "address"
+   },
+   {
+    "name": "baseDecimals",
+    "type": "uint256"
+   },
+   {
+    "name": "quoteDecimals",
+    "type": "uint256"
+   },
+   {
+    "name": "price",
+    "type": "uint256"
+   },
+   {
+    "name": "observedAtMs",
+    "type": "uint256"
+   },
+   {
+    "name": "c1",
+    "type": "uint256"
+   },
+   {
+    "name": "c2",
+    "type": "uint256"
+   },
+   {
+    "name": "spread1Bps",
+    "type": "uint256"
+   },
+   {
+    "name": "spread2Bps",
+    "type": "uint256"
+   },
+   {
+    "name": "buyC1Remaining",
+    "type": "uint256"
+   },
+   {
+    "name": "buyC2Remaining",
+    "type": "uint256"
+   },
+   {
+    "name": "sellC1Remaining",
+    "type": "uint256"
+   },
+   {
+    "name": "sellC2Remaining",
+    "type": "uint256"
+   },
+   {
+    "name": "ttl",
+    "type": "uint256"
+   },
+   {
+    "name": "paused",
+    "type": "bool"
+   },
+   {
+    "name": "managerActive",
+    "type": "bool"
+   }
+  ]
+ }
+]

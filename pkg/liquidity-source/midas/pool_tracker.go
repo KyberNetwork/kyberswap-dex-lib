@@ -151,7 +151,7 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool,
 	}
 
 	var tokenLimits []string
-	for i := 0; i < len(paymentTokens); i++ {
+	for i := range paymentTokens {
 		tokenLimits = append(tokenLimits,
 			convertFromBase18(uint256.MustFromBig(vaultState.TokensConfig[i].Allowance), p.Tokens[i+1].Decimals).String())
 	}

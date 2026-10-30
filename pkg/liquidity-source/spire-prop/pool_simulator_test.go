@@ -1,6 +1,7 @@
 package spireprop
 
 import (
+	"maps"
 	"math"
 	"math/big"
 	"os"
@@ -242,9 +243,7 @@ func TestAdditionalBaseScaleAndSharedQuoteInventory(t *testing.T) {
 	require.Equal(t, "25000000", sell.TokenAmountOut.Amount.String())
 
 	inventory := weth.CalculateLimit()
-	for key, value := range other.CalculateLimit() {
-		inventory[key] = value
-	}
+	maps.Copy(inventory, other.CalculateLimit())
 	limit := swaplimit.NewInventory(DexType, inventory)
 	firstParams := quoteParams(0, "10000000000000000")
 	firstParams.Limit = limit

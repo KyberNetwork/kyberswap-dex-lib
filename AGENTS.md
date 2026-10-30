@@ -110,6 +110,8 @@ Suffixes:
 - `IPoolExactOutSimulator`: Implement `CalcAmountIn` only when the protocol supports exact-out swaps.
 - `IPoolSupportNativeSwap`: Implement `SupportsNativeSwap()` when the protocol supports native token.
 
+**Required for PROP and ORDER BOOK sources**: every proprietary AMM (`-prop`, pmm/RFQ-style) and every order book (`-ob`, clob) source must honour `pool.FactoryParams.Opts.StaleCheck` (`pkg/source/pool/factory.go`) in its factory. When true, reject pools whose data is older than the source's max age; when false, never reject on age. Route finding sets it true, but the liquidity indexer runs with `StaleCheck=false`, so every stale gate (pool age, quote expiry, timestamp) must be skipped when it is false. Reference: `pkg/liquidity-source/kuru-ob/pool_simulator.go` (`lo.Ternary(params.Opts.StaleCheck, orderbook.MaxAge, math.MaxInt64)`).
+
 ### Test data size
 
 This repo is a dependency of several other backend services, so bloated `testdata/` is a cost

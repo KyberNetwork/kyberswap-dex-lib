@@ -41,7 +41,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	to18ConversionFactor := big256.TenPow(uint64(tokenDecimalDiff))
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -50,7 +50,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves: lo.Map(entityPool.Reserves,
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
-		}},
+		},
 		Extra:                &extra,
 		StaticExtra:          &staticExtra,
 		DaiBal:               big256.New(entityPool.Reserves[0]),

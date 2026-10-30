@@ -26,11 +26,11 @@ func GetLatestBlockNumberFromLogs(logs []ethtypes.Log) uint64 {
 		return 0
 	}
 
-	for i := len(logs) - 1; i >= 0; i-- {
-		if logs[i].Removed {
+	for _, log := range slices.Backward(logs) {
+		if log.Removed {
 			continue
 		}
-		return logs[i].BlockNumber
+		return log.BlockNumber
 	}
 
 	return 0

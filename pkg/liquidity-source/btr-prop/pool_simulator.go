@@ -72,14 +72,14 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     ep.Address,
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
 			Reserves:    reserves,
 			BlockNumber: ep.BlockNumber,
-		}},
+		},
 		extra:   extra,
 		ladders: ladders,
 		gated:   lo.SomeBy(extra.Flags, func(f uint16) bool { return gate(f, extra.LaneOK) != nil }),

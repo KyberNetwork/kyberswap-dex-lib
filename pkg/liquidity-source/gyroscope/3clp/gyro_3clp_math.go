@@ -215,7 +215,7 @@ func (l *gyro3CLPMath) _runNewtonIteration(
 ) (*uint256.Int, error) {
 	deltaAbsPrev := number.Zero
 
-	for iteration := 0; iteration < 255; iteration++ {
+	for iteration := range 255 {
 		deltaAbs, deltaIsPos, err := l._calcNewtonDelta(mb, mc, md, root3Alpha, l_lower, rootEst)
 		if err != nil {
 			return nil, err

@@ -86,7 +86,7 @@ func TestHistoricalSwaps(t *testing.T) {
 	for i, r := range swapRows {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			pinClock(t, r.ts)
-			h := &Hook{Extra: Extra{StartFeeBips: 5000, EndFeeBips: 300, DecayDuration: 300, LaunchTime: uint32(r.launchTime)}}
+			h := &Hook{StartFeeBips: 5000, EndFeeBips: 300, DecayDuration: 300, LaunchTime: uint32(r.launchTime)}
 			require.Equal(t, r.bips, h.feeBips(r.ts), "_feeBips")
 
 			sim := newSim(t, r, tokens[r.poolID])
@@ -148,7 +148,7 @@ func TestUntrackedPoolRefusesToQuote(t *testing.T) {
 
 func BenchmarkHook(b *testing.B) {
 	NowFn = func() int64 { return 1100 }
-	h := &Hook{Extra: Extra{StartFeeBips: 5000, EndFeeBips: 300, DecayDuration: 300, LaunchTime: 1000}}
+	h := &Hook{StartFeeBips: 5000, EndFeeBips: 300, DecayDuration: 300, LaunchTime: 1000}
 	amt := bi("123456789012345678")
 	b.ReportAllocs()
 	for b.Loop() {

@@ -3,6 +3,7 @@ package titan
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -146,9 +147,7 @@ func titanServer(t *testing.T, delay time.Duration, entries map[string]json.RawM
 			return
 		}
 		result := map[string]json.RawMessage{"blockNumber": json.RawMessage(`"0x10"`), "slot": json.RawMessage(`100`)}
-		for k, v := range entries {
-			result[k] = v
-		}
+		maps.Copy(result, entries)
 		body, _ := json.Marshal(result)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":%s}`, req.ID, body)

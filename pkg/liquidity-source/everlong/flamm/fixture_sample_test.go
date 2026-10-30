@@ -71,7 +71,7 @@ func sampleRows(n int, sm rowSampling, key func(i int) (stream, class string)) [
 	}
 	streams, classes := make([]string, n), make([]string, n)
 	sizes := map[[2]string]int{}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		streams[i], classes[i] = key(i)
 		sizes[[2]string{streams[i], classes[i]}]++
 	}
@@ -81,7 +81,7 @@ func sampleRows(n int, sm rowSampling, key func(i int) (stream, class string)) [
 		n     int
 	}
 	seen := map[string]*last{}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		stream, class := streams[i], classes[i]
 		if stream == "" {
 			keep[i] = true

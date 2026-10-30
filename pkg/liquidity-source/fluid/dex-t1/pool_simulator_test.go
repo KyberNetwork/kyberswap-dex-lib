@@ -185,16 +185,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
-						Exchange:    "fluid-dex-t1",
-						Type:        "fluid-dex-t1",
-						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
-						BlockNumber: 20836530,
-						SwapFee:     bignumber.NewBig("100"),
-					},
+				Info: poolpkg.PoolInfo{
+					Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+					Exchange:    "fluid-dex-t1",
+					Type:        "fluid-dex-t1",
+					Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+					Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
+					BlockNumber: 20836530,
+					SwapFee:     bignumber.NewBig("100"),
 				},
 				CollateralReserves: CollateralReserves{
 					Token0RealReserves:      bignumber.NewBig("2169934539358"),
@@ -232,16 +230,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return correct amount for 0.5 wstETH",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
-						Exchange:    "fluid-dex-t1",
-						Type:        "fluid-dex-t1",
-						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
-						BlockNumber: 20836530,
-						SwapFee:     bignumber.NewBig("100"),
-					},
+				Info: poolpkg.PoolInfo{
+					Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+					Exchange:    "fluid-dex-t1",
+					Type:        "fluid-dex-t1",
+					Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+					Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
+					BlockNumber: 20836530,
+					SwapFee:     bignumber.NewBig("100"),
 				},
 				CollateralReserves: CollateralReserves{
 					Token0RealReserves:      bignumber.NewBig("2169934539358"),
@@ -278,16 +274,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return correct amount for 0.8 ETH",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
-						Exchange:    "fluid-dex-t1",
-						Type:        "fluid-dex-t1",
-						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
-						BlockNumber: 20836530,
-						SwapFee:     bignumber.NewBig("100"),
-					},
+				Info: poolpkg.PoolInfo{
+					Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+					Exchange:    "fluid-dex-t1",
+					Type:        "fluid-dex-t1",
+					Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+					Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
+					BlockNumber: 20836530,
+					SwapFee:     bignumber.NewBig("100"),
 				},
 				CollateralReserves: CollateralReserves{
 					Token0RealReserves:      bignumber.NewBig("2169934539358"),
@@ -325,16 +319,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return error for swap amount exceeding reserve",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
-						Exchange:    "fluid-dex-t1",
-						Type:        "fluid-dex-t1",
-						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("18760613183894"), bignumber.NewBig("22123580158026")},
-						BlockNumber: 20836530,
-						SwapFee:     bignumber.NewBig("100"),
-					},
+				Info: poolpkg.PoolInfo{
+					Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+					Exchange:    "fluid-dex-t1",
+					Type:        "fluid-dex-t1",
+					Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+					Reserves:    []*big.Int{bignumber.NewBig("18760613183894"), bignumber.NewBig("22123580158026")},
+					BlockNumber: 20836530,
+					SwapFee:     bignumber.NewBig("100"),
 				},
 				CollateralReserves: CollateralReserves{
 					Token0RealReserves:      bignumber.NewBig("2169934539358"),
@@ -405,16 +397,14 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 		{
 			name: "it should return correct amount",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
-						Exchange:    "fluid-dex-t1",
-						Type:        "fluid-dex-t1",
-						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
-						BlockNumber: 20836530,
-						SwapFee:     bignumber.NewBig("100"),
-					},
+				Info: poolpkg.PoolInfo{
+					Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+					Exchange:    "fluid-dex-t1",
+					Type:        "fluid-dex-t1",
+					Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+					Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
+					BlockNumber: 20836530,
+					SwapFee:     bignumber.NewBig("100"),
 				},
 				CollateralReserves: CollateralReserves{
 					Token0RealReserves:      bignumber.NewBig("2169934539358"),
@@ -449,16 +439,14 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 		{
 			name: "it should return correct amount for 0.5 wstETH",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
-						Exchange:    "fluid-dex-t1",
-						Type:        "fluid-dex-t1",
-						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
-						BlockNumber: 20836530,
-						SwapFee:     bignumber.NewBig("100"),
-					},
+				Info: poolpkg.PoolInfo{
+					Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+					Exchange:    "fluid-dex-t1",
+					Type:        "fluid-dex-t1",
+					Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+					Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
+					BlockNumber: 20836530,
+					SwapFee:     bignumber.NewBig("100"),
 				},
 				CollateralReserves: CollateralReserves{
 					Token0RealReserves:      bignumber.NewBig("2169934539358"),
@@ -493,16 +481,14 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 		{
 			name: "it should return correct amount for 0.8 ETH",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
-						Exchange:    "fluid-dex-t1",
-						Type:        "fluid-dex-t1",
-						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
-						BlockNumber: 20836530,
-						SwapFee:     bignumber.NewBig("100"),
-					},
+				Info: poolpkg.PoolInfo{
+					Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+					Exchange:    "fluid-dex-t1",
+					Type:        "fluid-dex-t1",
+					Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+					Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
+					BlockNumber: 20836530,
+					SwapFee:     bignumber.NewBig("100"),
 				},
 				CollateralReserves: CollateralReserves{
 					Token0RealReserves:      bignumber.NewBig("2169934539358"),
@@ -537,16 +523,14 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 		{
 			name: "it should return error for swap amount exceeding reserve",
 			poolSimulator: &PoolSimulator{
-				Pool: poolpkg.Pool{
-					Info: poolpkg.PoolInfo{
-						Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
-						Exchange:    "fluid-dex-t1",
-						Type:        "fluid-dex-t1",
-						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("8792764353113222"), bignumber.NewBig("10371036463574636")},
-						BlockNumber: 20836530,
-						SwapFee:     bignumber.NewBig("100"),
-					},
+				Info: poolpkg.PoolInfo{
+					Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+					Exchange:    "fluid-dex-t1",
+					Type:        "fluid-dex-t1",
+					Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+					Reserves:    []*big.Int{bignumber.NewBig("8792764353113222"), bignumber.NewBig("10371036463574636")},
+					BlockNumber: 20836530,
+					SwapFee:     bignumber.NewBig("100"),
 				},
 				CollateralReserves: CollateralReserves{
 					Token0RealReserves:      bignumber.NewBig("2169934539358"),

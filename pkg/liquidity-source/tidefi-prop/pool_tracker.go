@@ -207,12 +207,21 @@ func (t *PoolTracker) warnGapInQuotes(p entity.Pool, results [2][]quoteResult) {
 // ladder.CollectLadder, the x-value comes from the result itself, not the
 // requested probe point, since TideFi's quote can cap amountIn below what
 // was asked.
+//
+// That cap is also why this drops repeats: every probe past the engine's
+// fill cap quotes the same amountIn back, so it would repeat the previous
+// point verbatim -- a zero-width segment that makes the spline's secant 0/0.
 func collectLadder(results []quoteResult) []ladder.Point {
 	pts := make([]ladder.Point, 0, len(results))
+	var lastIn *big.Int
 	for _, r := range results {
 		if r.AmountIn == nil || r.AmountOut == nil || r.AmountIn.Sign() <= 0 || r.AmountOut.Sign() <= 0 {
 			continue
 		}
+		if lastIn != nil && r.AmountIn.Cmp(lastIn) <= 0 {
+			continue
+		}
+		lastIn = r.AmountIn
 		inF, _ := r.AmountIn.Float64()
 		outF, _ := r.AmountOut.Float64()
 		pts = append(pts, ladder.Point{inF, outF})

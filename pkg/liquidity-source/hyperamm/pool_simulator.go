@@ -58,14 +58,14 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	reserves := lo.Map(ep.Reserves, func(r string, _ int) *big.Int { return bignum.NewBig(r) })
 
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
+		Info: pool.PoolInfo{
 			Address:     ep.Address,
 			Exchange:    ep.Exchange,
 			Type:        ep.Type,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			BlockNumber: ep.BlockNumber,
-		}},
+		},
 		Extra:       extra,
 		StaticExtra: staticExtra,
 		reserves:    [2]*uint256.Int{uint256.MustFromDecimal(ep.Reserves[0]), uint256.MustFromDecimal(ep.Reserves[1])},

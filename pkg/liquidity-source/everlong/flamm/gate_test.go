@@ -131,7 +131,7 @@ func TestGateMath(t *testing.T) {
 		b := gateBook{Physical: in.Physical, Posted: in.Posted, Legs: make([]gateLeg, n)}
 		pool := &gatePool{Physical: in.Physical, LtvWad: in.LtvWad, PhiWad: in.PhiWad, RoomEpsilonWad: in.RoomEpsilonWad}
 		fr := &gateFakeRouter{posted: in.Posted, sup: in.Supplied, debt: in.Debt}
-		for i := 0; i < n; i++ {
+		for i := range n {
 			b.Legs[i] = gateLeg{Liquid: in.Liquid[i], Supplied: in.Supplied[i], Debt: in.Debt[i], Scale: in.Scale[i],
 				PriceWad: in.PriceWad[i], CrossWad: in.CrossWad[i]}
 			pool.Loans = append(pool.Loans, gateLoanCfg{Scale: in.Scale[i], Liquid: in.Liquid[i]})
@@ -140,7 +140,7 @@ func TestGateMath(t *testing.T) {
 			fr.q = append(fr.q, mmQuarantine{Any: in.QAny[i], FrozenDebt: in.QDebt[i], FrozenColl: in.QColl[i]})
 		}
 		name := fmt.Sprintf("case %d", k)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			got, err := gateNetPW(&b.Legs[i])
 			if c.NetPW[i].Err != "" {
 				require.ErrorIs(t, err, mmRevertError(t, c.NetPW[i].Err), name)
@@ -154,7 +154,7 @@ func TestGateMath(t *testing.T) {
 		if err != nil {
 			u.Clear()
 		}
-		for i := 0; i < n; i++ {
+		for i := range n {
 			h, err := gateHeadOf(&b, i, &u, &in.LtvWad)
 			gateCheckRes(t, c.HeadOf[i], &h, err, fmt.Sprintf("%s headOf[%d]", name, i))
 			rn, err := gateRoomNative(pool, &b, i, &u)
@@ -202,7 +202,7 @@ func TestGateMath(t *testing.T) {
 		post.Physical = c.Post.Physical
 		pr := &gateFakeRouter{sup: in.Supplied, q: fr.q, debt: make([]uint256.Int, n)}
 		pr.posted.Add(&in.Posted, &c.Post.PostedAdj)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			adj := c.Post.DebtAdj[i].gateInt
 			d, err := gateInt{Abs: in.Debt[i]}.add(adj)
 			require.NoError(t, err, name)

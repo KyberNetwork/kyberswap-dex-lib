@@ -146,7 +146,7 @@ func (u *PoolsListUpdater) listExchanges(ctx context.Context, offset int, batchS
 
 	getTokensRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
-	for i := 0; i < batchSize; i++ {
+	for i := range batchSize {
 		index := big.NewInt(int64(offset + i))
 
 		getTokensRequest.AddCall(&ethrpc.Call{

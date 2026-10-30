@@ -84,7 +84,6 @@ func TestCalcAmountOut(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			sim := newROMEUSDTSim(t)
 			res, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
@@ -116,7 +115,6 @@ func TestCalcAmountIn(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			sim := newROMEUSDTSim(t)
 			res, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {

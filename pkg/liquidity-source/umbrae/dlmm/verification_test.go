@@ -201,12 +201,27 @@ func TestVerifyUpdateBalance(t *testing.T) {
 	}
 }
 
+// liveTarget is one deployment + pair the live tests run against.
+type liveTarget struct {
+	pair, factory, viewer, router string
+	revision                      uint8
+}
+
+var baseTarget = liveTarget{pair: verifyPair, factory: verifyFactory, viewer: verifyViewer, router: verifyRouter, revision: SwapRevisionV2}
+
 // buildLiveSimulator runs the real lister-equivalent static config + tracker -> simulator pipeline
 // against the liquid pair, returning the simulator, its token addresses and the pinned block. The
 // Extra's volatility clock is re-pinned to the tracked block's timestamp so quote comparisons at
 // that block are exact (production uses wall-clock time, which tracks head within seconds).
 func buildLiveSimulator(t *testing.T, ctx context.Context, client *ethrpc.Client, rpcURL string) (*PoolSimulator, string, string, *big.Int) {
 	t.Helper()
+	return buildSimulatorFor(t, ctx, client, rpcURL, baseTarget)
+}
+
+// buildSimulatorFor is buildLiveSimulator for any deployment and pair.
+func buildSimulatorFor(t *testing.T, ctx context.Context, client *ethrpc.Client, rpcURL string, target liveTarget) (*PoolSimulator, string, string, *big.Int) {
+	t.Helper()
+	verifyPair, verifyFactory, verifyViewer, verifyRouter := target.pair, target.factory, target.viewer, target.router
 	var (
 		tokenXAddr, tokenYAddr common.Address
 		dec                    decimalsResult
@@ -220,14 +235,14 @@ func buildLiveSimulator(t *testing.T, ctx context.Context, client *ethrpc.Client
 		Aggregate()
 	require.NoError(t, err)
 
-	se, _ := json.Marshal(StaticExtra{BinStep: binStep, DecimalsX: dec.DecimalsX, DecimalsY: dec.DecimalsY, Router: verifyRouter})
+	se, _ := json.Marshal(StaticExtra{BinStep: binStep, DecimalsX: dec.DecimalsX, DecimalsY: dec.DecimalsY, Router: verifyRouter, SwapRevision: target.revision})
 	ep := entity.Pool{
 		Address: verifyPair, Exchange: DexType, Type: DexType,
 		Reserves:    entity.PoolReserves{"0", "0"},
 		Tokens:      []*entity.PoolToken{{Address: tokenXAddr.Hex()}, {Address: tokenYAddr.Hex()}},
 		StaticExtra: string(se), Extra: "{}",
 	}
-	tracker := NewPoolTracker(&Config{DexID: DexType, FactoryAddress: verifyFactory, ViewerAddress: verifyViewer, RouterAddress: verifyRouter}, client)
+	tracker := NewPoolTracker(&Config{DexID: DexType, FactoryAddress: verifyFactory, ViewerAddress: verifyViewer, RouterAddress: verifyRouter, SwapRevision: target.revision}, client)
 	ep, err = tracker.GetNewPoolState(ctx, ep, pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
 

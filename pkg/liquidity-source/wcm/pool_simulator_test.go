@@ -117,7 +117,7 @@ func TestSimulation(t *testing.T) {
 
 				totalAmountOut1 := new(big.Int)
 				var lastErr1 error
-				for i := 0; i < 20; i++ {
+				for range 20 {
 					res, err := sim1.CalcAmountOut(pool.CalcAmountOutParams{
 						TokenAmountIn: pool.TokenAmount{Token: dir.tokenIn, Amount: N},
 						TokenOut:      dir.tokenOut,

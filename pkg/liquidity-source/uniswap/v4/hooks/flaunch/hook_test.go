@@ -13,7 +13,7 @@ import (
 )
 
 func defaultHook() *Hook {
-	return &Hook{Hook: &uniswapv4.BaseHook{}, Extra: Extra{SwapFee: DefaultSwapFee}}
+	return &Hook{Hook: &uniswapv4.BaseHook{}, SwapFee: DefaultSwapFee}
 }
 
 func TestHook_BeforeSwap_TakesNoFee(t *testing.T) {
@@ -117,7 +117,7 @@ func TestFactory_HookExtra(t *testing.T) {
 	fromForeign := factory(&uniswapv4.HookParam{HookExtra: uniswapv4.HookExtra(`{"fee":"12345","model":"auto"}`)}).(*Hook)
 	assert.Equal(t, Extra{SwapFee: DefaultSwapFee}, fromForeign.Extra)
 
-	persisted, err := json.Marshal(&Hook{Extra: Extra{SwapFee: 250, GateEnabled: true, GateEndsAt: 1_800_000_000}})
+	persisted, err := json.Marshal(&Hook{SwapFee: 250, GateEnabled: true, GateEndsAt: 1_800_000_000})
 	require.NoError(t, err)
 	fromOwn := factory(&uniswapv4.HookParam{HookExtra: uniswapv4.HookExtra(persisted)}).(*Hook)
 	assert.Equal(t, Extra{SwapFee: 250, GateEnabled: true, GateEndsAt: 1_800_000_000}, fromOwn.Extra)

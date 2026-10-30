@@ -42,7 +42,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:  pool.Pool{Info: info},
+		Info:  info,
 		Extra: extra,
 	}, nil
 }

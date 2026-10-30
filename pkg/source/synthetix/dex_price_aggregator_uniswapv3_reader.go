@@ -132,7 +132,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readOverriddenPoolForRoute(
 	tokensLen := len(tokens)
 
 	var routeFromPoolKeys []string
-	for i := 0; i < tokensLen; i++ {
+	for i := range tokensLen {
 		for j := i + 1; j < tokensLen; j++ {
 			poolKey := getPoolKey(
 				tokens[i].Address,
@@ -350,7 +350,7 @@ func getPoolCombinationsFromTokens(
 	var pools []common.Address
 	tokensLen := len(tokens)
 
-	for i := 0; i < tokensLen; i++ {
+	for i := range tokensLen {
 		for j := i + 1; j < tokensLen; j++ {
 			poolKey := getPoolKey(tokens[i].Address, tokens[j].Address, dexPriceAggregator.DefaultPoolFee)
 			pool, err := _getPoolForRoute(dexPriceAggregator, poolKey)

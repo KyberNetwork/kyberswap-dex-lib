@@ -2,6 +2,7 @@ package nemoprop
 
 import (
 	"bytes"
+	"maps"
 	"math/big"
 	"testing"
 	"time"
@@ -171,9 +172,7 @@ func TestPoolSimulator_RouteConsumptionAndSharedInventory(t *testing.T) {
 
 	limits := map[string]*big.Int{}
 	for _, s := range []*PoolSimulator{sim, btc} {
-		for token, l := range s.CalculateLimit() {
-			limits[token] = l
-		}
+		maps.Copy(limits, s.CalculateLimit())
 	}
 	inventory := swaplimit.NewInventory(DexType, limits)
 

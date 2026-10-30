@@ -181,7 +181,6 @@ func TestFixtures_AmountOut(t *testing.T) {
 	t.Skip("ENABLE AFTER GENERATING FIXTURE VALUES FROM NadFunPair.getAmountOut")
 
 	for _, f := range amountOutFixtures {
-		f := f
 		t.Run(f.name, func(t *testing.T) {
 			t.Parallel()
 			r0, r1, amountIn := u(f.reserve0), u(f.reserve1), u(f.amountIn)

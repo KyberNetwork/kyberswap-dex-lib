@@ -66,7 +66,7 @@ func TestThanosHookSwapFee(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(ent.Extra), &extra))
 	require.Zero(t, extra.HookSwapFee) // swapFees was 0 on-chain
 
-	for _, line := range strings.Split(strings.TrimSpace(thanosQuotes), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(thanosQuotes), "\n") {
 		f := strings.Fields(line)
 		sf, _ := new(big.Int).SetString(f[0], 10)
 		extra.HookSwapFee = uint32(sf.Uint64())

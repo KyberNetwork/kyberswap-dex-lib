@@ -65,7 +65,7 @@ func NewHTTPClientWithConfig(cfg *Config) *httpClient {
 
 	// shallow-copy so SetTimeout writes a per-dex Timeout instead of mutating the
 	// caller's client; the Transport pointer, and so the connection pool, is shared.
-	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(httpCli))).
+	client := resty.NewWithClient(new(lo.FromPtr(httpCli))).
 		SetBaseURL(cfg.LimitOrderHTTPUrl).
 		SetTimeout(timeout).
 		SetRetryCount(retryCount).

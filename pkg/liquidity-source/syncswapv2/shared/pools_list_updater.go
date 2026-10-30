@@ -83,7 +83,7 @@ func (d *PoolsListUpdater) GetPools(ctx context.Context, metadataBytes []byte, p
 	k := 0
 	for i, batchSize := range batchSizes {
 		nextOffset[d.Config.MasterAddress[i]] = metadata.Offset[d.Config.MasterAddress[i]] + batchSize
-		for j := 0; j < batchSize; j++ {
+		for j := range batchSize {
 			getPoolAddressRequest.AddCall(&ethrpc.Call{
 				ABI:    masterABI,
 				Target: d.Config.MasterAddress[i],

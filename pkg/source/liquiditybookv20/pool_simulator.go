@@ -56,7 +56,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:           pool.Pool{Info: info},
+		Info:           info,
 		blockTimestamp: extra.RpcBlockTimestamp,
 		feeParams:      extra.FeeParameters,
 		activeBinID:    extra.ActiveBinID,
@@ -214,7 +214,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			newBin.ReserveY.Add(new(big.Int).Sub(newBin.ReserveY, changes.AmountYOut), changes.AmountYIn)
 		}
 
-		if !newBin.isEmpty() {
+		// The active bin stays, empty or not: a swap starts there and finds the next bin by its place.
+		if !newBin.isEmpty() || newBin.ID == p.activeBinID {
 			newBins = append(newBins, newBin)
 		}
 	}

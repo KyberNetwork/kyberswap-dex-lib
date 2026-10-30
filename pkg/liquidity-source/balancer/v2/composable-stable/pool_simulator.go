@@ -338,7 +338,7 @@ func _upscale(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, er
 func _dropBptItem(amounts []*uint256.Int, bptIndex int) []*uint256.Int {
 	amountsWithoutBpt := make([]*uint256.Int, len(amounts)-1)
 
-	for i := 0; i < len(amountsWithoutBpt); i++ {
+	for i := range amountsWithoutBpt {
 		if i < bptIndex {
 			amountsWithoutBpt[i] = amounts[i]
 			continue

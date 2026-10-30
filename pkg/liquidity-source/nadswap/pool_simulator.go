@@ -41,20 +41,18 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:  entityPool.Address,
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens: lo.Map(entityPool.Tokens, func(t *entity.PoolToken, _ int) string {
-					return t.Address
-				}),
-				Reserves: lo.Map(entityPool.Reserves, func(r string, _ int) *big.Int {
-					b, _ := new(big.Int).SetString(r, 10)
-					return b
-				}),
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens, func(t *entity.PoolToken, _ int) string {
+				return t.Address
+			}),
+			Reserves: lo.Map(entityPool.Reserves, func(r string, _ int) *big.Int {
+				b, _ := new(big.Int).SetString(r, 10)
+				return b
+			}),
+			BlockNumber: entityPool.BlockNumber,
 		},
 		isMeme:             se.IsMemePair,
 		quoteToken:         se.QuoteToken,

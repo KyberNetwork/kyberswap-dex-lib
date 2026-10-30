@@ -60,15 +60,13 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     entityPool.Address,
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		sqrtPriceX96: extra.SqrtPriceX96,
 		liquidity:    extra.Liquidity,
@@ -326,14 +324,12 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     s.Info.Address,
-				Exchange:    s.Info.Exchange,
-				Type:        s.Info.Type,
-				Tokens:      s.Info.Tokens, // string slice, shared is fine
-				BlockNumber: s.Info.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     s.Info.Address,
+			Exchange:    s.Info.Exchange,
+			Type:        s.Info.Type,
+			Tokens:      s.Info.Tokens, // string slice, shared is fine
+			BlockNumber: s.Info.BlockNumber,
 		},
 		sqrtPriceX96: new(uint256.Int).Set(s.sqrtPriceX96),
 		liquidity:    new(uint256.Int).Set(s.liquidity),

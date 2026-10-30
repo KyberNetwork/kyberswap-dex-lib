@@ -30,7 +30,7 @@ func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
-	client := resty.NewWithClient(lo.ToPtr(lo.FromPtr(http.DefaultClient))).
+	client := resty.NewWithClient(new(lo.FromPtr(http.DefaultClient))).
 		SetBaseURL(cfg.HTTPConfig.BaseURL).
 		SetTimeout(cfg.HTTPConfig.Timeout.Duration).
 		SetRetryCount(cfg.HTTPConfig.RetryCount)

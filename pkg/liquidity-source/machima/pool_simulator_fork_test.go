@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -127,7 +126,7 @@ func TestPoolSimulatorParityWithQuoter(t *testing.T) {
 
 			// tickSpacing seed, exactly as PoolsListUpdater writes it: ticklens reads it out of
 			// Extra to know which tick words to scan.
-			seedExtra, err := json.Marshal(Extra{Extra: uniswapv3.Extra{TickSpacing: defaultTickSpacing}})
+			seedExtra, err := json.Marshal(Extra{TickSpacing: defaultTickSpacing})
 			require.NoError(t, err)
 
 			tracked, err := tracker.BootstrapPoolState(ctx, entity.Pool{

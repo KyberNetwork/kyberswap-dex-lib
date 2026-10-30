@@ -30,21 +30,19 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	tokens := make([]string, 2)
 	reserves := make([]*big.Int, 2)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		tokens[i] = strings.ToLower(entityPool.Tokens[i].Address)
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 	}
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:     strings.ToLower(entityPool.Address),
-				Exchange:    entityPool.Exchange,
-				Type:        entityPool.Type,
-				Tokens:      tokens,
-				Reserves:    reserves,
-				BlockNumber: entityPool.BlockNumber,
-			},
+		Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
 		},
 		scaleFactor:       scaleFactor,
 		baseTokenDecimals: baseTokenDecimals,

@@ -86,13 +86,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 
 	extra := Extra{
-		CurveParams: CurveParams{
-			Alpha:   uint256.MustFromBig(curveRes.Alpha),
-			Beta:    uint256.MustFromBig(curveRes.Beta),
-			Delta:   uint256.MustFromBig(curveRes.Delta),
-			Epsilon: uint256.MustFromBig(curveRes.Epsilon),
-			Lambda:  uint256.MustFromBig(curveRes.Lambda),
-		},
+		Alpha:       uint256.MustFromBig(curveRes.Alpha),
+		Beta:        uint256.MustFromBig(curveRes.Beta),
+		Delta:       uint256.MustFromBig(curveRes.Delta),
+		Epsilon:     uint256.MustFromBig(curveRes.Epsilon),
+		Lambda:      uint256.MustFromBig(curveRes.Lambda),
 		OracleRates: [2]*uint256.Int{uint256.MustFromBig(rates[0]), uint256.MustFromBig(rates[1])},
 	}
 	// oracleRate = baseRate / quoteRate (scaled by precision)

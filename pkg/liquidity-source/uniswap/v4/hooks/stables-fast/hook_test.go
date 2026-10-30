@@ -20,7 +20,7 @@ import (
 const shippedFeePips = 5_000
 
 func tracked(feePips int64) *Hook {
-	return &Hook{Extra: Extra{FeePips: feePips, Registered: true, Tracked: true}}
+	return &Hook{FeePips: feePips, Registered: true, Tracked: true}
 }
 
 func exactIn(amountIn, amountOut int64) *uniswapv4.AfterSwapParams {
@@ -224,7 +224,7 @@ func TestCloneState_IsIndependent(t *testing.T) {
 // returns early on a zero cardinality. Pricing it as a registered pool would charge the
 // router for gas the swap never spends.
 func TestUnregistered_IsAPureNoOp(t *testing.T) {
-	h := &Hook{Extra: Extra{Tracked: true}}
+	h := &Hook{Tracked: true}
 
 	before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,

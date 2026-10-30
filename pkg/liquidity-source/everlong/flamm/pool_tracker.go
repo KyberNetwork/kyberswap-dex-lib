@@ -205,7 +205,7 @@ func resolveDependencies(ctx context.Context, rpc *mcRPC, se *StaticExtra, hooks
 		}
 	}
 	triggers := make([]common.Address, 0, hookRoles+1)
-	for role := roleSwap; role < hookRoles; role++ {
+	for role := range hookRoles {
 		if e := hooks.Entries[role]; e != nil {
 			if spec := hookKindSpecOf(e.Kind); spec != nil && spec.dependency() {
 				triggers = append(triggers, e.Address)

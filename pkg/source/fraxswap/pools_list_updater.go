@@ -127,7 +127,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	calls := d.ethrpcClient.NewRequest()
 	calls.SetContext(ctx)
 
-	for i := 0; i < limit; i++ {
+	for i := range limit {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: poolAddresses[i].Hex(),

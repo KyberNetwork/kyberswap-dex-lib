@@ -18,14 +18,12 @@ import (
 func TestPoolSimulatorDeepUpdateBalance(t *testing.T) {
 	t.Parallel()
 	p := &PoolSimulator{
-		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:  "0xe3abc29b035874a9f6dcdb06f8f20d9975069d87",
-				Exchange: "wombat-lsd",
-				Type:     "wombat-lsd",
-				Tokens:   []string{"0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7", "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be"},
-				Reserves: []*big.Int{bignumber.NewBig10("547370669405545596073"), bignumber.NewBig10("301255868324403411564")},
-			},
+		Info: pool.PoolInfo{
+			Address:  "0xe3abc29b035874a9f6dcdb06f8f20d9975069d87",
+			Exchange: "wombat-lsd",
+			Type:     "wombat-lsd",
+			Tokens:   []string{"0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7", "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be"},
+			Reserves: []*big.Int{bignumber.NewBig10("547370669405545596073"), bignumber.NewBig10("301255868324403411564")},
 		},
 		paused:        false,
 		haircutRate:   bignumber.NewBig10("100000000000000"),

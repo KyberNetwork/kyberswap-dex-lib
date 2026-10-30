@@ -57,7 +57,7 @@ func NewPoolSimulatorWithBases(p entity.Pool, baseMap map[string]pool.IPoolSimul
 	if !e.Valid || e.Curve.Invariant.IsZero() || len(st.BasePools) > 1 || leaf == WETH && len(st.BasePools) > 0 {
 		return nil, ErrState
 	}
-	s := &PoolSimulator{Pool: pool.Pool{Info: pool.PoolInfo{Address: p.Address, Exchange: p.Exchange, Type: p.Type, Tokens: []string{WETH, p.Address}, BlockNumber: p.BlockNumber}}, Curve: e.Curve, Static: st, Valid: true, Protocol: e.Protocol, Parents: e.Parents}
+	s := &PoolSimulator{Info: pool.PoolInfo{Address: p.Address, Exchange: p.Exchange, Type: p.Type, Tokens: []string{WETH, p.Address}, BlockNumber: p.BlockNumber}, Curve: e.Curve, Static: st, Valid: true, Protocol: e.Protocol, Parents: e.Parents}
 	if len(st.BasePools) == 1 {
 		if s.Base = baseMap[st.BasePools[0]]; s.Base == nil {
 			return nil, ErrBasePool

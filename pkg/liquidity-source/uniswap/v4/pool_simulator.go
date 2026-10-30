@@ -46,6 +46,13 @@ type PoolSimulator struct {
 	// fewWrapperIdx is the Few token's index when this pool is that token's own wrap/unwrap
 	// pool (so swapping out of it unwraps it), else -1.
 	fewWrapperIdx int
+
+	// tokens and canSwapTo cache GetTokens and CanSwapTo (keyed by each token of GetTokens): both
+	// depend only on the pool's tokens and the token wrappers, and the route finder calls them far
+	// more often than CalcAmountOut. Not serialized; a decoded simulator computes them per call.
+	exchange  string              `msgpack:"-"` // hook exchange with the fork dexID
+	tokens    []string            `msgpack:"-"`
+	canSwapTo map[string][]string `msgpack:"-"`
 }
 
 var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
@@ -66,12 +73,19 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
 
+	// Indexing prices at the snapshot time; route finding keeps the wall clock (QuoteAt 0).
+	var quoteAt int64
+	if t := pool.QuoteTime(staleCheck, entityPool.Timestamp); !t.IsZero() {
+		quoteAt = t.Unix()
+	}
+
 	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
 		Cfg:        &Config{ChainID: chainID},
 		Pool:       &entityPool,
 		HookExtra:  HookExtra(extra.HookExtra),
 		TrackedAt:  extra.TrackedAt,
 		StaleCheck: staleCheck,
+		QuoteAt:    quoteAt,
 	})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
 		return nil, shared.ErrUnsupportedHook
@@ -115,15 +129,22 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 		}
 	}
 
-	return &PoolSimulator{
+	p := &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
 		hook:          hook,
+		exchange:      ExchangeOf(hook, "", entityPool.Exchange),
 		chainID:       chainID,
 		tokenWrappers: tokenWrappers,
 		fewReserves:   fewReserves,
 		fewWrapperIdx: fewWrapperIdx,
-	}, nil
+	}
+	p.tokens = p.computeTokens()
+	p.canSwapTo = make(map[string][]string, len(p.tokens))
+	for _, token := range p.tokens {
+		p.canSwapTo[token] = p.computeCanSwapTo(token)
+	}
+	return p, nil
 }
 
 // unwrapFew returns the underlying balance left in the contract of the Few token at pool index
@@ -453,7 +474,15 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	return p.CanSwapTo(address)
 }
 
+// CanSwapTo returns a slice shared with the simulator and its clones: callers must not modify it.
 func (p *PoolSimulator) CanSwapTo(address string) []string {
+	if tokens, ok := p.canSwapTo[address]; ok {
+		return tokens
+	}
+	return p.computeCanSwapTo(address)
+}
+
+func (p *PoolSimulator) computeCanSwapTo(address string) []string {
 	tokenIndex := p.GetTokenIndex(address)
 
 	result := map[string]struct{}{}
@@ -493,10 +522,22 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 }
 
 func (p *PoolSimulator) GetExchange() string {
-	return p.hook.GetExchange()
+	if p.exchange != "" {
+		return p.exchange
+	}
+	// Unexported fields are empty after a msgpack decode; Info.Exchange keeps the fork name.
+	return ExchangeOf(p.hook, "", p.Info.Exchange)
 }
 
+// GetTokens returns a slice shared with the simulator and its clones: callers must not modify it.
 func (p *PoolSimulator) GetTokens() []string {
+	if p.tokens != nil {
+		return p.tokens
+	}
+	return p.computeTokens()
+}
+
+func (p *PoolSimulator) computeTokens() []string {
 	seen := make(map[string]struct{})
 	tokens := make([]string, 0, len(p.Info.Tokens))
 
@@ -650,6 +691,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		HookAddress:       p.staticExtra.HooksAddress,
 		HookData:          p.hook.GetHookData(),
 		PriceLimit:        priceLimit,
+		PoolManager:       p.poolManager(),
 		TokenWrapMetadata: wrapMetadata,
 	}
 }
@@ -662,4 +704,15 @@ func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobj
 func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
 	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMetaInfo)
 	return meta.TokenOut == NativeTokenAddress
+}
+
+// poolManager is the pool's own manager, else the official one for the chain, else nil.
+func (p *PoolSimulator) poolManager() *common.Address {
+	if p.staticExtra.PoolManager != nil {
+		return p.staticExtra.PoolManager
+	}
+	if pm, ok := PoolManager[p.chainID]; ok {
+		return &pm
+	}
+	return nil
 }
