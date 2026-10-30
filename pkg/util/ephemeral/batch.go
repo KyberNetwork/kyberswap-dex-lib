@@ -15,6 +15,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
+//go:generate go run github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral/contracts LensBatch batch.json
 //go:embed batch.json
 var batchJSON []byte
 

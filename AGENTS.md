@@ -178,6 +178,23 @@ go generate ./pkg/msgpack/...
 
 This repo has `pkg/msgpack`; run the second command here. Other downstream repos don't have it — skip the second command there.
 
+If a change touches the Solidity in `pkg/util/ephemeral/contracts/`, rebuild the contract files the
+packages embed and commit them with it:
+
+```sh
+go generate -run ephemeral/contracts ./pkg/...
+```
+
+It needs `forge` (Foundry); without it the files are left as they are. Never edit a contract file
+(`abis/lens.json` and the like) by hand. A package that embeds a new contract puts the line that
+writes it right above its `//go:embed`, which `TestEveryContractFileIsGenerated` checks:
+
+```go
+//go:generate go run github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral/contracts V3Lens abis/lens.json
+//go:embed abis/lens.json
+var lensJSON []byte
+```
+
 ## Pull Request
 
 Create a PR from your feature branch to **kyberswap-dex-lib** `main`.

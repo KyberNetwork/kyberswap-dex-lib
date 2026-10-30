@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
+//go:generate go run github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral/contracts AlgebraIntegralPluginLens abis/plugin.json
 //go:embed abis/plugin.json
 var pluginLensJSON []byte
 

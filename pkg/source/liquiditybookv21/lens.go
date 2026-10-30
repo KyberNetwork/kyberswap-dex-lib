@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
+//go:generate go run github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral/contracts LiquidityBookV21Lens abis/lens.json
 //go:embed abis/lens.json
 var lensJSON []byte
 

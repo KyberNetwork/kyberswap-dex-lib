@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
+//go:generate go run github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral/contracts PancakeInfinityBinLens abi/lens.json
 //go:embed abi/lens.json
 var lensJSON []byte
 
