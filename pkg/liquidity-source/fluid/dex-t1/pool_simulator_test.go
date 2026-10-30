@@ -1045,3 +1045,67 @@ func TestCloneState(t *testing.T) {
 		TokenOut: "0xc139190f447e929f090edeb554d95abb8b18ac1c",
 	}, nil)
 }
+
+// wstETH/ETH pool with both the collateral and the debt pool enabled, so a swap is split over the two.
+func newSplitRoutingPool() *PoolSimulator {
+	return &PoolSimulator{
+		Info: poolpkg.PoolInfo{
+			Address:  "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+			Exchange: "fluid-dex-t1",
+			Type:     "fluid-dex-t1",
+			Tokens:   []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+			Reserves: []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
+			SwapFee:  bignumber.NewBig("100"),
+		},
+		CollateralReserves: CollateralReserves{
+			Token0RealReserves:      bignumber.NewBig("2169934539358"),
+			Token1RealReserves:      bignumber.NewBig("19563846299171"),
+			Token0ImaginaryReserves: bignumber.NewBig("62490032619260838"),
+			Token1ImaginaryReserves: bignumber.NewBig("73741038977020279"),
+		},
+		DebtReserves: DebtReserves{
+			Token0Debt:              bignumber.NewBig("16590678644536"),
+			Token1Debt:              bignumber.NewBig("2559733858855"),
+			Token0RealReserves:      bignumber.NewBig("2169108220421"),
+			Token1RealReserves:      bignumber.NewBig("19572550738602"),
+			Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
+			Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
+		},
+		DexLimits:      limitsWide(),
+		CenterPrice:    big.NewInt(1),
+		SyncTimestamp:  time.Now().Unix() - 10,
+		Token0Decimals: 18,
+		Token1Decimals: 18,
+	}
+}
+
+func swapAndUpdate(t *testing.T, p *PoolSimulator, tokenIn, tokenOut, amount string) *big.Int {
+	t.Helper()
+	in := poolpkg.TokenAmount{Token: tokenIn, Amount: bignumber.NewBig(amount)}
+	res, err := p.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: in, TokenOut: tokenOut})
+	require.NoError(t, err)
+	p.UpdateBalance(poolpkg.UpdateBalanceParams{TokenAmountIn: in, TokenAmountOut: *res.TokenAmountOut, SwapInfo: res.SwapInfo})
+	return res.TokenAmountOut.Amount
+}
+
+// A swap routed through both pools adds to each pool only the part routed through it, so the second of two
+// sequential swaps sees the same state as the tail of one merged swap: splitting a swap must not change its output.
+func TestPoolSimulator_SwapInSplitOverBothPools(t *testing.T) {
+	t.Parallel()
+	p := newSplitRoutingPool()
+	tokenIn, tokenOut := p.Info.Tokens[0], p.Info.Tokens[1]
+	col0 := new(big.Int).Set(p.CollateralReserves.Token0RealReserves)
+	debt0 := new(big.Int).Set(p.DebtReserves.Token0RealReserves)
+
+	first := swapAndUpdate(t, p, tokenIn, tokenOut, "500000000000000000")
+	colIn := new(big.Int).Sub(p.CollateralReserves.Token0RealReserves, col0)
+	debtIn := new(big.Int).Sub(p.DebtReserves.Token0RealReserves, debt0)
+	require.Positive(t, colIn.Sign(), "routed through the collateral pool")
+	require.Positive(t, debtIn.Sign(), "routed through the debt pool")
+	// 0.5 wstETH after the 0.01% fee, in the 1e12 scale of the reserves: the two pools share it, not each get all of it
+	require.Equal(t, "499950000000", new(big.Int).Add(colIn, debtIn).String())
+
+	second := swapAndUpdate(t, p, tokenIn, tokenOut, "500000000000000000")
+	merged := swapAndUpdate(t, newSplitRoutingPool(), tokenIn, tokenOut, "1000000000000000000")
+	require.Equal(t, merged.String(), new(big.Int).Add(first, second).String())
+}
