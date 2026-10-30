@@ -8,7 +8,10 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -449,4 +452,84 @@ func TestGuardNeverWaits(t *testing.T) {
 	ran, err := g.Try(ctx, "pool", func(ctx context.Context) error { <-ctx.Done(); return ctx.Err() })
 	assert.True(t, ran)
 	assert.ErrorIs(t, err, context.DeadlineExceeded)
+}
+
+func TestCheckBins(t *testing.T) {
+	bin := func(id uint32, x, y int64) Bin { return Bin{ID: id, ReserveX: big.NewInt(x), ReserveY: big.NewInt(y)} }
+	bins := []Bin{bin(10, 0, 5), bin(11, 3, 2), bin(12, 4, 0)}
+
+	assert.NoError(t, CheckBins(bins, big.NewInt(7), big.NewInt(7)))
+	assert.NoError(t, CheckBins(nil, big.NewInt(0), big.NewInt(0)), "a pair without liquidity")
+	assert.NoError(t, CheckBins(bins, nil, nil), "a pool that keeps no reserves")
+	for name, c := range map[string]struct {
+		bins []Bin
+		x, y int64
+	}{
+		"a bin missing":   {bins[:2], 7, 7},
+		"reserve Y off":   {bins, 7, 8},
+		"out of order":    {[]Bin{bins[1], bins[0], bins[2]}, 7, 7},
+		"a bin repeated":  {[]Bin{bins[0], bins[0], bins[1], bins[2]}, 7, 12},
+		"an empty bin":    {append([]Bin{bin(9, 0, 0)}, bins...), 7, 7},
+		"reserves absent": {bins, 0, 0},
+	} {
+		assert.ErrorIs(t, CheckBins(c.bins, big.NewInt(c.x), big.NewInt(c.y)), ErrBinsInconsistent, name)
+	}
+	for name, bins := range map[string][]Bin{
+		"out of order": {bin(5, 1, 0), bin(1, 0, 1)},
+		"repeated":     {bin(5, 1, 0), bin(5, 0, 1)},
+		"empty":        {bin(5, 0, 0)},
+	} {
+		assert.ErrorIs(t, CheckBins(bins, nil, nil), ErrBinsInconsistent, "no reserves, "+name)
+	}
+}
+
+// TestScanWordsReadsWindowsInParallel: the words a call leaves are split and read by calls at once,
+// at the first call's block, and the items come back in word order as one scan would give them.
+func TestScanWordsReadsWindowsInParallel(t *testing.T) {
+	const perCall = 3 // words one call reads
+	var inFlight, most atomic.Int32
+	var blocks sync.Map
+	fetch := func(_ context.Context, lower, upper int16, block *big.Int) (Page[int16], []int16, error) {
+		n := inFlight.Add(1)
+		defer inFlight.Add(-1)
+		for m := most.Load(); n > m && !most.CompareAndSwap(m, n); m = most.Load() {
+		}
+		if block != nil {
+			blocks.Store(block.Uint64(), true)
+		}
+		// Long enough for the windows' calls to overlap, as a node's round trips do.
+		time.Sleep(5 * time.Millisecond)
+		var words []int16
+		w := lower
+		for ; w <= upper && len(words) < perCall; w++ {
+			words = append(words, w)
+		}
+		return Page[int16]{Block: 100, Next: w, Done: w > upper}, words, nil
+	}
+
+	block, words, err := ScanWords(t.Context(), -10, 30, Pinned{}, WordsParallel, fetch)
+	require.NoError(t, err)
+	assert.EqualValues(t, 100, block)
+	require.Len(t, words, 41)
+	for i, w := range words {
+		assert.EqualValues(t, -10+i, w, "word order")
+	}
+	assert.Greater(t, most.Load(), int32(1), "windows read at once")
+	assert.LessOrEqual(t, most.Load(), int32(WordsParallel))
+	blocks.Range(func(k, _ any) bool {
+		assert.EqualValues(t, 100, k, "every window at the first call's block")
+		return true
+	})
+
+	_, _, err = ScanWords(t.Context(), 0, 5, Pinned{},
+		WordsParallel, func(context.Context, int16, int16, *big.Int) (Page[int16], []int16, error) {
+			return Page[int16]{Block: 100, Next: 0}, nil, nil
+		})
+	assert.ErrorIs(t, err, ErrNoProgress)
+
+	_, _, err = ScanWords(t.Context(), 0, 5, Pinned{Block: big.NewInt(100)}, WordsParallel,
+		func(context.Context, int16, int16, *big.Int) (Page[int16], []int16, error) {
+			return Page[int16]{Block: 107, Done: true}, nil, nil
+		})
+	assert.ErrorIs(t, err, ErrUnpinned)
 }

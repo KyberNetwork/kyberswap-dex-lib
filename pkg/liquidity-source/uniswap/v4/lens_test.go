@@ -3,12 +3,16 @@ package uniswapv4
 import (
 	"context"
 	"errors"
+	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/logger"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
@@ -48,4 +52,20 @@ func TestStatelessPoolsAreScheduled(t *testing.T) {
 	assert.Zero(t, lens.NextUpdateAt(tracked))
 
 	assert.Zero(t, NewPoolTracker(&Config{}, nil, nil).NextUpdateAt(fromFactory))
+}
+
+// TestWithStateTakesTheHooksExchange: the hook names the pool's exchange, and the pool withState
+// returns, bootstrapped or read through the lens, is under it.
+func TestWithStateTakesTheHooksExchange(t *testing.T) {
+	sqrtPriceOne, _ := new(big.Int).SetString("79228162514264337593543950336", 10)
+	tracker := &PoolTracker{config: &Config{}}
+	p := entity.Pool{Address: "0xpool", Exchange: DexType}
+	result := &FetchRPCResult{Liquidity: big.NewInt(0), TickSpacing: 60,
+		Slot0: Slot0Data{SqrtPriceX96: sqrtPriceOne, Tick: big.NewInt(0)}}
+
+	got, err := tracker.withState(t.Context(), p, result, &BaseHook{Exchange: "uniswap-v4-hooked"},
+		&HookParam{Cfg: tracker.config, Pool: &p}, nil, poolpkg.GetNewPoolStateParams{}, snapshotState(&p), 0, 0,
+		logger.WithFields(nil))
+	require.NoError(t, err)
+	assert.Equal(t, "uniswap-v4-hooked", got.Exchange)
 }
