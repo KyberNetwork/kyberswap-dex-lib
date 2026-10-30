@@ -20,6 +20,7 @@ const (
 	crossCategoryGas               = 564978
 	defaultBlockTimeMs      int64  = 300
 	defaultMaxSnapshotAgeMs int64  = 15_000
+	clockSkewAllowanceMs    int64  = 1_000
 	defaultRequestTimeoutMs int64  = 2_000
 	refreshRetryDelay              = 300 * time.Millisecond
 	snapshotLensGas         uint64 = 3_000_000

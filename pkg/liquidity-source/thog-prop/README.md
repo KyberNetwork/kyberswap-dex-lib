@@ -31,7 +31,8 @@ remaining lifetime. This is a model using the nominal block interval, not a
 prediction of subsequent prices or an exact measurement of the current head.
 
 `ErrStaleSnapshot` identifies an estimated execution block beyond the on-chain
-maximum age, an unknown/future capture time, or the wall-clock backstop. The
+maximum age, a missing capture time or one more than a second in the future,
+or the wall-clock backstop. The
 default backstop is **15,000 ms**, independent of the on-chain maximum age.
 Capture time is the **start** of the successful RPC attempt, so request latency
 counts toward age. Old stored rows without millisecond capture time use
@@ -54,10 +55,17 @@ tracks with each quote; the adapter can then compare that head with the snapshot
 and posted-price blocks. Fetching or polling a head inside the adapter would add
 network work to solve a context problem and is not part of this reader.
 
-Until that caller context is available, timestamp-based aging requires reasonably
-synchronized pool-service and router clocks. A capture time ahead of the router
-currently returns `ErrStaleSnapshot`. A two-second grace period would forgive
-about seven nominal 300 ms blocks of age, so it is not a free clock correction.
+Until that caller context is available, a capture timestamp up to **1,000 ms**
+ahead of the router's clock is treated as age zero. More than 1,000 ms ahead is
+still `ErrStaleSnapshot`. This allowance applies only to negative ages: positive
+ages, the existing one-block lookahead, on-chain maximum age, and wall-clock
+backstop are unchanged. Once the router's clock passes capture time, normal
+elapsed-block aging resumes immediately. It adds no RPC or polling work.
+
+This is an explicit clock-skew tradeoff: a one-second inter-host offset can
+change estimated age by up to four nominal 300 ms blocks (about 2 bp of the
+stored 0.50 bp/block widening). Already-expired prices are still rejected against
+the snapshot/posted-price blocks even while the clock allowance applies.
 
 Age widening enters the existing integer curve before the solve. No fixed
 short-horizon price margin is added. `GetMetaInfo` includes the snapshot block,

@@ -151,6 +151,10 @@ func (s *PoolSimulator) quoteContext(nowMs int64) (block uint64, ageMs int64, er
 	ageMs = -1
 	if s.capturedAtMs > 0 && nowMs >= s.capturedAtMs {
 		ageMs = nowMs - s.capturedAtMs
+	} else if s.capturedAtMs > 0 && nowMs >= 0 && s.capturedAtMs-nowMs <= clockSkewAllowanceMs {
+		// Tolerate a small cross-host clock offset only for future captures.
+		// Positive ages, the backstop, and the on-chain cutoff are unchanged.
+		ageMs = 0
 	}
 	var elapsed uint64
 	if !s.noStaleCheck {
