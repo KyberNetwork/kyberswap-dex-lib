@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
@@ -24,8 +23,7 @@ func emptyActiveBinChain(t *testing.T) (*PoolTracker, func() []string, func()) {
 		101: {active: active, rx: 1e18, ry: 1e18, bins: map[uint32][2]int64{
 			active - 1: {0, 1e18}, active: {0, 0}, active + 1: {1e18, 0}}},
 	})
-	client := ethrpc.New(chain.URL).SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
-	return NewPoolTracker(&Config{UseLens: true}, client, nil), lensBlocks, chain.Close
+	return NewPoolTracker(&Config{UseLens: true}, chain.Client(), nil), lensBlocks, chain.Close
 }
 
 // emptyActiveBinWant is the set the RPC path stores for that pair since it keeps the active bin.

@@ -113,6 +113,21 @@ func (c *Contract) UnpackCall(payload []byte, out any) error {
 	return c.result.Copy(out, values)
 }
 
+// UnpackArgs is the inverse of PackCall: the arguments of a call it packed, for a node that answers
+// one, such as a test's.
+func (c *Contract) UnpackArgs(call []byte) ([]any, error) {
+	if !bytes.HasPrefix(call, c.bytecode) {
+		return nil, fmt.Errorf("ephemeral: not a call of %s", c.Name)
+	}
+	return c.abi.Constructor.Inputs.Unpack(call[len(c.bytecode):])
+}
+
+// PackResult is the inverse of UnpackCall: the revert payload of a run that returned values, for a
+// node that answers a call, such as a test's.
+func (c *Contract) PackResult(values ...any) ([]byte, error) {
+	return c.result.Pack(values...)
+}
+
 // ContractError is a revert with one of the contract's own errors.
 type ContractError struct {
 	Name string

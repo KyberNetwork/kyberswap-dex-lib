@@ -18,6 +18,8 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // fakeNode answers the gas probe the way one kind of node does, and records the gas of every other
@@ -153,4 +155,15 @@ func TestCallSendsTheProbedGas(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, Cap{}, gasCap)
 	assert.Zero(t, callGas(ctx, down, 0))
+}
+
+// TestNodeStubAnswersTheProbe: testutil.NodeStub, which the trackers' tests run lenses against,
+// knows the probe and caps a call as a node does.
+func TestNodeStubAnswersTheProbe(t *testing.T) {
+	node := testutil.NewNodeStub(t, 1, 100, func(testutil.NodeCall) ([]byte, error) {
+		return nil, errors.New("not a probe")
+	})
+	got, err := GasCap(t.Context(), node.Client().GetETHClient())
+	require.NoError(t, err)
+	assert.Equal(t, Cap{Gas: testutil.NodeGasCap}, got)
 }
