@@ -187,7 +187,9 @@ go generate -run ephemeral/contracts ./pkg/...
 
 It needs `forge` (Foundry); without it the files are left as they are. Never edit a contract file
 (`abis/lens.json` and the like) by hand. A package that embeds a new contract puts the line that
-writes it right above its `//go:embed`, which `TestEveryContractFileIsGenerated` checks:
+writes it right above its `//go:embed`. Commit `pkg/util/ephemeral/contracts/sources.json` with
+them: `TestContractFilesMatchTheirSources` checks each file against the hashes in it, and
+`TestEveryContractFileIsGenerated` checks the line:
 
 ```go
 //go:generate go run github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral/contracts V3Lens abis/lens.json

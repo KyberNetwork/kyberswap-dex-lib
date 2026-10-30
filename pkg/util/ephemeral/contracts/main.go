@@ -7,22 +7,41 @@
 // It needs forge (Foundry). Without it, it leaves the file as it is and says so, so go generate
 // needs nothing but Go. With it, it builds by foundry.toml here, which fixes the compiler and its
 // settings and drops the metadata hash, so a build gives the same bytecode on every machine.
+//
+// It records in sources.json the SHA-256 of the file it wrote and of every file the contract was
+// built from, which a test checks without forge: a contract file edited by hand, or one whose
+// Solidity changed without a rebuild, fails it.
 package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 )
 
 // dir is this directory, relative to the module root.
 const dir = "pkg/util/ephemeral/contracts"
+
+// manifestFile, in dir, records what each contract file was built from.
+const manifestFile = "sources.json"
+
+// entry is a contract file in the manifest, which keys it by its path from the module root, as it
+// keys its sources.
+type entry struct {
+	Contract string            `json:"contract"`
+	SHA256   string            `json:"sha256"`
+	Sources  map[string]string `json:"sources"` // SHA-256 of foundry.toml and each Solidity file
+}
 
 func main() {
 	if len(os.Args) != 3 {
@@ -64,14 +83,82 @@ func run(name, out string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", name, err)
 	}
-	if old, err := os.ReadFile(out); err == nil && bytes.Equal(old, content) {
-		return nil
+	if wrote, err := writeIfChanged(out, content); err != nil {
+		return err
+	} else if wrote {
+		fmt.Fprintf(os.Stderr, "contracts: wrote %s (%s)\n", out, name)
 	}
-	if err := os.WriteFile(out, content, 0o644); err != nil {
+	return record(root, out, name, content, artifact)
+}
+
+// record sets out's entry in the manifest: name, the SHA-256 of content, and that of foundry.toml
+// and of every source the artifact lists.
+func record(root, out, name string, content, artifact []byte) error {
+	var built struct {
+		Metadata struct {
+			Sources map[string]json.RawMessage `json:"sources"`
+		} `json:"metadata"`
+	}
+	if err := json.Unmarshal(artifact, &built); err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "contracts: wrote %s (%s)\n", out, name)
-	return nil
+	if len(built.Metadata.Sources) == 0 {
+		return fmt.Errorf("%s: the artifact lists no sources", name)
+	}
+	e := entry{Contract: name, SHA256: sum(content), Sources: map[string]string{}}
+	for _, src := range append(slices.Sorted(maps.Keys(built.Metadata.Sources)), "foundry.toml") {
+		path := filepath.ToSlash(filepath.Join(dir, src))
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			return err
+		}
+		e.Sources[path] = sum(data)
+	}
+	abs, err := filepath.Abs(out)
+	if err != nil {
+		return err
+	}
+	key, err := filepath.Rel(root, abs)
+	if err != nil {
+		return err
+	}
+
+	manifest, err := readManifest(root)
+	if err != nil {
+		return err
+	}
+	manifest[filepath.ToSlash(key)] = e
+	content, err = json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return err
+	}
+	_, err = writeIfChanged(filepath.Join(root, dir, manifestFile), append(content, '\n'))
+	return err
+}
+
+// writeIfChanged writes content to path unless path holds it already, and reports whether it wrote.
+func writeIfChanged(path string, content []byte) (bool, error) {
+	if old, err := os.ReadFile(path); err == nil && bytes.Equal(old, content) {
+		return false, nil
+	}
+	return true, os.WriteFile(path, content, 0o644)
+}
+
+// readManifest is the manifest under root, empty when there is none yet.
+func readManifest(root string) (map[string]entry, error) {
+	manifest := map[string]entry{}
+	raw, err := os.ReadFile(filepath.Join(root, dir, manifestFile))
+	if errors.Is(err, fs.ErrNotExist) {
+		return manifest, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return manifest, json.Unmarshal(raw, &manifest)
+}
+
+func sum(data []byte) string {
+	h := sha256.Sum256(data)
+	return hex.EncodeToString(h[:])
 }
 
 // moduleRoot is the directory of the go.mod at or above the working directory.
@@ -92,32 +179,40 @@ func moduleRoot() (string, error) {
 	}
 }
 
-// source is the file under contracts, relative to it, that declares contract name.
-func source(contracts, name string) (string, error) {
-	declares := regexp.MustCompile(`(?m)^\s*(?:abstract\s+)?contract\s+` + regexp.QuoteMeta(name) + `\b`)
-	var found []string
+// solidity is every Solidity file under contracts, relative to it, forge's out and cache left out.
+func solidity(contracts string) ([]string, error) {
+	var files []string
 	err := filepath.WalkDir(contracts, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
+		switch {
+		case err != nil:
 			return err
-		}
-		if d.IsDir() && (d.Name() == "out" || d.Name() == "cache") {
+		case d.IsDir() && (d.Name() == "out" || d.Name() == "cache"):
 			return filepath.SkipDir
-		}
-		if d.IsDir() || filepath.Ext(path) != ".sol" {
-			return nil
-		}
-		text, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		if declares.Match(text) {
+		case !d.IsDir() && filepath.Ext(path) == ".sol":
 			rel, _ := filepath.Rel(contracts, path)
-			found = append(found, rel)
+			files = append(files, filepath.ToSlash(rel))
 		}
 		return nil
 	})
+	return files, err
+}
+
+// source is the file under contracts, relative to it, that declares contract name.
+func source(contracts, name string) (string, error) {
+	files, err := solidity(contracts)
 	if err != nil {
 		return "", err
+	}
+	declares := regexp.MustCompile(`(?m)^\s*(?:abstract\s+)?contract\s+` + regexp.QuoteMeta(name) + `\b`)
+	var found []string
+	for _, file := range files {
+		text, err := os.ReadFile(filepath.Join(contracts, file))
+		if err != nil {
+			return "", err
+		}
+		if declares.Match(text) {
+			found = append(found, file)
+		}
 	}
 	if len(found) != 1 {
 		return "", fmt.Errorf("contract %s is declared in %d files under %s, not one: %v", name, len(found), dir,

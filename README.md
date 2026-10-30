@@ -36,3 +36,7 @@ go generate -run ephemeral/contracts ./pkg/...
 This needs [Foundry](https://getfoundry.sh) (`forge`), and nothing else in this repository does:
 without `forge` the command leaves the files as they are. `foundry.toml` there fixes the compiler
 and its settings, so an unchanged contract builds to the same file on every machine.
+
+The command also records in `pkg/util/ephemeral/contracts/sources.json` the SHA-256 of each file it
+wrote and of each file the contract was built from. A test checks it without `forge`, so a contract
+file edited by hand, or Solidity changed without a rebuild, fails `go test ./...`.
