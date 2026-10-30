@@ -65,6 +65,7 @@ var (
 	ErrNilBeforeSwapResult  = errors.New("before swap result is nil")
 	ErrNilDeltaSpecified    = errors.New("delta specified is nil")
 	ErrNilDeltaUnspecified  = errors.New("delta unspecified is nil")
+	ErrFewUnwrapExceeded    = errors.New("few unwrap exceeds underlying balance")
 
 	DefaultGas = uniswapv3.Gas{BaseGas: 129869, CrossInitTickGas: 15460, CrossEmptyWordGas: uniswapv3.CrossEmptyWordGas}
 )
