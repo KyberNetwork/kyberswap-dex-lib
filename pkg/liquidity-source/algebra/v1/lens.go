@@ -18,29 +18,6 @@ var lensJSON []byte
 // lens is AlgebraV1Lens, built from pkg/util/ephemeral/contracts/algebra/v1.
 var lens = ephemeral.MustLoad("AlgebraV1Lens", lensJSON)
 
-// snapshot is what getSnapshot returns, one field per output in the ABI's order.
-type snapshot struct {
-	TickSpacing  *big.Int
-	SqrtPriceX96 *big.Int
-	Tick         *big.Int
-	Liquidity    *big.Int
-	BlockNumber  *big.Int
-	NextWordPos  int16
-	Done         bool
-	Ticks        []struct {
-		Tick           *big.Int
-		LiquidityNet   *big.Int
-		LiquidityGross *big.Int
-	}
-}
-
-// The widest word range there is, that of a table indexed by tick. The lens narrows it to the
-// words the pool's spacing can populate when the table is indexed by tick over the spacing.
-const (
-	lensWordLower int16 = -3466
-	lensWordUpper int16 = 3465
-)
-
 // tickTable is how an exchange's pools index their tick table: by tick over the spacing, as
 // Uniswap V3 does, or by tick. Algebra V1 deployments do either, and no pool says which.
 type tickTable = int32
@@ -139,40 +116,15 @@ func (t *PoolTracker) readTable(ctx context.Context, address string, block *big.
 // readLensPages is readLens over the node: the pages of one read, at the block the first one read.
 func (t *PoolTracker) readLensPages(ctx context.Context, address string, block *big.Int, raw bool) (*lensSnapshot,
 	error) {
-	pool := common.HexToAddress(address)
-	var s lensSnapshot
-
-	pin, err := ephemeral.Pin(ctx, t.EthrpcClient.GetETHClient(), block)
+	p, err := ephemeral.ReadTicks(ctx, t.EthrpcClient.GetETHClient(), t.config.LensBatch, lens, t.config.LensGas,
+		ephemeral.WordLower, ephemeral.WordUpper, block, common.HexToAddress(address), raw)
 	if err != nil {
 		return nil, err
 	}
-	read, ticks, err := ephemeral.ScanWords(ctx, lensWordLower, lensWordUpper, pin, ephemeral.WordsParallel,
-		func(ctx context.Context, lower, upper int16, block *big.Int) (ephemeral.Page[int16], []tickspkg.Tick, error) {
-			var out snapshot
-			err := ephemeral.CallPage(ctx, t.config.LensBatch, t.EthrpcClient.GetETHClient(), lower, lensWordLower, lens, &out, t.config.LensGas, block,
-				pool, raw, lower, upper)
-			if err != nil {
-				return ephemeral.Page[int16]{}, nil, err
-			}
-			if s.liquidity == nil { // the first page
-				s.tickSpacing = int(out.TickSpacing.Int64())
-				s.tick = int(out.Tick.Int64())
-				s.liquidity = out.Liquidity
-			}
-			var got []tickspkg.Tick
-			for _, pt := range out.Ticks {
-				got = append(got, tickspkg.Tick{
-					TickIdx:        int(pt.Tick.Int64()),
-					LiquidityGross: pt.LiquidityGross,
-					LiquidityNet:   pt.LiquidityNet,
-				})
-			}
-			return ephemeral.Page[int16]{Block: out.BlockNumber.Uint64(), Next: out.NextWordPos, Done: out.Done}, got, nil
-		})
-	if err != nil {
-		return nil, err
+	s := lensSnapshot{block: p.Block, tickSpacing: int(p.TickSpacing.Int64()), tick: p.Tick, liquidity: p.Liquidity,
+		ticks: make([]tickspkg.Tick, len(p.Ticks))}
+	for i, tk := range p.Ticks {
+		s.ticks[i] = tickspkg.Tick{TickIdx: tk.Index, LiquidityGross: tk.LiquidityGross, LiquidityNet: tk.LiquidityNet}
 	}
-	s.block = read
-	s.ticks = ticks
 	return &s, nil
 }
