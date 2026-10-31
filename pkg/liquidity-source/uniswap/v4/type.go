@@ -51,12 +51,19 @@ type Extra struct {
 	// TrackedAt (lv) is the unix time the tracker last confirmed the pool's state, kept outside hX
 	// so hX stays pure chain state. Only HookWithLiveness hooks carry it.
 	TrackedAt int64 `json:"lv,omitempty"`
+	// ProtocolFee (pF) is slot0.protocolFee as packed on-chain: the zeroForOne fee in the low 12
+	// bits, the oneForZero fee in the next 12. LpFee (lpF) is slot0.lpFee. Both are only set
+	// while the protocol fee is on; otherwise the pool's SwapFee is the LP fee for both directions.
+	ProtocolFee uint32 `json:"pF,omitempty"`
+	LpFee       uint32 `json:"lpF,omitempty"`
 }
 
 type ExtraU256 struct {
 	*uniswapv3.ExtraTickU256
-	HookExtra json.RawMessage `json:"hX,omitempty"`
-	TrackedAt int64           `json:"lv,omitempty"`
+	HookExtra   json.RawMessage `json:"hX,omitempty"`
+	TrackedAt   int64           `json:"lv,omitempty"`
+	ProtocolFee uint32          `json:"pF,omitempty"`
+	LpFee       uint32          `json:"lpF,omitempty"`
 }
 
 type Slot0Data struct {
@@ -80,7 +87,7 @@ type FetchRPCResult struct {
 // writer of the tracked Extra goes through it, so a field added here reaches
 // all of them.
 func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
-	return Extra{
+	extra := Extra{
 		Extra: &uniswapv3.Extra{
 			Liquidity:    r.Liquidity,
 			TickSpacing:  uint64(r.TickSpacing),
@@ -91,6 +98,10 @@ func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
 		HookExtra: r.HookExtra,
 		TrackedAt: r.TrackedAt,
 	}
+	if r.Slot0.ProtocolFee != 0 {
+		extra.ProtocolFee, extra.LpFee = r.Slot0.ProtocolFee, r.Slot0.LpFee
+	}
+	return extra
 }
 
 type TicksResp struct {

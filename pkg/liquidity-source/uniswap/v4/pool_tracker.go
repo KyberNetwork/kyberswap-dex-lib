@@ -138,9 +138,11 @@ func (t *PoolTracker) fetchOnchainState(
 	}
 	hookParam.BlockNumber = res.BlockNumber
 
-	protocolFee, lpFee := uint64(result.Slot0.ProtocolFee&_MASK12), uint64(result.Slot0.LpFee)
-	// https://github.com/Uniswap/v4-core/blob/main/src/libraries/ProtocolFeeLibrary.sol#L38
-	result.SwapFee = uint32(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
+	// SwapFee is the zeroForOne fee (https://github.com/Uniswap/v4-core/blob/main/src/libraries/ProtocolFeeLibrary.sol#L38).
+	// The protocol fee differs per direction, so ToExtra also stores slot0's packed protocolFee and
+	// lpFee, and the simulator derives each direction's fee from them.
+	result.SwapFee = uint32(CalculateSwapFee(directionalProtocolFee(result.Slot0.ProtocolFee, true),
+		FeeAmount(result.Slot0.LpFee)))
 
 	return result, hook, hookParam, nil
 }
