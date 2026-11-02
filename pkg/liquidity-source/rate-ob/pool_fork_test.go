@@ -60,14 +60,24 @@ func (c forkChain) balance(token, account common.Address) *big.Int {
 	return new(big.Int).SetBytes(out)
 }
 
-// send runs a transaction from an impersonated account and returns its gas used and status.
-func (c forkChain) send(from, to common.Address, data []byte) (uint64, bool) {
+// nativeBalance is the account's balance of the chain's gas coin.
+func (c forkChain) nativeBalance(account common.Address) *big.Int {
+	var out hexutil.Big
+	c.call(&out, "eth_getBalance", account, "latest")
+	return out.ToInt()
+}
+
+// send runs a transaction from an impersonated account and returns its gas used, its fee in the
+// gas coin, and its status.
+func (c forkChain) send(from, to common.Address, data []byte) (uint64, *big.Int, bool) {
 	var hash common.Hash
 	c.call(&hash, "eth_sendTransaction", map[string]any{"from": from, "to": to, "data": hexutil.Bytes(data),
 		"gas": hexutil.Uint64(8_000_000)})
 	var receipt struct {
-		GasUsed hexutil.Uint64 `json:"gasUsed"`
-		Status  hexutil.Uint64 `json:"status"`
+		GasUsed           hexutil.Uint64 `json:"gasUsed"`
+		EffectiveGasPrice hexutil.Big    `json:"effectiveGasPrice"`
+		L1Fee             *hexutil.Big   `json:"l1Fee"`
+		Status            hexutil.Uint64 `json:"status"`
 	}
 	for range 50 {
 		if err := c.rpc.CallContext(context.Background(), &receipt, "eth_getTransactionReceipt", hash); err == nil &&
@@ -76,7 +86,11 @@ func (c forkChain) send(from, to common.Address, data []byte) (uint64, bool) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	return uint64(receipt.GasUsed), receipt.Status == 1
+	fee := new(big.Int).Mul(new(big.Int).SetUint64(uint64(receipt.GasUsed)), receipt.EffectiveGasPrice.ToInt())
+	if receipt.L1Fee != nil { // OP Stack (Base): the L1 data fee is charged on top
+		fee.Add(fee, receipt.L1Fee.ToInt())
+	}
+	return uint64(receipt.GasUsed), fee, receipt.Status == 1
 }
 
 // fund writes a balance into the token's balance mapping, probing the usual slots.
@@ -106,8 +120,8 @@ func TestForkExecution(t *testing.T) {
 	require.NoError(t, err)
 	chain := forkChain{t: t, rpc: client}
 	taker := common.HexToAddress("0x00000000000000000000000000000000000beef1")
-	engine := envOr("RATE_OB_ENGINE", "0x611eec25268ac33061a88fc38c11466ad881e575")
-	cfg := &Config{DexID: DexType, ChainID: 46630, Engine: engine, Executor: taker.Hex()}
+	engine := envOr("RATE_OB_ENGINE", "0xc0316fa6d3926d40c77e85d291e1e2456ba1df84") // Base mainnet
+	cfg := &Config{DexID: DexType, ChainID: 8453, Engine: engine, Executor: taker.Hex()}
 	eth := ethrpc.New(url).SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 	ctx := context.Background()
 
@@ -139,7 +153,7 @@ func TestForkExecution(t *testing.T) {
 			if !funded[tok] {
 				chain.fund(tok, taker, big1e30)
 				data, _ := forkABI.Pack("approve", common.HexToAddress(engine), new(big.Int).Lsh(big.NewInt(1), 255))
-				_, ok := chain.send(taker, tok, data)
+				_, _, ok := chain.send(taker, tok, data)
 				require.True(t, ok)
 				funded[tok] = true
 			}
@@ -196,12 +210,24 @@ func (c forkChain) swapAndCompare(t *testing.T, sim *PoolSimulator, p entity.Poo
 		Quote: common.HexToAddress(p.Tokens[1].Address), Price: price, Amount: used, N: si.N, Recipient: taker})
 	require.NoError(t, err)
 
-	inAddr, outAddr := common.HexToAddress(tokenIn), common.HexToAddress(tokenOut)
-	inBefore, outBefore := c.balance(inAddr, taker), c.balance(outAddr, taker)
-	gas, ok := c.send(taker, common.HexToAddress(engine), data)
+	// A WETH leg is paid out as the gas coin (SwapReturnNativeOut), so measure that balance
+	// instead, adding back what the transaction itself paid for gas.
+	native := sim.SwapReturnNativeOut(tokenIn, tokenOut, 0)
+	outBalance := func(a common.Address) *big.Int {
+		if native {
+			return c.nativeBalance(a)
+		}
+		return c.balance(common.HexToAddress(tokenOut), a)
+	}
+	inAddr := common.HexToAddress(tokenIn)
+	inBefore, outBefore := c.balance(inAddr, taker), outBalance(taker)
+	gas, fee, ok := c.send(taker, common.HexToAddress(engine), data)
 	require.True(t, ok, "%s reverted", method)
 	spent := new(big.Int).Sub(inBefore, c.balance(inAddr, taker))
-	got := new(big.Int).Sub(c.balance(outAddr, taker), outBefore)
+	got := new(big.Int).Sub(outBalance(taker), outBefore)
+	if native {
+		got.Add(got, fee)
+	}
 
 	fmt.Printf("RESULT pair=%s in=%d amount=%s used=%s limit=%s matches=%d quoted=%s actual=%s spent=%s gasQuoted=%d gasUsed=%d match=%v\n",
 		p.Address, idxIn, amount, used, si.LimitPrice, si.Matches, res.TokenAmountOut.Amount, got, spent, res.Gas,

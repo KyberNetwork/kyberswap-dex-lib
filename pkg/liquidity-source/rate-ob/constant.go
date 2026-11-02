@@ -20,11 +20,13 @@ const (
 	maxDustEvictions = 8
 	pairBatchSize    = 100
 
-	// Measured on an anvil fork of Robinhood Chain Testnet: limitSell/limitBuy transactions with
-	// 1, 2, 8 and 20 matches used ~336k, ~416k, ~887k and ~1,898k gas. Fitted as gasBase +
-	// gasMatch*matches with the 21k intrinsic cost removed.
-	gasBase  = 233000
-	gasMatch = 82000
+	// Measured on an anvil fork of Base mainnet (8453) against the deployed engine: limitSell /
+	// limitBuy transactions with 1, 3 and 10 matches used ~362-365k, ~546k and ~1,186-1,306k gas,
+	// the top of each range being a WETH leg paid out as native coin. Fitted as gasBase +
+	// gasMatch*matches with the 21k intrinsic cost removed, rounded up so every measured run is
+	// covered. (The earlier Robinhood Chain Testnet engine measured ~10% lower.)
+	gasBase  = 250000
+	gasMatch = 104000
 	// Evicting a dust or expired order is a delete, a refund transfer and an event. No eviction
 	// occurred in the measured runs, so this is an estimate.
 	gasEviction = 45000

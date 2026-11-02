@@ -14,16 +14,16 @@ import (
 )
 
 // TestLive lists every pair, tracks it and quotes both directions against a live chain. Set
-// RATE_OB_RPC (and optionally RATE_OB_ENGINE / RATE_OB_EXECUTOR); defaults are Robinhood Chain
-// Testnet (46630). Point it at an anvil fork: on the Arbitrum Orbit chain itself Multicall3 reports
-// the parent chain's block.number, so the tracker's pinned read needs ArbMulticall2 there.
+// RATE_OB_RPC (and optionally RATE_OB_ENGINE / RATE_OB_EXECUTOR); defaults are Base mainnet
+// (8453). On an Arbitrum Orbit chain (Robinhood) point it at an anvil fork instead: there Multicall3
+// reports the parent chain's block.number, so the tracker's pinned read needs ArbMulticall2.
 func TestLive(t *testing.T) {
 	rpc := os.Getenv("RATE_OB_RPC")
 	if rpc == "" || os.Getenv("CI") != "" {
 		t.Skip("set RATE_OB_RPC to run")
 	}
-	cfg := &Config{DexID: DexType, ChainID: 46630,
-		Engine:   envOr("RATE_OB_ENGINE", "0x611eec25268ac33061a88fc38c11466ad881e575"),
+	cfg := &Config{DexID: DexType, ChainID: 8453,
+		Engine:   envOr("RATE_OB_ENGINE", "0xc0316fa6d3926d40c77e85d291e1e2456ba1df84"),
 		Executor: envOr("RATE_OB_EXECUTOR", "0x000000000000000000000000000000000000dEaD")}
 	client := ethrpc.New(rpc).SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 	ctx := context.Background()
