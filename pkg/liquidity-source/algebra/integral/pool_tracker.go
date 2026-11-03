@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
+	"slices"
 	"sort"
 	"time"
 
@@ -715,27 +717,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 		return p, err
 	}
 
-	// convert back to algebra-integral ticks (v3Entities.Tick actually)
-	entityPoolTicks := make([]v3Entities.Tick, 0, len(refetchedTicks))
-	for _, tick := range refetchedTicks {
-		// skip uninitialized ticks
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-
-		entityPoolTicks = append(entityPoolTicks, v3Entities.Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: uint256.MustFromBig(tick.LiquidityGross),
-			LiquidityNet:   int256.MustFromBig(tick.LiquidityNet),
-		})
-	}
-
-	// Sort the ticks by tick index
-	if len(entityPoolTicks) > 1 {
-		sort.Slice(entityPoolTicks, func(i, j int) bool {
-			return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-		})
-	}
+	entityPoolTicks := toEntityTicks(refetchedTicks)
 
 	extra.Ticks = entityPoolTicks
 	extraBytes, err := json.Marshal(extra)
@@ -841,24 +823,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		return p, err
 	}
 
-	entityPoolTicks := make([]v3Entities.Tick, 0, len(ticksBasedPool.Ticks))
-	for _, tick := range ticksBasedPool.Ticks {
-		// skip uninitialized ticks
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-
-		entityPoolTicks = append(entityPoolTicks, v3Entities.Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: uint256.MustFromBig(tick.LiquidityGross),
-			LiquidityNet:   int256.MustFromBig(tick.LiquidityNet),
-		})
-	}
-
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
+	entityPoolTicks := toEntityTicks(slices.Collect(maps.Values(ticksBasedPool.Ticks)))
 
 	extraBytes, err := json.Marshal(Extra{
 		Liquidity:        uint256.MustFromBig(rpcState.Liquidity),

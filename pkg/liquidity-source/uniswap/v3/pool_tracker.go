@@ -274,20 +274,11 @@ func (t *Tracker) newTicksBasedPool(
 	// after a crash or by a backfill of a gap, or may never have been, a retry's or one a reorg
 	// brought in below a lens snapshot. Adding its delta could count it twice or never, so the
 	// ticks the batch touches are read whole instead, at that block, which holds the log either way.
-	if hasLateLog(logs, held) {
+	if tickspkg.HasLateLog(logs, held) {
 		return t.fetchTicksFromLogs(ctx, ticksBasedPool, logs, l)
 	}
 
 	return t.computeTicksFromLogs(ctx, ticksBasedPool, logs, l)
-}
-
-// hasLateLog reports whether a log, the empty one that triggers an update aside, is at or below
-// block, the newest block whose logs a pool's state holds. A live batch's logs are all above it,
-// as a batch carries whole blocks.
-func hasLateLog(logs []ethtypes.Log, block uint64) bool {
-	return block > 0 && lo.ContainsBy(logs, func(l ethtypes.Log) bool {
-		return !l.Removed && !valueobject.IsZeroAddress(l.Address) && l.BlockNumber != 0 && l.BlockNumber <= block
-	})
 }
 
 func (t *Tracker) fetchTicksFromLogs(
