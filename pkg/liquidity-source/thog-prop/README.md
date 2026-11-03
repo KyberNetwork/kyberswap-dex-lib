@@ -206,6 +206,14 @@ maximum-age/first-stale-block cases. Anvil overrides only the evaluation block
 number while keeping the captured state fixed. The router is compared directly
 with those EVM outputs and its spread increment is checked to equal 50.
 
+`TestVerification` (manual; needs `THOG_PROP_RPC_URL` and
+`THOG_PROP_TENDERLY_{ACCOUNT,PROJECT,ACCESS_KEY}`) checks the live pool end to end:
+the real tracker reads head N, the simulator quotes at N+1, and each of 40 cases
+(8 pairs × $1–$50M) settles as a Tenderly bundle on N's state with N+1's header
+(Tenderly's `block_number` alone runs on the state after that block). On November 3
+it passed in 13 s: 25 exact, 11 matching rejections, and 4 SPYx outputs 1 wei above
+the guarantee from share rounding.
+
 A live atomic-lens capture from October 29 is committed as `testdata/lens-monad.json.gz`.
 It verifies decoding the compiled lens result, nonzero base fee, all 13 listed
 tokens, and all five listed issuer states. A second 32-case corpus uses the same
