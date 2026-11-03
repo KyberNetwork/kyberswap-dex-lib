@@ -19,14 +19,16 @@ const (
 	wmon                         = "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"
 	// Integer averages of Tenderly swapWithExtraFees frame gas through the
 	// router on Monad (3 same-category, 14 cross-category swaps); see README.md.
-	sameCategoryGas                = 273846
-	crossCategoryGas               = 564978
-	defaultBlockTimeMs      int64  = 300
-	defaultMaxSnapshotAgeMs int64  = 15_000
-	clockSkewAllowanceMs    int64  = 1_000
-	defaultRequestTimeoutMs int64  = 2_000
-	refreshRetryDelay              = 300 * time.Millisecond
-	snapshotLensGas         uint64 = 3_000_000
+	sameCategoryGas               = 273846
+	crossCategoryGas              = 564978
+	defaultBlockTimeMs      int64 = 300
+	defaultMaxSnapshotAgeMs int64 = 15_000
+	clockSkewAllowanceMs    int64 = 1_000
+	defaultRequestTimeoutMs int64 = 2_000
+	refreshRetryDelay             = 300 * time.Millisecond
+	// lensRetryAfter is how long a provider's lens refusal is trusted before probing again.
+	lensRetryAfter         = 10 * time.Minute
+	snapshotLensGas uint64 = 3_000_000
 )
 
 var (

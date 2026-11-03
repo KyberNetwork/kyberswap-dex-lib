@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -26,6 +28,41 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
+	now          func() time.Time // nil: time.Now
+
+	// lensRefusedUntilMs skips the lens while a provider is known to refuse it,
+	// saving one failed round trip (and a warning) per refresh.
+	lensRefusedUntilMs atomic.Int64
+	built              sync.Map // common.Address → *snapshotRequests
+}
+
+// snapshotRequests holds the per-proxy request payloads; both are immutable.
+type snapshotRequests struct {
+	lensInit, multicall []byte
+}
+
+func (t *PoolTracker) clock() time.Time {
+	if t.now != nil {
+		return t.now()
+	}
+	return time.Now()
+}
+
+// requests encodes the lens init code and the Multicall3 batch once per proxy.
+func (t *PoolTracker) requests(proxy common.Address) (*snapshotRequests, error) {
+	if cached, ok := t.built.Load(proxy); ok {
+		return cached.(*snapshotRequests), nil
+	}
+	lensInit, err := lensInitCode(proxy)
+	if err != nil {
+		return nil, err
+	}
+	multicall, err := multicallRequest(proxy)
+	if err != nil {
+		return nil, err
+	}
+	cached, _ := t.built.LoadOrStore(proxy, &snapshotRequests{lensInit: lensInit, multicall: multicall})
+	return cached.(*snapshotRequests), nil
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
@@ -121,17 +158,25 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 func (t *PoolTracker) readSnapshot(ctx context.Context, proxy common.Address) (State, uint64, error) {
 	client := t.ethrpcClient.GetETHClient().Client()
-	if !t.config.DisableLens {
-		state, timestamp, err := readSnapshotLens(ctx, client, proxy)
+	requests, err := t.requests(proxy)
+	if err != nil {
+		return State{}, 0, err
+	}
+	if !t.config.DisableLens && t.clock().UnixMilli() >= t.lensRefusedUntilMs.Load() {
+		state, timestamp, err := readSnapshotLens(ctx, client, proxy, requests.lensInit)
 		if err == nil {
 			return state, timestamp, nil
 		}
 		if !lensUnsupported(err) {
 			return State{}, 0, err
 		}
-		logger.WithFields(logger.Fields{"dexType": DexType, "pool": hexutil.Encode(proxy[:]), "errorKind": "lens_unsupported"}).Warnf("using Multicall3 reader: %v", err)
+		// Capability refusals persist per provider: probe the lens again only after
+		// the cooldown, which also bounds the warning to one per cooldown.
+		t.lensRefusedUntilMs.Store(t.clock().Add(lensRetryAfter).UnixMilli())
+		logger.WithFields(logger.Fields{"dexType": DexType, "pool": hexutil.Encode(proxy[:]), "errorKind": "lens_unsupported"}).
+			Warnf("using Multicall3 reader for %s: %v", lensRetryAfter, err)
 	}
-	return readSnapshotMulticall(ctx, client, proxy)
+	return readSnapshotMulticall(ctx, client, requests.multicall)
 }
 
 func snapshotCall(to common.Address, data []byte) map[string]any {
@@ -154,33 +199,39 @@ type tryResult struct {
 // block timestamp and every catalog issuer's sharesOf/getCurrentMultiplier in one
 // EVM state, so nothing is pinned by hash or number. Unlisted catalog issuers may
 // revert; the page selects which issuer results are required.
-func readSnapshotMulticall(ctx context.Context, client *rpc.Client, proxy common.Address) (State, uint64, error) {
+var multicall3Address = common.HexToAddress(multicall3)
+
+// multicallCallCount is the batch size: page, timestamp, then two calls per issuer.
+const multicallCallCount = 2 + 2*len(xStocks)
+
+// multicallRequest encodes Multicall3.tryAggregate(false, [getPoolData(0, 28),
+// getCurrentBlockTimestamp, then sharesOf(proxy) and getCurrentMultiplier per issuer]).
+func multicallRequest(proxy common.Address) ([]byte, error) {
 	pageData, err := thogAMMABI.Pack(methodGetPoolData, uint8(0), uint8(maxTokens))
 	if err != nil {
-		return State{}, 0, err
+		return nil, err
 	}
 	sharesData, err := thogAMMABI.Pack("sharesOf", proxy)
 	if err != nil {
-		return State{}, 0, err
+		return nil, err
 	}
 	multiplierData, err := thogAMMABI.Pack("getCurrentMultiplier")
 	if err != nil {
-		return State{}, 0, err
+		return nil, err
 	}
-	aggregator := common.HexToAddress(multicall3)
-	calls := make([]tryCall, 0, 2+2*len(xStocks))
+	calls := make([]tryCall, 0, multicallCallCount)
 	calls = append(calls, tryCall{Target: proxy, CallData: pageData},
-		tryCall{Target: aggregator, CallData: common.FromHex(selectorGetCurrentBlockTimestamp)})
+		tryCall{Target: multicall3Address, CallData: common.FromHex(selectorGetCurrentBlockTimestamp)})
 	for _, token := range xStocks {
 		issuer := common.HexToAddress(token)
 		calls = append(calls, tryCall{Target: issuer, CallData: sharesData}, tryCall{Target: issuer, CallData: multiplierData})
 	}
-	data, err := abipkg.Multicall3ABI.Pack(abipkg.Multicall3TryAggregate, false, calls)
-	if err != nil {
-		return State{}, 0, err
-	}
+	return abipkg.Multicall3ABI.Pack(abipkg.Multicall3TryAggregate, false, calls)
+}
+
+func readSnapshotMulticall(ctx context.Context, client *rpc.Client, request []byte) (State, uint64, error) {
 	var raw hexutil.Bytes
-	if err = client.CallContext(ctx, &raw, "eth_call", snapshotCall(aggregator, data), "latest"); err != nil {
+	if err := client.CallContext(ctx, &raw, "eth_call", snapshotCall(multicall3Address, request), "latest"); err != nil {
 		return State{}, 0, err
 	}
 	out, err := abipkg.Multicall3ABI.Unpack(abipkg.Multicall3TryAggregate, raw)
@@ -188,7 +239,7 @@ func readSnapshotMulticall(ctx context.Context, client *rpc.Client, proxy common
 		return State{}, 0, refreshFailure("validation", "multicall reply", fmt.Errorf("%w: %v", ErrInvalidState, err))
 	}
 	results := *abi.ConvertType(out[0], new([]tryResult)).(*[]tryResult)
-	if len(results) != len(calls) {
+	if len(results) != multicallCallCount {
 		return State{}, 0, refreshFailure("validation", "multicall reply", ErrInvalidState)
 	}
 	if !results[0].Success {

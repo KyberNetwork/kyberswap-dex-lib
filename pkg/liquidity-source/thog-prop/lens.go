@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -42,12 +43,16 @@ func lensResultArguments() abi.Arguments {
 	return args
 }
 
-func readSnapshotLens(ctx context.Context, client *rpc.Client, proxy common.Address) (State, uint64, error) {
+// lensInitCode is the lens creation code with its constructor argument (the proxy).
+func lensInitCode(proxy common.Address) ([]byte, error) {
 	args, err := snapshotLensABI.Pack("", proxy)
 	if err != nil {
-		return State{}, 0, err
+		return nil, err
 	}
-	initCode := append(append([]byte{}, snapshotLensCode...), args...)
+	return slices.Concat(snapshotLensCode, args), nil
+}
+
+func readSnapshotLens(ctx context.Context, client *rpc.Client, proxy common.Address, initCode []byte) (State, uint64, error) {
 	gasPrice := (*hexutil.Big)(big.NewInt(1))
 	data, err := eth.DeploylessCallWithGasPrice(ctx, client, initCode, snapshotLensGas, gasPrice, nil, nil)
 	if err != nil {
