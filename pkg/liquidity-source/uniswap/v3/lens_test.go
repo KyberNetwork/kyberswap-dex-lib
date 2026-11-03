@@ -4,33 +4,22 @@ package uniswapv3
 // (0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640) at block 26224192, captured with eth_call and
 // decoded independently with `cast abi-decode` for the expected values below:
 //
-//	full.hex     words 70..72, no gas limit
-//	partial.hex  words 70..85 under a 600k gas limit: stopped at word 73
+//	full.hex  words 70..72, no gas limit
+//
+// The same read of words 70..85 under a 600k gas limit stopped at word 73 with the same ticks: its
+// reply is full.hex with nextWordPos (word 5) 73 and done (word 6) false.
 
 import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/ethereum/go-ethereum/common"
 )
-
-func lensFixture(t *testing.T, name string) []byte {
-	t.Helper()
-	raw, err := os.ReadFile("testdata/lens/" + name)
-	if err != nil {
-		t.Fatal(err)
-	}
-	b, err := hex.DecodeString(strings.TrimSpace(string(raw)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return b
-}
 
 func checkLensState(t *testing.T, r ephemeral.TickSnapshot) {
 	t.Helper()
@@ -66,7 +55,7 @@ func checkLensState(t *testing.T, r ephemeral.TickSnapshot) {
 
 func TestLensDecodesFullSnapshot(t *testing.T) {
 	var r ephemeral.TickSnapshot
-	if err := lens.UnpackCall(lensFixture(t, "full.hex"), &r); err != nil {
+	if err := lens.UnpackCall(testutil.HexFixture(t, "testdata/lens/full.hex"), &r); err != nil {
 		t.Fatal(err)
 	}
 	checkLensState(t, r)
@@ -77,8 +66,10 @@ func TestLensDecodesFullSnapshot(t *testing.T) {
 
 // TestLensDecodesPartialSnapshot: a scan that stopped short reports it and where to resume.
 func TestLensDecodesPartialSnapshot(t *testing.T) {
+	payload := testutil.HexFixture(t, "testdata/lens/full.hex")
+	payload[5*32+31], payload[6*32+31] = 73, 0 // nextWordPos and done, the low byte of each word
 	var r ephemeral.TickSnapshot
-	if err := lens.UnpackCall(lensFixture(t, "partial.hex"), &r); err != nil {
+	if err := lens.UnpackCall(payload, &r); err != nil {
 		t.Fatal(err)
 	}
 	checkLensState(t, r)
@@ -90,7 +81,7 @@ func TestLensDecodesPartialSnapshot(t *testing.T) {
 // TestLensRejectsWhatIsNotAResult: each payload here is the real one with one thing wrong, or a
 // different kind of revert; reading any of them as a result would hand the tracker made-up state.
 func TestLensRejectsWhatIsNotAResult(t *testing.T) {
-	good := lensFixture(t, "full.hex")
+	good := testutil.HexFixture(t, "testdata/lens/full.hex")
 	with := func(word int, value []byte) []byte {
 		b := bytes.Clone(good)
 		copy(b[word*32:(word+1)*32], value)
