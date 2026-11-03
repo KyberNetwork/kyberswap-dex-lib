@@ -153,7 +153,15 @@ func (d *PoolTracker) BootstrapPoolState(
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+	if rpcData.NamiFee != nil {
+		block, err := namiSnapshotBlock(rpcData.BlockNumber, p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+		if err != nil {
+			return entity.Pool{}, err
+		}
+		p.BlockNumber = block
+	} else {
+		p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+	}
 
 	l.WithFields(logger.Fields{
 		"lastFee": rpcData.State.LastFee,
@@ -713,7 +721,15 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		rpcState.Reserve0.String(),
 		rpcState.Reserve1.String(),
 	}
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+	if rpcState.NamiFee != nil {
+		block, err := namiSnapshotBlock(rpcState.BlockNumber, p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+		if err != nil {
+			return p, err
+		}
+		p.BlockNumber = block
+	} else {
+		p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+	}
 
 	return p, nil
 }
@@ -936,4 +952,12 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 	}
 
 	return result, nil
+}
+
+// namiSnapshotBlock rejects stale RPC snapshots rather than assigning them a newer log block.
+func namiSnapshotBlock(snapshot *big.Int, previous, lastLog uint64) (uint64, error) {
+	if snapshot == nil || !snapshot.IsUint64() || snapshot.Sign() <= 0 || snapshot.Uint64() < max(previous, lastLog) {
+		return 0, errors.New("invalid or stale Nami snapshot block")
+	}
+	return snapshot.Uint64(), nil
 }

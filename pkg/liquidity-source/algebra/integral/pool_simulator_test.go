@@ -6,11 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/KyberNetwork/msgpack/v5"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
-
 	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/msgpack/v5"
 	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -19,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -625,4 +623,28 @@ func TestNamiUnsupportedStateCannotQuote(t *testing.T) {
 	tokens := sim.GetTokens()
 	_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: tokens[0], Amount: big.NewInt(1000000)}, TokenOut: tokens[1]})
 	require.ErrorContains(t, err, "Nami external fee source")
+}
+
+func TestNamiSwapInfoDoesNotAliasUpdatedState(t *testing.T) {
+	oldTime := blockTimestamp
+	blockTimestamp = func() uint32 { return 101 }
+	t.Cleanup(func() { blockTimestamp = oldTime })
+	sim := ps.CloneState().(*PoolSimulator)
+	sim.globalState.PluginConfig |= BEFORE_SWAP_FLAG
+	sim.volatilityOracle = &VolatilityOraclePlugin{IsInitialized: true, LastTimepointTimestamp: 100}
+	sim.timepoints = NewTimepointStorage(map[uint16]Timepoint{0: {Initialized: true, BlockTimestamp: 100, Tick: sim.globalState.Tick, AverageTick: sim.globalState.Tick, VolatilityCumulative: uint256.NewInt(5)}})
+	sim.dynamicFee = &DynamicFeeConfig{BaseFee: 300}
+	sim.namiFee = &nami.Config{}
+	tokens := sim.GetTokens()
+	result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: tokens[0], Amount: big.NewInt(100000000000000)}, TokenOut: tokens[1]})
+	require.NoError(t, err)
+	update := result.SwapInfo.(StateUpdate)
+	sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: update})
+	price, liquidity, volatility := sim.globalState.Price.Clone(), sim.liquidity.Clone(), sim.timepoints.Get(update.NamiTimepoint.Index).VolatilityCumulative.Clone()
+	update.Price.Clear()
+	update.Liquidity.Clear()
+	update.NamiTimepoint.Timepoint.VolatilityCumulative.Clear()
+	require.Equal(t, price, sim.globalState.Price)
+	require.Equal(t, liquidity, sim.liquidity)
+	require.Equal(t, volatility, sim.timepoints.Get(update.NamiTimepoint.Index).VolatilityCumulative)
 }

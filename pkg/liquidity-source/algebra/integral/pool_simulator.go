@@ -247,8 +247,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			p.Info.Address, p.Info.Exchange)
 		return
 	}
-	p.liquidity = si.Liquidity
-	p.globalState.Price = si.Price
+	p.liquidity = si.Liquidity.Clone()
+	p.globalState.Price = si.Price.Clone()
 	p.globalState.Tick = si.Tick
 	if si.NamiTimepoint != nil {
 		oracle := *p.volatilityOracle
@@ -256,7 +256,11 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		oracle.LastTimepointTimestamp = si.NamiTimepoint.Timestamp
 		p.volatilityOracle = &oracle
 		p.timepoints = p.timepoints.clone()
-		p.timepoints.set(si.NamiTimepoint.Index, si.NamiTimepoint.Timepoint)
+		point := si.NamiTimepoint.Timepoint
+		if point.VolatilityCumulative != nil {
+			point.VolatilityCumulative = point.VolatilityCumulative.Clone()
+		}
+		p.timepoints.set(si.NamiTimepoint.Index, point)
 	}
 }
 
