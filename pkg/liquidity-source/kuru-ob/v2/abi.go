@@ -10,7 +10,8 @@ import (
 //go:embed abis/KuruV2.json
 var kuruV2ABIJson []byte
 
-// kuruV2ABI holds the OrderBook views plus AccountCore.protocolPaused.
+// kuruV2ABI holds the OrderBook views, AccountCore.protocolPaused/withdrawalLimiter and
+// WithdrawalLimiter.requireFreshPrice.
 var kuruV2ABI = func() abi.ABI {
 	a, err := abi.JSON(bytes.NewReader(kuruV2ABIJson))
 	if err != nil {

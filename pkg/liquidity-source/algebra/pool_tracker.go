@@ -131,17 +131,23 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 		timepointPageSize = min(maxTimepointPageSize, timepointPageSize*2)
 	}
 
-	// remove old timepoints before enoughAtIdx
-	for idx := range timepoints {
-		if idx > 0 && LteConsideringOverflow(idx, enoughAtIdx-1, currentIndex+2) {
-			delete(timepoints, idx)
-		}
-	}
+	PruneTimepoints(timepoints, enoughAtIdx, currentIndex)
 
 	if !timepoints[currentIndex].GetInitialized() {
 		return nil, nil // some new pools don't have timepoints initialized yet, ignore them
 	}
 	return timepoints, nil
+}
+
+// PruneTimepoints removes the timepoints older than enoughAtIdx, the first timepoint after a day back, except the
+// first one and the one before currentIndex. A new timepoint takes its tick trend from the one before the current, so
+// the volatility and the average tick of a pool whose last timepoint is over a day old need it.
+func PruneTimepoints[T Timepoint](timepoints map[uint16]T, enoughAtIdx, currentIndex uint16) {
+	for idx := range timepoints {
+		if idx > 0 && idx != currentIndex-1 && LteConsideringOverflow(idx, enoughAtIdx-1, currentIndex+2) {
+			delete(timepoints, idx)
+		}
+	}
 }
 
 // dropOverwrittenTimepoints removes cached timepoints that the plugin has overwritten since they were cached.

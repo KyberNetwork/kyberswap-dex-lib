@@ -46,4 +46,5 @@ var (
 	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
 	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
 	ErrInvalidK                 = errors.New("K")
+	ErrUint112Overflow          = errors.New("OVERFLOW")
 )

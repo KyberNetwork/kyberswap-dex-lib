@@ -18,6 +18,8 @@ const (
 	marketStateLive = 0
 	marketBatchSize = 100
 
+	numStateCalls = 5 // tracker calls before the per-token price-feed checks
+
 	// Keeps quote*10^decimals far from 2^256 in the walk.
 	maxQuoteDecimals = 30
 
@@ -36,4 +38,5 @@ var (
 	ErrZeroAmountOut         = errors.Join(pool.ErrSwapAmountBelowMin, errors.New("zero amount out"))
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
 	ErrOverflow              = errors.New("overflow")
+	ErrCallFailed            = errors.New("state call failed")
 )

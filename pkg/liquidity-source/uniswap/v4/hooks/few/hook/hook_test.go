@@ -56,3 +56,41 @@ func TestFewHook_RegisteredAndPassthrough(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, amountIn, resultRev.TokenAmountOut.Amount, "fwDAI->DAI must be exact 1:1")
 }
+
+// TestFewHook_UnwrapCappedByUnderlyingBalance routes through the DAI/fwDAI wrapper pool itself:
+// fwDAI->DAI makes the hook call fwDAI.unwrap, which pays DAI out of the fwDAI contract's own
+// balance (fwR) and reverts past it, while DAI->fwDAI wraps and has no cap.
+func TestFewHook_UnwrapCappedByUnderlyingBalance(t *testing.T) {
+	hookAddr := "0x85b648a64aed6307d5d5ce26e6ae086c17bde888" // DAI/fwDAI FewTokenHook
+	dai, fwDAI := "0x6b175474e89094c44da98b954eedeac495271d0f", "0x8a6fe57c08c84e0f4ee97aae68a62e820a37d259"
+
+	simulator, err := uniswapv4.NewPoolSimulator(entity.Pool{
+		Address:  "0xf906beb74154ca4d057b7079c90eb1044efaf40ef468e62ec983930cf80a1e2b",
+		Exchange: "uniswap-v4",
+		Type:     "uniswap-v4",
+		Reserves: []string{"100000000000000000000000", "100000000000000000000000"},
+		Tokens: []*entity.PoolToken{
+			{Address: dai, Symbol: "DAI", Decimals: 18, Swappable: true},
+			{Address: fwDAI, Symbol: "fwDAI", Decimals: 18, Swappable: true},
+		},
+		StaticExtra: `{"0x0":[false,false],"fee":0,"tS":1,"hooks":"` + hookAddr + `"}`,
+		Extra: `{"liquidity":55712545988302929134508,"sqrtPriceX96":79228162514264337593543950336,"tickSpacing":1,"tick":0,` +
+			`"ticks":[{"index":-887272,"liquidityGross":55712545988302929134508,"liquidityNet":55712545988302929134508},` +
+			`{"index":887272,"liquidityGross":55712545988302929134508,"liquidityNet":-55712545988302929134508}],` +
+			`"fwR":[null,1000000000000000000000]}`, // the fwDAI contract holds 1000 DAI
+	}, valueobject.ChainIDEthereum)
+	require.NoError(t, err)
+
+	overBalance, _ := new(big.Int).SetString("1000000000000000000001", 10)
+	_, err = simulator.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: fwDAI, Amount: overBalance},
+		TokenOut:      dai,
+	})
+	assert.ErrorIs(t, err, uniswapv4.ErrFewUnwrapExceeded)
+
+	_, err = simulator.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: dai, Amount: overBalance},
+		TokenOut:      fwDAI,
+	})
+	assert.NoError(t, err, "wrapping is not capped")
+}

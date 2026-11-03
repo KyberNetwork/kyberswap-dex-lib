@@ -25,6 +25,7 @@ import (
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
@@ -110,21 +111,47 @@ func (t *PoolTracker) fetchOnchainState(
 		rpcRequests.SetBlockNumber(big.NewInt(int64(blockNumber)))
 	}
 
-	rpcRequests.AddCall(&ethrpc.Call{
-		ABI:    stateViewABI,
-		Target: t.config.StateViewAddress,
-		Method: "getLiquidity",
-		Params: []any{common.HexToHash(p.Address)},
-	}, []any{&result.Liquidity}).AddCall(&ethrpc.Call{
-		ABI:    stateViewABI,
-		Target: t.config.StateViewAddress,
-		Method: "getSlot0",
-		Params: []any{common.HexToHash(p.Address)},
-	}, []any{&result.Slot0})
+	var slot0Word, liquidityWord [32]byte
+	if t.useExtsload() {
+		base := stateSlot(common.HexToHash(p.Address))
+		rpcRequests.AddCall(t.extsloadCall(base), []any{&slot0Word}).
+			AddCall(t.extsloadCall(addOffset(base, liquidityOffset)), []any{&liquidityWord})
+	} else {
+		rpcRequests.AddCall(&ethrpc.Call{
+			ABI:    stateViewABI,
+			Target: t.config.StateViewAddress,
+			Method: "getLiquidity",
+			Params: []any{common.HexToHash(p.Address)},
+		}, []any{&result.Liquidity}).AddCall(&ethrpc.Call{
+			ABI:    stateViewABI,
+			Target: t.config.StateViewAddress,
+			Method: "getSlot0",
+			Params: []any{common.HexToHash(p.Address)},
+		}, []any{&result.Slot0})
+	}
+
+	for i, token := range p.Tokens {
+		metadata, ok := fewWrapped(t.config.ChainID, token.Address)
+		if !ok {
+			continue
+		}
+		if result.FewReserves == nil {
+			result.FewReserves = make([]*big.Int, len(p.Tokens))
+		}
+		rpcRequests.AddCall(&ethrpc.Call{
+			ABI:    abi.Erc20ABI,
+			Target: metadata.GetUnwrapToken(),
+			Method: abi.Erc20BalanceOfMethod,
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&result.FewReserves[i]})
+	}
 
 	res, err := rpcRequests.Aggregate()
 	if err != nil {
 		return result, hook, hookParam, err
+	}
+	if t.useExtsload() {
+		result.Slot0, result.Liquidity = decodeSlot0(slot0Word), decodeLiquidity(liquidityWord)
 	}
 	hookParam.BlockNumber = res.BlockNumber
 
@@ -471,7 +498,12 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 	rpcRequest.SetContext(ctx)
 
 	stateViewTicks := make([]stateViewTick, changedTicksCount)
+	tickWords := make([][32]byte, changedTicksCount)
 	for i, tickIdx := range changedTicks {
+		if t.useExtsload() {
+			rpcRequest.AddCall(t.extsloadCall(tickSlot(stateSlot(common.HexToHash(p.Address)), tickIdx)), []any{&tickWords[i]})
+			continue
+		}
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    stateViewABI,
 			Target: t.config.StateViewAddress,
@@ -483,6 +515,11 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 	resp, err := rpcRequest.Aggregate()
 	if err != nil {
 		return nil, err
+	}
+	if t.useExtsload() {
+		for i := range stateViewTicks {
+			stateViewTicks[i].LiquidityGross, stateViewTicks[i].LiquidityNet = decodeTickInfo(tickWords[i])
+		}
 	}
 
 	resTicks := make(map[int64]stateViewTick, len(resp.Request.Calls))
@@ -791,7 +828,12 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 		ticksRequest.SetBlockNumber(&blockNumberBI)
 	}
 
+	tickWords := make([][32]byte, len(ticks))
 	for id, tick := range ticks {
+		if t.useExtsload() {
+			ticksRequest.AddCall(t.extsloadCall(tickSlot(stateSlot(common.HexToHash(addr)), int64(tick))), []any{&tickWords[id]})
+			continue
+		}
 		ticksRequest.AddCall(&ethrpc.Call{
 			ABI:    stateViewABI,
 			Target: t.config.StateViewAddress,
@@ -819,6 +861,12 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 			"error": err,
 		}).Error("failed to process aggregate to get ticks")
 		return nil, err
+	}
+
+	if t.useExtsload() {
+		for id := range tickResponses {
+			tickResponses[id].LiquidityGross, tickResponses[id].LiquidityNet = decodeTickInfo(tickWords[id])
+		}
 	}
 
 	result := make([]tickspkg.Tick, len(ticks))

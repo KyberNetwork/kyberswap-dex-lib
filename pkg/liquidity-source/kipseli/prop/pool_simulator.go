@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/titan"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -16,7 +15,6 @@ type PoolSimulator struct {
 	*ladder.PoolSimulator
 
 	staticExtra StaticExtra
-	so          titan.StateOverrides
 }
 
 var (
@@ -38,15 +36,9 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	// ladder.NewPoolSimulatorWith only reads Extra.Ladders, so our extra SO
-	// field parses along for free without any stripping.
-	var extra Extra
-	_ = json.Unmarshal([]byte(ep.Extra), &extra)
-
 	return &PoolSimulator{
 		PoolSimulator: base,
 		staticExtra:   staticExtra,
-		so:            extra.SO,
 	}, nil
 }
 
@@ -61,6 +53,5 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 		BlockNumber:     s.Info.BlockNumber,
 		RouterAddress:   s.staticExtra.RouterAddress,
 		ApprovalAddress: s.staticExtra.RouterAddress,
-		SO:              s.so,
 	}
 }

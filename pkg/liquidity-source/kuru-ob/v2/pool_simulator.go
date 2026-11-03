@@ -4,12 +4,14 @@ import (
 	"math"
 	"math/big"
 	"slices"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -22,9 +24,15 @@ type PoolSimulator struct {
 	StaticExtra
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+// NewPoolSimulator rejects a stale snapshot only when params.Opts.StaleCheck is set (route finding);
+// the liquidity indexer passes false.
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	entityPool := params.EntityPool
+	if params.Opts.StaleCheck && time.Since(time.Unix(entityPool.Timestamp, 0)) > orderbook.MaxAge {
+		return nil, orderbook.ErrLevelsTooOld
+	}
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
