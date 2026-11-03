@@ -723,8 +723,8 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		Timepoints:       rpcState.Timepoints,
 		VolatilityOracle: rpcState.VolatilityOracle,
 		DynamicFee:       rpcState.DynamicFee,
-		NamiFee:          rpcState.NamiFee,
 		SlidingFee:       rpcState.SlidingFee,
+		NamiFee:          rpcState.NamiFee,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{

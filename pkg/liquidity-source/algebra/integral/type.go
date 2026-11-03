@@ -115,8 +115,8 @@ type FetchRPCResult struct {
 	VolatilityOracle *VolatilityOraclePlugin
 	DynamicFee       *DynamicFeeConfig
 	SlidingFee       *SlidingFeeConfig
-	NamiFee          *nami.Config
 	BlockNumber      *big.Int
+	NamiFee          *nami.Config
 }
 
 type Timepoint struct {

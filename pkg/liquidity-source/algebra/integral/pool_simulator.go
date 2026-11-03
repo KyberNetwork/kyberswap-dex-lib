@@ -37,7 +37,6 @@ type PoolSimulator struct {
 	timepoints         *TimepointStorage
 	volatilityOracle   *VolatilityOraclePlugin
 	dynamicFee         *DynamicFeeConfig
-	namiFee            *nami.Config
 	slidingFee         *SlidingFeeConfig
 	writeTimePointOnce *sync.Once
 
@@ -50,6 +49,7 @@ type PoolSimulator struct {
 	lastTimepointTs uint32
 
 	useBasePluginV2 bool
+	namiFee         *nami.Config
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -106,10 +106,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		timepoints:         NewTimepointStorage(extra.Timepoints),
 		volatilityOracle:   extra.VolatilityOracle,
 		dynamicFee:         extra.DynamicFee,
-		namiFee:            extra.NamiFee,
 		slidingFee:         extra.SlidingFee,
 		writeTimePointOnce: new(sync.Once),
 		useBasePluginV2:    staticExtra.UseBasePluginV2,
+		namiFee:            extra.NamiFee,
 	}
 	if p.usesFeeFactors() && p.volatilityOracle != nil {
 		p.lastTick = p.getLastTick()
