@@ -26,20 +26,36 @@ type lensSnapshot struct {
 	ticks     []Tick
 }
 
-// snapshot reads the pool at block (nil for the latest) through the lens, paging when
-// the ticks do not fit one call, and checks the ticks against the pool's liquidity.
-func (t *Tracker) snapshot(ctx context.Context, address string, block *big.Int) (*lensSnapshot, error) {
-	p, err := ephemeral.ReadTicks(ctx, t.ethrpcClient.GetETHClient(), t.config.LensBatch, lens, t.config.LensGas,
-		ephemeral.WordLower, ephemeral.WordUpper, block, common.HexToAddress(address))
+// ReadLens reads a pool at block (nil for the latest) through V3Lens, paging when the ticks do not
+// fit one call, and checks the ticks against the pool's liquidity. A pool that keeps a Uniswap V3
+// pool's slot0, tickBitmap and ticks, all the lens reads, can be read with it.
+func ReadLens(ctx context.Context, node ephemeral.Node, cfg ephemeral.LensConfig, address string,
+	block *big.Int) (*ephemeral.TickPool, error) {
+	p, err := ephemeral.ReadTicks(ctx, node, cfg.LensBatch, lens, cfg.LensGas, ephemeral.WordLower,
+		ephemeral.WordUpper, block, common.HexToAddress(address))
 	if err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: %w", address, err)
 	}
 	if err := p.Check(); err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s at block %d: %w", address, p.Block, err)
 	}
+	return p, nil
+}
+
+// snapshot is ReadLens of the pool with the tracker's node and config.
+func (t *Tracker) snapshot(ctx context.Context, address string, block *big.Int) (*lensSnapshot, error) {
+	p, err := ReadLens(ctx, t.ethrpcClient.GetETHClient(), t.config.LensConfig, address, block)
+	if err != nil {
+		return nil, err
+	}
+	return newLensSnapshot(p), nil
+}
+
+// newLensSnapshot is p with its ticks in this package's Tick.
+func newLensSnapshot(p *ephemeral.TickPool) *lensSnapshot {
 	s := lensSnapshot{block: p.Block, tick: p.Tick, liquidity: p.Liquidity, ticks: make([]Tick, len(p.Ticks))}
 	for i, tk := range p.Ticks {
 		s.ticks[i] = Tick{Index: tk.Index, LiquidityNet: tk.LiquidityNet, LiquidityGross: tk.LiquidityGross}
 	}
-	return &s, nil
+	return &s
 }
