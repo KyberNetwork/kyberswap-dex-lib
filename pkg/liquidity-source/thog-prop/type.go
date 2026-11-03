@@ -24,11 +24,22 @@ type State struct {
 	Shares        [maxTokens]ShareBalance `json:"shares"`
 }
 type Extra struct {
-	State State `json:"state"`
+	State            State  `json:"state"`
+	CapturedAtMs     int64  `json:"capturedAtMs,omitempty"`
+	BlockTimestamp   uint64 `json:"blockTimestamp,omitempty"`
+	BlockTimeMs      int64  `json:"blockTimeMs,omitempty"`
+	MaxSnapshotAgeMs int64  `json:"maxSnapshotAgeMs,omitempty"`
+}
+
+type MetaInfo struct {
+	ApprovalAddress string `json:"approvalAddress"`
+	BlockNumber     uint64 `json:"blockNumber"`
+	QuoteBlock      uint64 `json:"quoteBlock"`
+	SnapshotAgeMs   int64  `json:"snapshotAgeMs"`
 }
 
 // ExecutionContext supplies actual fee and warmth conditions for settlement.
-// The router uses a separate, explicit one-block read-only quote policy.
+// The router advances its read-only quote block with elapsed snapshot time.
 type ExecutionContext struct {
 	BlockNumber        uint64
 	BaseFee, GasPrice  uint256.Int
@@ -42,5 +53,7 @@ type SwapInfo struct {
 	InputIndex, OutputIndex     int
 	InputBalance, OutputBalance uint256.Int
 	InputUnits, OutputUnits     uint256.Int
+	QuoteBlock                  uint64 `json:"quoteBlock"`
+	SnapshotAgeMs               int64  `json:"snapshotAgeMs"`
 }
 type Fraction struct{ Numerator, Denominator uint256.Int }

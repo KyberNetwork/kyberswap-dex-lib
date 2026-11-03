@@ -191,7 +191,7 @@ func TestModel3ExecutionParity(t *testing.T) {
 }
 func entityFrom(t testing.TB, s State) entity.Pool {
 	t.Helper()
-	extra, err := json.Marshal(&Extra{State: s})
+	extra, err := json.Marshal(&Extra{State: s, CapturedAtMs: 1})
 	require.NoError(t, err)
 	p := entity.Pool{Address: "0x80c74517bcc2d67ffe02d3ed886796272f647210", Type: DexType, Extra: string(extra), StaticExtra: `{"poolId":"0xce389e78282dedac7b18ba7f775b7602d2ab3ab171bbd6711eb0239be6ef4dcc"}`, BlockNumber: s.BlockNumber}
 	for i, token := range s.Tokens {
@@ -215,7 +215,10 @@ func TestSimulatorOneBlockQuotesPurityAndUpdates(t *testing.T) {
 			before := sim.state
 			expected, expectedErr := s.QuoteExactInputAt(c.InputIndex, c.OutputIndex, amount, s.BlockNumber+1)
 			params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: s.Tokens[c.InputIndex].Address, Amount: amount.ToBig()}, TokenOut: s.Tokens[c.OutputIndex].Address}
-			result, err := sim.CalcAmountOut(params)
+			result, err := sim.quoteAtCapture(params)
+			if sim.state.BlockNumber+1-sim.state.small(2, 36, 32) > sim.state.small(2, 138, 8) {
+				expectedErr = ErrStaleSnapshot
+			}
 			require.Equal(t, expectedErr, err)
 			require.Equal(t, before, sim.state)
 			if err != nil {
@@ -232,8 +235,8 @@ func TestSimulatorOneBlockQuotesPurityAndUpdates(t *testing.T) {
 			require.Equal(t, swap.OutputUnits, clone.state.packed(107, c.OutputIndex, 128, 2))
 			rebuilt, err := NewPoolSimulator(entityFrom(t, clone.state))
 			require.NoError(t, err)
-			q1, e1 := clone.CalcAmountOut(params)
-			q2, e2 := rebuilt.CalcAmountOut(params)
+			q1, e1 := clone.quoteAtCapture(params)
+			q2, e2 := rebuilt.quoteAtCapture(params)
 			require.Equal(t, e1, e2)
 			require.Equal(t, q1, q2)
 			checked++
@@ -274,7 +277,7 @@ func TestRouterQuotesMatchOneBlockEVM(t *testing.T) {
 			}
 			amount := number(t, c.Amount)
 			before := sim.state
-			result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			result, err := sim.quoteAtCapture(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: s.Tokens[c.InputIndex].Address, Amount: amount.ToBig()},
 				TokenOut:      s.Tokens[c.OutputIndex].Address,
 			})
@@ -294,4 +297,9 @@ func TestRouterQuotesMatchOneBlockEVM(t *testing.T) {
 		}
 		require.Positive(t, count)
 	}
+}
+
+// Contract corpora quote at the exact capture instant; live clock advancement is tested separately.
+func (s *PoolSimulator) quoteAtCapture(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	return s.calcAmountOut(params, s.capturedAtMs)
 }
