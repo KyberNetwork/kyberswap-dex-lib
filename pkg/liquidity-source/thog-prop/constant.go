@@ -11,6 +11,9 @@ const (
 	DexType           = valueobject.ExchangeThogProp
 	methodGetPoolData = "getPoolData"
 	maxTokens         = 28
+	// Multicall3 at its canonical address (deployed on Monad); the lens fallback reads through it.
+	multicall3                       = "0xcA11bde05977b3631167028862bE2a173976CA11"
+	selectorGetCurrentBlockTimestamp = "0x0f28c97d"
 	// Quote one block after the snapshot: 0.50 bp extra spread at the live policy.
 	executionAgeLookahead uint64 = 1
 	wmon                         = "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"

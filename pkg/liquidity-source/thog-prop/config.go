@@ -18,6 +18,6 @@ type Config struct {
 	BlockTimeMs      int64 `json:"blockTimeMs"`
 	MaxSnapshotAgeMs int64 `json:"maxSnapshotAgeMs"`
 	RequestTimeoutMs int64 `json:"requestTimeoutMs"`
-	// Use the page-first number-pinned reader for providers without creation eth_call.
+	// Use the Multicall3 reader for providers without creation eth_call.
 	DisableLens bool `json:"disableLens"`
 }

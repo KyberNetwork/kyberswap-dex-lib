@@ -1,15 +1,17 @@
 package thogprop
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -18,6 +20,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	abipkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 type PoolTracker struct {
@@ -126,10 +129,9 @@ func (t *PoolTracker) readSnapshot(ctx context.Context, proxy common.Address) (S
 		if !lensUnsupported(err) {
 			return State{}, 0, err
 		}
-		logger.WithFields(logger.Fields{"dexType": DexType, "pool": hexutil.Encode(proxy[:]), "errorKind": "lens_unsupported"}).Warnf("using number-pinned page reader: %v", err)
+		logger.WithFields(logger.Fields{"dexType": DexType, "pool": hexutil.Encode(proxy[:]), "errorKind": "lens_unsupported"}).Warnf("using Multicall3 reader: %v", err)
 	}
-	state, err := readSnapshotPage(ctx, client, proxy)
-	return state, 0, err
+	return readSnapshotMulticall(ctx, client, proxy)
 }
 
 func snapshotCall(to common.Address, data []byte) map[string]any {
@@ -137,82 +139,102 @@ func snapshotCall(to common.Address, data []byte) map[string]any {
 	return map[string]any{"to": to, "data": hexutil.Bytes(data), "gasPrice": "0x1"}
 }
 
-// The page selects its own block. Issuers and a confirming page are number-pinned
-// to it: no EIP-1898 hash parameter or independent head/header request is needed.
-func readSnapshotPage(ctx context.Context, client *rpc.Client, proxy common.Address) (State, error) {
-	data, err := thogAMMABI.Pack(methodGetPoolData, uint8(0), uint8(maxTokens))
+type tryCall struct {
+	Target   common.Address
+	CallData []byte
+}
+
+type tryResult struct {
+	Success    bool
+	ReturnData []byte
+}
+
+// readSnapshotMulticall is the fallback for providers that refuse the lens's
+// creation call. One Multicall3.tryAggregate at "latest" runs getPoolData, the
+// block timestamp and every catalog issuer's sharesOf/getCurrentMultiplier in one
+// EVM state, so nothing is pinned by hash or number. Unlisted catalog issuers may
+// revert; the page selects which issuer results are required.
+func readSnapshotMulticall(ctx context.Context, client *rpc.Client, proxy common.Address) (State, uint64, error) {
+	pageData, err := thogAMMABI.Pack(methodGetPoolData, uint8(0), uint8(maxTokens))
 	if err != nil {
-		return State{}, err
-	}
-	var raw hexutil.Bytes
-	if err = client.CallContext(ctx, &raw, "eth_call", snapshotCall(proxy, data), "latest"); err != nil {
-		return State{}, err
-	}
-	page, err := decodeSnapshot(raw)
-	if err != nil {
-		return State{}, refreshFailure("validation", "page decode", err)
-	}
-	if page.BlockNumber == nil || !page.BlockNumber.IsUint64() || page.TokenCount > maxTokens || len(page.Tokens) != int(page.TokenCount) {
-		return State{}, refreshFailure("validation", "page context", ErrInvalidState)
-	}
-	block := hexutil.EncodeBig(page.BlockNumber)
-	var issuers []common.Address
-	for _, token := range page.Tokens {
-		if isXStock(hexutil.Encode(token.Token[:])) {
-			issuers = append(issuers, token.Token)
-		}
+		return State{}, 0, err
 	}
 	sharesData, err := thogAMMABI.Pack("sharesOf", proxy)
 	if err != nil {
-		return State{}, err
+		return State{}, 0, err
 	}
 	multiplierData, err := thogAMMABI.Pack("getCurrentMultiplier")
 	if err != nil {
-		return State{}, err
+		return State{}, 0, err
 	}
-	results := make([]hexutil.Bytes, 2*len(issuers)+1)
-	batch := make([]rpc.BatchElem, len(results))
-	for i, issuer := range issuers {
-		for j, calldata := range [][]byte{sharesData, multiplierData} {
-			index := 2*i + j
-			batch[index] = rpc.BatchElem{Method: "eth_call", Args: []any{snapshotCall(issuer, calldata), block}, Result: &results[index]}
+	aggregator := common.HexToAddress(multicall3)
+	calls := make([]tryCall, 0, 2+2*len(xStocks))
+	calls = append(calls, tryCall{Target: proxy, CallData: pageData},
+		tryCall{Target: aggregator, CallData: common.FromHex(selectorGetCurrentBlockTimestamp)})
+	for _, token := range xStocks {
+		issuer := common.HexToAddress(token)
+		calls = append(calls, tryCall{Target: issuer, CallData: sharesData}, tryCall{Target: issuer, CallData: multiplierData})
+	}
+	data, err := abipkg.Multicall3ABI.Pack(abipkg.Multicall3TryAggregate, false, calls)
+	if err != nil {
+		return State{}, 0, err
+	}
+	var raw hexutil.Bytes
+	if err = client.CallContext(ctx, &raw, "eth_call", snapshotCall(aggregator, data), "latest"); err != nil {
+		return State{}, 0, err
+	}
+	out, err := abipkg.Multicall3ABI.Unpack(abipkg.Multicall3TryAggregate, raw)
+	if err != nil || len(out) != 1 {
+		return State{}, 0, refreshFailure("validation", "multicall reply", fmt.Errorf("%w: %v", ErrInvalidState, err))
+	}
+	results := *abi.ConvertType(out[0], new([]tryResult)).(*[]tryResult)
+	if len(results) != len(calls) {
+		return State{}, 0, refreshFailure("validation", "multicall reply", ErrInvalidState)
+	}
+	if !results[0].Success {
+		return State{}, 0, refreshFailure("contract", "multicall page", fmt.Errorf("getPoolData reverted: 0x%x", results[0].ReturnData))
+	}
+	page, err := decodeSnapshot(results[0].ReturnData)
+	if err != nil {
+		return State{}, 0, refreshFailure("validation", "page decode", err)
+	}
+	// A zero BASEFEE means the node ignored gasPrice; execution friction needs the real one.
+	if page.BlockNumber == nil || !page.BlockNumber.IsUint64() || page.BaseFeePerGas == nil || page.BaseFeePerGas.Sign() == 0 ||
+		page.TokenCount > maxTokens || len(page.Tokens) != int(page.TokenCount) {
+		return State{}, 0, refreshFailure("validation", "page context", ErrInvalidState)
+	}
+	stamp := results[1]
+	if !stamp.Success || len(stamp.ReturnData) != 32 {
+		return State{}, 0, refreshFailure("validation", "block timestamp", ErrInvalidState)
+	}
+	timestamp := new(big.Int).SetBytes(stamp.ReturnData)
+	if !timestamp.IsUint64() || timestamp.Sign() <= 0 {
+		return State{}, 0, refreshFailure("validation", "block timestamp", ErrInvalidState)
+	}
+	shares := make(map[string]ShareBalance)
+	for _, token := range page.Tokens {
+		issuer := hexutil.Encode(token.Token[:])
+		i := slices.Index(xStocks[:], issuer)
+		if i < 0 {
+			continue
 		}
-	}
-	last := len(batch) - 1
-	batch[last] = rpc.BatchElem{Method: "eth_call", Args: []any{snapshotCall(proxy, data), block}, Result: &results[last]}
-	if err = client.BatchCallContext(ctx, batch); err != nil {
-		return State{}, err
-	}
-	for i, result := range batch {
-		if result.Error != nil {
-			kind := classifyRefreshError(result.Error)
-			if i < last {
-				if kind != "provider_lag" {
-					kind = "issuer"
-				}
-				return State{}, refreshFailure(kind, "number-pinned issuer", fmt.Errorf("issuer %s call %d: %w", hexutil.Encode(issuers[i/2][:]), i%2, result.Error))
-			}
-			return State{}, refreshFailure(kind, "number-pinned batch", result.Error)
+		sharesOf, multiplier := results[2+2*i], results[3+2*i]
+		if !sharesOf.Success || !multiplier.Success {
+			return State{}, 0, refreshFailure("issuer", "multicall issuer", fmt.Errorf("issuer %s: read reverted", issuer))
 		}
-	}
-	if !bytes.Equal(raw, results[last]) {
-		return State{}, refreshFailure("reorg", "page changed at pinned number", ErrInvalidState)
-	}
-	shares := make(map[string]ShareBalance, len(issuers))
-	for i, issuer := range issuers {
-		if len(results[2*i]) != 32 || len(results[2*i+1]) != 96 {
-			return State{}, refreshFailure("validation", "issuer result", ErrInvalidState)
+		if len(sharesOf.ReturnData) != 32 || len(multiplier.ReturnData) != 96 {
+			return State{}, 0, refreshFailure("validation", "issuer result", ErrInvalidState)
 		}
 		var holding ShareBalance
-		holding.Shares.SetBytes(results[2*i])
-		holding.Multiplier.SetBytes(results[2*i+1][:32])
-		shares[hexutil.Encode(issuer[:])] = holding
+		holding.Shares.SetBytes(sharesOf.ReturnData)
+		holding.Multiplier.SetBytes(multiplier.ReturnData[:32])
+		shares[issuer] = holding
 	}
 	state, err := snapshotState(page, shares)
 	if err != nil {
-		return State{}, refreshFailure("validation", "page snapshot", err)
+		return State{}, 0, refreshFailure("validation", "page snapshot", err)
 	}
-	return state, nil
+	return state, timestamp.Uint64(), nil
 }
 
 // Whole-second scheduling is unchanged. MakerPageUpdated can trigger earlier reads.

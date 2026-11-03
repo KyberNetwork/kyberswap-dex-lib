@@ -110,7 +110,7 @@ func decodeSnapshotLens(data []byte, proxy common.Address) (State, uint64, error
 	return state, timestamp.Uint64(), nil
 }
 
-// Only a provider capability/gas rejection selects the number-pinned reader.
+// Only a provider capability/gas rejection selects the Multicall3 reader.
 // Contract/issuer errors and malformed payloads remain explicit refresh failures.
 func lensUnsupported(err error) bool {
 	var readFailure *refreshError

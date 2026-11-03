@@ -102,20 +102,21 @@ Both reader paths use nonzero simulation `gasPrice` to preserve `BASEFEE` on
 clients that zero it for zero-price calls. It is unrelated to the swap gas price.
 
 A provider that explicitly rejects creation calls or the lens gas budget uses
-the page-first reader; `disableLens=true` selects it directly. That reader takes
-the block number from `getPoolData` itself and number-pins every issuer call.
-It also confirms the page at that number in the issuer batch to detect a changed
-page/reorg. There is no independent header request or EIP-1898 hash parameter.
-An issuer read is never retried at `latest` alongside an older page. The lens is
-atomic by construction; the fallback uses number pinning and consistency checks
-and does not claim hash-canonical pinning across load-balanced nodes.
+the Multicall3 reader; `disableLens=true` selects it directly. That reader sends
+one `Multicall3.tryAggregate(false, …)` `eth_call` at `latest` to the canonical
+Multicall3 (`0xcA11…CA11`). It runs `getPoolData(0,28)`, `getCurrentBlockTimestamp()`
+and `sharesOf` / `getCurrentMultiplier` for **every** catalog issuer in one EVM
+state, so it is atomic like the lens and needs no block pin of any kind. Unlisted
+catalog issuers may revert; the page decides which issuer results are required.
+It rejects a zero `BASEFEE` (the node ignored `gasPrice`). The returned block
+timestamp feeds the same capture-time clamp as the lens.
 
 A complete refresh gets at most **two attempts**, separated by **300 ms**. Each
 attempt has a **2 s** deadline covering its entire read, including any capability
 fallback. The default worst-case budget is therefore about **4.3 s**, not a
 promise of continuous availability within a 15-block price lifetime. A failure
 returns the original pool and an explicit error; logs include pool, dex, attempt,
-and `errorKind` (`transport`, `provider_lag`, `reorg`, `validation`, `contract`, or `issuer`).
+and `errorKind` (`transport`, `provider_lag`, `validation`, `contract`, or `issuer`).
 A lens-capability fallback is also logged explicitly. Capability matching covers
 provider variants such as "user-specified gas exceeds provider limit". Transport
 failures/timeouts and typed contract, issuer, or validation errors do not select
@@ -128,7 +129,7 @@ Configuration fields (zero selects the default):
 | `blockTimeMs` | 300 | Nominal interval for estimated quote-block advancement |
 | `maxSnapshotAgeMs` | 15000 | Wall-clock age backstop for live routing |
 | `requestTimeoutMs` | 2000 | Deadline for one complete refresh attempt |
-| `disableLens` | false | Select the page-first number-pinned reader |
+| `disableLens` | false | Select the Multicall3 reader |
 
 The page includes all 126 logical words, native MON, physical ERC-20 balances,
 accounted inventory and dynamic token/category metadata. Schema / wire / model
@@ -218,7 +219,8 @@ python3 pkg/liquidity-source/thog-prop/testdata/build_lens.py --solc /path/to/so
 ```
 
 Additional tests cover fee thresholds at odd/zero/max-uint256 base fees, snapshot
-validation, number-pinned reads and reorg rejection, reordered issuer replies, refreshes
+validation, the Multicall3 fallback (one `latest` call, unlisted-issuer reverts,
+zero base fee, typed failures), catalog equality across Go and the lens bytecode, refreshes
 without events, quote purity, clone isolation, share/accounted inventory updates,
 and Msgpack serialization. A live tracker → JSON → simulator smoke test passed at
 block 117214675 with all 13 tokens.
@@ -241,6 +243,9 @@ The local October 29 probe ran six successful reads per design on
 `rpc.monad.xyz`: median complete-read latency was **149 ms** with a header/hash,
 **136 ms** with a header/number, **122 ms** page-first, and **61 ms** through the
 lens. These are small samples without retries, not reliability estimates.
+On November 3, 20 alternating reads on Kyber's production Monad RPC took
+**93 ms** (lens) and **86 ms** (Multicall3 fallback) on average, 20/20 each;
+reads that landed on the same block decoded identical state and timestamp.
 
 A subsequent independent review supplied these additional live lens checks:
 

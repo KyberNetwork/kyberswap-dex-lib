@@ -13,17 +13,20 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	abipkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 func lensPayload(t *testing.T) (contractFixture, State, []byte) {
@@ -155,109 +158,132 @@ func TestTrackerUsesOneAtomicCallAndRetriesWholeRead(t *testing.T) {
 	}
 }
 
-func TestPageReaderPinsEveryDependentCallAndRejectsReorg(t *testing.T) {
+func TestMulticallFallbackReadsOneStateAtLatest(t *testing.T) {
 	f := fixture(t, "execution-model3.json.gz")
 	sample := f.Snapshots[0]
 	expected := stateFrom(t, sample)
-	for _, mode := range []string{"success", "reorg", "issuer_error", "lag", "short_issuer", "wrong_balance", "lens_gas"} {
+	proxy := common.HexToAddress(f.Proxy)
+	pageData, err := thogAMMABI.Pack(methodGetPoolData, uint8(0), uint8(maxTokens))
+	require.NoError(t, err)
+	sharesData, err := thogAMMABI.Pack("sharesOf", proxy)
+	require.NoError(t, err)
+	multiplierData, err := thogAMMABI.Pack("getCurrentMultiplier")
+	require.NoError(t, err)
+	method := abipkg.Multicall3ABI.Methods[abipkg.Multicall3TryAggregate]
+	const blockTime = 1793310000
+	for _, mode := range []string{"success", "lens_gas", "unlisted_issuer_reverts", "page_reverts", "issuer_reverts",
+		"short_issuer", "wrong_balance", "zero_base_fee", "no_timestamp", "short_reply", "lag"} {
 		t.Run(mode, func(t *testing.T) {
 			var calls atomic.Int32
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls.Add(1)
-				var data json.RawMessage
-				require.NoError(t, json.NewDecoder(r.Body).Decode(&data))
-				isBatch := data[0] == '['
-				var requests []rpcRequest
-				if isBatch {
-					require.NoError(t, json.Unmarshal(data, &requests))
-				} else {
-					requests = make([]rpcRequest, 1)
-					require.NoError(t, json.Unmarshal(data, &requests[0]))
+				var request rpcRequest
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&request))
+				require.Equal(t, "eth_call", request.Method)
+				require.JSONEq(t, `"latest"`, string(request.Params[1]))
+				var call map[string]string
+				require.NoError(t, json.Unmarshal(request.Params[0], &call))
+				require.Equal(t, "0x1", call["gasPrice"])
+				reply := map[string]any{"jsonrpc": "2.0", "id": request.ID}
+				w.Header().Set("Content-Type", "application/json")
+				if call["to"] == "" {
+					require.Equal(t, "lens_gas", mode)
+					reply["error"] = map[string]any{"code": -32000, "message": "user-specified gas exceeds provider limit"}
+					require.NoError(t, json.NewEncoder(w).Encode(reply))
+					return
 				}
-				var replies []map[string]any
-				for _, request := range requests {
-					require.Equal(t, "eth_call", request.Method)
-					var call map[string]string
-					require.NoError(t, json.Unmarshal(request.Params[0], &call))
-					require.Equal(t, "0x1", call["gasPrice"])
-					var pin string
-					require.NoError(t, json.Unmarshal(request.Params[1], &pin))
-					if isBatch {
-						require.Equal(t, hexutil.EncodeUint64(expected.BlockNumber), pin)
-					} else {
-						require.Equal(t, "latest", pin)
-					}
-					reply := map[string]any{"jsonrpc": "2.0", "id": request.ID}
-					if call["to"] == "" {
-						require.Equal(t, "lens_gas", mode)
-						reply["error"] = map[string]any{"code": -32000, "message": "user-specified gas exceeds provider limit"}
-						replies = append(replies, reply)
+				require.Equal(t, strings.ToLower(multicall3), call["to"])
+				if mode == "lag" {
+					reply["error"] = map[string]any{"code": -32000, "message": "block not found"}
+					require.NoError(t, json.NewEncoder(w).Encode(reply))
+					return
+				}
+				in, err := method.Inputs.Unpack(hexutil.MustDecode(call["data"])[4:])
+				require.NoError(t, err)
+				require.Equal(t, false, in[0]) // requireSuccess
+				requested := *abi.ConvertType(in[1], new([]tryCall)).(*[]tryCall)
+				require.Len(t, requested, 2+2*len(xStocks))
+				require.Equal(t, tryCall{Target: proxy, CallData: pageData}, requested[0])
+				require.Equal(t, tryCall{Target: common.HexToAddress(multicall3), CallData: common.FromHex(selectorGetCurrentBlockTimestamp)}, requested[1])
+				page := raw(t, sample.Snapshot)
+				if mode == "zero_base_fee" {
+					clear(page[3*32 : 4*32]) // tuple head: offset, schema, block number, base fee
+				}
+				results := []tryResult{{Success: mode != "page_reverts", ReturnData: page},
+					{Success: mode != "no_timestamp", ReturnData: encodedWords(u(blockTime))}}
+				listed := false
+				for i, token := range xStocks {
+					require.Equal(t, tryCall{Target: common.HexToAddress(token), CallData: sharesData}, requested[2+2*i])
+					require.Equal(t, tryCall{Target: common.HexToAddress(token), CallData: multiplierData}, requested[3+2*i])
+					holding, ok := sample.ShareBalances[token]
+					if !ok {
+						results = append(results, tryResult{Success: mode != "unlisted_issuer_reverts"}, tryResult{})
 						continue
 					}
-					if call["to"] == f.Proxy {
-						reply["result"] = sample.Snapshot
-						if mode == "reorg" && isBatch {
-							changed := append([]byte{}, raw(t, sample.Snapshot)...)
-							changed[len(changed)-1] ^= 1
-							reply["result"] = hexutil.Encode(changed)
-						}
-					} else {
-						holding, ok := sample.ShareBalances[call["to"]]
-						require.True(t, ok)
-						if call["data"][:10] == "0xf5eb42dc" {
-							reply["result"] = hexutil.Encode(encodedWords(holding.Shares))
-						} else {
-							if mode == "wrong_balance" {
-								holding.Multiplier.Lsh(&holding.Multiplier, 1)
-							}
-							reply["result"] = hexutil.Encode(encodedWords(holding.Multiplier, u(0), u(0)))
-						}
-						if mode == "short_issuer" {
-							reply["result"] = "0x"
-						}
-						if mode == "issuer_error" || mode == "lag" {
-							delete(reply, "result")
-							message := "issuer failed"
-							if mode == "lag" {
-								message = "block not found"
-							}
-							reply["error"] = map[string]any{"code": -32000, "message": message}
-						}
+					if mode == "wrong_balance" {
+						holding.Multiplier.Lsh(&holding.Multiplier, 1)
 					}
-					replies = append(replies, reply)
-				}
-				w.Header().Set("Content-Type", "application/json")
-				if isBatch {
-					for i, j := 0, len(replies)-1; i < j; i, j = i+1, j-1 {
-						replies[i], replies[j] = replies[j], replies[i]
+					sharesResult := tryResult{Success: true, ReturnData: encodedWords(holding.Shares)}
+					if !listed && mode == "issuer_reverts" {
+						sharesResult = tryResult{}
 					}
-					require.NoError(t, json.NewEncoder(w).Encode(replies))
-				} else {
-					require.NoError(t, json.NewEncoder(w).Encode(replies[0]))
+					if !listed && mode == "short_issuer" {
+						sharesResult.ReturnData = nil
+					}
+					listed = true
+					results = append(results, sharesResult, tryResult{Success: true, ReturnData: encodedWords(holding.Multiplier, u(0), u(0))})
 				}
+				if mode == "short_reply" {
+					results = results[:len(results)-1]
+				}
+				out, err := method.Outputs.Pack(results)
+				require.NoError(t, err)
+				reply["result"] = hexutil.Encode(out)
+				require.NoError(t, json.NewEncoder(w).Encode(reply))
 			}))
 			defer srv.Close()
 			tracker, err := NewPoolTracker(&Config{DisableLens: mode != "lens_gas"}, ethrpc.New(srv.URL))
 			require.NoError(t, err)
-			state, _, err := tracker.readSnapshot(context.Background(), common.HexToAddress(f.Proxy))
-			if mode != "success" && mode != "lens_gas" {
-				require.Error(t, err)
-				if mode == "reorg" {
-					require.Equal(t, "reorg", classifyRefreshError(err))
-				}
-				if mode == "lag" {
-					require.Equal(t, "provider_lag", classifyRefreshError(err))
-				}
+			state, timestamp, err := tracker.readSnapshot(context.Background(), proxy)
+			want := int32(1)
+			if mode == "lens_gas" {
+				want = 2
+			}
+			require.Equal(t, want, calls.Load())
+			switch mode {
+			case "success", "lens_gas", "unlisted_issuer_reverts":
+				require.NoError(t, err)
+				require.Equal(t, expected, state)
+				require.EqualValues(t, blockTime, timestamp)
 				return
 			}
-			require.NoError(t, err)
-			require.Equal(t, expected, state)
-			want := 2
-			if mode == "lens_gas" {
-				want = 3
+			require.Error(t, err)
+			kind := map[string]string{"page_reverts": "contract", "issuer_reverts": "issuer", "lag": "provider_lag"}[mode]
+			if kind == "" {
+				kind = "validation"
 			}
-			require.EqualValues(t, want, calls.Load())
+			require.Equal(t, kind, classifyRefreshError(err))
 		})
+	}
+}
+
+func TestIssuerCatalogMatchesQuotePathAndLens(t *testing.T) {
+	require.Len(t, xStocks, 9)
+	seen := map[string]bool{}
+	for _, token := range xStocks {
+		require.True(t, isXStock(token), token)
+		require.False(t, seen[token], token)
+		seen[token] = true
+		// The lens hard-codes the same catalog as address literals.
+		require.True(t, bytes.Contains(snapshotLensCode, common.FromHex(token)), "lens bytecode lacks %s", token)
+	}
+	for _, file := range []string{"execution-model3.json.gz", "deployed-model3.json.gz", "one-block-model3.json.gz"} {
+		for _, sample := range fixture(t, file).Snapshots {
+			for _, token := range fixturePage(t, sample).Tokens {
+				address := hexutil.Encode(token.Token[:])
+				require.Equal(t, seen[address], isXStock(address), address)
+			}
+		}
 	}
 }
 
