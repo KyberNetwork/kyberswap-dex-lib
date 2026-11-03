@@ -82,8 +82,8 @@ func TestLensLive(t *testing.T) {
 			// A free RPC tier answers slowly once rate-limited, so the guard's default timeout of an
 			// attempt would cut the stateless update short.
 			tracker := NewPoolTracker(&Config{DexID: dex.dexID, UseBasePluginV2: true,
-				LensConfig: ephemeral.LensConfig{UseLens: true,
-					LensGuard: ephemeral.GuardConfig{TimeoutSecs: 600}}}, rpc, nil)
+				UseLens:   true,
+				LensGuard: ephemeral.GuardConfig{TimeoutSecs: 600}}, rpc, nil)
 
 			pools := livePools(ctx, t, client, dex)
 			require.GreaterOrEqual(t, len(pools), 2, "too few live pools to check")

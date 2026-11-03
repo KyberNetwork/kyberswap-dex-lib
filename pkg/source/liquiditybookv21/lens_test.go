@@ -125,7 +125,7 @@ func TestResetPoolState(t *testing.T) {
 		Extra: `{"activeBinId":8388608,"binStep":25,"bins":[{"id":8388608,"reserveX":1,"reserveY":2}],"lensDue":120}`}
 
 	lensTracker := NewPoolTracker(&Config{
-		LensConfig: ephemeral.LensConfig{UseLens: true}}, nil, nil)
+		UseLens: true}, nil, nil)
 	assert.Zero(t, lensTracker.NextUpdateAt(p), "a pair with bins waits for its events")
 	got, ok := lensTracker.ResetPoolState(p, 100)
 	assert.True(t, ok)

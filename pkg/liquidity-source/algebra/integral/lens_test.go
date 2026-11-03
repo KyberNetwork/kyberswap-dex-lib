@@ -8,7 +8,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
 // TestHasState: only a liquidity the tracker wrote, 0 included, marks a pool as having its state;
@@ -66,7 +65,7 @@ func TestResetPoolStateNeedsTheLens(t *testing.T) {
 	require.Equal(t, p, got)
 
 	got, ok = (&PoolTracker{config: &Config{
-		LensConfig: ephemeral.LensConfig{UseLens: true}}}).ResetPoolState(p, 10)
+		UseLens: true}}).ResetPoolState(p, 10)
 	require.True(t, ok)
 	require.False(t, hasState(got))
 }

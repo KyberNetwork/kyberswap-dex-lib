@@ -86,7 +86,7 @@ func TestPluginLensLive(t *testing.T) {
 			rpc := live.Ethrpc.SetMulticallContract(common.HexToAddress(dex.multicall))
 			byRPC := NewPoolTracker(&Config{DexID: dex.dexID, UseBasePluginV2: dex.useBasePluginV2}, rpc, nil)
 			byLens := NewPoolTracker(&Config{DexID: dex.dexID, UseBasePluginV2: dex.useBasePluginV2,
-				LensConfig: ephemeral.LensConfig{UseLens: true}},
+				UseLens: true},
 				rpc, nil)
 			// The node's gas cap is probed once per client, which no read would count.
 			_, err := ephemeral.GasCap(ctx, client)

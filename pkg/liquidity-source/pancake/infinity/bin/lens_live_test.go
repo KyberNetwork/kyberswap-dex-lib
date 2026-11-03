@@ -17,7 +17,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -72,7 +71,7 @@ func liveLens(t *testing.T, rpcURL string, chainID valueobject.ChainID, manager,
 	live := testutil.DialLive(t, rpcURL)
 	client := live.Ethrpc
 	cfg := &Config{ChainID: int(chainID), BinPoolManagerAddress: manager,
-		LensConfig: ephemeral.LensConfig{UseLens: true}}
+		UseLens: true}
 	tracker := NewPoolTracker(cfg, client, nil)
 
 	// The pool as its factory would build it from its Initialize log.
@@ -108,7 +107,7 @@ func liveLens(t *testing.T, rpcURL string, chainID valueobject.ChainID, manager,
 
 	// Paged under a low gas cap, the same set.
 	paged := NewPoolTracker(&Config{ChainID: int(chainID), BinPoolManagerAddress: manager,
-		LensConfig: ephemeral.LensConfig{UseLens: true, LensGas: 250_000}},
+		UseLens: true, LensGas: 250_000},
 		client, nil)
 	pagedSnap, err := paged.snapshot(ctx, id, new(big.Int).SetUint64(block))
 	require.NoError(t, err)

@@ -13,13 +13,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
 func newLensTracker(t *testing.T, useLens bool) *PoolTracker {
 	t.Helper()
 	tracker, err := NewPoolTracker(&Config{DexID: DexType, ClankNow: clankNowAddr,
-		LensConfig: ephemeral.LensConfig{UseLens: useLens}},
+		UseLens: useLens},
 		ethrpc.New("http://127.0.0.1:0"), nil)
 	require.NoError(t, err)
 	return tracker

@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
 // lens is AlgebraIntegralPluginLens over the chain: it makes the calls, then walks the timepoints
@@ -95,7 +94,7 @@ func readBoth(t *testing.T, chain *fakeChain, cache map[uint16]Timepoint, perCal
 	multicalls := chain.multicalls
 
 	byLens := newTrackerOnChain(t, chain)
-	byLens.config = &Config{LensConfig: ephemeral.LensConfig{UseLens: true}}
+	byLens.config = &Config{UseLens: true}
 	byLens.pluginLensCall = chain.lens(perCall)
 	chain.multicalls, chain.lensCalls = 0, 0
 	got := read(byLens)

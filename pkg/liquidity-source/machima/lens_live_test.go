@@ -22,7 +22,6 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
 const tickLensWordABI = `[{"inputs":[{"name":"pool","type":"address"},{"name":"tickBitmapIndex","type":"int16"}],
@@ -59,7 +58,7 @@ func TestLensLive(t *testing.T) {
 			WETH:            wethAddr,
 			USDC:            usdcAddr,
 			XMA:             xmaAddr,
-			LensConfig:      ephemeral.LensConfig{UseLens: useLens},
+			UseLens:         useLens,
 		}, ethrpc.New(rpcURL).SetMulticallContract(common.HexToAddress(multicall3)), nil)
 		require.NoError(t, err)
 		return tracker

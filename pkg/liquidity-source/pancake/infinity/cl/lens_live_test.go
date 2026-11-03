@@ -89,7 +89,7 @@ func checkLivePool(t *testing.T, chain liveChain, rpcURL, id string) {
 		DexID:                DexType,
 		CLPoolManagerAddress: chain.manager,
 		VaultAddress:         chain.vault,
-		LensConfig:           ephemeral.LensConfig{UseLens: true},
+		UseLens:              true,
 	}
 	tracker := NewPoolTracker(cfg, client, nil)
 

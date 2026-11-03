@@ -17,7 +17,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -124,7 +123,7 @@ func TestLiveLens(t *testing.T) {
 	// reads through once a minute.
 	guarded := func() *PoolTracker { return NewPoolTracker(&cfg, tracker.ethrpcClient, nil) }
 	capped := *tracker
-	capped.config = &Config{Dex: cfg.Dex, LensConfig: ephemeral.LensConfig{LensGas: 3_000_000}}
+	capped.config = &Config{Dex: cfg.Dex, LensGas: 3_000_000}
 
 	logs, err := tracker.ethrpcClient.GetETHClient().FilterLogs(ctx, ethereum.FilterQuery{
 		FromBlock: big.NewInt(93210176), ToBlock: big.NewInt(93210176),

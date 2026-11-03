@@ -21,7 +21,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -89,7 +88,7 @@ func liveExchangeLens(t *testing.T, ex liveExchange, rpcURL string) {
 	ec := live.Eth
 	client := live.Ethrpc
 	tracker := NewPoolTracker(&Config{DexID: ex.dexID, UseDirectionalFee: ex.dirFee, SkipFeeCalculating: true,
-		LensConfig: ephemeral.LensConfig{UseLens: true}}, client, nil)
+		UseLens: true}, client, nil)
 
 	pools := livePools(ctx, ec, ex)
 	require.NotEmpty(t, pools, "no pool with liquidity among the tokens")
