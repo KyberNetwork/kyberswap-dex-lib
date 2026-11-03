@@ -69,14 +69,15 @@ func (f *PoolFactory) newPool(p *abis.FluidDexV2LogInitialize, blockNumber uint6
 	}
 
 	staticExtra := StaticExtra{
-		Dex:         f.config.Dex,
-		DexType:     uint32(p.DexType.Uint64()),
-		Fee:         uint32(p.DexKey.Fee.Uint64()),
-		TickSpacing: uint32(p.DexKey.TickSpacing.Uint64()),
-		IsNative:    isNative,
+		TrackLiquidityLimits: f.config.TrackLiquidityLimits,
+		Dex:                  f.config.Dex,
+		DexType:              uint32(p.DexType.Uint64()),
+		Fee:                  uint32(p.DexKey.Fee.Uint64()),
+		TickSpacing:          uint32(p.DexKey.TickSpacing.Uint64()),
+		IsNative:             isNative,
 	}
 	if p.DexKey.Controller != valueobject.AddrZero {
-		staticExtra.Controller = p.DexKey.Controller.String()
+		staticExtra.Controller = hexutil.Encode(p.DexKey.Controller[:])
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

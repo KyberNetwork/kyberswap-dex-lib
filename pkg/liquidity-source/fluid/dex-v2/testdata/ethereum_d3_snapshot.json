@@ -1,0 +1,97 @@
+{
+  "block": 26332115,
+  "timestamp": 1793682923,
+  "address": "0xe018f09af38956affdfeab72c2cefbcd4e6fee44d09df7525ec9dba3e51356a5_3",
+  "staticExtra": {
+    "dex": "0xaBE4D5AA1Bb188f4B5d3a1aE3B8ec5e300A78261",
+    "dexType": 3,
+    "fee": 100,
+    "tickSpacing": 1
+  },
+  "tokens": [
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "0xdac17f958d2ee523a2206206994597c13d831ec7"
+  ],
+  "decimals": [
+    6,
+    6
+  ],
+  "extra": {
+    "liquidity": 1540289175256930,
+    "sqrtPriceX96": 79821981938653628290719285248,
+    "tick": 149,
+    "ticks": [
+      {
+        "index": -915,
+        "liquidityGross": 8941697813393,
+        "liquidityNet": 8941697813393
+      },
+      {
+        "index": 116,
+        "liquidityGross": 2296191335129,
+        "liquidityNet": 2296191335129
+      },
+      {
+        "index": 130,
+        "liquidityGross": 1531347477443537,
+        "liquidityNet": 1531347477443537
+      },
+      {
+        "index": 131,
+        "liquidityGross": 2296191335129,
+        "liquidityNet": -2296191335129
+      },
+      {
+        "index": 134,
+        "liquidityGross": 2901227474466653,
+        "liquidityNet": 2901227474466653
+      },
+      {
+        "index": 145,
+        "liquidityGross": 2901227474466653,
+        "liquidityNet": -2901227474466653
+      },
+      {
+        "index": 150,
+        "liquidityGross": 1531347477443537,
+        "liquidityNet": -1531347477443537
+      },
+      {
+        "index": 1091,
+        "liquidityGross": 8941697813393,
+        "liquidityNet": -8941697813393
+      }
+    ],
+    "dexVariables2": 9134385233318143238773453595941351997870931181568,
+    "token0ExchangePricesAndConfig": 56472750019319714858248801441424223175641743590252926730939,
+    "token1ExchangePricesAndConfig": 55776684051955673066672358665967201278953067645767625736788,
+    "tokenReserves": 1213860839565122023098756281631913469146860565384701,
+    "swapOutWithdraw": [
+      2598922585,
+      4121669315
+    ],
+    "swapOutBorrow": [
+      49536004051,
+      49412833614
+    ],
+    "snapshotBlock": 26332115,
+    "snapshotTimestamp": 1793682923
+  },
+  "quotes": [
+    {
+      "in": 0,
+      "amount": "1000000000",
+      "out": "1000353801"
+    },
+    {
+      "in": 1,
+      "amount": "1000000000",
+      "error": "at or above largest"
+    },
+    {
+      "in": 1,
+      "amount": "10000000",
+      "out": "9990187"
+    }
+  ]
+}

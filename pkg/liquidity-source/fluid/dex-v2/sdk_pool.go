@@ -30,6 +30,7 @@ type SwapResult struct {
 	remainingAmountIn  *utils.Int256
 	currentTick        int
 	crossInitTickLoops int
+	grossOut           utils.Uint256
 }
 
 type StepComputations struct {
@@ -83,20 +84,25 @@ func NewUniV3FluidV2Pool(
 	return pool, nil
 }
 
+type fluidAmountResult struct {
+	v3Entities.GetAmountResultV2
+	grossOut utils.Uint256
+}
+
 func (p *UniV3FluidV2Pool) GetOutputAmountV2(inputAmount *utils.Int256, zeroForOne bool,
-	sqrtPriceLimitX96 *utils.Uint160) (*v3Entities.GetAmountResultV2, error) {
+	sqrtPriceLimitX96 *utils.Uint160) (*fluidAmountResult, error) {
 	swapResult, err := p.swap(zeroForOne, inputAmount, sqrtPriceLimitX96)
 	if err != nil {
 		return nil, err
 	}
-	return &v3Entities.GetAmountResultV2{
+	return &fluidAmountResult{grossOut: swapResult.grossOut, GetAmountResultV2: v3Entities.GetAmountResultV2{
 		ReturnedAmount:     new(utils.Int256).Neg(swapResult.amountCalculated),
 		RemainingAmountIn:  new(utils.Int256).Set(swapResult.remainingAmountIn),
 		SqrtRatioX96:       swapResult.sqrtRatioX96,
 		Liquidity:          swapResult.liquidity,
 		CurrentTick:        swapResult.currentTick,
 		CrossInitTickLoops: swapResult.crossInitTickLoops,
-	}, nil
+	}}, nil
 }
 
 func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
@@ -147,6 +153,7 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 	// crossInitTickLoops is the number of loops that cross an initialized tick.
 	// We only count when tick passes an initialized tick, since gas only significant in this case.
 	crossInitTickLoops := 0
+	var grossOut utils.Uint256
 
 	// start swap while loop
 	for !state.amountSpecifiedRemaining.IsZero() && state.sqrtPriceX96.Cmp(sqrtPriceLimitX96) != 0 {
@@ -184,30 +191,27 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 			return nil, err
 		}
 
+		if _, overflow := grossOut.AddOverflow(&grossOut, &step.amountOut); overflow {
+			return nil, ErrOverflow
+		}
 		var stepProtocolFee, stepLpFee, protocolFee utils.Uint256
 		protocolFee.Set(lo.Ternary(zeroForOne,
 			p.protocolFeeZeroForOne,
 			p.protocolFeeOneForZero,
 		))
 		if exactInput {
-			// Fluid v2 custom logic: calculate protocol fee and lp fee on amountOut
-			stepProtocolFee.Mul(&step.amountOut, &protocolFee).
-				Div(&stepProtocolFee, SIX_DECIMALS)
-
-			stepLpFee.Mul(&step.amountOut, p.constantLpFee).
-				Div(&stepLpFee, SIX_DECIMALS)
+			// Deployed swap module charges protocol first, then LP on the remainder.
+			// Each non-zero fee rounds as ((amount * fee + 1) / 1e6) + 1.
+			// The contract bounds step output to 86 bits and the fee to 16 bits.
+			var amountOutPlusFee utils.Uint256
+			netSwapInStep(&amountOutPlusFee, &stepProtocolFee, &stepLpFee, &step.amountOut, &protocolFee, p.constantLpFee)
 
 			state.sqrtPriceX96.Set(&nxtSqrtPriceX96)
-
-			// Fluid v2 custom logic: apply fee on amountOut instead of amountIn as in Uniswap v3
 			var amountInSigned utils.Int256
 			err = utils.ToInt256(&step.amountIn, &amountInSigned)
 			if err != nil {
 				return nil, err
 			}
-
-			var amountOutPlusFee utils.Uint256
-			amountOutPlusFee.Sub(&step.amountOut, &stepLpFee)
 
 			var amountOutSigned utils.Int256
 			err = utils.ToInt256(&amountOutPlusFee, &amountOutSigned)
@@ -288,5 +292,28 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 		currentTick:        state.tick,
 		remainingAmountIn:  state.amountSpecifiedRemaining,
 		crossInitTickLoops: crossInitTickLoops,
+		grossOut:           grossOut,
 	}, nil
+}
+
+// netSwapInStep applies the deployed protocol and LP fee order and rounding.
+// The caller bounds gross to 86 bits, protocol fee to 12 bits and LP fee to 16 bits.
+func netSwapInStep(net, protocolCharge, lpCharge, gross, protocolFee, lpFee *utils.Uint256) {
+	net.Set(gross)
+	if !net.IsZero() && !protocolFee.IsZero() {
+		protocolCharge.Mul(net, protocolFee).AddUint64(protocolCharge, 1).Div(protocolCharge, SIX_DECIMALS).AddUint64(protocolCharge, 1)
+		if net.Cmp(protocolCharge) > 0 {
+			net.Sub(net, protocolCharge)
+		} else {
+			net.Clear()
+		}
+	}
+	if !net.IsZero() && !lpFee.IsZero() {
+		lpCharge.Mul(net, lpFee).AddUint64(lpCharge, 1).Div(lpCharge, SIX_DECIMALS).AddUint64(lpCharge, 1)
+		if net.Cmp(lpCharge) > 0 {
+			net.Sub(net, lpCharge)
+		} else {
+			net.Clear()
+		}
+	}
 }

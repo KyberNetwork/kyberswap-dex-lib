@@ -3,6 +3,7 @@ package dexv2
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -82,6 +83,7 @@ func (t *PoolTracker) fetchRPCData(
 	}
 
 	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig, tokenReserves *big.Int
+	var tokenBase [2]struct{ State TokenBaseState }
 
 	token0 := lo.Ternary(
 		staticExtra.IsNative[0],
@@ -132,7 +134,22 @@ func (t *PoolTracker) fetchRPCData(
 		Params: []any{tokenReserveSlot},
 	}, []any{&tokenReserves})
 
-	if _, err := req.Aggregate(); err != nil {
+	if staticExtra.TrackLiquidityLimits {
+		for i, token := range []common.Address{token0, token1} {
+			req.AddCall(&ethrpc.Call{ABI: abis.ResolverABI, Target: t.config.Resolver,
+				Method: "getTokenBaseState", Params: []any{token}}, []any{&tokenBase[i]})
+		}
+	}
+
+	response, err := req.Aggregate()
+	if err != nil {
+		return Extra{}, err
+	}
+	if response.BlockNumber == nil {
+		return Extra{}, fmt.Errorf("missing snapshot block")
+	}
+	timestamp, err := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(response.BlockNumber).GetCurrentBlockTimestamp()
+	if err != nil {
 		return Extra{}, err
 	}
 
@@ -146,8 +163,24 @@ func (t *PoolTracker) fetchRPCData(
 		Token1ExchangePricesAndConfig: token1ExchangePricesAndConfig,
 
 		TokenReserves: tokenReserves,
+		SnapshotBlock: response.BlockNumber.Uint64(), SnapshotTimestamp: timestamp,
 	}
 
+	if staticExtra.TrackLiquidityLimits {
+		extra.FloatBalance = [2]*big.Int{tokenBase[0].State.FloatBalance, tokenBase[1].State.FloatBalance}
+		extra.MaxCap = [2]*big.Int{tokenBase[0].State.MaxCap, tokenBase[1].State.MaxCap}
+		extra.UnaccountedBorrow = [2]*big.Int{tokenBase[0].State.UnaccountedBorrow, tokenBase[1].State.UnaccountedBorrow}
+		extra.SwapOutWithdraw = [2]*big.Int{tokenBase[0].State.AvailableForSwapOutWithdraw, tokenBase[1].State.AvailableForSwapOutWithdraw}
+		extra.SwapOutBorrow = [2]*big.Int{tokenBase[0].State.AvailableForSwapOutBorrow, tokenBase[1].State.AvailableForSwapOutBorrow}
+		for i := range tokenBase {
+			b := tokenBase[i].State
+			extra.LiquidityDebt[i] = b.DexBorrowAtLiquidity.Borrow
+			extra.WithdrawPaused[i] = b.DexSupplyAtLiquidity.IsPaused || b.DexSupplyAtLiquidity.IsWithdrawPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsWithdrawPaused
+			extra.SupplyPaused[i] = b.DexSupplyAtLiquidity.IsPaused || b.DexSupplyAtLiquidity.IsSupplyPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsSupplyPaused
+			extra.PaybackPaused[i] = b.DexBorrowAtLiquidity.IsPaused || b.DexBorrowAtLiquidity.IsPaybackPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsPaybackPaused
+			extra.BorrowPaused[i] = b.DexBorrowAtLiquidity.IsPaused || b.DexBorrowAtLiquidity.IsBorrowPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsBorrowPaused
+		}
+	}
 	return extra, nil
 }
 
@@ -164,7 +197,7 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	ticks, err := t.fetchPoolTicksFromSubgraph(ctx, p)
+	ticks, err := t.fetchPoolTicksFromBitmap(ctx, p, extra.SnapshotBlock)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -176,11 +209,11 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(params.Logs).BlockTimestamp))
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(params.Logs).BlockNumber)
+	p.BlockNumber = extra.SnapshotBlock
+	p.Timestamp = int64(extra.SnapshotTimestamp)
 
 	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
-	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig)
+	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig, extra.SnapshotTimestamp)
 	if err != nil {
 		return entity.Pool{}, err
 	}

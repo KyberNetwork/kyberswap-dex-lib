@@ -5,6 +5,7 @@ import (
 
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type Gas struct {
@@ -18,7 +19,9 @@ type SwapInfo struct {
 	NextStateTickCurrent  int              `json:"nT"`
 	nextStateLiquidity    *v3Utils.Uint128
 	amountInRawAdjusted   *big.Int
-	amountOutRawAdjusted  *big.Int
+	amountOutRawAdjusted  uint256.Int
+	liquidityOut          uint256.Int
+	liquidityDebtIn       uint256.Int
 }
 
 type PoolMeta struct {
@@ -58,12 +61,13 @@ type TickResp struct {
 }
 
 type StaticExtra struct {
-	Dex         string  `json:"dex"`
-	DexType     uint32  `json:"dexType"`
-	Fee         uint32  `json:"fee"`
-	TickSpacing uint32  `json:"tickSpacing"`
-	Controller  string  `json:"controller,omitempty"`
-	IsNative    [2]bool `json:"isNative"`
+	Dex                  string  `json:"dex"`
+	DexType              uint32  `json:"dexType"`
+	Fee                  uint32  `json:"fee"`
+	TickSpacing          uint32  `json:"tickSpacing"`
+	Controller           string  `json:"controller,omitempty"`
+	IsNative             [2]bool `json:"isNative"`
+	TrackLiquidityLimits bool    `json:"trackLiquidityLimits,omitempty"`
 }
 
 type Extra struct {
@@ -77,6 +81,19 @@ type Extra struct {
 	Token1ExchangePricesAndConfig *big.Int `json:"token1ExchangePricesAndConfig"`
 
 	TokenReserves *big.Int `json:"tokenReserves"`
+
+	SwapOutWithdraw   [2]*big.Int `json:"swapOutWithdraw"`
+	SwapOutBorrow     [2]*big.Int `json:"swapOutBorrow"`
+	SnapshotBlock     uint64      `json:"snapshotBlock"`
+	SnapshotTimestamp uint64      `json:"snapshotTimestamp"`
+	FloatBalance      [2]*big.Int `json:"floatBalance"`
+	MaxCap            [2]*big.Int `json:"maxCap"`
+	UnaccountedBorrow [2]*big.Int `json:"unaccountedBorrow"`
+	LiquidityDebt     [2]*big.Int `json:"liquidityDebt"`
+	WithdrawPaused    [2]bool     `json:"withdrawPaused"`
+	SupplyPaused      [2]bool     `json:"supplyPaused"`
+	PaybackPaused     [2]bool     `json:"paybackPaused"`
+	BorrowPaused      [2]bool     `json:"borrowPaused"`
 }
 
 type DexKey struct {

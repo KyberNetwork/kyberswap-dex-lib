@@ -7,16 +7,17 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
-	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (Extra, error) {
@@ -452,9 +453,8 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		"poolAddress": p.Address,
 	})
 
-	// Always fetch scalar state at latest, never at this batch's own block: see the
-	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
-	rpcState, err := t.FetchRPCData(ctx, &p, 0)
+	// Scalar state and the tick changes must describe the same block.
+	rpcState, err := t.FetchRPCData(ctx, &p, ticksBasedPool.BlockNumber)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -489,6 +489,20 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	extra.Liquidity = rpcState.Liquidity
 	extra.SqrtPriceX96 = rpcState.SqrtPriceX96
 	extra.Tick = rpcState.Tick
+	extra.DexVariables2 = rpcState.DexVariables2
+	extra.TokenReserves = rpcState.TokenReserves
+	extra.SwapOutWithdraw = rpcState.SwapOutWithdraw
+	extra.SwapOutBorrow = rpcState.SwapOutBorrow
+	extra.SnapshotBlock = rpcState.SnapshotBlock
+	extra.SnapshotTimestamp = rpcState.SnapshotTimestamp
+	extra.FloatBalance = rpcState.FloatBalance
+	extra.MaxCap = rpcState.MaxCap
+	extra.UnaccountedBorrow = rpcState.UnaccountedBorrow
+	extra.LiquidityDebt = rpcState.LiquidityDebt
+	extra.WithdrawPaused = rpcState.WithdrawPaused
+	extra.SupplyPaused = rpcState.SupplyPaused
+	extra.PaybackPaused = rpcState.PaybackPaused
+	extra.BorrowPaused = rpcState.BorrowPaused
 
 	extra.Token0ExchangePricesAndConfig = rpcState.Token0ExchangePricesAndConfig
 	extra.Token1ExchangePricesAndConfig = rpcState.Token1ExchangePricesAndConfig
@@ -506,10 +520,10 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+	p.BlockNumber = extra.SnapshotBlock
 
 	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
-	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig)
+	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig, extra.SnapshotTimestamp)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -521,7 +535,6 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
 
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
-	p.Reserves = []string{reserve0.String(), reserve1.String()}
 
 	return p, err
 }
@@ -582,11 +595,6 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 	}).Debug("fetching ticks")
 
 	if _, err := ticksRequest.Aggregate(); err != nil {
-		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			// Re-query ticks data with latest block number
-			return t.queryRPCTicksByChunk(ctx, addr, ticks, 0)
-		}
-
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to process aggregate to get ticks")

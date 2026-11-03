@@ -2,12 +2,11 @@ package dexv2
 
 import (
 	"math/big"
-	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-func _calculateVars(dexVariables2, token0ExchangePricesAndConfig, token1ExchangePricesAndConfig *big.Int) (CalculatedVars, error) {
+func _calculateVars(dexVariables2, token0ExchangePricesAndConfig, token1ExchangePricesAndConfig *big.Int, snapshotTimestamp uint64) (CalculatedVars, error) {
 	// NOTE: Should not mutate CalculatedVars's fields (readonly)
 	var tmp big.Int
 	tmp.Set(dexVariables2).
@@ -31,11 +30,11 @@ func _calculateVars(dexVariables2, token0ExchangePricesAndConfig, token1Exchange
 	}
 	token1NumeratorPrecision, token1DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(decimals)
 
-	token0SupplyExchangePrice, token0BorrowExchangePrice, err := _calcExchangePrice(token0ExchangePricesAndConfig)
+	token0SupplyExchangePrice, token0BorrowExchangePrice, err := _calcExchangePrice(token0ExchangePricesAndConfig, snapshotTimestamp)
 	if err != nil {
 		return CalculatedVars{}, err
 	}
-	token1SupplyExchangePrice, token1BorrowExchangePrice, err := _calcExchangePrice(token1ExchangePricesAndConfig)
+	token1SupplyExchangePrice, token1BorrowExchangePrice, err := _calcExchangePrice(token1ExchangePricesAndConfig, snapshotTimestamp)
 	if err != nil {
 		return CalculatedVars{}, err
 	}
@@ -61,7 +60,7 @@ func _calculateNumeratorAndDenominatorPrecisions(decimals int64) (*big.Int, *big
 	}
 }
 
-func _calcExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, *big.Int, error) {
+func _calcExchangePrice(exchangePricesAndConfig *big.Int, snapshotTimestamp uint64) (*big.Int, *big.Int, error) {
 	var supplyExchangePrice, borrowExchangePrice, tmp big.Int
 	supplyExchangePrice.
 		Rsh(exchangePricesAndConfig, BITS_EXCHANGE_PRICES_SUPPLY_EXCHANGE_PRICE).
@@ -79,7 +78,7 @@ func _calcExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, *big.Int, e
 	temp.And(exchangePricesAndConfig, X16)
 
 	var secondsSinceLastUpdate big.Int
-	currentTime := time.Now().Unix()
+	currentTime := int64(snapshotTimestamp)
 	secondsSinceLastUpdate.
 		Rsh(exchangePricesAndConfig, BITS_EXCHANGE_PRICES_LAST_TIMESTAMP).
 		And(&secondsSinceLastUpdate, X33)
@@ -93,6 +92,9 @@ func _calcExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, *big.Int, e
 		Rsh(exchangePricesAndConfig, BITS_EXCHANGE_PRICES_BORROW_RATIO).
 		And(&borrowRatio, X15)
 
+	if secondsSinceLastUpdate.Sign() < 0 {
+		return nil, nil, ErrFluidLiquidityCalcsError
+	}
 	if secondsSinceLastUpdate.Sign() == 0 || temp.Sign() == 0 || borrowRatio.Cmp(bignumber.One) == 0 {
 		return &supplyExchangePrice, &borrowExchangePrice, nil
 	}
