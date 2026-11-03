@@ -507,7 +507,7 @@ func TestScanWordsReadsWindowsInParallel(t *testing.T) {
 		return Page[int16]{Block: 100, Next: w, Done: w > upper}, words, nil
 	}
 
-	block, words, err := ScanWords(t.Context(), -10, 30, Pinned{}, WordsParallel, fetch)
+	block, words, err := ScanWords(t.Context(), -10, 30, Pinned{}, fetch)
 	require.NoError(t, err)
 	assert.EqualValues(t, 100, block)
 	require.Len(t, words, 41)
@@ -522,12 +522,12 @@ func TestScanWordsReadsWindowsInParallel(t *testing.T) {
 	})
 
 	_, _, err = ScanWords(t.Context(), 0, 5, Pinned{},
-		WordsParallel, func(context.Context, int16, int16, *big.Int) (Page[int16], []int16, error) {
+		func(context.Context, int16, int16, *big.Int) (Page[int16], []int16, error) {
 			return Page[int16]{Block: 100, Next: 0}, nil, nil
 		})
 	assert.ErrorIs(t, err, ErrNoProgress)
 
-	_, _, err = ScanWords(t.Context(), 0, 5, Pinned{Block: big.NewInt(100)}, WordsParallel,
+	_, _, err = ScanWords(t.Context(), 0, 5, Pinned{Block: big.NewInt(100)},
 		func(context.Context, int16, int16, *big.Int) (Page[int16], []int16, error) {
 			return Page[int16]{Block: 107, Done: true}, nil, nil
 		})

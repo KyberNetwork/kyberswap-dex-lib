@@ -78,15 +78,9 @@ func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { re
 
 // RetryOn429 sends again, after a pause that doubles from 250ms to 8s, a request refused with 429,
 // for up to a minute: a shared endpoint's rate limit would otherwise fail a live test.
-type RetryOn429 struct {
-	Next http.RoundTripper // nil is http.DefaultTransport
-}
+type RetryOn429 struct{}
 
 func (r RetryOn429) RoundTrip(req *http.Request) (*http.Response, error) {
-	next := r.Next
-	if next == nil {
-		next = http.DefaultTransport
-	}
 	var body []byte
 	if req.Body != nil {
 		var err error
@@ -97,7 +91,7 @@ func (r RetryOn429) RoundTrip(req *http.Request) (*http.Response, error) {
 	deadline := time.Now().Add(time.Minute)
 	for wait := 250 * time.Millisecond; ; wait = min(2*wait, 8*time.Second) {
 		req.Body = io.NopCloser(bytes.NewReader(body))
-		resp, err := next.RoundTrip(req)
+		resp, err := http.DefaultTransport.RoundTrip(req)
 		if err != nil || resp.StatusCode != http.StatusTooManyRequests || time.Now().Add(wait).After(deadline) {
 			return resp, err
 		}

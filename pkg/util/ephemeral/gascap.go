@@ -65,7 +65,10 @@ func GasCap(ctx context.Context, c Caller) (Cap, error) {
 		return probeGasCap(ctx, c)
 	}
 	for {
-		v, _ := gasCaps.LoadOrStore(c, &probe{})
+		v, ok := gasCaps.Load(c)
+		if !ok {
+			v, _ = gasCaps.LoadOrStore(c, &probe{})
+		}
 		p := v.(*probe)
 		p.once.Do(func() {
 			p.cap, p.err = probeGasCap(ctx, c)

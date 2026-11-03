@@ -359,7 +359,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	return t.withState(ctx, p, rpcData, hook, hookParam, ticks, param, prev, now, 0, l)
+	return t.withState(ctx, p, rpcData, hook, hookParam, ticks, param, prev, now, l)
 }
 
 var _ poolpkg.IPoolTrackerWithReset = (*PoolTracker)(nil)
@@ -401,15 +401,15 @@ func (t *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, para
 	}
 	rpcData.LensBlock = snap.block
 
-	p, err = t.withState(ctx, p, rpcData, hook, hookParam, snap.ticks, param, prev, now, snap.block, l)
+	p, err = t.withState(ctx, p, rpcData, hook, hookParam, snap.ticks, param, prev, now, l)
 	return p, snap.block, err
 }
 
-// withState resolves the hook's state over the fetched state and ticks and writes them into p.
-// block is the block they were read at, 0 when unknown.
+// withState resolves the hook's state over the fetched state and ticks and writes them into p, at
+// rpcData.LensBlock when the lens read them.
 func (t *PoolTracker) withState(ctx context.Context, p entity.Pool, rpcData *FetchRPCResult, hook Hook,
 	hookParam *HookParam, ticks []Tick, param poolpkg.GetNewPoolStateParams, prev poolState, now int64,
-	block uint64, l logger.Logger) (entity.Pool, error) {
+	l logger.Logger) (entity.Pool, error) {
 	if err := t.resolveHookState(ctx, hook, hookParam, rpcData, ticks); err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -431,7 +431,7 @@ func (t *PoolTracker) withState(ctx context.Context, p entity.Pool, rpcData *Fet
 	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(param.Logs).BlockTimestamp))
 	p.Reserves = rpcData.Reserves
 	p.Extra = string(extraBytes)
-	p.BlockNumber = max(p.BlockNumber, block, lo.LastOrEmpty(param.Logs).BlockNumber)
+	p.BlockNumber = max(p.BlockNumber, rpcData.LensBlock, lo.LastOrEmpty(param.Logs).BlockNumber)
 	if changed {
 		markActivity(hook, hookParam, &p)
 	}

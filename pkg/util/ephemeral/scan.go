@@ -84,7 +84,10 @@ func runsLate(ctx context.Context, c Chain) (bool, error) {
 	if !reflect.TypeOf(c).Comparable() {
 		return askLate(ctx, c)
 	}
-	v, _ := lateClients.LoadOrStore(c, &lateClient{})
+	v, ok := lateClients.Load(c)
+	if !ok {
+		v, _ = lateClients.LoadOrStore(c, &lateClient{})
+	}
 	l := v.(*lateClient)
 	l.once.Do(func() { l.late, l.err = askLate(ctx, c) })
 	if l.err != nil {
@@ -165,11 +168,11 @@ const WordsParallel = 4
 // progress is read once more alone (see CallPage).
 //
 // A call reads from its lower word as far as its gas allows. Each time one stops short, the words
-// it left are cut in two, and the upper half goes to another call when fewer than parallel are in
+// it left are cut in two, and the upper half goes to another call when fewer than WordsParallel are in
 // flight: the ticks of a pool sit in few words, which a plain cut of the range would leave in one
 // window read call after call, while halving whatever is left splits wherever the ticks are. fetch
 // reads words [lower, upper] in one call; it is called concurrently.
-func ScanWords[T any](ctx context.Context, lower, upper int16, pin Pinned, parallel int,
+func ScanWords[T any](ctx context.Context, lower, upper int16, pin Pinned,
 	fetch func(ctx context.Context, lower, upper int16, block *big.Int) (Page[int16], []T, error)) (uint64,
 	[]T, error) {
 	batch := new(firstPage)
@@ -197,7 +200,7 @@ func ScanWords[T any](ctx context.Context, lower, upper int16, pin Pinned, paral
 	var mu sync.Mutex
 	parts := map[int16][]T{lower: items}
 	g, gctx := errgroup.WithContext(ctx)
-	g.SetLimit(max(parallel, 1))
+	g.SetLimit(max(WordsParallel, 1))
 	var read func(lower, upper int16) error
 	read = func(lower, upper int16) error {
 		for {
