@@ -15,8 +15,9 @@ import (
 )
 
 type TimepointStorage struct {
-	mu   sync.RWMutex
-	data map[uint16]Timepoint
+	mu     sync.RWMutex
+	data   map[uint16]Timepoint
+	parent *TimepointStorage
 }
 
 func NewTimepointStorage(data map[uint16]Timepoint) *TimepointStorage {
@@ -25,23 +26,29 @@ func NewTimepointStorage(data map[uint16]Timepoint) *TimepointStorage {
 	}
 }
 
-func (s *TimepointStorage) Get(index uint16) Timepoint {
+func (s *TimepointStorage) lookup(index uint16) (Timepoint, bool) {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
+	v, ok := s.data[index]
+	parent := s.parent
+	s.mu.RUnlock()
+	if ok {
+		return v, true
+	}
+	if parent != nil {
+		return parent.lookup(index)
+	}
+	return Timepoint{}, false
+}
 
-	if v, ok := s.data[index]; ok {
+func (s *TimepointStorage) Get(index uint16) Timepoint {
+	if v, ok := s.lookup(index); ok {
+		// A fork is copy-on-write. Some oracle calculations mutate their returned integers.
+		if s.parent != nil && v.VolatilityCumulative != nil {
+			v.VolatilityCumulative = v.VolatilityCumulative.Clone()
+		}
 		return v
 	}
-
-	return Timepoint{
-		Initialized:          false,
-		BlockTimestamp:       0,
-		TickCumulative:       0,
-		VolatilityCumulative: uint256.NewInt(0),
-		Tick:                 0,
-		AverageTick:          0,
-		WindowStartIndex:     0,
-	}
+	return Timepoint{VolatilityCumulative: uint256.NewInt(0)}
 }
 func (s *TimepointStorage) set(index uint16, v Timepoint) {
 	s.mu.Lock()

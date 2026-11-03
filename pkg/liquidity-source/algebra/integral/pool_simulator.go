@@ -35,6 +35,7 @@ type PoolSimulator struct {
 	timepoints         *TimepointStorage
 	volatilityOracle   *VolatilityOraclePlugin
 	dynamicFee         *DynamicFeeConfig
+	namiFee            *NamiFeeConfig
 	slidingFee         *SlidingFeeConfig
 	writeTimePointOnce *sync.Once
 
@@ -95,6 +96,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		timepoints:         NewTimepointStorage(extra.Timepoints),
 		volatilityOracle:   extra.VolatilityOracle,
 		dynamicFee:         extra.DynamicFee,
+		namiFee:            extra.NamiFee,
 		slidingFee:         extra.SlidingFee,
 		writeTimePointOnce: new(sync.Once),
 		useBasePluginV2:    staticExtra.UseBasePluginV2,
@@ -163,17 +165,18 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 // swapOutcome is what a swap leaves: amounts, fees, gas and the pool state after it.
 type swapOutcome struct {
-	remaining  uint256.Int // amountRequired left unswapped, signed like the request
-	calculated uint256.Int // signed: negative output for exact-in, positive input for exact-out
-	fee        uint256.Int // community plus plugin fee
-	price      uint256.Int
-	liquidity  uint256.Int
-	tick       int32
-	gas        int64
+	remaining     uint256.Int // amountRequired left unswapped, signed like the request
+	calculated    uint256.Int // signed: negative output for exact-in, positive input for exact-out
+	fee           uint256.Int // community plus plugin fee
+	price         uint256.Int
+	liquidity     uint256.Int
+	tick          int32
+	gas           int64
+	namiTimepoint *NamiTimepointUpdate
 }
 
 func (o *swapOutcome) stateUpdate() StateUpdate {
-	return StateUpdate{Liquidity: &o.liquidity, Price: &o.price, Tick: o.tick}
+	return StateUpdate{Liquidity: &o.liquidity, Price: &o.price, Tick: o.tick, NamiTimepoint: o.namiTimepoint}
 }
 
 // calcAmountOutBacking holds everything a CalcAmountOut result points to, so a quote costs one
@@ -209,7 +212,9 @@ func (p *PoolSimulator) swap(tokenIn, tokenOut string, amtRequired *uint256.Int,
 	zeroForOne := tokenInIndex == 0
 	var overrideFee, pluginFee uint32
 	var err error
-	if p.useBasePluginV2 && p.slidingFee.FeeType {
+	if p.namiFee != nil {
+		overrideFee, o.namiTimepoint, err = p.beforeNamiSwap(zeroForOne)
+	} else if p.useBasePluginV2 && p.slidingFee != nil && p.slidingFee.FeeType {
 		overrideFee, pluginFee, err = p.beforeSwapV2(zeroForOne)
 	} else {
 		overrideFee, pluginFee, err = p.beforeSwapV1(zeroForOne)
@@ -243,6 +248,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.liquidity = si.Liquidity
 	p.globalState.Price = si.Price
 	p.globalState.Tick = si.Tick
+	if si.NamiTimepoint != nil {
+		oracle := *p.volatilityOracle
+		oracle.TimepointIndex = si.NamiTimepoint.Index
+		oracle.LastTimepointTimestamp = si.NamiTimepoint.Timestamp
+		p.volatilityOracle = &oracle
+		p.timepoints = p.timepoints.clone()
+		p.timepoints.set(si.NamiTimepoint.Index, si.NamiTimepoint.Timepoint)
+	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
@@ -521,6 +534,9 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	o.fee.Add(&communityFeeAmount, &pluginFeeAmount)
 	o.tick = currentTick
 	o.gas = BaseGas + ticksCrossed*CrossInitTickGas
+	if p.namiFee != nil {
+		o.gas += int64(p.namiFee.MEVXGas)
+	}
 	return nil
 }
 

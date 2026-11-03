@@ -137,6 +137,7 @@ func (d *PoolTracker) BootstrapPoolState(
 		VolatilityOracle: rpcData.VolatilityOracle,
 		SlidingFee:       rpcData.SlidingFee,
 		DynamicFee:       rpcData.DynamicFee,
+		NamiFee:          rpcData.NamiFee,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -246,6 +247,15 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	res.VolatilityOracle = volatilityOracleData
 	res.DynamicFee = dynamicFeeData
 	res.SlidingFee = slidingFeeData
+	if d.config.UseNamiPlugin || d.config.DexID == "nami-v4" {
+		res.NamiFee, err = d.getNamiFeeData(ctx, plugin, result.BlockNumber, overrides)
+		if err != nil {
+			return res, err
+		}
+		if res.DynamicFee == nil || res.VolatilityOracle == nil {
+			return res, errors.New("Nami plugin missing dynamic fee or volatility oracle")
+		}
+	}
 	res.BlockNumber = result.BlockNumber
 
 	return res, nil
@@ -685,6 +695,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		Timepoints:       rpcState.Timepoints,
 		VolatilityOracle: rpcState.VolatilityOracle,
 		DynamicFee:       rpcState.DynamicFee,
+		NamiFee:          rpcState.NamiFee,
 		SlidingFee:       rpcState.SlidingFee,
 	})
 	if err != nil {

@@ -113,6 +113,7 @@ type FetchRPCResult struct {
 	VolatilityOracle *VolatilityOraclePlugin
 	DynamicFee       *DynamicFeeConfig
 	SlidingFee       *SlidingFeeConfig
+	NamiFee          *NamiFeeConfig
 	BlockNumber      *big.Int
 }
 
@@ -175,6 +176,7 @@ type Extra struct {
 	VolatilityOracle *VolatilityOraclePlugin `json:"vo,omitempty"`
 	DynamicFee       *DynamicFeeConfig       `json:"dF,omitempty"`
 	SlidingFee       *SlidingFeeConfig       `json:"sF,omitempty"`
+	NamiFee          *NamiFeeConfig          `json:"namiFee,omitempty"`
 }
 
 type ExtraTimepoint struct {
@@ -220,9 +222,10 @@ type StaticExtra struct {
 
 // StateUpdate to be returned instead of updating state when calculating amountOut
 type StateUpdate struct {
-	Liquidity *uint256.Int
-	Price     *uint256.Int
-	Tick      int32
+	Liquidity     *uint256.Int
+	Price         *uint256.Int
+	Tick          int32
+	NamiTimepoint *NamiTimepointUpdate
 }
 
 type PoolMeta struct {

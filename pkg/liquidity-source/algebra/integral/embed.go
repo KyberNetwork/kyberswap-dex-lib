@@ -16,5 +16,8 @@ var poolV12Json []byte
 //go:embed abis/BasePluginV2.json
 var basePluginV2Json []byte
 
+//go:embed abis/NamiPlugin.json
+var namiPluginJson []byte
+
 //go:embed abis/TickLens.json
 var ticklenJson []byte

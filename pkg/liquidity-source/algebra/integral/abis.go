@@ -17,6 +17,7 @@ var (
 	poolV10ABI      abi.ABI
 	poolV12ABI      abi.ABI
 	basePluginV2ABI abi.ABI
+	namiPluginABI   abi.ABI
 	ticklensABI     abi.ABI
 )
 
@@ -35,6 +36,7 @@ func init() {
 		{&poolV10ABI, poolV10Json},
 		{&poolV12ABI, poolV12Json},
 		{&basePluginV2ABI, basePluginV2Json},
+		{&namiPluginABI, namiPluginJson},
 		{&ticklensABI, ticklenJson},
 	}
 
