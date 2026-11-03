@@ -99,7 +99,7 @@ func ReadTicks(ctx context.Context, c Node, batch *BatchConfig, contract *Contra
 		return nil, err
 	}
 	var p TickPool
-	read, ticks, err := ScanWords(ctx, lower, upper, pin, WordsParallel,
+	read, ticks, err := ScanWords(ctx, lower, upper, pin,
 		func(ctx context.Context, from, to int16, block *big.Int) (Page[int16], []Tick, error) {
 			var out TickSnapshot
 			if err := CallPage(ctx, batch, c, from, lower, contract, &out, gas, block,

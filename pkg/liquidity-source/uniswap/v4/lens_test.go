@@ -66,7 +66,7 @@ func TestWithStateTakesTheHooksExchange(t *testing.T) {
 		Slot0: Slot0Data{SqrtPriceX96: sqrtPriceOne, Tick: big.NewInt(0)}}
 
 	got, err := tracker.withState(t.Context(), p, result, &BaseHook{Exchange: "uniswap-v4-hooked"},
-		&HookParam{Cfg: tracker.config, Pool: &p}, nil, poolpkg.GetNewPoolStateParams{}, snapshotState(&p), 0, 0,
+		&HookParam{Cfg: tracker.config, Pool: &p}, nil, poolpkg.GetNewPoolStateParams{}, snapshotState(&p), 0,
 		logger.WithFields(nil))
 	require.NoError(t, err)
 	assert.Equal(t, "uniswap-v4-hooked", got.Exchange)

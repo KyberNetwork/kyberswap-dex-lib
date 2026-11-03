@@ -372,7 +372,7 @@ func TestScanReadsAStuckBatchedFirstPageAlone(t *testing.T) {
 func TestScanWordsReadsAStuckBatchedFirstPageAlone(t *testing.T) {
 	node := &batchNode{stuck: true}
 	cfg := &BatchConfig{}
-	_, words, err := ScanWords(t.Context(), 0, 10, Pinned{Block: big.NewInt(100)}, WordsParallel,
+	_, words, err := ScanWords(t.Context(), 0, 10, Pinned{Block: big.NewInt(100)},
 		func(ctx context.Context, lower, upper int16, block *big.Int) (Page[int16], []int16, error) {
 			var got testResult
 			// Read alone, a page reads every word: x 11 moves the cursor past them all.
