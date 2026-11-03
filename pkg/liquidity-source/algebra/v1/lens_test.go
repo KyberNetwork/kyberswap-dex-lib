@@ -55,7 +55,7 @@ func ticks(pairs ...int64) []tickspkg.Tick {
 }
 
 func newLensTracker(f *fakeTable) *PoolTracker {
-	t := NewPoolTracker(&Config{LensConfig: ephemeral.LensConfig{UseLens: true}}, nil, nil)
+	t := NewPoolTracker(&Config{UseLens: true}, nil, nil)
 	t.readLens = f.read
 	return t
 }
@@ -236,7 +236,7 @@ func TestResetPoolState(t *testing.T) {
 
 // TestStatelessPoolsAreScheduled: a pool without state is due when the guard would take it.
 func TestStatelessPoolsAreScheduled(t *testing.T) {
-	tr := NewPoolTracker(&Config{LensConfig: ephemeral.LensConfig{UseLens: true}}, nil, nil)
+	tr := NewPoolTracker(&Config{UseLens: true}, nil, nil)
 	if at := tr.NextUpdateAt(entity.Pool{Address: "0xpool"}); at == 0 {
 		t.Error("pool without state not scheduled")
 	}

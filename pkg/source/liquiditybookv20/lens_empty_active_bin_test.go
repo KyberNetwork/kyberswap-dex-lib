@@ -17,7 +17,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -30,7 +29,7 @@ func emptyActiveBinChain(t *testing.T) (*PoolTracker, func() []string, func()) {
 			active - 1: {0, 1e18}, active: {0, 0}, active + 1: {1e18, 0}}},
 	})
 	return NewPoolTracker(&Config{
-		LensConfig: ephemeral.LensConfig{UseLens: true}},
+		UseLens: true},
 		chain.Client(), nil), lensBlocks, chain.Close
 }
 

@@ -24,8 +24,8 @@ func TestStatelessPoolsAreScheduled(t *testing.T) {
 	t.Parallel()
 
 	tr := NewPoolTracker(&Config{
-		LensConfig: ephemeral.LensConfig{UseLens: true,
-			LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}}, nil, nil)
+		UseLens:   true,
+		LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}, nil, nil)
 	before := time.Now().Unix()
 	at := tr.NextUpdateAt(entity.Pool{Extra: `{}`})
 	assert.GreaterOrEqual(t, at, before)
@@ -45,7 +45,7 @@ func TestResetPoolState(t *testing.T) {
 	t.Parallel()
 
 	p := entity.Pool{Extra: `{"unlocked":true,"liquidity":7,"sqrtPriceX96":1,"ticks":[]}`}
-	lens := NewPoolTracker(&Config{LensConfig: ephemeral.LensConfig{UseLens: true}}, nil, nil)
+	lens := NewPoolTracker(&Config{UseLens: true}, nil, nil)
 	got, ok := lens.ResetPoolState(p, 100)
 	assert.True(t, ok)
 	assert.False(t, tickspkg.HasState(got))

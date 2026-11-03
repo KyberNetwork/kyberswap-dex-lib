@@ -17,7 +17,6 @@ import (
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 )
 
 const testPoolAddress = "0x8d1b5f8da63fa29b191672231d3845740a11fcbef6c76e077cfffe56cc27c707_3"
@@ -172,7 +171,7 @@ func TestPoolWithoutStateIsNotSimulated(t *testing.T) {
 		Tokens: []*entity.PoolToken{{Address: "0x1"}, {Address: "0x2"}}}, start)
 	require.NoError(t, err)
 	reset, ok := (&PoolTracker{config: &Config{
-		LensConfig: ephemeral.LensConfig{UseLens: true}}}).ResetPoolState(p, 7)
+		UseLens: true}}).ResetPoolState(p, 7)
 	require.True(t, ok)
 
 	for _, extra := range []string{"{}", reset.Extra} {
@@ -195,7 +194,7 @@ func TestResetPoolState(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, p, kept)
 
-	tracker := NewPoolTracker(&Config{LensConfig: ephemeral.LensConfig{UseLens: true}}, nil, nil)
+	tracker := NewPoolTracker(&Config{UseLens: true}, nil, nil)
 	reset, ok := tracker.ResetPoolState(p, 7)
 	require.True(t, ok)
 	assert.False(t, tickspkg.HasState(reset))
