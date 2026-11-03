@@ -2,7 +2,6 @@ package dexv2
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"math/big"
 
@@ -17,15 +16,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
-	config        *Config
-	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphqlpkg.Client
+	config       *Config
+	ethrpcClient *ethrpc.Client
 }
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
@@ -33,12 +30,11 @@ var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
 func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *graphqlpkg.Client,
+	_ *graphqlpkg.Client,
 ) *PoolTracker {
 	return &PoolTracker{
-		config:        config,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		config:       config,
+		ethrpcClient: ethrpcClient,
 	}
 }
 
@@ -229,54 +225,4 @@ func (t *PoolTracker) getNewPoolState(
 	logger.Infof("[%s] Finish getting new state of pool %v", t.config.DexID, p.Address)
 
 	return p, nil
-}
-
-func (t *PoolTracker) fetchPoolTicksFromSubgraph(
-	ctx context.Context,
-	p entity.Pool,
-) ([]Tick, error) {
-	dexId, dexType := parseFluidDexV2PoolAddress(p.Address)
-
-	dexTypeBytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(dexTypeBytes, dexType)
-
-	dexIdBytes := common.Hex2Bytes(dexId[2:])
-
-	poolIdBytes := append(dexIdBytes, dexTypeBytes...)
-	poolId := "0x" + common.Bytes2Hex(poolIdBytes)
-
-	lastTickIdx := 0
-	var ticks []TickResp
-
-	for {
-		req := graphqlpkg.NewRequest(getPoolTicksQuery(poolId, lastTickIdx))
-
-		var resp struct {
-			Ticks []TickResp `json:"ticks"`
-		}
-
-		if err := t.graphqlClient.Run(ctx, req, &resp); err != nil {
-			return nil, err
-		}
-
-		if len(resp.Ticks) == 0 {
-			break
-		}
-
-		ticks = append(ticks, resp.Ticks...)
-
-		if len(resp.Ticks) < graphFirstLimit {
-			break
-		}
-
-		lastTickIdx = resp.Ticks[len(resp.Ticks)-1].Tick
-	}
-
-	return lo.Map(ticks, func(tick TickResp, _ int) Tick {
-		return Tick{
-			Index:          tick.Tick,
-			LiquidityNet:   bignumber.NewBig10(tick.LiquidityNet),
-			LiquidityGross: bignumber.NewBig10(tick.LiquidityGross),
-		}
-	}), nil
 }

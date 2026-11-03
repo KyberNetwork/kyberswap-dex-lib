@@ -7,9 +7,8 @@ import (
 )
 
 const (
-	DexType         = "fluid-dex-v2"
-	graphFirstLimit = 1000
-	tickChunkSize   = 100
+	DexType       = "fluid-dex-v2"
+	tickChunkSize = 100
 
 	D3_MODULE = 3
 
