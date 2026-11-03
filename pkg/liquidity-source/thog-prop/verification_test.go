@@ -32,6 +32,7 @@ const (
 	verifyProxy   = "0x80c74517bcc2d67ffe02d3ed886796272f647210"
 	verifyPoolID  = "0xce389e78282dedac7b18ba7f775b7602d2ab3ab171bbd6711eb0239be6ef4dcc"
 	verifySender  = "0x00000000000000000000000000000000c0de0001"
+	verifyFunder  = "0x00000000000000000000000000000000c0de0002"
 	verifyFeeTo   = "0x1f55fFAc09C8Cd7aAa817EE07Ed43bEE3B424F47"
 	verifyChainID = "143"
 )
@@ -61,6 +62,7 @@ var verifyABI = func() abi.ABI {
 	a, err := abi.JSON(strings.NewReader(`[
 	{"type":"function","name":"balanceOf","inputs":[{"type":"address"}],"outputs":[{"type":"uint256"}]},
 	{"type":"function","name":"approve","inputs":[{"type":"address"},{"type":"uint256"}],"outputs":[{"type":"bool"}]},
+	{"type":"function","name":"transfer","inputs":[{"type":"address"},{"type":"uint256"}],"outputs":[{"type":"bool"}]},
 	{"type":"function","name":"swapWithExtraFees","inputs":[{"type":"address"},{"type":"address"},{"type":"uint256"},
 		{"type":"uint256"},{"type":"uint256"},{"type":"uint256"},{"type":"address"}],"outputs":[{"type":"uint256"}]}]`))
 	if err != nil {
@@ -88,25 +90,9 @@ func mustRat(s string) *big.Rat {
 // Env: THOG_PROP_RPC_URL (Monad RPC), THOG_PROP_TENDERLY_{ACCOUNT,PROJECT,ACCESS_KEY};
 // THOG_PROP_PARITY_OUT optionally receives the markdown table.
 func TestVerification(t *testing.T) {
-	test.SkipCI(t)
-	url := os.Getenv("THOG_PROP_RPC_URL")
-	tenderly := tenderlySettler{account: os.Getenv("THOG_PROP_TENDERLY_ACCOUNT"),
-		project: os.Getenv("THOG_PROP_TENDERLY_PROJECT"), key: os.Getenv("THOG_PROP_TENDERLY_ACCESS_KEY")}
-	if url == "" || tenderly.account == "" || tenderly.project == "" || tenderly.key == "" {
-		t.Skip("THOG_PROP_RPC_URL and THOG_PROP_TENDERLY_{ACCOUNT,PROJECT,ACCESS_KEY} required")
-	}
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Minute)
-	defer cancel()
-	c, err := rpc.DialContext(ctx, url)
-	require.NoError(t, err)
-	t.Cleanup(c.Close)
-
-	sim := trackedSimulator(ctx, t, url)
-	next := waitHeader(ctx, t, c, sim.state.BlockNumber+1)
-	tenderly.parent, tenderly.block = sim.state.BlockNumber, next
-	execCtx := ExecutionContext{BlockNumber: uint64(next.Number)}
-	execCtx.BaseFee.SetFromBig(next.BaseFee.ToInt())
-	execCtx.GasPrice = execCtx.BaseFee
+	ctx, sim, tenderly, execCtx := setupVerification(t)
+	next := tenderly.block
+	var err error
 
 	pairs := [][2]string{{"USDC", "WMON"}, {"WMON", "USDC"}, {"USDC", "USDT0"}, {"USDT0", "USDC"},
 		{"USDC", "SPYx"}, {"SPYx", "USDC"}, {"WMON", "WETH"}, {"WETH", "WMON"}}
@@ -133,7 +119,8 @@ func TestVerification(t *testing.T) {
 	g.SetLimit(8)
 	for i := range rows {
 		g.Go(func() error {
-			rows[i].settle, rows[i].settleErr = tenderly.settle(gctx, rows[i].in, rows[i].out, rows[i].amountIn)
+			hop := []routeHop{{in: rows[i].in, out: rows[i].out, amount: rows[i].amountIn}}
+			rows[i].settle, rows[i].settleErr = tenderly.settleRoute(gctx, hop)[0].get()
 			return nil
 		})
 	}
@@ -167,6 +154,138 @@ func TestVerification(t *testing.T) {
 	}
 	t.Log("\n" + md.String())
 	if path := os.Getenv("THOG_PROP_PARITY_OUT"); path != "" {
+		require.NoError(t, os.WriteFile(path, []byte(md.String()), 0o644))
+	}
+}
+
+// setupVerification reads the live pool with the real tracker at head N and waits
+// for block N+1, whose header prices both the execution quote and the settlement.
+func setupVerification(t *testing.T) (context.Context, verifySim, tenderlySettler, ExecutionContext) {
+	t.Helper()
+	test.SkipCI(t)
+	url := os.Getenv("THOG_PROP_RPC_URL")
+	tenderly := tenderlySettler{account: os.Getenv("THOG_PROP_TENDERLY_ACCOUNT"),
+		project: os.Getenv("THOG_PROP_TENDERLY_PROJECT"), key: os.Getenv("THOG_PROP_TENDERLY_ACCESS_KEY")}
+	if url == "" || tenderly.account == "" || tenderly.project == "" || tenderly.key == "" {
+		t.Skip("THOG_PROP_RPC_URL and THOG_PROP_TENDERLY_{ACCOUNT,PROJECT,ACCESS_KEY} required")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Minute)
+	t.Cleanup(cancel)
+	c, err := rpc.DialContext(ctx, url)
+	require.NoError(t, err)
+	t.Cleanup(c.Close)
+
+	sim := trackedSimulator(ctx, t, url)
+	next := waitHeader(ctx, t, c, sim.state.BlockNumber+1)
+	tenderly.parent, tenderly.block = sim.state.BlockNumber, next
+	execCtx := ExecutionContext{BlockNumber: uint64(next.Number)}
+	execCtx.BaseFee.SetFromBig(next.BaseFee.ToInt())
+	execCtx.GasPrice = execCtx.BaseFee
+	return ctx, sim, tenderly, execCtx
+}
+
+// TestVerificationMultiHop settles routes that hit the pool several times in one
+// transaction sequence (same block): round trips, repeats and chains. The simulator
+// quotes each hop on a clone after UpdateBalance with the previous hop's SwapInfo;
+// the chain runs the hops back to back in one bundle. Each hop is gated like a
+// single swap, so a stale or partial UpdateBalance shows as a hop-2 mismatch.
+func TestVerificationMultiHop(t *testing.T) {
+	ctx, sim, tenderly, execCtx := setupVerification(t)
+	type step struct {
+		in, out string
+		chained bool // amount = previous hop's simulated output; else the route size
+	}
+	routes := [][]step{
+		{{"USDC", "WMON", false}, {"WMON", "USDC", true}},
+		{{"USDC", "WMON", false}, {"USDC", "WMON", false}},
+		{{"USDC", "WMON", false}, {"WMON", "WETH", true}},
+		{{"WMON", "USDC", false}, {"USDC", "SPYx", true}},
+		{{"USDC", "SPYx", false}, {"SPYx", "USDC", true}},
+		{{"SPYx", "USDC", false}, {"USDC", "WMON", true}, {"WMON", "USDC", true}},
+		{{"WETH", "WMON", false}, {"WETH", "WMON", false}, {"WMON", "WETH", true}},
+	}
+	sizes := []string{"1", "250", "2500"}
+
+	type routeCase struct {
+		name string
+		rows []verifyRow
+	}
+	cases := make([]routeCase, 0, len(routes)*len(sizes))
+	usdc := verifyTokens["USDC"]
+	for _, route := range routes {
+		first := verifyTokens[route[0].in]
+		perDollar := big.NewInt(1e6)
+		if first != usdc {
+			var err error
+			perDollar, err = sim.quote(usdc, first, perDollar)
+			require.NoError(t, err, "sizing %s", first.symbol)
+		}
+		names := []string{route[0].in}
+		for _, st := range route {
+			names = append(names, st.out)
+		}
+		for _, usd := range sizes {
+			size, clone := scale(perDollar, usd), sim.clone()
+			rc := routeCase{name: strings.Join(names, "→") + " $" + usd}
+			var prev *big.Int
+			for k, st := range route {
+				r := verifyRow{in: verifyTokens[st.in], out: verifyTokens[st.out], usd: fmt.Sprintf("%s #%d", usd, k+1),
+					amountIn: size}
+				if st.chained {
+					r.amountIn = prev
+				}
+				if r.amountIn == nil { // an earlier hop was rejected: the route stops there
+					break
+				}
+				res, err := clone.quoteResult(r.in, r.out, r.amountIn)
+				r.exec, r.execErr = clone.quoteExecution(r.in, r.out, r.amountIn, execCtx)
+				if r.simErr = err; err == nil {
+					r.sim = res.TokenAmountOut.Amount
+					clone.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: res.SwapInfo})
+				}
+				prev = r.sim
+				rc.rows = append(rc.rows, r)
+			}
+			cases = append(cases, rc)
+		}
+	}
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(8)
+	for i := range cases {
+		g.Go(func() error {
+			hops := make([]routeHop, len(cases[i].rows))
+			for k, r := range cases[i].rows {
+				hops[k] = routeHop{in: r.in, out: r.out, amount: r.amountIn}
+			}
+			for k, h := range tenderly.settleRoute(gctx, hops) {
+				cases[i].rows[k].settle, cases[i].rows[k].settleErr = h.get()
+			}
+			return nil
+		})
+	}
+	require.NoError(t, g.Wait())
+
+	var md strings.Builder
+	fmt.Fprintf(&md, "Tracker block N=%d. Each route settles as one Tenderly bundle on state N with header N+1; "+
+		"hop k+1 is quoted on a clone after UpdateBalance(hop k).\n\n", tenderly.parent)
+	md.WriteString("| hop | usd #hop | amountIn | simOut | execOut | settleOut | exec−settle | sim−settle (bp) | verdict |\n" +
+		"|---|---|---|---|---|---|---|---|---|\n")
+	for i := range cases {
+		t.Run(cases[i].name, func(t *testing.T) {
+			for k := range cases[i].rows {
+				r := &cases[i].rows[k]
+				r.classify()
+				md.WriteString(r.markdown())
+				t.Logf("#%d %s→%s in=%s sim=%s exec=%s settle=%s → %s", k+1, r.in.symbol, r.out.symbol, r.amountIn,
+					short(r.sim, r.simErr), short(r.exec, r.execErr), short(r.settle, r.settleErr), r.verdict)
+				if !r.ok {
+					t.Errorf("hop %d: %s", k+1, r.verdict)
+				}
+			}
+		})
+	}
+	t.Log("\n" + md.String())
+	if path := os.Getenv("THOG_PROP_MULTIHOP_OUT"); path != "" {
 		require.NoError(t, os.WriteFile(path, []byte(md.String()), 0o644))
 	}
 }
@@ -219,14 +338,23 @@ func trackedSimulator(ctx context.Context, t *testing.T, url string) verifySim {
 	return verifySim{sim, index}
 }
 
-// quote is CalcAmountOut at zero elapsed time (quote block N+1).
-func (s verifySim) quote(in, out verifyToken, amt *big.Int) (*big.Int, error) {
-	r, err := s.calcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: in.hex(), Amount: amt},
+// quoteResult is CalcAmountOut at zero elapsed time (quote block N+1).
+func (s verifySim) quoteResult(in, out verifyToken, amt *big.Int) (*pool.CalcAmountOutResult, error) {
+	return s.calcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: in.hex(), Amount: amt},
 		TokenOut: out.hex()}, s.capturedAtMs)
+}
+
+func (s verifySim) quote(in, out verifyToken, amt *big.Int) (*big.Int, error) {
+	r, err := s.quoteResult(in, out, amt)
 	if err != nil {
 		return nil, err
 	}
 	return r.TokenAmountOut.Amount, nil
+}
+
+// clone returns an independent simulator for applying UpdateBalance along a route.
+func (s verifySim) clone() verifySim {
+	return verifySim{s.CloneState().(*PoolSimulator), s.index}
 }
 
 func (s verifySim) quoteExecution(in, out verifyToken, amt *big.Int, ctx ExecutionContext) (*big.Int, error) {
@@ -329,7 +457,7 @@ type tenderlySim struct {
 	BlockNumber    uint64                    `json:"block_number"`
 	BlockHeader    map[string]any            `json:"block_header"`
 	SimulationType string                    `json:"simulation_type"`
-	StateObjects   map[string]map[string]any `json:"state_objects"`
+	StateObjects   map[string]map[string]any `json:"state_objects,omitempty"`
 }
 
 type tenderlyResult struct {
@@ -345,66 +473,121 @@ type tenderlyResult struct {
 	} `json:"transaction"`
 }
 
-// settle funds amt of in through its balance slot, then runs [balanceOf(in),
-// balanceOf(out), approve, swap, balanceOf(out)] and returns the tokenOut delta.
-func (s tenderlySettler) settle(ctx context.Context, in, out verifyToken, amt *big.Int) (*big.Int, error) {
-	sender, proxy := common.HexToAddress(verifySender), common.HexToAddress(verifyProxy)
-	units := amt
-	if in.ratio != nil { // share token: store floor(amt/ratio)+1 so balanceOf covers amt
-		q := new(big.Rat).Quo(new(big.Rat).SetInt(amt), in.ratio)
+// routeHop is one swapWithExtraFees call of a route on the same pool.
+type routeHop struct {
+	in, out verifyToken
+	amount  *big.Int
+}
+
+type hopResult struct {
+	delta *big.Int
+	err   error
+}
+
+func (h hopResult) get() (*big.Int, error) { return h.delta, h.err }
+
+// settleRoute funds the first hop's input (the sum of every hop spending it), then
+// runs one bundle: [transfer(sender) from the funder, balanceOf(in)] and per hop
+// [balanceOf(out), approve, swap, balanceOf(out)]. Each hop's result is the sender's
+// tokenOut delta across its swap; hops after a revert report it.
+//
+// The storage override sits on a separate funder: Tenderly keeps reporting an
+// overridden slot's value through later simulations of the bundle, which would hide
+// the sender's real balance whenever a hop pays out the funded token.
+func (s tenderlySettler) settleRoute(ctx context.Context, hops []routeHop) []hopResult {
+	results := make([]hopResult, len(hops))
+	fail := func(err error) []hopResult {
+		for i := range results {
+			results[i].err = err
+		}
+		return results
+	}
+	sender, funder := common.HexToAddress(verifySender), common.HexToAddress(verifyFunder)
+	proxy, first := common.HexToAddress(verifyProxy), hops[0].in
+	funded := new(big.Int)
+	for _, h := range hops {
+		if h.in == first {
+			funded.Add(funded, h.amount)
+		}
+	}
+	sent, units := funded, funded
+	if first.ratio != nil { // share token: transfer rounds shares down, so send 2 wei extra
+		sent = new(big.Int).Add(funded, big.NewInt(2))
+		q := new(big.Rat).Quo(new(big.Rat).SetInt(sent), first.ratio)
 		units = new(big.Int).Add(new(big.Int).Quo(q.Num(), q.Denom()), big.NewInt(1))
 	}
-	slot := crypto.Keccak256Hash(common.LeftPadBytes(sender[:], 32), common.LeftPadBytes(big.NewInt(in.slot).Bytes(), 32))
+	slot := crypto.Keccak256Hash(common.LeftPadBytes(funder[:], 32), common.LeftPadBytes(big.NewInt(first.slot).Bytes(), 32))
 	overrides := map[string]map[string]any{
 		verifySender: {"balance": "100000000000000000000"},
-		in.hex():     {"storage": map[string]string{slot.Hex(): common.BigToHash(units).Hex()}},
-	}
-	expiry := new(big.Int).SetUint64(uint64(s.block.Time) + 3600)
-	balanceOf := pack("balanceOf", sender)
-	calls := []struct {
-		to   common.Address
-		data hexutil.Bytes
-	}{
-		{in.address, balanceOf},
-		{out.address, balanceOf},
-		{in.address, pack("approve", proxy, amt)},
-		{proxy, pack("swapWithExtraFees", in.address, out.address, amt, new(big.Int), expiry, new(big.Int),
-			common.HexToAddress(verifyFeeTo))},
-		{out.address, balanceOf},
+		verifyFunder: {"balance": "100000000000000000000"},
+		first.hex():  {"storage": map[string]string{slot.Hex(): common.BigToHash(units).Hex()}},
 	}
 	// block_number B runs on the state at the END of B, so execute on the tracker
 	// block's state with the next block's header (number, time, base fee).
 	header := map[string]any{"number": s.block.Number, "timestamp": s.block.Time, "baseFeePerGas": &s.block.BaseFee}
-	sims := make([]tenderlySim, len(calls))
-	for i, call := range calls {
+	expiry := new(big.Int).SetUint64(uint64(s.block.Time) + 3600)
+	balanceOf := pack("balanceOf", sender)
+	sim := func(to common.Address, data hexutil.Bytes) tenderlySim {
 		// Zero priority fee: gas price is the block base fee.
-		sims[i] = tenderlySim{NetworkID: verifyChainID, From: verifySender, To: call.to, Input: call.data, Gas: 3_000_000,
+		return tenderlySim{NetworkID: verifyChainID, From: verifySender, To: to, Input: data, Gas: 3_000_000,
 			GasPrice: s.block.BaseFee.ToInt().String(), Value: "0", BlockNumber: s.parent, BlockHeader: header,
-			SimulationType: "quick", StateObjects: overrides}
+			SimulationType: "quick"}
 	}
-	results, err := s.simulateBundle(ctx, sims)
+	// Overrides go on the first simulation only: later ones inherit the bundle's
+	// state, and repeating them would reset the funded balance between hops.
+	fund := sim(first.address, pack("transfer", sender, sent))
+	fund.From, fund.StateObjects = verifyFunder, overrides
+	sims := []tenderlySim{fund, sim(first.address, balanceOf)}
+	for _, h := range hops {
+		sims = append(sims,
+			sim(h.out.address, balanceOf),
+			sim(h.in.address, pack("approve", proxy, h.amount)),
+			sim(proxy, pack("swapWithExtraFees", h.in.address, h.out.address, h.amount, new(big.Int), expiry,
+				new(big.Int), common.HexToAddress(verifyFeeTo))),
+			sim(h.out.address, balanceOf))
+	}
+	out, err := s.simulateBundle(ctx, sims)
 	if err != nil {
-		return nil, err
+		return fail(err)
 	}
-	if len(results) != len(sims) {
-		return nil, fmt.Errorf("tenderly: %d results for %d simulations", len(results), len(sims))
+	if len(out) != len(sims) {
+		return fail(fmt.Errorf("tenderly: %d results for %d simulations", len(out), len(sims)))
 	}
 	word := func(i int) *big.Int {
-		return new(big.Int).SetBytes(results[i].Transaction.TransactionInfo.CallTrace.Output)
+		return new(big.Int).SetBytes(out[i].Transaction.TransactionInfo.CallTrace.Output)
 	}
-	for i, r := range results {
-		if !r.Transaction.Status {
-			msg := r.Transaction.ErrorMessage
-			if e := r.Transaction.TransactionInfo.CallTrace.Error; e != "" && e != msg {
-				msg += ": " + e
-			}
-			return nil, fmt.Errorf("sim %d reverted: %s", i, msg)
+	reverted := func(i int) error {
+		tx := out[i].Transaction
+		if tx.Status {
+			return nil
+		}
+		msg := tx.ErrorMessage
+		if e := tx.TransactionInfo.CallTrace.Error; e != "" && e != msg {
+			msg += ": " + e
+		}
+		return fmt.Errorf("sim %d reverted: %s", i, msg)
+	}
+	for i := range 2 {
+		if err = reverted(i); err != nil {
+			return fail(err)
 		}
 	}
-	if got := word(0); got.Cmp(amt) < 0 {
-		return nil, fmt.Errorf("funding %s: balance %s < %s", in.symbol, got, amt)
+	if got := word(1); got.Cmp(funded) < 0 {
+		return fail(fmt.Errorf("funding %s: balance %s < %s", first.symbol, got, funded))
 	}
-	return new(big.Int).Sub(word(4), word(1)), nil
+	for k := range hops {
+		base := 2 + 4*k
+		for i := base; i < base+4; i++ {
+			if err = reverted(i); err != nil {
+				for j := k; j < len(hops); j++ {
+					results[j].err = err
+				}
+				return results
+			}
+		}
+		results[k].delta = new(big.Int).Sub(word(base+3), word(base))
+	}
+	return results
 }
 
 func (s tenderlySettler) simulateBundle(ctx context.Context, sims []tenderlySim) ([]tenderlyResult, error) {

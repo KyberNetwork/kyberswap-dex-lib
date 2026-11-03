@@ -212,7 +212,11 @@ the real tracker reads head N, the simulator quotes at N+1, and each of 40 cases
 (8 pairs × $1–$50M) settles as a Tenderly bundle on N's state with N+1's header
 (Tenderly's `block_number` alone runs on the state after that block). On November 3
 it passed in 13 s: 25 exact, 11 matching rejections, and 4 SPYx outputs 1 wei above
-the guarantee from share rounding.
+the guarantee from share rounding. `TestVerificationMultiHop` settles 21 routes that
+hit the pool two or three times in one bundle (round trips, repeats, chains through
+SPYx); every later hop is quoted on a clone after `UpdateBalance` and all 48 hops
+matched (42 exact, 6 SPYx +1 wei). `TestCloneStateConcurrentRoutesAreIsolated` replays
+such routes on 16 clones in parallel under `-race`.
 
 A live atomic-lens capture from October 29 is committed as `testdata/lens-monad.json.gz`.
 It verifies decoding the compiled lens result, nonzero base fee, all 13 listed
