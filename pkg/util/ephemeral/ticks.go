@@ -48,8 +48,8 @@ const (
 )
 
 // TickSnapshot is what a bitmap lens's getSnapshot returns, one field per output in the ABI's order.
-// V3Lens, AlgebraV1Lens, PancakeInfinityCLLens and FluidDexV2Lens
-// all return it.
+// V3Lens, AlgebraV1Lens, PancakeInfinityCLLens and FluidDexV2Lens all return it. V4Lens returns it
+// without tickSpacing, which the pool key holds, and decodes with TickSpacing nil.
 type TickSnapshot struct {
 	TickSpacing  *big.Int
 	SqrtPriceX96 *big.Int

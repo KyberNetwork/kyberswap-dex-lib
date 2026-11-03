@@ -21,12 +21,11 @@ var lens = ephemeral.MustLoad("PancakeInfinityCLLens", lensJSON)
 // lensSnapshot is a pool's price, liquidity, tick spacing and every initialized tick, read by the
 // lens at one block.
 type lensSnapshot struct {
-	block        uint64
-	tickSpacing  uint64
-	sqrtPriceX96 *big.Int
-	tick         int
-	liquidity    *big.Int
-	ticks        []Tick
+	block       uint64
+	tickSpacing uint64
+	tick        int
+	liquidity   *big.Int
+	ticks       []Tick
 }
 
 // snapshot reads the pool at block (nil for the latest) through the lens and CLPoolManager,
@@ -41,7 +40,7 @@ func (t *PoolTracker) snapshot(ctx context.Context, poolID string, block *big.In
 	if err := p.Check(); err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s at block %d: %w", poolID, p.Block, err)
 	}
-	s := lensSnapshot{block: p.Block, tickSpacing: p.TickSpacing.Uint64(), sqrtPriceX96: p.SqrtPriceX96,
+	s := lensSnapshot{block: p.Block, tickSpacing: p.TickSpacing.Uint64(),
 		tick: p.Tick, liquidity: p.Liquidity, ticks: make([]Tick, len(p.Ticks))}
 	for i, tk := range p.Ticks {
 		s.ticks[i] = Tick{Index: tk.Index, LiquidityNet: tk.LiquidityNet, LiquidityGross: tk.LiquidityGross}

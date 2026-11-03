@@ -55,18 +55,6 @@
       "pkg/util/ephemeral/contracts/libraries/TickBitmap.sol": "f5a51032a37505e620a1fe5696b962f89fe0fe985fdd195d9011d36a81789b54"
     }
   },
-  "pkg/liquidity-source/native/v3/abis/lens.json": {
-    "contract": "V3Lens",
-    "sha256": "2505e8722248c97d0630dc3def257d262e1f63fdfddd2f9117cbf212dd602d2a",
-    "sources": {
-      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
-      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
-      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
-      "pkg/util/ephemeral/contracts/libraries/TickBitmap.sol": "f5a51032a37505e620a1fe5696b962f89fe0fe985fdd195d9011d36a81789b54",
-      "pkg/util/ephemeral/contracts/libraries/V3Pool.sol": "2d8c0988435913b4ae32d6888bb23b31a5a413f148410f80ec0af0035f6b59b4",
-      "pkg/util/ephemeral/contracts/uniswap/v3/V3Lens.sol": "3977af872875adc8a7d0aa9ec5d42ad787f887eebb9b60ec19d34a05bfc06f50"
-    }
-  },
   "pkg/liquidity-source/pancake/infinity/bin/abi/lens.json": {
     "contract": "PancakeInfinityBinLens",
     "sha256": "bc3e97f3eac94fb71b0658e0dd64907d44345da3eab3c250e91631d166d2d2a4",
