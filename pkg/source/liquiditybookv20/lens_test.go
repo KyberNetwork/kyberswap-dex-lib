@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
-	"os"
 	"strings"
 	"testing"
 
@@ -21,22 +20,14 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
-
-func lensFixture(t *testing.T, name string) []byte {
-	t.Helper()
-	raw, err := os.ReadFile("testdata/lens/" + name)
-	require.NoError(t, err)
-	b, err := hex.DecodeString(strings.TrimSpace(string(raw)))
-	require.NoError(t, err)
-	return b
-}
 
 // TestLensDecodesPartialSnapshot: a walk that stopped short reports the state, the bins it read,
 // and where to resume.
 func TestLensDecodesPartialSnapshot(t *testing.T) {
 	var r ephemeral.BinSnapshot
-	require.NoError(t, lens.UnpackCall(lensFixture(t, "partial.hex"), &r))
+	require.NoError(t, lens.UnpackCall(testutil.HexFixture(t, "testdata/lens/partial.hex"), &r))
 
 	assert.EqualValues(t, 8385550, r.ActiveId.Int64())
 	assert.Equal(t, "29018820194444211860444", r.ReserveX.String())
@@ -58,7 +49,7 @@ func TestLensDecodesPartialSnapshot(t *testing.T) {
 // TestLensRejectsWhatIsNotAResult: each payload here is the real one with one thing wrong, or a
 // different kind of revert; reading any of them as a result would hand the tracker made-up bins.
 func TestLensRejectsWhatIsNotAResult(t *testing.T) {
-	good := lensFixture(t, "partial.hex")
+	good := testutil.HexFixture(t, "testdata/lens/partial.hex")
 	with := func(word int, value []byte) []byte {
 		b := bytes.Clone(good)
 		copy(b[word*32:(word+1)*32], value)
