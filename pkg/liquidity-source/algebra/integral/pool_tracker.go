@@ -22,6 +22,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -248,7 +249,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	res.DynamicFee = dynamicFeeData
 	res.SlidingFee = slidingFeeData
 	if d.config.UseNamiPlugin || d.config.DexID == "nami-v4" {
-		res.NamiFee, err = d.getNamiFeeData(ctx, plugin, result.BlockNumber, overrides)
+		res.NamiFee, err = nami.Fetch(ctx, d.EthrpcClient, plugin, result.BlockNumber, overrides, blockTimestamp())
 		if err != nil {
 			return res, err
 		}

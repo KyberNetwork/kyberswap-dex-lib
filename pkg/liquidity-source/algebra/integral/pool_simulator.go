@@ -1,6 +1,7 @@
 package integral
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -16,6 +17,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -35,7 +37,7 @@ type PoolSimulator struct {
 	timepoints         *TimepointStorage
 	volatilityOracle   *VolatilityOraclePlugin
 	dynamicFee         *DynamicFeeConfig
-	namiFee            *NamiFeeConfig
+	namiFee            *nami.Config
 	slidingFee         *SlidingFeeConfig
 	writeTimePointOnce *sync.Once
 
@@ -620,4 +622,36 @@ func movePriceTowardsTarget(zeroToOne bool, currentPrice, targetPrice, liquidity
 	}
 
 	return v3Utils.MulDivRoundingUpV2(input, feeAmount.SetUint64(fee), &feeDenoMinusFee, feeAmount)
+}
+
+func (p *PoolSimulator) beforeNamiSwap(zeroToOne bool) (uint32, *NamiTimepointUpdate, error) {
+	if p.namiFee.Unsupported != "" {
+		return 0, nil, errors.New(p.namiFee.Unsupported)
+	}
+	if p.globalState.PluginConfig&BEFORE_SWAP_FLAG == 0 {
+		return 0, nil, nil
+	}
+	if p.volatilityOracle == nil || !p.volatilityOracle.IsInitialized || p.dynamicFee == nil {
+		return 0, nil, ErrNotInitialized
+	}
+	now := blockTimestamp()
+	tmp := p.timepoints.clone()
+	idx, _, err := tmp.write(p.volatilityOracle.TimepointIndex, now, p.globalState.Tick)
+	if err != nil {
+		return 0, nil, err
+	}
+	point := tmp.Get(idx)
+	if point.VolatilityCumulative != nil {
+		point.VolatilityCumulative = point.VolatilityCumulative.Clone()
+	}
+	update := &NamiTimepointUpdate{Index: idx, Timestamp: now, Timepoint: point}
+	base := p.dynamicFee.BaseFee
+	if p.dynamicFee.Alpha1 != 0 || p.dynamicFee.Alpha2 != 0 {
+		volatility, err := tmp.getAverageVolatility(now, p.globalState.Tick, idx, tmp.getOldestIndex(idx))
+		if err != nil {
+			return 0, nil, err
+		}
+		base = getFee(volatility, p.dynamicFee)
+	}
+	return uint32(p.namiFee.Fee(base, zeroToOne, uint64(now))), update, nil
 }

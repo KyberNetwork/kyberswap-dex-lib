@@ -8,6 +8,8 @@ import (
 	"github.com/KyberNetwork/int256"
 	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
 )
 
 type Metadata struct {
@@ -113,7 +115,7 @@ type FetchRPCResult struct {
 	VolatilityOracle *VolatilityOraclePlugin
 	DynamicFee       *DynamicFeeConfig
 	SlidingFee       *SlidingFeeConfig
-	NamiFee          *NamiFeeConfig
+	NamiFee          *nami.Config
 	BlockNumber      *big.Int
 }
 
@@ -176,7 +178,7 @@ type Extra struct {
 	VolatilityOracle *VolatilityOraclePlugin `json:"vo,omitempty"`
 	DynamicFee       *DynamicFeeConfig       `json:"dF,omitempty"`
 	SlidingFee       *SlidingFeeConfig       `json:"sF,omitempty"`
-	NamiFee          *NamiFeeConfig          `json:"namiFee,omitempty"`
+	NamiFee          *nami.Config            `json:"namiFee,omitempty"`
 }
 
 type ExtraTimepoint struct {
@@ -242,4 +244,10 @@ type PriceMovementCache struct {
 	feeAmount     uint256.Int // The total amount of fee earned within a current step
 
 	nextTick int32 // The tick till the current step goes
+}
+
+type NamiTimepointUpdate struct {
+	Index     uint16
+	Timestamp uint32
+	Timepoint Timepoint
 }

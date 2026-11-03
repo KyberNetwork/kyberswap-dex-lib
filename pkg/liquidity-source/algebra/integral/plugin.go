@@ -624,3 +624,8 @@ func getNewPrice(res, price, liquidity, amount *uint256.Int, zeroToOne, fromInpu
 func lteConsideringOverflow[T cmp.Ordered](a, b, currentTime T) bool {
 	return algebra.LteConsideringOverflow(a, b, currentTime)
 }
+
+// clone creates a copy-on-write overlay; quotes only write one timepoint.
+func (s *TimepointStorage) clone() *TimepointStorage {
+	return &TimepointStorage{data: make(map[uint16]Timepoint, 1), parent: s}
+}
