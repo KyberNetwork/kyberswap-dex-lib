@@ -25,6 +25,7 @@ import (
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
@@ -127,6 +128,22 @@ func (t *PoolTracker) fetchOnchainState(
 			Method: "getSlot0",
 			Params: []any{common.HexToHash(p.Address)},
 		}, []any{&result.Slot0})
+	}
+
+	for i, token := range p.Tokens {
+		metadata, ok := fewWrapped(t.config.ChainID, token.Address)
+		if !ok {
+			continue
+		}
+		if result.FewReserves == nil {
+			result.FewReserves = make([]*big.Int, len(p.Tokens))
+		}
+		rpcRequests.AddCall(&ethrpc.Call{
+			ABI:    abi.Erc20ABI,
+			Target: metadata.GetUnwrapToken(),
+			Method: abi.Erc20BalanceOfMethod,
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&result.FewReserves[i]})
 	}
 
 	res, err := rpcRequests.Aggregate()
