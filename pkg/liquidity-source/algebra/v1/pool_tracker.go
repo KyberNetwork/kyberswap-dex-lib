@@ -3,7 +3,9 @@ package algebrav1
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math/big"
+	"slices"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -655,26 +657,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 		return p, err
 	}
 
-	// convert back to algebra v1 ticks (uniswapv3entities.Tick actually)
-	// https://github.com/KyberNetwork/kyberswap-dex-lib/blob/599887838de51928f8d41b7c9f88434f31f1b3d8/pkg/liquidity-source/algebra/v1/pool_tracker.go#L100
-	entityPoolTicks := make([]v3Entities.Tick, 0, len(refetchedTicks))
-	for _, tick := range refetchedTicks {
-		// skip uninitialized ticks
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-
-		entityPoolTicks = append(entityPoolTicks, v3Entities.Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: tick.LiquidityGross,
-			LiquidityNet:   tick.LiquidityNet,
-		})
-	}
-
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
+	entityPoolTicks := entityTicks(refetchedTicks)
 
 	extra.Ticks = entityPoolTicks
 
@@ -775,24 +758,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		return p, err
 	}
 
-	entityPoolTicks := make([]v3Entities.Tick, 0, len(ticksBasedPool.Ticks))
-	for _, tick := range ticksBasedPool.Ticks {
-		// skip uninitialized ticks
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-
-		entityPoolTicks = append(entityPoolTicks, v3Entities.Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: tick.LiquidityGross,
-			LiquidityNet:   tick.LiquidityNet,
-		})
-	}
-
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
+	entityPoolTicks := entityTicks(slices.Collect(maps.Values(ticksBasedPool.Ticks)))
 
 	extraBytes, err := json.Marshal(Extra{
 		Liquidity:   rpcState.Liquidity,

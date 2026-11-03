@@ -6,12 +6,14 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/logger"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 // HasState reports whether a tracker has given the pool its state. Only a tracker writes its
@@ -23,6 +25,15 @@ func HasState(p entity.Pool) bool {
 	}
 	return len(p.Extra) > 0 && json.Unmarshal([]byte(p.Extra), &extra) == nil &&
 		len(extra.Liquidity) > 0 && string(extra.Liquidity) != "null"
+}
+
+// HasLateLog reports whether a log, the empty one that triggers an update aside, is at or below
+// block, the newest block whose logs a pool's state holds. A live batch's logs are all above it,
+// as a batch carries whole blocks.
+func HasLateLog(logs []ethtypes.Log, block uint64) bool {
+	return block > 0 && lo.ContainsBy(logs, func(l ethtypes.Log) bool {
+		return !l.Removed && !eth.IsZeroAddress(l.Address) && l.BlockNumber != 0 && l.BlockNumber <= block
+	})
 }
 
 // BatchHead is the newest block of a batch, nil when it carries none.

@@ -247,8 +247,8 @@ func TestLogsAtOrBelowTheLensBlockAreLate(t *testing.T) {
 
 	held := p.Holds([]ethtypes.Log{at(99), at(110)}, 0)
 	assert.Equal(t, uint64(100), held, "the snapshot is newer than the pool's block")
-	assert.True(t, hasLateLog([]ethtypes.Log{at(99), at(110)}, held), "the reorged-in or replayed log at 99")
-	assert.False(t, hasLateLog([]ethtypes.Log{at(110)}, held), "one after the snapshot applies")
+	assert.True(t, tickspkg.HasLateLog([]ethtypes.Log{at(99), at(110)}, held), "the reorged-in or replayed log at 99")
+	assert.False(t, tickspkg.HasLateLog([]ethtypes.Log{at(110)}, held), "one after the snapshot applies")
 }
 
 // TestLateLogs: a log at or below the pool's block, already applied or a retry's, is read as the
@@ -260,12 +260,12 @@ func TestLateLogs(t *testing.T) {
 	pool := common.HexToAddress("0x3333333333333333333333333333333333333333")
 	at := func(block uint64) ethtypes.Log { return ethtypes.Log{Address: pool, BlockNumber: block} }
 
-	assert.True(t, hasLateLog([]ethtypes.Log{at(101), at(100)}, 100))
-	assert.True(t, hasLateLog([]ethtypes.Log{at(90)}, 100))
-	assert.False(t, hasLateLog([]ethtypes.Log{at(101)}, 100))
-	assert.False(t, hasLateLog([]ethtypes.Log{{Address: pool, BlockNumber: 90, Removed: true}}, 100))
-	assert.False(t, hasLateLog([]ethtypes.Log{{}, at(101)}, 100))
-	assert.False(t, hasLateLog([]ethtypes.Log{at(90)}, 0), "a pool with no block has seen no log")
+	assert.True(t, tickspkg.HasLateLog([]ethtypes.Log{at(101), at(100)}, 100))
+	assert.True(t, tickspkg.HasLateLog([]ethtypes.Log{at(90)}, 100))
+	assert.False(t, tickspkg.HasLateLog([]ethtypes.Log{at(101)}, 100))
+	assert.False(t, tickspkg.HasLateLog([]ethtypes.Log{{Address: pool, BlockNumber: 90, Removed: true}}, 100))
+	assert.False(t, tickspkg.HasLateLog([]ethtypes.Log{{}, at(101)}, 100))
+	assert.False(t, tickspkg.HasLateLog([]ethtypes.Log{at(90)}, 0), "a pool with no block has seen no log")
 }
 
 // TestResetPoolState: with the lens a reset pool is one without state, read whole on its next
