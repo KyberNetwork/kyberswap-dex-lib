@@ -30,10 +30,31 @@ const (
 	// Evicting a dust or expired order is a delete, a refund transfer and an event. No eviction
 	// occurred in the measured runs, so this is an estimate.
 	gasEviction = 45000
+	// The band pool leg, fitted on the same Base fork the same way (21k removed, rounded up to
+	// cover every measured run): what a remainder costs on top of the book walk -- the stop-order
+	// handoff moving it out and back with an empty activation scan, PoolFallbackLib.route
+	// (getPool, convert, band 0's fee, approve, two balance reads, the price report) and
+	// BandPool.swap (the TWAP lookup, both transfers) -- plus each band filled. Measured whole
+	// transactions: 11 matches + 1 band ~1,669k, 15 + 2 ~2,107k, 15 + 3 ~2,144k (buys, the WETH
+	// leg paid as native coin), 20 + 2 ~2,301k and 20 + 3 ~2,343k (sells); pool-only 1-3 bands
+	// ~391-493k. Pool-only swaps come in ~100k under the fit, since gasBase prices a match they
+	// do not make.
+	gasPoolLeg  = 215000
+	gasPoolBand = 40000
+
+	// BandPool / PoolBands constants.
+	maxBands   = 8         // PoolBands.MAX_BANDS
+	maxFeeRate = 3_000_000 // PoolBands.MAX_FEE_RATE: no band charges more than 3%
+	// anchorWindow is BandPool.TWAP_WINDOW: the anchor is Orderbook.twap(300).
+	anchorWindow = 300
 )
 
 // denom is MatchingEngine.DENOM: prices are quote per base x 1e8 and fees are numerators over it.
 var denom = uint256.NewInt(1e8)
+
+// minReportDivisor is BandPool.MIN_REPORT_DIVISOR: a band fill reports its price only when it
+// pays out at least 1/1,000,000 of the band's payable reserve.
+var minReportDivisor = uint256.NewInt(1_000_000)
 
 var (
 	ErrInvalidToken          = errors.New("invalid token")
