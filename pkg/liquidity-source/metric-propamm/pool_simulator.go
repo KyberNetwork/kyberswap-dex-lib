@@ -108,31 +108,50 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
-	if indexIn != -1 && indexOut != -1 {
-		s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-		s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
-
-		zeroToOne := indexIn == 0
-		if zeroToOne {
-			s.extra.Bids = lo.Filter(s.extra.Bids, func(bin Bin, _ int) bool {
-				return bin.CumulativeVolume.Cmp(params.TokenAmountOut.Amount) <= 0
-			})
-
-			s.extra.Bids = lo.Map(s.extra.Bids, func(bin Bin, _ int) Bin {
-				bin.CumulativeVolume.Sub(bin.CumulativeVolume, params.TokenAmountOut.Amount)
-				return bin
-			})
-		} else {
-			s.extra.Asks = lo.Filter(s.extra.Asks, func(bin Bin, _ int) bool {
-				return bin.CumulativeVolume.Cmp(params.TokenAmountOut.Amount) <= 0
-			})
-
-			s.extra.Asks = lo.Map(s.extra.Asks, func(bin Bin, _ int) Bin {
-				bin.CumulativeVolume.Sub(bin.CumulativeVolume, params.TokenAmountOut.Amount)
-				return bin
-			})
-		}
+	if indexIn == -1 || indexOut == -1 {
+		return
 	}
+	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
+	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+
+	if indexIn == 0 {
+		s.extra.Bids, s.extra.InitBid = consumeBins(s.extra.Bids, s.extra.InitBid, params.TokenAmountOut.Amount)
+	} else {
+		s.extra.Asks, s.extra.InitAsk = consumeBins(s.extra.Asks, s.extra.InitAsk, params.TokenAmountOut.Amount)
+	}
+}
+
+// consumeBins takes amountOut of maker volume off the front of bins, which start at price start. The bins the
+// swap fills are dropped; the one it ends in keeps its unfilled volume, and the start price moves to where the
+// fill ended, interpolated within that bin as getRate interpolates. Every bin left has its cumulative volume
+// lowered by amountOut. It returns new bins and a new start price, and does not modify its arguments (a clone
+// shares the prices with its original).
+//
+// It moves the swapped side only. The contract keeps one position for both sides, so a swap also moves the other
+// side's start price and adds the crossed bins to it as liquidity. Left as it was, the other side quotes slightly
+// less than the chain does after the swap (0.06-2 bps on an Ethereum fork), never more. Consecutive swaps in the
+// same direction match the contract exactly.
+func consumeBins(bins []Bin, start, amountOut *big.Int) ([]Bin, *big.Int) {
+	prevVolume, prevPrice := bignumber.ZeroBI, start
+	for i, bin := range bins {
+		if bin.CumulativeVolume.Cmp(amountOut) <= 0 {
+			prevVolume, prevPrice = bin.CumulativeVolume, bin.Price
+			continue
+		}
+		inBin := new(big.Int).Sub(bin.CumulativeVolume, prevVolume)
+		filled := new(big.Int).Sub(amountOut, prevVolume)
+		price := new(big.Int).Sub(bin.Price, prevPrice)
+		price.Mul(price, filled)
+		price.Quo(price, inBin)
+		price.Add(price, prevPrice)
+
+		left := make([]Bin, len(bins)-i)
+		for j, b := range bins[i:] {
+			left[j] = Bin{BinIdx: b.BinIdx, Price: b.Price, CumulativeVolume: new(big.Int).Sub(b.CumulativeVolume, amountOut)}
+		}
+		return left, price
+	}
+	return []Bin{}, prevPrice
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
