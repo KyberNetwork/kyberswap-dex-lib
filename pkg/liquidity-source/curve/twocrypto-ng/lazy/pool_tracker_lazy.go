@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
+	twocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -53,7 +54,7 @@ func (t *PoolTracker) lazycall(
 
 	r := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
 	req := poolpkg.LazyRequest{Request: r}
-	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, d)
+	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, twocryptong.PreviousPolicy(p.Extra), d)
 
 	return &req, func(blockNumber *big.Int) (entity.Pool, error) {
 		if blockNumber != nil {

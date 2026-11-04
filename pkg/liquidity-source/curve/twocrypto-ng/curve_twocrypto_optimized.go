@@ -4,15 +4,25 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/KyberNetwork/int256"
 	"github.com/holiman/uint256"
 )
+
+// nowUnix stands for block.timestamp; tests replace it.
+var nowUnix = func() int64 { return time.Now().Unix() }
 
 // from contracts/main/CurveTwocryptoOptimized.vy
 // (there is no CurveTwocryptoOptimizedWETH.vy)
 
 func (t *PoolSimulator) FeeCalc(xp []uint256.Int, fee *uint256.Int) error {
 	var f uint256.Int
-	var err = reductionCoefficient(xp, t.Extra.FeeGamma, &f)
+	var err error
+	v3 := t.isV3()
+	if t.isV21d() || v3 {
+		err = feeBalanceTermV21d(xp, t.Extra.FeeGamma, &f)
+	} else {
+		err = reductionCoefficient(xp, t.Extra.FeeGamma, &f)
+	}
 	if err != nil {
 		return err
 	}
@@ -21,6 +31,10 @@ func (t *PoolSimulator) FeeCalc(xp []uint256.Int, fee *uint256.Int) error {
 			number.SafeMul(t.Extra.MidFee, &f),
 			number.SafeMul(t.Extra.OutFee, number.SafeSub(U_1e18, &f))),
 		U_1e18)
+	if v3 {
+		// A native-fee policy's get_fee is 0, so the pool's own fee applies, within [MIN_FEE, MAX_FEE].
+		clampV3Fee(fee)
+	}
 	return nil
 }
 
@@ -40,7 +54,7 @@ func (t *PoolSimulator) GetDy(
 
 	// When A/gamma is actively ramping, recompute D from current balances (mirrors _calc_D_ramp).
 	D := t.Extra.D
-	if time.Now().Unix() < t.Extra.FutureAGammaTime {
+	if nowUnix() < t.Extra.FutureAGammaTime {
 		for k := range NumTokens {
 			xp[k].Set(&t.Reserves[k])
 		}
@@ -159,7 +173,7 @@ func (t *PoolSimulator) _getDxFee(
 
 	// When A/gamma is actively ramping, recompute D from current balances (mirrors _calc_D_ramp).
 	D := t.Extra.D
-	if time.Now().Unix() < t.Extra.FutureAGammaTime {
+	if nowUnix() < t.Extra.FutureAGammaTime {
 		for k := range NumTokens {
 			xp[k].Set(&t.Reserves[k])
 		}
@@ -214,7 +228,8 @@ func (t *PoolSimulator) _getDxFee(
 
 // https://github.com/curvefi/twocrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveTwocryptoOptimized.vy#L964
 func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint256.Int, new_D, K0_prev *uint256.Int,
-	lastPrices, priceScale []uint256.Int, xcp_profit, d, virtualPrice *uint256.Int) error {
+	lastPrices, priceScale, priceOracle []uint256.Int, priceOracleTimestamp *int64,
+	xcp_profit, d, virtualPrice *uint256.Int) error {
 	/*
 				@notice Tweaks price_oracle, last_price and conditionally adjusts
 		            price_scale. This is called whenever there is an unbalanced
@@ -231,13 +246,16 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 	old_xcp_profit := t.Extra.XcpProfit
 	old_virtual_price := t.Extra.VirtualPrice
 
-	blockTimestamp := time.Now().Unix()
+	blockTimestamp := nowUnix()
 	var err error
 
-	// On-chain, this also updates cached_price_oracle and last_timestamp, but only once per
-	// block. The pool tracker already fetches the EMA-computed price_oracle directly, so there
-	// is nothing to recompute here; D, virtual_price, xcp_profit, last_prices and price_scale
-	// below, however, are updated unconditionally on every exchange on-chain and must be too.
+	// # ----------------------- Update Oracles if needed -----------------------
+	// The tracker reads price_oracle() at PriceOracleTimestamp; carry it forward to this block as the
+	// contract does once per block. D, virtual_price, xcp_profit, last_prices and price_scale below are
+	// updated on every exchange.
+	if *priceOracleTimestamp, err = t.priceOracleAt(blockTimestamp, priceOracle); err != nil {
+		return err
+	}
 
 	// #                  price_oracle is used further on to calculate its vector
 	// #            distance from price_scale. This distance is used to calculate
@@ -301,7 +319,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 
 		// #                Calculate the vector distance between price_scale and
 		// #                                                        price_oracle.
-		norm := number.Div(number.SafeMul(&t.Extra.PriceOracle[0], U_1e18), &t.Extra.PriceScale[0])
+		norm := number.Div(number.SafeMul(&priceOracle[0], U_1e18), &t.Extra.PriceScale[0])
 		if norm.Cmp(U_1e18) > 0 {
 			norm = number.SafeSub(norm, U_1e18)
 		} else {
@@ -327,7 +345,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 				p_new[k].Div(
 					number.SafeAdd(
 						number.SafeMul(&t.Extra.PriceScale[k], number.Sub(norm, adjustment_step)),
-						number.SafeMul(adjustment_step, &t.Extra.PriceOracle[k]),
+						number.SafeMul(adjustment_step, &priceOracle[k]),
 					), norm)
 			}
 
@@ -379,4 +397,50 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 	d.Set(D_unadjusted)
 	virtualPrice.Set(virtual_price)
 	return nil
+}
+
+// priceOracleAt writes price_oracle as the contract computes it at timestamp into out, and returns the
+// timestamp it is for. The tracker reads price_oracle() at PriceOracleTimestamp. Until the next trade the
+// contract's EMA keeps moving toward last_prices, capped at 2 * price_scale:
+//
+//	price_oracle(t) = (min(last_prices, 2 * price_scale) * (1e18 - alpha) + price_oracle(t0) * alpha) / 1e18
+//	alpha = wad_exp(-(t - t0) * 1e18 / ma_time)
+//
+// which composes, so carrying the value read at t0 forward by t - t0 gives the contract's value up to
+// rounding. Without a read time or ma_time (state from an older tracker), PriceOracle is used as is.
+func (t *PoolSimulator) priceOracleAt(timestamp int64, out []uint256.Int) (int64, error) {
+	copy(out, t.Extra.PriceOracle)
+	readAt := t.Extra.PriceOracleTimestamp
+	if readAt == 0 || t.Extra.MaTime == nil || t.Extra.MaTime.IsZero() || timestamp <= readAt {
+		return readAt, nil
+	}
+
+	var elapsed uint256.Int
+	elapsed.SetUint64(uint64(timestamp - readAt))
+	exponent := int256.Int(*number.Div(number.SafeMul(&elapsed, U_1e18), t.Extra.MaTime))
+	alpha, err := wad_exp(exponent.Neg(&exponent))
+	if err != nil {
+		return 0, err
+	}
+
+	var capped, floor uint256.Int
+	v3 := t.isV3()
+	for k := range NumTokens - 1 {
+		capped.Mul(&t.Extra.PriceScale[k], number.Number_2)
+		if t.Extra.LastPrices[k].Lt(&capped) {
+			capped.Set(&t.Extra.LastPrices[k])
+		}
+		// v3.0.0 caps both ways: min(max(last_prices, price_scale / 2), 2 * price_scale).
+		if floor.Rsh(&t.Extra.PriceScale[k], 1); v3 && capped.Lt(&floor) {
+			capped.Set(&floor)
+		}
+		out[k].Div(
+			number.SafeAdd(
+				number.SafeMul(&capped, number.SafeSub(U_1e18, alpha)),
+				number.SafeMul(&t.Extra.PriceOracle[k], alpha),
+			),
+			U_1e18,
+		)
+	}
+	return timestamp, nil
 }
