@@ -91,7 +91,7 @@ func replayNamiTenderly(t *testing.T, want *big.Int) {
 	client := &http.Client{Timeout: 90 * time.Second}
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
 	require.NoError(t, err)
 	require.Equalf(t, http.StatusOK, resp.StatusCode, "Tenderly: %s", body)

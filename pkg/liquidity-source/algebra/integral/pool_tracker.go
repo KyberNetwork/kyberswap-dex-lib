@@ -262,7 +262,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 			return res, err
 		}
 		if res.DynamicFee == nil || res.VolatilityOracle == nil {
-			return res, errors.New("Nami plugin missing dynamic fee or volatility oracle")
+			return res, errors.New("nami plugin missing dynamic fee or volatility oracle")
 		}
 	}
 	res.BlockNumber = result.BlockNumber

@@ -58,7 +58,7 @@ type namiFeeOverride struct {
 
 func Fetch(ctx context.Context, client *ethrpc.Client, plugin common.Address, block *big.Int, overrides map[common.Address]gethclient.OverrideAccount, now uint32) (*Config, error) {
 	if plugin == (common.Address{}) {
-		return nil, errors.New("Nami plugin is missing")
+		return nil, errors.New("nami plugin is missing")
 	}
 	target := hexutil.Encode(plugin[:])
 	var boundsOut struct{ Bounds namiFeeBounds }
