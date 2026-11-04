@@ -70,3 +70,6 @@ var (
 
 	DefaultGas = uniswapv3.Gas{BaseGas: 129869, CrossInitTickGas: 15460, CrossEmptyWordGas: uniswapv3.CrossEmptyWordGas}
 )
+
+// polygonCrossEmptyWordGas is a provisional effective average from observed Polygon V4 traces.
+const polygonCrossEmptyWordGas int64 = 9500
