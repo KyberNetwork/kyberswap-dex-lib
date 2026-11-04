@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
@@ -81,7 +82,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	scaledAmountIn := scaleFromAmount(amountIn, p.decimals[tokenInIndex])
 
 	newState := p.state.Clone(true)
-	amountOut, binCrossed, err := swap(newState, scaledAmountIn, tokenInIndex == 0, false)
+	amountOut, unfilled, binCrossed, emptyTicks, err := swap(newState, scaledAmountIn, tokenInIndex == 0, false)
 	if err != nil {
 		return nil, fmt.Errorf("can not get amount out, err: %v", err)
 	}
@@ -89,7 +90,18 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// scale back to token amount
 	scaledAmountOut := ScaleToAmount(amountOut, p.decimals[tokenOutIndex])
 
+	// Past the liquidity the quote can reach, report the input it did not use. The executor swaps with
+	// tickLimit = int32.max, so sending that input would walk empty ticks until the transaction runs out of gas.
+	var remaining *pool.TokenAmount
+	if unfilled != nil && !unfilled.IsZero() {
+		remaining = &pool.TokenAmount{
+			Token:  tokenAmountIn.Token,
+			Amount: ScaleToAmount(unfilled.Clone(), p.decimals[tokenInIndex]).ToBig(),
+		}
+	}
+
 	return &pool.CalcAmountOutResult{
+		RemainingTokenAmountIn: remaining,
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: scaledAmountOut.ToBig(),
@@ -97,7 +109,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee: &pool.TokenAmount{
 			Token: tokenAmountIn.Token,
 		},
-		Gas: GasSwap + GasCrossBin*int64(binCrossed),
+		Gas: swapGas(binCrossed, emptyTicks),
 		SwapInfo: maverickSwapInfo{
 			activeTick: newState.ActiveTick,
 			bins:       newState.Bins,
@@ -122,7 +134,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	scaledAmountOut := scaleFromAmount(amountOut, p.decimals[tokenOutIndex])
 
 	newState := p.state.Clone(true)
-	amountIn, binCrossed, err := swap(newState, scaledAmountOut, tokenInIndex == 0, true)
+	amountIn, unfilled, binCrossed, emptyTicks, err := swap(newState, scaledAmountOut, tokenInIndex == 0, true)
 	if err != nil {
 		return nil, fmt.Errorf("can not get amount out, err: %v", err)
 	}
@@ -130,7 +142,17 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	// scale back to token amount
 	scaledAmountIn := ScaleToAmount(amountIn, p.decimals[tokenInIndex])
 
+	// Past the liquidity the quote can reach, report the output it could not deliver.
+	var remaining *pool.TokenAmount
+	if unfilled != nil && !unfilled.IsZero() {
+		remaining = &pool.TokenAmount{
+			Token:  tokenAmountOut.Token,
+			Amount: ScaleToAmount(unfilled.Clone(), p.decimals[tokenOutIndex]).ToBig(),
+		}
+	}
+
 	return &pool.CalcAmountInResult{
+		RemainingTokenAmountOut: remaining,
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: scaledAmountIn.ToBig(),
@@ -138,7 +160,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		Fee: &pool.TokenAmount{
 			Token: tokenIn,
 		},
-		Gas: GasSwap + GasCrossBin*int64(binCrossed),
+		Gas: swapGas(binCrossed, emptyTicks),
 		SwapInfo: maverickSwapInfo{
 			activeTick: newState.ActiveTick,
 			bins:       newState.Bins,
@@ -147,8 +169,15 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}, nil
 }
 
+// swapGas is the gas of a swap that crosses binCrossed bins and walks over emptyTicks ticks without liquidity.
+// The pool reads each tick it walks over, about 2,540 gas each on-chain.
+func swapGas(binCrossed, emptyTicks uint32) int64 {
+	return GasSwap + GasCrossBin*int64(binCrossed) + GasEmptyTick*int64(emptyTicks)
+}
+
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves) // UpdateBalance assigns into its slots
 	cloned.state = p.state.Clone(false)
 	return &cloned
 }
@@ -187,18 +216,23 @@ func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 }
 
 // pastMaxTick checks if we've reached the tick limit and zeros out excess if so
-// This is equivalent to MaverickDeltaMath.pastMaxTick() in TypeScript
+// This is equivalent to MaverickDeltaMath.pastMaxTick() in TypeScript. The excess it zeroes is kept in
+// Unfilled: the quote stops there, but the amount was not swapped.
 func pastMaxTick(delta *Delta, activeTick, tickLimit int32) bool {
 	swappedToMaxPrice := delta.TokenAIn == (tickLimit < activeTick)
 	if swappedToMaxPrice {
+		delta.Unfilled = delta.Excess
 		delta.Excess = big256.U0 // CRITICAL: Zero out excess to terminate main loop
 		delta.SkipCombine = true
 	}
 	return swappedToMaxPrice
 }
 
-// Helper functions for swap implementation
-func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn, exactOutput bool) (*uint256.Int, uint32, error) {
+// Helper functions for swap implementation. It returns the amount swapped (out for exact input, in for exact
+// output), the part of amount the quote could not fill (nil when it filled all of it), the bins crossed, and the
+// ticks without liquidity walked over on the way to a tick that was swapped in.
+func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn, exactOutput bool) (*uint256.Int, *uint256.Int,
+	uint32, uint32, error) {
 	delta := &Delta{
 		DeltaInBinInternal: big256.U0,
 		DeltaInErc:         big256.U0,
@@ -219,38 +253,54 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn, exactOutput b
 	}
 
 	// Handle main swap operation
-	var binCrossed uint32
+	var binCrossed, emptyTicks uint32
+	// Whether the last tick swapped in counted a crossing only because it was left with excess.
+	var crossedOnExcess bool
 
 	// Iteratively swap through ticks until the amount is consumed
 	for !delta.Excess.IsZero() {
-		newDelta, crossedBin, err := swapTick(state, delta, tickLimit)
+		newDelta, crossedBin, walked, err := swapTick(state, delta, tickLimit)
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, 0, 0, err
 		}
 
-		if crossedBin {
-			binCrossed++
+		if newDelta.Unfilled != nil {
+			// The quote stopped at the tick limit with input left. The swap that can be executed is the one of the
+			// consumed amount: it ends in the last tick swapped in and crosses neither out of it nor into the
+			// walk that found no liquidity.
+			if crossedOnExcess {
+				binCrossed--
+			}
+		} else {
+			if crossedBin {
+				binCrossed++
+			}
+			emptyTicks += walked
 		}
+		crossedOnExcess = crossedBin && walked == 0
 
 		combine(delta, newDelta)
 	}
 
-	return lo.Ternary(exactOutput, delta.DeltaInErc, delta.DeltaOutErc), binCrossed, nil
+	return lo.Ternary(exactOutput, delta.DeltaInErc, delta.DeltaOutErc), delta.Unfilled, binCrossed, emptyTicks, nil
 }
 
 // swapTick
 // ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/2108e064319bf14f98c321a8acd4762d3e9e3560/src/dex/maverick-v2/maverick-math/maverick-pool-math.ts#L621
-func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, bool, error) {
+//
+// It also returns whether it crossed a bin, and how many ticks without liquidity it walked over first.
+func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, bool, uint32, error) {
 	activeTick, tokenAIn := state.ActiveTick, delta.TokenAIn
 
 	// Check if we've reached the tick limit - equivalent to TypeScript pastMaxTick function
 	if pastMaxTick(delta, activeTick, tickLimit) {
 		state.ActiveTick += lo.Ternary[int32](tokenAIn, -1, 1)
-		return delta, true, nil
+		return delta, true, 0, nil
 	}
 
 	// Find next tick with liquidity
 	crossedBin := false
+	var walked uint32
 
 	for {
 		if tickData, ok := state.Ticks[activeTick]; ok &&
@@ -261,11 +311,12 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 		// Move to next tick in correct direction
 		activeTick += lo.Ternary[int32](tokenAIn, 1, -1)
 		crossedBin = true
+		walked++
 
 		// Check again if we've reached the tick limit after moving
 		if pastMaxTick(delta, activeTick, tickLimit) {
 			state.ActiveTick += lo.Ternary[int32](tokenAIn, -1, 1)
-			return delta, true, nil
+			return delta, true, walked, nil
 		}
 	}
 
@@ -288,7 +339,7 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 		crossedBin = true
 	}
 
-	return &newDelta, crossedBin, nil
+	return &newDelta, crossedBin, walked, nil
 }
 
 func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAIn bool, tickData TickData,

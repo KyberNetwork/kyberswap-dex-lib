@@ -2,16 +2,20 @@ package maverickv2
 
 import (
 	"fmt"
+	"maps"
 	"math/big"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -316,4 +320,205 @@ func TestDebugSwap_MAV_WETH(t *testing.T) {
 	} else {
 		fmt.Printf("✅ MATCH: Result matches expected value\n")
 	}
+}
+
+const (
+	cloneTokenA = "0x00000000000000000000000000000000000000a1"
+	cloneTokenB = "0x00000000000000000000000000000000000000b2"
+)
+
+// newClonePool is a one-bin pool: enough for CloneState and a small swap.
+func newClonePool(t *testing.T) pool.IPoolSimulator {
+	t.Helper()
+	extra := `{"feeAIn":100000000000000,"feeBIn":100000000000000,"protocolFeeRatio":0,"activeTick":0,"lastTwaD8":0,` +
+		`"bins":{"1":{"tick":0,"totalSupply":"1000000000000000000000","tickBalance":"1000000000000000000000"}},` +
+		`"ticks":{"0":{"ReserveA":"1000000000000000000000","ReserveB":"1000000000000000000000",` +
+		`"TotalSupply":"1000000000000000000000","BinIdsByTick":{"0":1}}}}`
+	p, err := NewPoolSimulator(entity.Pool{Address: "0xmav", Exchange: "maverick-v2", Type: "maverick-v2",
+		Reserves: entity.PoolReserves{"1000000000000000000000", "1000000000000000000000"}, Tokens: cloneTestTokens(),
+		Extra: extra, StaticExtra: `{"tickSpacing":10}`})
+	require.NoError(t, err)
+	return p
+}
+
+func cloneTestTokens() []*entity.PoolToken {
+	return []*entity.PoolToken{{Address: cloneTokenA, Decimals: 18, Swappable: true},
+		{Address: cloneTokenB, Decimals: 18, Swappable: true}}
+}
+
+func cloneReserveStrings(rs []*big.Int) []string {
+	out := make([]string, len(rs))
+	for i, r := range rs {
+		out[i] = r.String()
+	}
+	return out
+}
+
+// cloneSwap quotes 1e18 of token A for token B on p and applies the swap to p.
+func cloneSwap(t *testing.T, p pool.IPoolSimulator) {
+	tokenIn := pool.TokenAmount{Token: cloneTokenA, Amount: bignumber.TenPowInt(18)}
+	res, err := p.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: tokenIn, TokenOut: cloneTokenB})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	p.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: tokenIn, TokenAmountOut: *res.TokenAmountOut,
+		Fee: *res.Fee, SwapInfo: res.SwapInfo})
+}
+
+// A swap applied to a clone moves the clone's reserves (GetReserves) and leaves the original's as they were.
+func TestCloneStateSwapLeavesTheOriginalReserves(t *testing.T) {
+	orig := newClonePool(t)
+	before := cloneReserveStrings(orig.GetReserves())
+
+	clone := orig.CloneState()
+	cloneSwap(t, clone)
+
+	require.NotEqual(t, before, cloneReserveStrings(clone.GetReserves()), "the clone's swap did not move its reserves")
+	require.Equal(t, before, cloneReserveStrings(orig.GetReserves()), "a swap on a clone moved the original's reserves")
+}
+
+// Swaps applied to clones of one pool on two goroutines, as two requests of a router do, share no writes:
+// under -race this test reports none.
+func TestCloneStateSwapsOnClonesConcurrently(t *testing.T) {
+	orig := newClonePool(t)
+	var wg sync.WaitGroup
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range 50 {
+				cloneSwap(t, orig.CloneState())
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+// The ezETH/WETH pool 0x707e…f171 holds about 0.0526 WETH, all within a few ticks of its active tick. Production
+// routes put 6.5-9.8 ezETH into it. The pool consumes about 0.0556 ezETH and the executed swap (tickLimit =
+// int32.max) then walks empty ticks until it runs out of gas.
+func loadEzEthWeth(t *testing.T) (*PoolSimulator, entity.Pool) {
+	t.Helper()
+	data, err := os.ReadFile("./data/ezeth_weth_707e.json")
+	require.NoError(t, err)
+	var ep entity.Pool
+	require.NoError(t, json.Unmarshal(data, &ep))
+	sim, err := NewPoolSimulator(ep)
+	require.NoError(t, err)
+	return sim, ep
+}
+
+func quoteOut(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut string, amountIn *big.Int) *pool.CalcAmountOutResult {
+	t.Helper()
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+	return res
+}
+
+func remainingIn(res *pool.CalcAmountOutResult) *big.Int {
+	if res.RemainingTokenAmountIn == nil || res.RemainingTokenAmountIn.Amount == nil {
+		return big.NewInt(0)
+	}
+	return res.RemainingTokenAmountIn.Amount
+}
+
+func TestCalcAmountOut_PastCapacityReturnsRemaining(t *testing.T) {
+	t.Parallel()
+	sim, ep := loadEzEthWeth(t)
+	ezEth, weth := ep.Tokens[0].Address, ep.Tokens[1].Address
+
+	for _, tc := range []struct {
+		name            string
+		tokenIn, tokOut string
+		amountIn        string
+	}{
+		{"ezETH in, 6.55 (production's chunk)", ezEth, weth, "6550000000000000000"},
+		{"ezETH in, 9.83", ezEth, weth, "9825761805897544000"},
+		{"WETH in, 1.0", weth, ezEth, "1000000000000000000"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			amountIn := bignumber.NewBig10(tc.amountIn)
+			res := quoteOut(t, sim, tc.tokenIn, tc.tokOut, amountIn)
+			rem := remainingIn(res)
+
+			// The unfilled input is reported, not dropped.
+			require.Positive(t, rem.Sign(), "a quote past capacity must report RemainingTokenAmountIn")
+			require.Equal(t, tc.tokenIn, res.RemainingTokenAmountIn.Token)
+			consumed := new(big.Int).Sub(amountIn, rem)
+			require.Positive(t, consumed.Sign())
+			require.Negative(t, consumed.Cmp(amountIn))
+
+			// Quoting the consumed amount is a full fill with the same output and gas: that is the swap the
+			// executor can run.
+			full := quoteOut(t, sim, tc.tokenIn, tc.tokOut, consumed)
+			require.Zero(t, remainingIn(full).Sign(), "the consumed amount must fill completely")
+			require.Equal(t, res.TokenAmountOut.Amount.String(), full.TokenAmountOut.Amount.String())
+			require.Equal(t, full.Gas, res.Gas, "the partial fill's gas is the gas of the executable swap")
+		})
+	}
+}
+
+func TestCalcAmountOut_WithinCapacityUnchanged(t *testing.T) {
+	t.Parallel()
+	sim, ep := loadEzEthWeth(t)
+	ezEth, weth := ep.Tokens[0].Address, ep.Tokens[1].Address
+
+	res := quoteOut(t, sim, ezEth, weth, big.NewInt(1e16)) // 0.01 ezETH, well within capacity
+	require.Zero(t, remainingIn(res).Sign())
+	require.Positive(t, res.TokenAmountOut.Amount.Sign())
+}
+
+func TestCalcAmountIn_PastCapacityReturnsRemaining(t *testing.T) {
+	t.Parallel()
+	sim, ep := loadEzEthWeth(t)
+	ezEth, weth := ep.Tokens[0].Address, ep.Tokens[1].Address
+
+	want := bignumber.NewBig10("1000000000000000000") // 1 WETH out; the pool holds about 0.0526
+	res, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: weth, Amount: want},
+		TokenIn:        ezEth,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, res.RemainingTokenAmountOut, "an exact-out quote past capacity must report RemainingTokenAmountOut")
+	require.Equal(t, weth, res.RemainingTokenAmountOut.Token)
+	require.Positive(t, res.RemainingTokenAmountOut.Amount.Sign())
+	require.Negative(t, res.RemainingTokenAmountOut.Amount.Cmp(want))
+}
+
+// The quote counts the ticks without liquidity it walks over to reach a tick it swaps in (about 2,540 gas each
+// on-chain), but not the walk past the last liquidity, which the executable swap of the consumed amount never
+// makes.
+func TestSwap_CountsEmptyTicksWalkedOnlyUpToLiquidity(t *testing.T) {
+	t.Parallel()
+	sim, _ := loadEzEthWeth(t)
+	amount := bignumber.NewBig10("6550000000000000000")
+
+	full := sim.state.Clone(true)
+	_, unfilled, _, empty, err := swap(full, scaleFromAmount(uint256FromBig(t, amount), 18), true, false)
+	require.NoError(t, err)
+	require.NotNil(t, unfilled)
+	require.Zero(t, empty, "the walk past the last liquidity is not part of the executed swap")
+
+	gapped := sim.state.Clone(true)
+	_, ok := gapped.Ticks[-10]
+	require.True(t, ok)
+	gappedTicks := maps.Clone(gapped.Ticks)
+	delete(gappedTicks, -10) // tick -10 now has no liquidity, between liquid ticks -11 and -9
+	gapped.Ticks = gappedTicks
+	_, unfilled, _, empty, err = swap(gapped, scaleFromAmount(uint256FromBig(t, amount), 18), true, false)
+	require.NoError(t, err)
+	require.NotNil(t, unfilled)
+	require.Equal(t, uint32(1), empty)
+	require.Equal(t, int64(GasSwap+GasCrossBin*3+GasEmptyTick*2), swapGas(3, 2))
+}
+
+func uint256FromBig(t *testing.T, b *big.Int) *uint256.Int {
+	t.Helper()
+	u, overflow := uint256.FromBig(b)
+	require.False(t, overflow)
+	return u
 }
