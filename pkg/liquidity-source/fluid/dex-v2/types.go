@@ -82,6 +82,8 @@ type Extra struct {
 
 	TokenReserves *big.Int `json:"tokenReserves"`
 
+	// SwapOutWithdraw/SwapOutBorrow, MaxCap, UnaccountedBorrow and LiquidityDebt
+	// echo resolver data for inspection. LiquidityLimits is the enforced budget model.
 	SwapOutWithdraw      [2]*big.Int         `json:"swapOutWithdraw"`
 	SwapOutBorrow        [2]*big.Int         `json:"swapOutBorrow"`
 	SnapshotBlock        uint64              `json:"snapshotBlock"`

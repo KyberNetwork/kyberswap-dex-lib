@@ -38,6 +38,7 @@ type SwapResult struct {
 	dynamicPacked      uint256.Int
 	protocolFeeOut     uint256.Int
 	lpFeeOut           uint256.Int
+	sqrtPriceReference uint256.Int
 }
 
 type StepComputations struct {
@@ -95,10 +96,11 @@ func NewUniV3FluidV2Pool(
 
 type fluidAmountResult struct {
 	v3Entities.GetAmountResultV2
-	grossOut       utils.Uint256
-	dynamicPacked  uint256.Int
-	protocolFeeOut uint256.Int
-	lpFeeOut       uint256.Int
+	grossOut           utils.Uint256
+	dynamicPacked      uint256.Int
+	protocolFeeOut     uint256.Int
+	lpFeeOut           uint256.Int
+	sqrtPriceReference uint256.Int
 }
 
 func (p *UniV3FluidV2Pool) GetOutputAmountV2(inputAmount *utils.Int256, zeroForOne bool,
@@ -107,18 +109,27 @@ func (p *UniV3FluidV2Pool) GetOutputAmountV2(inputAmount *utils.Int256, zeroForO
 	if err != nil {
 		return nil, err
 	}
-	return &fluidAmountResult{grossOut: swapResult.grossOut, dynamicPacked: swapResult.dynamicPacked, protocolFeeOut: swapResult.protocolFeeOut, lpFeeOut: swapResult.lpFeeOut, GetAmountResultV2: v3Entities.GetAmountResultV2{
-		ReturnedAmount:     new(utils.Int256).Neg(swapResult.amountCalculated),
-		RemainingAmountIn:  new(utils.Int256).Set(swapResult.remainingAmountIn),
-		SqrtRatioX96:       swapResult.sqrtRatioX96,
-		Liquidity:          swapResult.liquidity,
-		CurrentTick:        swapResult.currentTick,
-		CrossInitTickLoops: swapResult.crossInitTickLoops,
-	}}, nil
+	return &fluidAmountResult{
+		sqrtPriceReference: swapResult.sqrtPriceReference,
+		grossOut:           swapResult.grossOut,
+		dynamicPacked:      swapResult.dynamicPacked,
+		protocolFeeOut:     swapResult.protocolFeeOut,
+		lpFeeOut:           swapResult.lpFeeOut,
+		GetAmountResultV2: v3Entities.GetAmountResultV2{
+			ReturnedAmount:     new(utils.Int256).Neg(swapResult.amountCalculated),
+			RemainingAmountIn:  new(utils.Int256).Set(swapResult.remainingAmountIn),
+			SqrtRatioX96:       swapResult.sqrtRatioX96,
+			Liquidity:          swapResult.liquidity,
+			CurrentTick:        swapResult.currentTick,
+			CrossInitTickLoops: swapResult.crossInitTickLoops,
+		}}, nil
 }
 
 func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 	sqrtPriceLimitX96 *utils.Uint160) (*SwapResult, error) {
+	if amountSpecified.Sign() <= 0 {
+		return nil, ErrAmountOutOfLimits
+	}
 	var err error
 	if sqrtPriceLimitX96 == nil {
 		if zeroForOne {
@@ -144,7 +155,9 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 		}
 	}
 
-	exactInput := amountSpecified.Sign() >= 0
+	var sqrtPriceReference uint256.Int
+	sqrtPriceReference.Set(p.SqrtRatioX96)
+	referenceChanged := false
 
 	// keep track of swap state
 
@@ -259,55 +272,27 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 				p.protocolFeeZeroForOne,
 				p.protocolFeeOneForZero,
 			))
-			if exactInput {
-				// Deployed swap module charges protocol first, then LP on the remainder.
-				// Each non-zero fee rounds as ((amount * fee + 1) / 1e6) + 1.
-				// The contract bounds step output to 86 bits and the fee to 16 bits.
-				var amountOutPlusFee utils.Uint256
-				netSwapInStep(&amountOutPlusFee, &stepProtocolFee, &stepLpFee, &step.amountOut, &protocolFee, p.constantLpFee)
+			// Deployed swap module charges protocol first, then LP on the remainder.
+			// Each non-zero fee rounds as ((amount * fee + 1) / 1e6) + 1.
+			// The contract bounds step output to 86 bits and the fee to 16 bits.
+			var amountOutPlusFee utils.Uint256
+			netSwapInStep(&amountOutPlusFee, &stepProtocolFee, &stepLpFee, &step.amountOut, &protocolFee, p.constantLpFee)
 
-				state.sqrtPriceX96.Set(&nxtSqrtPriceX96)
-				var amountInSigned utils.Int256
-				err = utils.ToInt256(&step.amountIn, &amountInSigned)
-				if err != nil {
-					return nil, err
-				}
-
-				var amountOutSigned utils.Int256
-				err = utils.ToInt256(&amountOutPlusFee, &amountOutSigned)
-				if err != nil {
-					return nil, err
-				}
-
-				state.amountSpecifiedRemaining.Sub(state.amountSpecifiedRemaining, &amountInSigned)
-				state.amountCalculated.Sub(state.amountCalculated, &amountOutSigned)
-			} else {
-				// TODO: Test this branch
-				var amountInWithFee utils.Uint256
-				amountInWithFee.Mul(&step.amountIn, SIX_DECIMALS).
-					Div(&amountInWithFee, new(utils.Uint256).Sub(SIX_DECIMALS, p.constantLpFee))
-				stepLpFee.Sub(&amountInWithFee, &step.amountIn)
-
-				amountInWithFee.Mul(&amountInWithFee, SIX_DECIMALS).
-					Div(&amountInWithFee, new(utils.Uint256).Sub(SIX_DECIMALS, &protocolFee))
-				stepProtocolFee.Sub(&amountInWithFee, &step.amountIn).
-					Sub(&stepProtocolFee, &stepLpFee)
-
-				var amountInSigned utils.Int256
-				err = utils.ToInt256(&amountInWithFee, &amountInSigned)
-				if err != nil {
-					return nil, err
-				}
-
-				var amountOutSigned utils.Int256
-				err = utils.ToInt256(&step.amountOut, &amountOutSigned)
-				if err != nil {
-					return nil, err
-				}
-
-				state.amountSpecifiedRemaining.Add(state.amountSpecifiedRemaining, &amountOutSigned)
-				state.amountCalculated.Add(state.amountCalculated, &amountInSigned)
+			state.sqrtPriceX96.Set(&nxtSqrtPriceX96)
+			var amountInSigned utils.Int256
+			err = utils.ToInt256(&step.amountIn, &amountInSigned)
+			if err != nil {
+				return nil, err
 			}
+
+			var amountOutSigned utils.Int256
+			err = utils.ToInt256(&amountOutPlusFee, &amountOutSigned)
+			if err != nil {
+				return nil, err
+			}
+
+			state.amountSpecifiedRemaining.Sub(state.amountSpecifiedRemaining, &amountInSigned)
+			state.amountCalculated.Sub(state.amountCalculated, &amountOutSigned)
 
 			if _, overflow := protocolFeeOut.AddOverflow(&protocolFeeOut, &stepProtocolFee); overflow {
 				return nil, ErrOverflow
@@ -354,6 +339,13 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 					return nil, err
 				}
 
+				// Only swaps starting without liquidity re-base the price-move reference.
+				// The dynamic fee anchor deliberately keeps its original price.
+				if p.Liquidity.IsZero() && !referenceChanged && !state.liquidity.IsZero() {
+					sqrtPriceReference.Set(state.sqrtPriceX96)
+					referenceChanged = true
+				}
+
 				crossInitTickLoops++
 			}
 			if zeroForOne {
@@ -397,6 +389,7 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 		dynamicPacked:      nextDynamicPacked,
 		protocolFeeOut:     protocolFeeOut,
 		lpFeeOut:           lpFeeOut,
+		sqrtPriceReference: sqrtPriceReference,
 	}, nil
 }
 

@@ -278,7 +278,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
-	err = _verifySqrtPriceX96ChangeLimits(startPrice.ToBig(), amountOutResult.SqrtRatioX96.ToBig())
+	err = _verifySqrtPriceX96ChangeLimits(amountOutResult.sqrtPriceReference.ToBig(), amountOutResult.SqrtRatioX96.ToBig())
 	if err != nil {
 		return nil, err
 	}

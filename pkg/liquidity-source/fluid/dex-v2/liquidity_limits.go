@@ -89,7 +89,8 @@ func (p *PoolSimulator) GetLimitMergePolicy(key string) pool.SwapLimitMergePolic
 			return liquidityMergePolicy(field)
 		}
 	}
-	return pool.SwapLimitMergeMax
+	// Unknown keys must never enlarge shared spending capacity.
+	return pool.SwapLimitMergeMin
 }
 
 func (p *PoolSimulator) liquidityKey(i, field int) string {

@@ -102,8 +102,12 @@ func _calcExchangePrice(exchangePricesAndConfig *big.Int, snapshotTimestamp uint
 	var borrowExchangePriceIncrease big.Int
 	borrowExchangePriceIncrease.
 		Mul(&borrowExchangePrice, &temp).
-		Mul(&borrowExchangePriceIncrease, &secondsSinceLastUpdate).
-		Div(&borrowExchangePriceIncrease, tmp.Mul(SECONDS_PER_YEAR, FOUR_DECIMALS))
+		Mul(&borrowExchangePriceIncrease, &secondsSinceLastUpdate)
+	// Deployed LiquidityCalcs rounds borrow growth up; supply growth stays floored.
+	tmp.Mul(SECONDS_PER_YEAR, FOUR_DECIMALS)
+	borrowExchangePriceIncrease.Add(&borrowExchangePriceIncrease, &tmp).
+		Sub(&borrowExchangePriceIncrease, bignumber.One).
+		Div(&borrowExchangePriceIncrease, &tmp)
 
 	borrowExchangePrice.Add(&borrowExchangePrice, &borrowExchangePriceIncrease)
 
