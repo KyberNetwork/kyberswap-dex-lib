@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/internal/rpcreplay"
@@ -53,4 +54,27 @@ func TestTrackVaultWithoutOracle(t *testing.T) {
 		}
 		require.Equal(t, tc.want, res.TokenAmountOut.Amount.String(), "%s -> %s %s", tc.in, tc.out, tc.amount)
 	}
+}
+
+// TestPricesQuoteAWholeUnit: the pool's tokens carry no decimals, so the tracker quoted 1 smallest unit of each
+// asset and the oracle's answer lost its fraction (2315 for WETH at $2315.96). Quoting 10^decimals of the vault's
+// asset keeps it. The Ethereum pool 0x0225eac3 at block 26340400; the oracle's getQuotes(1e18, WETH, USD) there is
+// 2315957979270000000000.
+func TestPricesQuoteAWholeUnit(t *testing.T) {
+	srv := rpcreplay.New(t, "testdata/ethereum-26340400-0x0225eac3.json", "")
+	ctx := context.Background()
+	cfg := shared.Config{DexID: DexType}
+	pools, err := NewPoolsListUpdater(&cfg, srv.Client()).initPools(ctx,
+		[]common.Address{common.HexToAddress("0x0225eac3d800a8de0954dd046d13dd21546228a8")})
+	require.NoError(t, err)
+	tracker, err := NewPoolTracker(&cfg, srv.Client())
+	require.NoError(t, err)
+	tracked, err := tracker.GetNewPoolState(ctx, pools[0], pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+
+	var extra Extra
+	require.NoError(t, json.Unmarshal([]byte(tracked.Extra), &extra))
+	weth := extra.SupplyVault[0]
+	require.Equal(t, "2315957979270000000000", weth.DebtPrice.Dec())
+	require.Equal(t, "2315957979270000000000", weth.VaultValuePrices[0].Dec())
 }

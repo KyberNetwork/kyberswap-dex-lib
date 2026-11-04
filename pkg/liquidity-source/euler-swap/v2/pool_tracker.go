@@ -135,6 +135,7 @@ func (d *PoolTracker) getPoolData(
 	var (
 		data           TrackerData
 		vaults         = make([]shared.VaultRPC, len(uniqueVaultAddresses))
+		vaultDecimals  = make([]uint8, len(uniqueVaultAddresses))
 		oracles        = make([]common.Address, len(uniqueVaultAddresses))
 		unitOfAccounts = make([]common.Address, len(uniqueVaultAddresses))
 		collaterals    []common.Address
@@ -212,6 +213,10 @@ func (d *PoolTracker) getPoolData(
 			Target: addr,
 			Method: shared.VaultMethodUnitOfAccount,
 		}, []any{&unitOfAccounts[i]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: addr,
+			Method: shared.VaultMethodDecimals,
+		}, []any{&vaultDecimals[i]}).AddCall(&ethrpc.Call{
 			ABI:    evcABI,
 			Target: evcAddr,
 			Method: shared.EvcMethodIsControllerEnabled,
@@ -223,6 +228,12 @@ func (d *PoolTracker) getPoolData(
 	if err != nil {
 		return nil, 0, errors.WithMessage(err, "1st rt")
 	}
+	vaultList = shared.WithVaultDecimals(vaultList, lo.Map(vaultList, func(v shared.VaultInfo, _ int) uint8 {
+		_, idx, _ := lo.FindIndexOf(uniqueVaultAddresses, func(addr string) bool {
+			return strings.EqualFold(addr, v.VaultAddress)
+		})
+		return vaultDecimals[idx]
+	}))
 
 	var (
 		controllerDecimals  uint8
@@ -413,11 +424,7 @@ func (d *PoolTracker) getPoolData(
 	for i := range uniqueVaultAddresses {
 		for j, v := range fullVaultList {
 			for k, q := range data.VaultPrices[j][i] {
-				if q != nil {
-					data.VaultPrices[j][i][k] = new(big.Int).Div(q, v.QuoteAmount)
-				} else {
-					data.VaultPrices[j][i][k] = big.NewInt(0)
-				}
+				data.VaultPrices[j][i][k] = shared.UnitPrice(q, v.QuoteAmount)
 			}
 		}
 		for j, collatAddr := range collaterals {
@@ -426,11 +433,7 @@ func (d *PoolTracker) getPoolData(
 				continue
 			}
 			for k, q := range data.CollatPrices[j][i] {
-				if q != nil {
-					data.CollatPrices[j][i][k] = new(big.Int).Div(q, collatQuoteAmts[j])
-				} else {
-					data.CollatPrices[j][i][k] = big.NewInt(0)
-				}
+				data.CollatPrices[j][i][k] = shared.UnitPrice(q, collatQuoteAmts[j])
 			}
 		}
 	}
