@@ -116,11 +116,11 @@ func TestPolygonEmptyWordGasIsV4AndChainScoped(t *testing.T) {
 	require.Greater(t, wordCount, int64(0))
 	require.Equal(t, wordCount*(polygonCrossEmptyWordGas-uniswapv3.CrossEmptyWordGas),
 		polygonIn.Gas-avaxIn.Gas)
-	require.Equal(t, polygonCrossEmptyWordGas, polygonClone.PoolSimulator.Gas.CrossEmptyWordGas)
+	require.Equal(t, polygonCrossEmptyWordGas, polygonClone.Gas.CrossEmptyWordGas)
 
 	// Constructor overrides must not mutate the package default or alter non-Polygon V4 sims.
 	require.Equal(t, defaultGas, DefaultGas)
-	require.Equal(t, defaultGas, avaxSim.PoolSimulator.Gas)
+	require.Equal(t, defaultGas, avaxSim.Gas)
 }
 
 // TestDustPoolOutputIsBoundedByWordCost checks the property the on-chain loop enforces and the
