@@ -36,8 +36,8 @@ type PoolSimulator struct {
 	extra                 Extra
 	staticExtra           StaticExtra
 	unsupportedDynamicFee bool
-	liquidityOut          [2]uint256.Int
-	liquidityDebt         [2]uint256.Int
+	liquidityLimits       [2]LiquidityLimits
+	liquidityKeys         [2]string
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
@@ -170,26 +170,33 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		tokenReserves:         [2]*big.Int{token0Reserves, token1Reserves},
 		extra:                 extra,
 		staticExtra:           staticExtra,
-		unsupportedDynamicFee: feeVersion.Sign() != 0 || extra.DexVariables2.Bit(141) != 0 || staticExtra.Fee == 0xffffff,
+		unsupportedDynamicFee: feeVersion.Uint64() > 1 || extra.DexVariables2.Bit(141) != 0 || (feeVersion.Sign() == 0 && staticExtra.Fee == 0xffffff),
 	}
 
+	if feeVersion.Uint64() == 1 {
+		simulator.V3Pool.dynamicVersion = true
+		simulator.V3Pool.snapshotTimestamp = extra.SnapshotTimestamp
+		if simulator.V3Pool.dynamicPacked.SetFromBig(extra.DexVariables2) {
+			return nil, ErrOverflow
+		}
+	}
 	if !staticExtra.TrackLiquidityLimits {
 		return simulator, nil
 	}
 	for i := range 2 {
-		// This implementation only quotes direct Liquidity settlements. Float-backed
-		// settlements can rebalance and require additional shared state tracking.
-		if extra.FloatBalance[i] == nil || extra.FloatBalance[i].Sign() != 0 || extra.SwapOutWithdraw[i] == nil || extra.SwapOutBorrow[i] == nil || extra.LiquidityDebt[i] == nil {
+		token := simulator.Info.Tokens[i]
+		if staticExtra.IsNative[i] {
+			token = valueobject.NativeAddress
+		}
+		simulator.liquidityKeys[i] = strings.ToLower(staticExtra.Dex + ":" + token + ":")
+		// Aggregate-only snapshots cannot prove the individual settlement legs.
+		// Wait for a tracker refresh rather than infer an execution mode.
+		if extra.LiquidityLimits[i] == nil {
 			return nil, ErrUnsupportedLiquidityState
 		}
-		budget := extra.SwapOutWithdraw[i]
-		if extra.SwapOutBorrow[i].Cmp(budget) < 0 {
-			budget = extra.SwapOutBorrow[i]
-		}
-		if simulator.liquidityOut[i].SetFromBig(budget) || simulator.liquidityDebt[i].SetFromBig(extra.LiquidityDebt[i]) {
-			return nil, ErrOverflow
-		}
+		simulator.liquidityLimits[i] = *extra.LiquidityLimits[i]
 	}
+
 	return simulator, nil
 }
 
@@ -224,13 +231,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	zeroForOne := tokenInIndex == 0
 	_, dexType := parseFluidDexV2PoolAddress(p.GetAddress())
-	if (dexType == D3_MODULE && (p.extra.SupplyPaused[tokenInIndex] || p.extra.WithdrawPaused[tokenOutIndex])) || (dexType != D3_MODULE && (p.extra.PaybackPaused[tokenInIndex] || p.extra.BorrowPaused[tokenOutIndex] || p.extra.SupplyPaused[tokenOutIndex])) {
-		return nil, ErrUnsupportedLiquidityState
-	}
-	if dexType != D3_MODULE && !p.checkLiquidityLimit(param.Limit, tokenInIndex, true, amountInBI) {
-		return nil, ErrUnsupportedLiquidityState
-	}
-
 	// Adjust amountIn
 	c, err := _calculateVars(p.extra.DexVariables2, p.extra.Token0ExchangePricesAndConfig, p.extra.Token1ExchangePricesAndConfig, p.extra.SnapshotTimestamp)
 	if err != nil {
@@ -326,43 +326,36 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
-	var liquidityOut uint256.Int
-	if liquidityOut.SetFromBig(&amountOut) {
+	var inputValue, outputValue, fees uint256.Int
+	if inputValue.SetFromBig(amountInBI) || outputValue.SetFromBig(&amountOut) {
 		return nil, ErrOverflow
 	}
 	if dexType != D3_MODULE {
-		// A D4 output borrows net output plus both fee legs. The gross normalized
-		// engine output bounds all three; round up the token conversion separately.
 		numerator, denominator, price := c.Token0NumeratorPrecision, c.Token0DenominatorPrecision, c.Token0BorrowExchangePrice
 		if zeroForOne {
 			numerator, denominator, price = c.Token1NumeratorPrecision, c.Token1DenominatorPrecision, c.Token1BorrowExchangePrice
 		}
-		var n, d, e, scale uint256.Int
+		var n, d, e, scale, protocolFee, lpFee uint256.Int
 		if n.SetFromBig(numerator) || d.SetFromBig(denominator) || e.SetFromBig(price) {
 			return nil, ErrOverflow
 		}
-		if _, overflow := d.MulOverflow(&d, &e); overflow {
-			return nil, ErrOverflow
-		}
 		scale.SetUint64(1000000000000)
-		if _, overflow := n.MulOverflow(&n, &scale); overflow {
-			return nil, ErrOverflow
-		}
-		if _, overflow := liquidityOut.MulDivOverflow(&amountOutResult.grossOut, &d, &n); overflow {
-			return nil, ErrOverflow
-		}
-		if _, overflow := liquidityOut.AddOverflow(&liquidityOut, uint256.NewInt(3)); overflow {
+		// Adjusted output is bounded to 86 bits, precision to 1e9 and price to
+		// 64 bits, so each Solidity conversion product fits within 180 bits.
+		n.Mul(&n, &scale)
+		protocolFee.Mul(&amountOutResult.protocolFeeOut, &d).Mul(&protocolFee, &e).Div(&protocolFee, &n)
+		lpFee.Mul(&amountOutResult.lpFeeOut, &d).Mul(&lpFee, &e).Div(&lpFee, &n)
+		if _, overflow := fees.AddOverflow(&protocolFee, &lpFee); overflow {
 			return nil, ErrOverflow
 		}
 	}
-	if !p.checkLiquidityLimit(param.Limit, tokenOutIndex, false, liquidityOut.ToBig()) {
-		return nil, ErrUnsupportedLiquidityState
+	usage, err := p.quoteLiquidity(param.Limit, tokenInIndex, tokenOutIndex, dexType, &inputValue, &outputValue, &fees)
+	if err != nil {
+		return nil, err
 	}
-	var liquidityDebtIn uint256.Int
-	if dexType != D3_MODULE {
-		if liquidityDebtIn.SetFromBig(amountInBI) {
-			return nil, ErrOverflow
-		}
+	gas := p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops)
+	if p.V3Pool.dynamicVersion {
+		gas += 10000
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -373,7 +366,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee: &pool.TokenAmount{
 			Token: tokenIn,
 		},
-		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops),
+		Gas: gas,
 		SwapInfo: SwapInfo{
 			RemainingAmountIn:     amountOutResult.RemainingAmountIn,
 			NextStateSqrtRatioX96: amountOutResult.SqrtRatioX96,
@@ -381,7 +374,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			nextStateLiquidity:    amountOutResult.Liquidity,
 			amountInRawAdjusted:   &amountInRawAdjusted,
 			amountOutRawAdjusted:  reserveOutputRaw,
-			liquidityOut:          liquidityOut, liquidityDebtIn: liquidityDebtIn,
+			liquidityUsage:        usage,
+			nextDynamicPacked:     amountOutResult.dynamicPacked,
 		},
 	}, nil
 }
@@ -407,29 +401,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	packSqrtPrice(p.V3Pool.SqrtRatioX96, si.NextStateSqrtRatioX96, false)
 	p.V3Pool.TickCurrent = si.NextStateTickCurrent
 	p.V3Pool.Liquidity = new(uint256.Int).Set(si.nextStateLiquidity)
+	if p.V3Pool.dynamicVersion {
+		p.V3Pool.dynamicPacked.Set(&si.nextDynamicPacked)
+	}
 
 	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenAmountOut.Token
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 
 	p.tokenReserves[tokenInIndex].Add(p.tokenReserves[tokenInIndex], si.amountInRawAdjusted)
 	p.tokenReserves[tokenOutIndex].Sub(p.tokenReserves[tokenOutIndex], si.amountOutRawAdjusted.ToBig())
-	if !p.staticExtra.TrackLiquidityLimits {
-		return
-	}
-	p.liquidityOut[tokenOutIndex].Sub(&p.liquidityOut[tokenOutIndex], &si.liquidityOut)
-	p.liquidityDebt[tokenInIndex].Sub(&p.liquidityDebt[tokenInIndex], &si.liquidityDebtIn)
-	if params.SwapLimit != nil {
-		_, _, err := params.SwapLimit.UpdateLimit(p.limitKey(tokenOutIndex, false), p.limitKey(tokenInIndex, false), si.liquidityOut.ToBig(), big.NewInt(0))
-		if err != nil {
-			logger.Warnf("failed to update Fluid output limit: %v", err)
-		}
-		if !si.liquidityDebtIn.IsZero() {
-			_, _, err = params.SwapLimit.UpdateLimit(p.limitKey(tokenInIndex, true), p.limitKey(tokenOutIndex, true), si.liquidityDebtIn.ToBig(), big.NewInt(0))
-			if err != nil {
-				logger.Warnf("failed to update Fluid debt limit: %v", err)
-			}
-		}
-	}
+	p.applyLiquidity(si.liquidityUsage, params.SwapLimit)
 
 }
 
@@ -480,47 +461,4 @@ func roundNormalizedDown(amount *uint256.Int) {
 	if !amount.IsZero() {
 		amount.SubUint64(amount, 1)
 	}
-}
-
-func (p *PoolSimulator) limitKey(i int, debt bool) string {
-	token := p.Info.Tokens[i]
-	if p.staticExtra.IsNative[i] {
-		token = valueobject.NativeAddress
-	}
-	kind := ":out:"
-	if debt {
-		kind = ":debt:"
-	}
-	return strings.ToLower(p.staticExtra.Dex + kind + token)
-}
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	if !p.staticExtra.TrackLiquidityLimits {
-		return nil
-	}
-	m := make(map[string]*big.Int, 4)
-	for i := range 2 {
-		m[p.limitKey(i, false)] = p.liquidityOut[i].ToBig()
-		m[p.limitKey(i, true)] = p.liquidityDebt[i].ToBig()
-	}
-	return m
-}
-func (p *PoolSimulator) checkLiquidityLimit(limit pool.SwapLimit, i int, debt bool, amount *big.Int) bool {
-	if !p.staticExtra.TrackLiquidityLimits {
-		return true
-	}
-	local := &p.liquidityOut[i]
-	if debt {
-		local = &p.liquidityDebt[i]
-	}
-	var x uint256.Int
-	if x.SetFromBig(amount) || x.Cmp(local) > 0 {
-		return false
-	}
-	if limit != nil {
-		v := limit.GetLimit(p.limitKey(i, debt))
-		if v == nil || amount.Cmp(v) > 0 {
-			return false
-		}
-	}
-	return true
 }

@@ -10,4 +10,5 @@ type Config struct {
 	Liquidity            string              `json:"liquidity"`
 	SubgraphAPI          string              `json:"subgraphAPI"`
 	TrackLiquidityLimits bool                `json:"trackLiquidityLimits"`
+	SupplyOnlySettlement bool                `json:"supplyOnlySettlement"`
 }

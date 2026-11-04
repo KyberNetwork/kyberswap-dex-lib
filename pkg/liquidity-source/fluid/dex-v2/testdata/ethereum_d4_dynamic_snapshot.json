@@ -1,0 +1,87 @@
+{
+  "address": "0xe018f09af38956affdfeab72c2cefbcd4e6fee44d09df7525ec9dba3e51356a5_4",
+  "block": 26334848,
+  "timestamp": 1793715803,
+  "extra": {
+    "liquidity": 879924586393907,
+    "sqrtPriceX96": 79713933574684674812599599104,
+    "tick": 122,
+    "ticks": [
+      {
+        "index": 113,
+        "liquidityGross": 879924586393907,
+        "liquidityNet": 879924586393907
+      },
+      {
+        "index": 133,
+        "liquidityGross": 879924586393907,
+        "liquidityNet": -879924586393907
+      }
+    ],
+    "dexVariables2": 24372654505809028876700121340035097827968193767984672706153258199736647680,
+    "token0ExchangePricesAndConfig": 56476922995162386263767438835376013919313431702954396091058,
+    "token1ExchangePricesAndConfig": 55780435288984633040024701867228636600811315327406814265950,
+    "tokenReserves": 139406925026706786830753194195945198102299655031028,
+    "swapOutWithdraw": [
+      2599071904,
+      4121870087
+    ],
+    "swapOutBorrow": [
+      49539571362,
+      49415968395
+    ],
+    "snapshotBlock": 26334848,
+    "snapshotTimestamp": 1793715803,
+    "floatBalance": [
+      0,
+      0
+    ],
+    "maxCap": [
+      0,
+      0
+    ],
+    "unaccountedBorrow": [
+      0,
+      0
+    ],
+    "liquidityDebt": [
+      500678419,
+      580899008
+    ],
+    "withdrawPaused": [
+      false,
+      false
+    ],
+    "supplyPaused": [
+      false,
+      false
+    ],
+    "paybackPaused": [
+      false,
+      false
+    ],
+    "borrowPaused": [
+      false,
+      false
+    ]
+  },
+  "staticExtra": {
+    "dex": "0xabe4d5aa1bb188f4b5d3a1ae3b8ec5e300a78261",
+    "dexType": 4,
+    "fee": 100,
+    "tickSpacing": 1,
+    "isNative": [
+      false,
+      false
+    ],
+    "trackLiquidityLimits": false
+  },
+  "tokens": [
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "0xdac17f958d2ee523a2206206994597c13d831ec7"
+  ],
+  "decimals": [
+    6,
+    6
+  ]
+}

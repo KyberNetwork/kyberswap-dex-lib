@@ -503,6 +503,8 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	extra.SupplyPaused = rpcState.SupplyPaused
 	extra.PaybackPaused = rpcState.PaybackPaused
 	extra.BorrowPaused = rpcState.BorrowPaused
+	extra.LiquidityLimits = rpcState.LiquidityLimits
+	extra.SupplyOnlySettlement = rpcState.SupplyOnlySettlement
 
 	extra.Token0ExchangePricesAndConfig = rpcState.Token0ExchangePricesAndConfig
 	extra.Token1ExchangePricesAndConfig = rpcState.Token1ExchangePricesAndConfig

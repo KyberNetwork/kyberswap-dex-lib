@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -80,6 +81,8 @@ func (t *PoolTracker) fetchRPCData(
 
 	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig, tokenReserves *big.Int
 	var tokenBase [2]struct{ State TokenBaseState }
+	var liquidityStatus *big.Int
+	var userSupply, userBorrow [2]*big.Int
 
 	token0 := lo.Ternary(
 		staticExtra.IsNative[0],
@@ -131,7 +134,17 @@ func (t *PoolTracker) fetchRPCData(
 	}, []any{&tokenReserves})
 
 	if staticExtra.TrackLiquidityLimits {
+		req.AddCall(&ethrpc.Call{ABI: abis.LiquidityABI, Target: t.config.Liquidity, Method: "readFromStorage", Params: []any{common.BigToHash(big.NewInt(1))}}, []any{&liquidityStatus})
 		for i, token := range []common.Address{token0, token1} {
+			for j, slot := range []uint64{8, 9} {
+				outer := calculateMappingStorageSlot(slot, common.HexToAddress(t.config.Dex))
+				inner := crypto.Keccak256Hash(common.LeftPadBytes(token.Bytes(), 32), outer.Bytes())
+				dst := &userSupply[i]
+				if j == 1 {
+					dst = &userBorrow[i]
+				}
+				req.AddCall(&ethrpc.Call{ABI: abis.LiquidityABI, Target: t.config.Liquidity, Method: "readFromStorage", Params: []any{inner}}, []any{dst})
+			}
 			req.AddCall(&ethrpc.Call{ABI: abis.ResolverABI, Target: t.config.Resolver,
 				Method: "getTokenBaseState", Params: []any{token}}, []any{&tokenBase[i]})
 		}
@@ -160,6 +173,7 @@ func (t *PoolTracker) fetchRPCData(
 
 		TokenReserves: tokenReserves,
 		SnapshotBlock: response.BlockNumber.Uint64(), SnapshotTimestamp: timestamp,
+		SupplyOnlySettlement: t.config.SupplyOnlySettlement,
 	}
 
 	if staticExtra.TrackLiquidityLimits {
@@ -168,13 +182,29 @@ func (t *PoolTracker) fetchRPCData(
 		extra.UnaccountedBorrow = [2]*big.Int{tokenBase[0].State.UnaccountedBorrow, tokenBase[1].State.UnaccountedBorrow}
 		extra.SwapOutWithdraw = [2]*big.Int{tokenBase[0].State.AvailableForSwapOutWithdraw, tokenBase[1].State.AvailableForSwapOutWithdraw}
 		extra.SwapOutBorrow = [2]*big.Int{tokenBase[0].State.AvailableForSwapOutBorrow, tokenBase[1].State.AvailableForSwapOutBorrow}
+		if liquidityStatus == nil {
+			return Extra{}, ErrUnsupportedLiquidityState
+		}
 		for i := range tokenBase {
 			b := tokenBase[i].State
+			config := token0ExchangePricesAndConfig
+			if i == 1 {
+				config = token1ExchangePricesAndConfig
+			}
+			allowed, permissionErr := liquidityPermissions(b, userSupply[i], userBorrow[i], config, liquidityStatus, timestamp)
+			if permissionErr != nil {
+				return Extra{}, permissionErr
+			}
 			extra.LiquidityDebt[i] = b.DexBorrowAtLiquidity.Borrow
 			extra.WithdrawPaused[i] = b.DexSupplyAtLiquidity.IsPaused || b.DexSupplyAtLiquidity.IsWithdrawPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsWithdrawPaused
 			extra.SupplyPaused[i] = b.DexSupplyAtLiquidity.IsPaused || b.DexSupplyAtLiquidity.IsSupplyPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsSupplyPaused
 			extra.PaybackPaused[i] = b.DexBorrowAtLiquidity.IsPaused || b.DexBorrowAtLiquidity.IsPaybackPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsPaybackPaused
 			extra.BorrowPaused[i] = b.DexBorrowAtLiquidity.IsPaused || b.DexBorrowAtLiquidity.IsBorrowPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsBorrowPaused
+			var limitErr error
+			extra.LiquidityLimits[i], limitErr = liquidityLimitsFromRPC(b, allowed)
+			if limitErr != nil {
+				return Extra{}, limitErr
+			}
 		}
 	}
 	return extra, nil

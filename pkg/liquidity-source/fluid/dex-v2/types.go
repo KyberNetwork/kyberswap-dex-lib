@@ -20,8 +20,8 @@ type SwapInfo struct {
 	nextStateLiquidity    *v3Utils.Uint128
 	amountInRawAdjusted   *big.Int
 	amountOutRawAdjusted  uint256.Int
-	liquidityOut          uint256.Int
-	liquidityDebtIn       uint256.Int
+	liquidityUsage        [2]liquidityUsage
+	nextDynamicPacked     uint256.Int
 }
 
 type PoolMeta struct {
@@ -82,18 +82,20 @@ type Extra struct {
 
 	TokenReserves *big.Int `json:"tokenReserves"`
 
-	SwapOutWithdraw   [2]*big.Int `json:"swapOutWithdraw"`
-	SwapOutBorrow     [2]*big.Int `json:"swapOutBorrow"`
-	SnapshotBlock     uint64      `json:"snapshotBlock"`
-	SnapshotTimestamp uint64      `json:"snapshotTimestamp"`
-	FloatBalance      [2]*big.Int `json:"floatBalance"`
-	MaxCap            [2]*big.Int `json:"maxCap"`
-	UnaccountedBorrow [2]*big.Int `json:"unaccountedBorrow"`
-	LiquidityDebt     [2]*big.Int `json:"liquidityDebt"`
-	WithdrawPaused    [2]bool     `json:"withdrawPaused"`
-	SupplyPaused      [2]bool     `json:"supplyPaused"`
-	PaybackPaused     [2]bool     `json:"paybackPaused"`
-	BorrowPaused      [2]bool     `json:"borrowPaused"`
+	SwapOutWithdraw      [2]*big.Int         `json:"swapOutWithdraw"`
+	SwapOutBorrow        [2]*big.Int         `json:"swapOutBorrow"`
+	SnapshotBlock        uint64              `json:"snapshotBlock"`
+	SnapshotTimestamp    uint64              `json:"snapshotTimestamp"`
+	FloatBalance         [2]*big.Int         `json:"floatBalance"`
+	MaxCap               [2]*big.Int         `json:"maxCap"`
+	UnaccountedBorrow    [2]*big.Int         `json:"unaccountedBorrow"`
+	LiquidityDebt        [2]*big.Int         `json:"liquidityDebt"`
+	WithdrawPaused       [2]bool             `json:"withdrawPaused"`
+	SupplyPaused         [2]bool             `json:"supplyPaused"`
+	PaybackPaused        [2]bool             `json:"paybackPaused"`
+	BorrowPaused         [2]bool             `json:"borrowPaused"`
+	LiquidityLimits      [2]*LiquidityLimits `json:"liquidityLimits,omitempty"`
+	SupplyOnlySettlement bool                `json:"supplyOnlySettlement,omitempty"`
 }
 
 type DexKey struct {

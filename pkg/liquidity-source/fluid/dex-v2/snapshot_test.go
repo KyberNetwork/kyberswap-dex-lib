@@ -38,6 +38,14 @@ func snapshotSimulator(t *testing.T) (*PoolSimulator, entity.Pool) {
 		f.Extra.SwapOutWithdraw[i] = big.NewInt(1_000_000_000_000)
 		f.Extra.SwapOutBorrow[i] = big.NewInt(1_000_000_000_000)
 		f.Extra.LiquidityDebt[i] = big.NewInt(1_000_000_000_000)
+		f.Extra.LiquidityLimits[i] = &LiquidityLimits{Allowed: [4]bool{true, true, true, true}}
+		l := f.Extra.LiquidityLimits[i]
+		l.DepositSafe = true
+		l.Withdraw.SetUint64(1_000_000_000_000)
+		l.Borrow.SetUint64(1_000_000_000_000)
+		l.Debt.SetUint64(1_000_000_000_000)
+		l.Cash.SetUint64(1_000_000_000_000)
+		l.Growth.SetUint64(1_000_000_000_000)
 	}
 	extra, _ := json.Marshal(f.Extra)
 	static, _ := json.Marshal(f.StaticExtra)
@@ -76,17 +84,17 @@ func TestD3SettlementConstraints(t *testing.T) {
 	if err != nil || first.TokenAmountOut.Amount.Cmp(again.TokenAmountOut.Amount) != 0 {
 		t.Fatalf("repeated quote differs: %v", err)
 	}
-	sim.extra.WithdrawPaused[1] = true
+	sim.liquidityLimits[1].Allowed[1] = false
 	if _, err := sim.CalcAmountOut(params); err != ErrUnsupportedLiquidityState {
 		t.Fatalf("withdraw pause: %v", err)
 	}
-	sim.extra.WithdrawPaused[1] = false
-	sim.extra.SupplyPaused[0] = true
+	sim.liquidityLimits[1].Allowed[1] = true
+	sim.liquidityLimits[0].Allowed[0] = false
 	if _, err := sim.CalcAmountOut(params); err != ErrUnsupportedLiquidityState {
 		t.Fatalf("supply pause: %v", err)
 	}
-	sim.extra.SupplyPaused[0] = false
-	sim.liquidityOut[1].SetUint64(1)
+	sim.liquidityLimits[0].Allowed[0] = true
+	sim.liquidityLimits[1].Withdraw.SetUint64(1)
 	if _, err := sim.CalcAmountOut(params); err != ErrUnsupportedLiquidityState {
 		t.Fatalf("output limit: %v", err)
 	}
@@ -101,7 +109,7 @@ func TestD3SharedLimitAndClone(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	original := new(big.Int).Set(limit.GetLimit(sim.limitKey(1, false)))
+	original := new(big.Int).Set(limit.GetLimit(sim.liquidityKey(1, liquidityBorrow)))
 	sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *q.TokenAmountOut, SwapInfo: q.SwapInfo, SwapLimit: limit})
 	// SwapInfo belongs to the quote; subsequent caller mutation must not change state.
 	si := q.SwapInfo.(SwapInfo)
@@ -111,7 +119,7 @@ func TestD3SharedLimitAndClone(t *testing.T) {
 		t.Fatal("updated state aliases quote liquidity")
 	}
 	want := new(big.Int).Sub(original, q.TokenAmountOut.Amount)
-	if got := limit.GetLimit(sim.limitKey(1, false)); got.Cmp(want) != 0 {
+	if got := limit.GetLimit(sim.liquidityKey(1, liquidityBorrow)); got.Cmp(want) != 0 {
 		t.Fatalf("limit %s, want %s", got, want)
 	}
 	cloneQuote, err := clone.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: params.TokenAmountIn, TokenOut: params.TokenOut})
@@ -126,7 +134,7 @@ func TestLiquidityTrackingVersionGate(t *testing.T) {
 	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		t.Fatal(err)
 	}
-	extra.FloatBalance[0] = nil
+	extra.LiquidityLimits[0] = nil
 	b, err := json.Marshal(extra)
 	if err != nil {
 		t.Fatal(err)
