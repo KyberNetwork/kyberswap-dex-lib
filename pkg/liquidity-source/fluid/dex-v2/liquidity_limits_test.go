@@ -1,11 +1,13 @@
 package dexv2
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 )
 
@@ -171,4 +173,26 @@ func TestSubBaseDepositsShareHeadroom(t *testing.T) {
 	require.Zero(t, limit.GetLimit("vault:token0:depositHeadroom").Sign())
 	_, err = p.quoteLiquidity(limit, 1, 0, D3_MODULE, uint256.NewInt(1), uint256.NewInt(1), uint256.NewInt(0))
 	require.ErrorIs(t, err, ErrUnsupportedLiquidityState)
+}
+
+func TestLiquiditySnapshotMergePolicy(t *testing.T) {
+	p := testLiquiditySimulator()
+	other := testLiquiditySimulator()
+	p.liquidityLimits[0].Withdraw.SetUint64(100)
+	other.liquidityLimits[0].Withdraw.SetUint64(80)
+	p.liquidityLimits[0].Allowed[0] = false
+	p.liquidityLimits[0].RoundingBuffer.SetUint64(7)
+	other.liquidityLimits[0].RoundingBuffer.SetUint64(9)
+	p.liquidityLimits[0].OutputReserved.SetUint64(3)
+	other.liquidityLimits[0].OutputReserved.SetUint64(4)
+	for _, snapshots := range [][]*PoolSimulator{{p, other}, {other, p}} {
+		limits := make(map[string]*big.Int)
+		for _, snapshot := range snapshots {
+			pool.MergeSwapLimits(limits, snapshot)
+		}
+		require.Equal(t, int64(80), limits[p.liquidityKey(0, liquidityWithdraw)].Int64())
+		require.Zero(t, limits[p.liquidityKey(0, liquiditySupplyAllowed)].Sign())
+		require.Equal(t, int64(9), limits[p.liquidityKey(0, liquidityRoundingBuffer)].Int64())
+		require.Equal(t, int64(4), limits[p.liquidityKey(0, liquidityOutputReserved)].Int64())
+	}
 }

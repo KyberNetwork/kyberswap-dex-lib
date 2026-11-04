@@ -48,6 +48,11 @@ func TestFluidV2UpdatedStateRoundTrip(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, want.TokenAmountOut, got.TokenAmountOut)
 			require.Equal(t, sim.CalculateLimit(), restored.CalculateLimit())
+			originalPolicy := any(sim).(pool.ISwapLimitMergePolicy)
+			restoredPolicy := restored.(pool.ISwapLimitMergePolicy)
+			for key := range sim.CalculateLimit() {
+				require.Equal(t, originalPolicy.GetLimitMergePolicy(key), restoredPolicy.GetLimitMergePolicy(key))
+			}
 		})
 	}
 }

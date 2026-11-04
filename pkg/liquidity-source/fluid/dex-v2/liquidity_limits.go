@@ -2,6 +2,7 @@ package dexv2
 
 import (
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
@@ -70,6 +71,27 @@ func (s *LiquidityLimits) values() (v [liquidityFieldCount]uint256.Int) {
 	return
 }
 
+var _ pool.ISwapLimitMergePolicy = (*PoolSimulator)(nil)
+
+func liquidityMergePolicy(field int) pool.SwapLimitMergePolicy {
+	switch field {
+	case liquidityInputTotal, liquidityOutputTotal, liquidityOutputReserved, liquidityRoundingBuffer:
+		return pool.SwapLimitMergeMax
+	default:
+		return pool.SwapLimitMergeMin
+	}
+}
+
+func (p *PoolSimulator) GetLimitMergePolicy(key string) pool.SwapLimitMergePolicy {
+	kind := key[strings.LastIndexByte(key, ':')+1:]
+	for field, name := range liquidityFieldNames {
+		if kind == name {
+			return liquidityMergePolicy(field)
+		}
+	}
+	return pool.SwapLimitMergeMax
+}
+
 func (p *PoolSimulator) liquidityKey(i, field int) string {
 	return p.liquidityKeys[i] + liquidityFieldNames[field]
 }
@@ -83,7 +105,8 @@ func (p *PoolSimulator) liquidityValues(i int, limit pool.SwapLimit) ([liquidity
 			if shared == nil || shared.Sign() < 0 || x.SetFromBig(shared) {
 				return v, ErrUnsupportedLiquidityState
 			}
-			if (field >= liquidityInputTotal && field <= liquidityOutputReserved && x.Gt(&v[field])) || ((field < liquidityInputTotal || field >= liquidityGrowth) && x.Lt(&v[field])) || (field == liquidityRoundingBuffer && x.Gt(&v[field])) {
+			policy := liquidityMergePolicy(field)
+			if (policy == pool.SwapLimitMergeMax && x.Gt(&v[field])) || (policy == pool.SwapLimitMergeMin && x.Lt(&v[field])) {
 				v[field] = x
 			}
 		}
