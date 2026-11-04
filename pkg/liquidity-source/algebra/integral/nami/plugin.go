@@ -32,6 +32,11 @@ const (
 	// branches, and 104.7k on one Base reverted-check pool. The external
 	// arbitrage branch can cost more; callGasBudget is a ceiling, not consumption.
 	MEVXGasEstimate uint64 = 110_000
+	// afterSwap reverts when gasleft() is below minGasLeft, and the user's gas
+	// limit comes from our estimate, so minGasLeft is added to the estimate as
+	// headroom. Above this value the pool is not quoted: the contract allows up
+	// to 5M, which would make every hop of a route carry a huge gas limit.
+	MaxMinGasLeft uint64 = 1_000_000
 	// Pool-service polls plugin state every 10s. Stop routing after a minute
 	// without a recent chain snapshot; an idle volatility timepoint is valid.
 	MaxSnapshotAge uint64 = 60
@@ -123,16 +128,40 @@ func Fetch(ctx context.Context, client *ethrpc.Client, plugin common.Address, bl
 			unsupported = "Nami anti-sniper launch window is active"
 		}
 	}
-	var mevxGas uint64
-	if mevxRouter != (common.Address{}) {
-		if !minGasLeft.IsUint64() || !callGasBudget.IsUint64() || minGasLeft.Uint64() > 5000000 || callGasBudget.Uint64() > 5000000 {
-			return nil, errors.New("invalid Nami MEV-X gas configuration")
-		}
-		// minGasLeft is a gasleft requirement; callGasBudget caps forwarding.
-		// Neither is the amount consumed by the hook.
-		mevxGas = MEVXGasEstimate
+	mevxGas, mevxUnsupported, err := mevxGasConfig(mevxRouter != (common.Address{}), minGasLeft, callGasBudget)
+	if err != nil {
+		return nil, err
+	}
+	if unsupported == "" {
+		unsupported = mevxUnsupported
 	}
 	return &Config{Floor: bounds.Floor, Cap: bounds.Cap, Premium0For1: bounds.Premium0For1, Premium1For0: bounds.Premium1For0, DecayWindow: bounds.DecayWindow, MaxDiscountBps: bounds.MaxDiscountBps, Fee0For1: override.Fee0For1, Fee1For0: override.Fee1For0, ExpiresAt: override.ExpiresAt.Uint64(), MEVXGas: mevxGas, Unsupported: unsupported, MinGasLeft: minGasLeft.Uint64(), CallGasBudget: callGasBudget.Uint64()}, nil
+}
+
+// mevxGasConfig returns the per-hop MEV-X hook gas for an enabled router, or an
+// unsupported reason when minGasLeft is too high to quote safely.
+func mevxGasConfig(enabled bool, minGasLeft, callGasBudget *big.Int) (gas uint64, unsupported string, err error) {
+	if !enabled {
+		return 0, "", nil
+	}
+	if !minGasLeft.IsUint64() || !callGasBudget.IsUint64() || minGasLeft.Uint64() > 5000000 || callGasBudget.Uint64() > 5000000 {
+		return 0, "", errors.New("invalid Nami MEV-X gas configuration")
+	}
+	if minGasLeft.Uint64() > MaxMinGasLeft {
+		return 0, "Nami MEV-X minGasLeft is too high", nil
+	}
+	// callGasBudget only caps forwarding; it is not the amount consumed.
+	return MEVXGasEstimate, "", nil
+}
+
+// HookGas is the gas added to a hop for the afterSwap hook: the typical hook
+// cost plus the minGasLeft headroom the contract requires at that point.
+// Snapshots stored before MinGasLeft existed carry zero and get the estimate only.
+func (c Config) HookGas() uint64 {
+	if c.MEVXGas == 0 {
+		return 0
+	}
+	return MEVXGasEstimate + c.MinGasLeft
 }
 
 // fee follows _swapFee, after _feeForTick and with external fee sources disabled.

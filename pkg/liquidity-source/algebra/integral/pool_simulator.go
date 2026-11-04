@@ -615,7 +615,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	o.gas = BaseGas + ticksCrossed*CrossInitTickGas
 	if p.namiFee != nil && p.namiFee.MEVXGas != 0 && p.globalState.PluginConfig&AFTER_SWAP_FLAG != 0 {
 		// Also normalize snapshots written before gas-budget/usage were separated.
-		o.gas += int64(nami.MEVXGasEstimate)
+		o.gas += int64(p.namiFee.HookGas())
 	}
 	return nil
 }

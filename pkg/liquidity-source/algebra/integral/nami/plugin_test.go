@@ -49,3 +49,39 @@ func TestNamiABIOutputs(t *testing.T) {
 	require.NoError(t, namiPluginABI.UnpackIntoInterface(&override, "feeOverride", encoded))
 	require.Equal(t, original, override.OverrideState)
 }
+
+func TestMevxGasConfig(t *testing.T) {
+	u := func(v uint64) *big.Int { return new(big.Int).SetUint64(v) }
+	for _, tc := range []struct {
+		name               string
+		enabled            bool
+		minGasLeft, budget *big.Int
+		gas                uint64
+		unsupported        string
+		wantErr            bool
+	}{
+		{"router disabled", false, u(0), u(5_000_000), 0, "", false},
+		{"deployed config", true, u(0), u(5_000_000), MEVXGasEstimate, "", false},
+		{"minGasLeft at limit", true, u(MaxMinGasLeft), u(5_000_000), MEVXGasEstimate, "", false},
+		{"minGasLeft above limit", true, u(MaxMinGasLeft + 1), u(5_000_000), 0, "Nami MEV-X minGasLeft is too high", false},
+		{"minGasLeft above contract max", true, u(5_000_001), u(5_000_000), 0, "", true},
+		{"budget above contract max", true, u(0), u(5_000_001), 0, "", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gas, unsupported, err := mevxGasConfig(tc.enabled, tc.minGasLeft, tc.budget)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.gas, gas)
+			require.Equal(t, tc.unsupported, unsupported)
+		})
+	}
+}
+
+func TestHookGasAddsMinGasLeft(t *testing.T) {
+	require.Zero(t, Config{}.HookGas(), "MEV-X disabled")
+	require.Equal(t, MEVXGasEstimate, Config{MEVXGas: 5_000_000}.HookGas(), "old inflated snapshot")
+	require.Equal(t, MEVXGasEstimate+300_000, Config{MEVXGas: MEVXGasEstimate, MinGasLeft: 300_000}.HookGas())
+}

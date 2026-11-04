@@ -102,15 +102,18 @@ func TestNamiGasBudgetIsNotConsumedGas(t *testing.T) {
 		storedGas   uint64
 		hookEnabled bool
 		extraGas    int64
+		minGasLeft  uint64
 	}{
-		{"old five-million snapshot", 5_000_000, true, int64(nami.MEVXGasEstimate)},
-		{"new estimate", nami.MEVXGasEstimate, true, int64(nami.MEVXGasEstimate)},
-		{"router disabled", 0, true, 0},
-		{"afterSwap disabled", 5_000_000, false, 0},
+		{"old five-million snapshot", 5_000_000, true, int64(nami.MEVXGasEstimate), 0},
+		{"new estimate", nami.MEVXGasEstimate, true, int64(nami.MEVXGasEstimate), 0},
+		{"router disabled", 0, true, 0, 0},
+		{"afterSwap disabled", 5_000_000, false, 0, 0},
+		{"minGasLeft headroom", nami.MEVXGasEstimate, true, int64(nami.MEVXGasEstimate) + 300_000, 300_000},
+		{"minGasLeft ignored when afterSwap disabled", nami.MEVXGasEstimate, false, 0, 300_000},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sim := baseline.CloneState().(*PoolSimulator)
-			sim.namiFee = &nami.Config{MEVXGas: tc.storedGas, CallGasBudget: 5_000_000}
+			sim.namiFee = &nami.Config{MEVXGas: tc.storedGas, CallGasBudget: 5_000_000, MinGasLeft: tc.minGasLeft}
 			if !tc.hookEnabled {
 				sim.globalState.PluginConfig = 0
 			}
