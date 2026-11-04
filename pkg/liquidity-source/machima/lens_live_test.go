@@ -3,7 +3,6 @@ package machima
 import (
 	"context"
 	"math/big"
-	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -22,6 +21,7 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 const tickLensWordABI = `[{"inputs":[{"name":"pool","type":"address"},{"name":"tickBitmapIndex","type":"int16"}],
@@ -35,13 +35,7 @@ const tickLensWordABI = `[{"inputs":[{"name":"pool","type":"address"},{"name":"t
 //
 // Requires BASE_RPC_URL (an archive node: one pool's logs are read at its creation block).
 func TestLensLive(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping fork test in short mode")
-	}
-	rpcURL := os.Getenv("BASE_RPC_URL")
-	if rpcURL == "" {
-		t.Skip("BASE_RPC_URL not set")
-	}
+	rpcURL := testutil.LiveURL(t, "BASE_RPC_URL")
 
 	ctx := t.Context()
 	client, err := ethclient.Dial(rpcURL)
