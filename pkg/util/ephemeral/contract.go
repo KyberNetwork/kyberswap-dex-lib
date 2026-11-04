@@ -177,7 +177,7 @@ func checkWidths(t abi.Type, v reflect.Value, path string) error {
 		case 8, 16, 32, 64, 256: // native, or a full word
 			return nil
 		}
-		n, ok := v.Interface().(*big.Int)
+		n, ok := reflect.TypeAssert[*big.Int](v)
 		if !ok {
 			return fmt.Errorf("%s: %T for %s", path, v.Interface(), t)
 		}

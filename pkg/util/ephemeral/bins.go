@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 )
 
 // BinSnapshot is what a bin lens's getSnapshot returns, one field per output in the ABI's order.
@@ -87,7 +88,7 @@ func ReadBins(ctx context.Context, c Node, batch *BatchConfig, contract *Contrac
 		func(ctx context.Context, start uint32, block *big.Int) (Page[uint32], error) {
 			var out BinSnapshot
 			if err := CallPage(ctx, batch, c, start, uint32(0), contract, &out, gas, block,
-				append(args[:len(args):len(args)], new(big.Int).SetUint64(uint64(start)))...); err != nil {
+				append(slices.Clip(args), new(big.Int).SetUint64(uint64(start)))...); err != nil {
 				return Page[uint32]{}, err
 			}
 			if first {

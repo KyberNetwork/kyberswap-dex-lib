@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 )
 
 // Tick is an initialized tick as tick-based contracts return it.
@@ -103,7 +104,7 @@ func ReadTicks(ctx context.Context, c Node, batch *BatchConfig, contract *Contra
 		func(ctx context.Context, from, to int16, block *big.Int) (Page[int16], []Tick, error) {
 			var out TickSnapshot
 			if err := CallPage(ctx, batch, c, from, lower, contract, &out, gas, block,
-				append(args[:len(args):len(args)], from, to)...); err != nil {
+				append(slices.Clip(args), from, to)...); err != nil {
 				return Page[int16]{}, nil, err
 			}
 			if p.Liquidity == nil { // the first page, read before any other
