@@ -10,5 +10,10 @@ type Config struct {
 	Liquidity            string              `json:"liquidity"`
 	SubgraphAPI          string              `json:"subgraphAPI"`
 	TrackLiquidityLimits bool                `json:"trackLiquidityLimits"`
-	SupplyOnlySettlement bool                `json:"supplyOnlySettlement"`
+	// SupplyOnlySettlement selects the executor flow from SC PRs #781 and #987:
+	// D4 settles S=B after each hop, then supply-only input/output endpoints.
+	// It identifies executor behavior, not a setting on the Fluid DEX contract.
+	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/pull/781
+	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/pull/987
+	SupplyOnlySettlement bool `json:"supplyOnlySettlement"`
 }
