@@ -31,7 +31,9 @@ type Hook struct {
 	Amount0Available        *uint256.Int        `json:"0"` // yield source reserves for token0
 	Amount1Available        *uint256.Int        `json:"1"` // yield source reserves for token1
 	PoolManagerBalances     [2]*uint256.Int     `json:"b"`
-	jitLiquidity            *uint256.Int
+	// jitLiquidity is built once, by the factory, from the tracked state. BeforeSwap only reads it: the
+	// simulator's hook is shared by concurrent quotes.
+	jitLiquidity *uint256.Int
 }
 
 // reHypothecationConfigRPC wraps the on-chain tuple returned by getReHypothecationConfig().
@@ -57,8 +59,37 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 			hook.IsNative = staticExtra.IsNative
 		}
 	}
+	hook.jitLiquidity = hook.buildJitLiquidity()
 	return hook
 }, HookAddresses...)
+
+// hasJit reports whether the hook mints a JIT position: a tick range, a price and some yield-source reserves.
+func (h *Hook) hasJit() bool {
+	return h.TickLower < h.TickUpper && h.SqrtPriceX96 != nil && !h.SqrtPriceX96.IsZero() &&
+		(!h.Amount0Available.IsZero() || !h.Amount1Available.IsZero())
+}
+
+// jitRange returns the sqrt prices at the JIT range's ticks.
+func (h *Hook) jitRange() (lower, upper uint256.Int, err error) {
+	if err = v3Utils.GetSqrtRatioAtTickV2(h.TickLower, &lower); err != nil {
+		return
+	}
+	err = v3Utils.GetSqrtRatioAtTickV2(h.TickUpper, &upper)
+	return
+}
+
+// buildJitLiquidity is the JIT position's liquidity (getLiquidityForAmounts on-chain), or nil when the hook
+// has none or its range is invalid; BeforeSwap then computes it per quote or reports the error.
+func (h *Hook) buildJitLiquidity() *uint256.Int {
+	if h.Amount0Available == nil || h.Amount1Available == nil || !h.hasJit() {
+		return nil
+	}
+	lower, upper, err := h.jitRange()
+	if err != nil {
+		return nil
+	}
+	return getLiquidityForAmounts(h.SqrtPriceX96, &lower, &upper, h.Amount0Available, h.Amount1Available)
+}
 
 func (h *Hook) AllowEmptyTicks() bool {
 	return true
@@ -146,8 +177,7 @@ func (h *Hook) Track(_ context.Context, _ *uniswapv4.HookParam) (json.RawMessage
 // against non-rehypothecated (regular LP) tick liquidity.
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	// If no JIT range configured or no reserves, just return the dynamic fee
-	if h.TickLower >= h.TickUpper || h.SqrtPriceX96 == nil || h.SqrtPriceX96.IsZero() ||
-		(h.Amount0Available.IsZero() && h.Amount1Available.IsZero()) {
+	if !h.hasJit() {
 		return &uniswapv4.BeforeSwapResult{
 			SwapFee:          h.SwapFee,
 			DeltaSpecified:   bignumber.ZeroBI,
@@ -156,22 +186,21 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}
 
 	// Compute sqrtPrice at tick boundaries
-	var sqrtPriceLowerX96, sqrtPriceUpperX96 uint256.Int
-	if err := v3Utils.GetSqrtRatioAtTickV2(h.TickLower, &sqrtPriceLowerX96); err != nil {
-		return nil, err
-	}
-	if err := v3Utils.GetSqrtRatioAtTickV2(h.TickUpper, &sqrtPriceUpperX96); err != nil {
+	sqrtPriceLowerX96, sqrtPriceUpperX96, err := h.jitRange()
+	if err != nil {
 		return nil, err
 	}
 
-	// Compute JIT liquidity from available amounts (mirrors getLiquidityForAmounts on-chain)
-	if h.jitLiquidity == nil {
-		h.jitLiquidity = getLiquidityForAmounts(
+	// JIT liquidity from the available amounts (mirrors getLiquidityForAmounts on-chain). The factory builds
+	// it; a hook made otherwise computes it per quote, into a local: the hook is shared.
+	jitLiquidity := h.jitLiquidity
+	if jitLiquidity == nil {
+		jitLiquidity = getLiquidityForAmounts(
 			h.SqrtPriceX96, &sqrtPriceLowerX96, &sqrtPriceUpperX96,
 			h.Amount0Available, h.Amount1Available,
 		)
 	}
-	if h.jitLiquidity.IsZero() {
+	if jitLiquidity.IsZero() {
 		return &uniswapv4.BeforeSwapResult{
 			SwapFee:          h.SwapFee,
 			DeltaSpecified:   bignumber.ZeroBI,
@@ -185,7 +214,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		params.ZeroForOne, params.CalcOut,
 		params.AmountSpecified,
 		h.SqrtPriceX96, &sqrtPriceLowerX96, &sqrtPriceUpperX96,
-		h.jitLiquidity, h.SwapFee,
+		jitLiquidity, h.SwapFee,
 	)
 	inputBalance := h.PoolManagerBalances[lo.Ternary(params.ZeroForOne, 0, 1)]
 	if deltaSpecified.Gt(inputBalance) { // the hook transfers out tokenIn first before withdrawing from yield source
