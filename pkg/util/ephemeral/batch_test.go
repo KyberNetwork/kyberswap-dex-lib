@@ -610,13 +610,19 @@ func TestBatchConfigSwitch(t *testing.T) {
 // backfill's pools all stay within their cooldown; admitting them does not walk every key each time.
 func TestLensGuardWithABatchAdmitsManyPoolsQuickly(t *testing.T) {
 	g := NewLensGuard(GuardConfig{}, &BatchConfig{})
-	start := time.Now()
+	walks := 0
 	for i := range 100_000 {
+		kept := g.kept
 		ok, err := g.Try(t.Context(), fmt.Sprint("pool", i), func(context.Context) error { return nil })
 		require.NoError(t, err)
 		require.True(t, ok)
+		if g.kept != kept {
+			walks++
+		}
 	}
-	assert.Less(t, time.Since(start), 5*time.Second, "100,000 pools, where walking every key each time takes minutes")
+	// Every key still cools down, so each walk keeps them all and the next waits for twice as many:
+	// at 1024, 2048 and so on, 7 walks for 100,000 pools rather than one on every admission.
+	assert.LessOrEqual(t, walks, 7, "100,000 pools, where walking every key each time takes minutes")
 }
 
 // TestUncomparableCallerIsNotKeyed: a Caller that cannot be a map key, such as a func, gets no
