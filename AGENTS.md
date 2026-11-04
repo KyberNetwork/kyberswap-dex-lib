@@ -178,6 +178,13 @@ go generate ./pkg/msgpack/...
 
 This repo has `pkg/msgpack`; run the second command here. Other downstream repos don't have it — skip the second command there.
 
+Then lint the changed packages with the same golangci-lint version CI pins (`golangci-lint-version` in
+`.github/workflows/ci.yaml`, currently v2.15.0), reporting only issues new since `origin/main`:
+
+```sh
+golangci-lint run --new-from-rev origin/main `git diff origin/main --name-status | grep -v '^D' | awk '{print $NF}' | grep '.go$' | xargs -n1 dirname | sort -u | sed 's#^#./#'`
+```
+
 ## Pull Request
 
 Create a PR from your feature branch to **kyberswap-dex-lib** `main`.
