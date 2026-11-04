@@ -257,10 +257,19 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	res.DynamicFee = dynamicFeeData
 	res.SlidingFee = slidingFeeData
 	if d.config.UseNamiPlugin || d.config.DexID == "nami-v4" {
-		res.NamiFee, err = nami.Fetch(ctx, d.EthrpcClient, plugin, result.BlockNumber, overrides, blockTimestamp())
+		if result.BlockNumber == nil || result.BlockNumber.Sign() <= 0 {
+			return res, errors.New("invalid Nami snapshot block")
+		}
+		// Use the actual snapshot block time, not activity time or fetch time.
+		header, headerErr := d.EthrpcClient.GetETHClient().HeaderByNumber(ctx, result.BlockNumber)
+		if headerErr != nil {
+			return res, headerErr
+		}
+		res.NamiFee, err = nami.Fetch(ctx, d.EthrpcClient, plugin, result.BlockNumber, overrides, uint32(header.Time))
 		if err != nil {
 			return res, err
 		}
+		res.NamiFee.SnapshotTimestamp = header.Time
 		if res.DynamicFee == nil || res.VolatilityOracle == nil {
 			return res, errors.New("nami plugin missing dynamic fee or volatility oracle")
 		}

@@ -50,9 +50,39 @@ type PoolSimulator struct {
 
 	useBasePluginV2 bool
 	namiFee         *nami.Config
+	namiStaleCheck  bool
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, newPoolSimulatorWithParams)
+
+func newPoolSimulatorWithParams(params pool.FactoryParams) (*PoolSimulator, error) {
+	p, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	p.namiStaleCheck = params.Opts.StaleCheck
+	if err = p.checkNamiSnapshot(); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (p *PoolSimulator) checkNamiSnapshot() error {
+	if !p.namiStaleCheck {
+		return nil
+	}
+	if p.namiFee == nil {
+		if p.Info.Exchange == "nami-v4" {
+			return ErrNamiStaleSnapshot
+		}
+		return nil
+	}
+	now, snapshot := uint64(blockTimestamp()), p.namiFee.SnapshotTimestamp
+	if snapshot == 0 || snapshot > now || now-snapshot > nami.MaxSnapshotAge {
+		return ErrNamiStaleSnapshot
+	}
+	return nil
+}
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -583,8 +613,9 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	o.fee.Add(&communityFeeAmount, &pluginFeeAmount)
 	o.tick = currentTick
 	o.gas = BaseGas + ticksCrossed*CrossInitTickGas
-	if p.namiFee != nil {
-		o.gas += int64(p.namiFee.MEVXGas)
+	if p.namiFee != nil && p.namiFee.MEVXGas != 0 && p.globalState.PluginConfig&AFTER_SWAP_FLAG != 0 {
+		// Also normalize snapshots written before gas-budget/usage were separated.
+		o.gas += int64(nami.MEVXGasEstimate)
 	}
 	return nil
 }
@@ -672,6 +703,9 @@ func movePriceTowardsTarget(zeroToOne bool, currentPrice, targetPrice, liquidity
 }
 
 func (p *PoolSimulator) beforeNamiSwap(zeroToOne bool) (uint32, *NamiTimepointUpdate, error) {
+	if err := p.checkNamiSnapshot(); err != nil {
+		return 0, nil, err
+	}
 	if p.namiFee.Unsupported != "" {
 		return 0, nil, errors.New(p.namiFee.Unsupported)
 	}

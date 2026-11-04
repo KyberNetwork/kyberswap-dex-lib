@@ -25,6 +25,18 @@ var namiPluginABI = func() abi.ABI {
 	return result
 }()
 
+const (
+	// Per-hop afterSwap overhead, deliberately an overestimate (under-estimating
+	// misprices routes). Measured on 134 router swaps on Ethereum and Base:
+	// 38.9k-54.6k on the no-backrun, reverted-check and route-construction
+	// branches, and 104.7k on one Base reverted-check pool. The external
+	// arbitrage branch can cost more; callGasBudget is a ceiling, not consumption.
+	MEVXGasEstimate uint64 = 110_000
+	// Pool-service polls plugin state every 10s. Stop routing after a minute
+	// without a recent chain snapshot; an idle volatility timepoint is valid.
+	MaxSnapshotAge uint64 = 60
+)
+
 // Config is the fee override state described by the Nami plugin.
 // https://gist.github.com/codeislight1/78ddfe3095de78fef05ae215b996b641
 // Fee sources are external arbitrary contracts, so enabled sources are rejected until supported.
@@ -36,6 +48,8 @@ type Config struct {
 	ExpiresAt                              uint64
 	MEVXGas                                uint64
 	Unsupported                            string
+	SnapshotTimestamp                      uint64
+	MinGasLeft, CallGasBudget              uint64
 }
 
 type namiFeeBounds struct {
@@ -114,10 +128,11 @@ func Fetch(ctx context.Context, client *ethrpc.Client, plugin common.Address, bl
 		if !minGasLeft.IsUint64() || !callGasBudget.IsUint64() || minGasLeft.Uint64() > 5000000 || callGasBudget.Uint64() > 5000000 {
 			return nil, errors.New("invalid Nami MEV-X gas configuration")
 		}
-		// Account for the hook gas threshold, capped call, EIP-150 and hook overhead.
-		mevxGas = minGasLeft.Uint64() + callGasBudget.Uint64()*64/63 + 100000
+		// minGasLeft is a gasleft requirement; callGasBudget caps forwarding.
+		// Neither is the amount consumed by the hook.
+		mevxGas = MEVXGasEstimate
 	}
-	return &Config{Floor: bounds.Floor, Cap: bounds.Cap, Premium0For1: bounds.Premium0For1, Premium1For0: bounds.Premium1For0, DecayWindow: bounds.DecayWindow, MaxDiscountBps: bounds.MaxDiscountBps, Fee0For1: override.Fee0For1, Fee1For0: override.Fee1For0, ExpiresAt: override.ExpiresAt.Uint64(), MEVXGas: mevxGas, Unsupported: unsupported}, nil
+	return &Config{Floor: bounds.Floor, Cap: bounds.Cap, Premium0For1: bounds.Premium0For1, Premium1For0: bounds.Premium1For0, DecayWindow: bounds.DecayWindow, MaxDiscountBps: bounds.MaxDiscountBps, Fee0For1: override.Fee0For1, Fee1For0: override.Fee1For0, ExpiresAt: override.ExpiresAt.Uint64(), MEVXGas: mevxGas, Unsupported: unsupported, MinGasLeft: minGasLeft.Uint64(), CallGasBudget: callGasBudget.Uint64()}, nil
 }
 
 // fee follows _swapFee, after _feeForTick and with external fee sources disabled.
