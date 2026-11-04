@@ -63,6 +63,14 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	return newPoolSimulator(entityPool, chainID, false)
 }
 
+func gasForChain(chainID valueobject.ChainID) uniswapv3.Gas {
+	gas := DefaultGas
+	if chainID == valueobject.ChainIDPolygon {
+		gas.CrossEmptyWordGas = polygonCrossEmptyWordGas
+	}
+	return gas
+}
+
 func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, staleCheck bool) (*PoolSimulator, error) {
 	var extra ExtraU256
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -112,7 +120,7 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 	if err != nil {
 		return nil, err
 	}
-	v3PoolSimulator.Gas = DefaultGas
+	v3PoolSimulator.Gas = gasForChain(chainID)
 
 	var fewReserves [2]*uint256.Int
 	copy(fewReserves[:], extra.FewReserves)

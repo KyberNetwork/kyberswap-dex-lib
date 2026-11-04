@@ -76,6 +76,53 @@ func TestDustPoolWordBoundedSteps(t *testing.T) {
 		"nine empty-word crossings, no initialized ticks")
 }
 
+func TestPolygonEmptyWordGasIsV4AndChainScoped(t *testing.T) {
+	t.Parallel()
+
+	var poolEnt entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(avaxDustPool), &poolEnt))
+	defaultGas := DefaultGas
+
+	polygonSim, err := NewPoolSimulator(poolEnt, valueobject.ChainIDPolygon)
+	require.NoError(t, err)
+	avaxSim, err := NewPoolSimulator(poolEnt, valueobject.ChainIDAvalancheCChain)
+	require.NoError(t, err)
+
+	amountIn := pool.TokenAmount{Token: avaxBTCb, Amount: bignumber.NewBig10("19")}
+	polygonOut, err := polygonSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: amountIn, TokenOut: avaxWETHe,
+	})
+	require.NoError(t, err)
+	avaxOut, err := avaxSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: amountIn, TokenOut: avaxWETHe,
+	})
+	require.NoError(t, err)
+	require.Equal(t, avaxOut.TokenAmountOut.Amount, polygonOut.TokenAmountOut.Amount)
+	require.Equal(t, DefaultGas.BaseGas+9*uniswapv3.CrossEmptyWordGas, avaxOut.Gas)
+	require.Equal(t, DefaultGas.BaseGas+9*polygonCrossEmptyWordGas, polygonOut.Gas)
+
+	// Exact-out quotes use the same chain-specific scan cost and retain it across cloning.
+	polygonClone := polygonSim.CloneState().(*PoolSimulator)
+	polygonIn, err := polygonClone.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: *polygonOut.TokenAmountOut, TokenIn: avaxBTCb,
+	})
+	require.NoError(t, err)
+	avaxIn, err := avaxSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: *avaxOut.TokenAmountOut, TokenIn: avaxBTCb,
+	})
+	require.NoError(t, err)
+	require.Equal(t, avaxIn.TokenAmountIn.Amount, polygonIn.TokenAmountIn.Amount)
+	wordCount := (avaxIn.Gas - DefaultGas.BaseGas) / uniswapv3.CrossEmptyWordGas
+	require.Greater(t, wordCount, int64(0))
+	require.Equal(t, wordCount*(polygonCrossEmptyWordGas-uniswapv3.CrossEmptyWordGas),
+		polygonIn.Gas-avaxIn.Gas)
+	require.Equal(t, polygonCrossEmptyWordGas, polygonClone.PoolSimulator.Gas.CrossEmptyWordGas)
+
+	// Constructor overrides must not mutate the package default or alter non-Polygon V4 sims.
+	require.Equal(t, defaultGas, DefaultGas)
+	require.Equal(t, defaultGas, avaxSim.PoolSimulator.Gas)
+}
+
 // TestDustPoolOutputIsBoundedByWordCost checks the property the on-chain loop enforces and the
 // single-jump simulator broke: a bitmap word costs at least one unit of input plus its fee, so the
 // price can only travel as far as the input can pay for word by word.
