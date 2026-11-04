@@ -73,6 +73,9 @@ func (d *PoolTracker) getNewPoolState(
 		if err := d.applyLogs(params, poolWithBlockNumber); err != nil {
 			lg.Errorf("apply log failed, falling back to RPC, error: %v", err)
 			needRpcCall = true
+		} else if activeTickOutsideTickBounds(poolWithBlockNumber.Pool) {
+			lg.Infof("active tick left the fetched tick window, refetching over RPC")
+			needRpcCall = true
 		}
 	}
 
@@ -196,6 +199,18 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 	pool.NewBlock()
 
 	return nil
+}
+
+// activeTickOutsideTickBounds reports whether a concentrated liquidity pool's active tick has left the tick window its
+// ticks were fetched for (see pools.ConcentratedPoolState.ActiveTickOutsideTickBounds). Logs only move the price; the
+// window is refreshed by fetching the pool again.
+func activeTickOutsideTickBounds(pool pools.Pool) bool {
+	if ve33Pool, ok := pool.(*pools.Ve33Pool); ok {
+		pool = ve33Pool.Pool
+	}
+
+	concentrated, ok := pool.(interface{ ActiveTickOutsideTickBounds() bool })
+	return ok && concentrated.ActiveTickOutsideTickBounds()
 }
 
 func (d *PoolTracker) forceUpdateState(
