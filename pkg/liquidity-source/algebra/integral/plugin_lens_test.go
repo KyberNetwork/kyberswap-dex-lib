@@ -161,8 +161,7 @@ func TestPluginLens_MatchesMulticall(t *testing.T) {
 						require.LessOrEqual(t, lensCalls, min(2, multicalls), "after %d new", k)
 					}
 					if next.timepoints != nil {
-						require.GreaterOrEqual(t, next.timepoints[chain.index].BlockTimestamp, min(chain.headTs(),
-							uint32(yesterday)))
+						require.GreaterOrEqual(t, next.timepoints[chain.index].BlockTimestamp, min(chain.headTs(), yesterday))
 					}
 					t.Logf("after %d new: %d multicalls, %d lens calls", k, multicalls, lensCalls)
 					cache = next.timepoints
