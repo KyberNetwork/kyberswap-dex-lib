@@ -346,8 +346,14 @@ func (d *PoolTracker) getPoolData(
 
 	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
 	collatQuoteAmts := make([]*big.Int, len(collaterals))
-	data.CollatPrices = make([][][2]*big.Int, len(collaterals))
-	data.CollatLtvs = make([][]uint16, len(collaterals))
+	// One slot per vault for every collateral, filled below only for a vault with an oracle: a vault without one
+	// keeps zero prices and LTVs instead of a short row.
+	data.CollatPrices = lo.Times(len(collaterals), func(_ int) [][2]*big.Int {
+		return make([][2]*big.Int, len(uniqueVaultAddresses))
+	})
+	data.CollatLtvs = lo.Times(len(collaterals), func(_ int) []uint16 {
+		return make([]uint16, len(uniqueVaultAddresses))
+	})
 
 	data.VaultPrices = lo.Times(len(fullVaultList), func(_ int) [][2]*big.Int {
 		return make([][2]*big.Int, len(uniqueVaultAddresses))
@@ -380,17 +386,6 @@ func (d *PoolTracker) getPoolData(
 			}
 		}
 		for j, collateral := range collaterals {
-			if len(data.CollatPrices[j]) <= i {
-				for len(data.CollatPrices[j]) <= i {
-					data.CollatPrices[j] = append(data.CollatPrices[j], [2]*big.Int{})
-				}
-			}
-			if len(data.CollatLtvs[j]) <= i {
-				for len(data.CollatLtvs[j]) <= i {
-					data.CollatLtvs[j] = append(data.CollatLtvs[j], 0)
-				}
-			}
-
 			if idx, ok := fullVaultAddrMap[collateral]; ok {
 				data.CollatPrices[j][i] = data.VaultPrices[idx][i]
 				data.CollatLtvs[j][i] = data.VaultLtvs[idx][i]
