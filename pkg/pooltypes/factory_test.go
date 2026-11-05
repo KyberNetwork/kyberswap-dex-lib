@@ -62,10 +62,29 @@ func TestCanCalcAmountIn(t *testing.T) {
 
 func TestUseSwapLimit(t *testing.T) {
 	t.Parallel()
-	dexes := []string{"kyberswap-limit-order-v2", "ringswap", "ambient"}
+	dexes := []string{"kyberswap-limit-order-v2", "ringswap", "ambient", "orderbook"}
 	for _, tt := range dexes {
 		t.Run(tt, func(t *testing.T) {
 			assert.Contains(t, pool.UseSwapLimit, tt)
+		})
+	}
+}
+
+func TestUsesSwapLimit(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, exchange, poolType string
+		want                     bool
+	}{
+		{"registered exchange", "kyberswap-limit-order-v2", "limit-order", true},
+		{"orderbook venue outside the pmm slots", "native-v2", "orderbook", true},
+		{"unregistered pmm slot on orderbook", "pmm-999", "orderbook", true},
+		{"pmm name alone is not enough", "pmm-999", "uniswapv3", false},
+		{"amm", "uniswapv3", "uniswapv3", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, pool.UsesSwapLimit(tt.exchange, tt.poolType))
 		})
 	}
 }

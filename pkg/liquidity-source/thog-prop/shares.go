@@ -9,8 +9,22 @@ type ShareBalance struct {
 	Multiplier uint256.Int `json:"multiplier"`
 }
 
-// These are the nine issuer tokens recognized by the deployed contract's catalog.
-// Active listings and their ordering still come from the snapshot.
+// xStocks are the nine issuer tokens recognized by the deployed contract's catalog.
+// Active listings and their ordering still come from the snapshot. The Multicall3
+// reader reads every one; isXStock repeats them as a switch for the quote path and
+// ThogSnapshotLens.sol repeats them for the lens (tests keep all three equal).
+var xStocks = [...]string{
+	"0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48", // SPYx
+	"0xa753a7395cae905cd615da0b82a53e0560f250af", // QQQx
+	"0x8d512a03600981b8e86556fd5c0fbdd726fe1821", // SMHx
+	"0x299c95eb52bfd5bc98d924bce17197b64864589b", // EWYx
+	"0xc845b2894dbddd03858fd2d643b4ef725fe0849d", // NVDAx
+	"0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0", // TSLAx
+	"0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28", // SPCXx
+	"0xf6a873bae4ba1b304e45df52a4b7d176e1c6a8c4", // MUx
+	"0x58100046a4afcd4ee4fadbd4244f3f895a341c56", // SKHYx
+}
+
 func isXStock(token string) bool {
 	switch token {
 	case "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48", // SPYx

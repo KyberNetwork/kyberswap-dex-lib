@@ -124,6 +124,10 @@ func (s *State) wrapper(m *arithmetic, balances *[maxTokens]uint256.Int, index i
 	return
 }
 func (s *State) prepare(i, o int, block uint64) (c curve, err error) {
+	return s.prepareWithAgeCheck(i, o, block, true)
+}
+
+func (s *State) prepareWithAgeCheck(i, o int, block uint64, checkAge bool) (c curve, err error) {
 	if i < 0 || o < 0 || i >= len(s.Tokens) || o >= len(s.Tokens) || i == o {
 		return c, ErrInvalidToken
 	}
@@ -132,7 +136,7 @@ func (s *State) prepare(i, o int, block uint64) (c curve, err error) {
 	}
 	posted := s.small(2, 36, 32)
 	age := s.small(2, 138, 8)
-	if posted == 0 || posted > block || age == 0 || block-posted > age {
+	if posted == 0 || posted > block || (checkAge && (age == 0 || block-posted > age)) {
 		return c, ErrUnavailable
 	}
 	m := arithmetic{}

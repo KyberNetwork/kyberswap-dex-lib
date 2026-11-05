@@ -115,6 +115,11 @@ func max(a, b uint256.Int) uint256.Int {
 	return b
 }
 func bits(word *uint256.Int, shift, width uint) (z uint256.Int) {
+	// Fast path: the field lies inside one 64-bit limb (almost every packed field).
+	if limb, offset := shift/64, shift%64; width < 64 && offset+width <= 64 {
+		z[0] = word[limb] >> offset & (1<<width - 1)
+		return
+	}
 	var mask uint256.Int
 	mask.SetAllOne()
 	mask.Rsh(&mask, 256-width)

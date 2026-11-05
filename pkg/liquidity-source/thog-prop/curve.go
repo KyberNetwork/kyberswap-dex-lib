@@ -1,6 +1,8 @@
 package thogprop
 
 import (
+	"math"
+
 	"github.com/KyberNetwork/int256"
 	"github.com/holiman/uint256"
 )
@@ -90,14 +92,20 @@ func (c *curve) outputForBudget(m *arithmetic, budget uint256.Int) uint256.Int {
 	return output
 }
 
+var discriminantScale = func() (z uint256.Int) { z.Mul(&powers[54], uint256.NewInt(2)); return }()
+
 // Computes the exact 512-bit discriminant division without decimal rescaling.
-// The two remainders fit: divisor is bounded by sqrt(D) < 2^181 here.
+// The two remainders fit: divisor is bounded by sqrt(D) < 2^181 here. Each
+// remainder is the true product minus quotient·divisor; it is below the divisor,
+// so wrapping (mod 2^256) arithmetic yields it exactly without a MulMod.
 func discriminantDiv(m *arithmetic, b, kBudget, divisor uint256.Int) (q, r uint256.Int) {
-	denominator := m.mul(u(2), powers[54])
-	q = m.add(m.md(b, b, divisor, false), m.md(denominator, kBudget, divisor, false))
-	var r1, r2 uint256.Int
-	r1.MulMod(&b, &b, &divisor)
-	r2.MulMod(&denominator, &kBudget, &divisor)
+	q1, q2 := m.md(b, b, divisor, false), m.md(discriminantScale, kBudget, divisor, false)
+	q = m.add(q1, q2)
+	var r1, r2, t uint256.Int
+	r1.Mul(&b, &b)
+	r1.Sub(&r1, t.Mul(&q1, &divisor))
+	r2.Mul(&discriminantScale, &kBudget)
+	r2.Sub(&r2, t.Mul(&q2, &divisor))
 	r = m.add(r1, r2)
 	if r.Cmp(&divisor) >= 0 {
 		q = m.add(q, u(1))
@@ -105,6 +113,27 @@ func discriminantDiv(m *arithmetic, b, kBudget, divisor uint256.Int) (q, r uint2
 	}
 	return
 }
+
+// sqrtGuess returns an integer at or above sqrt(b² + 2e54·kBudget) from a float64
+// estimate. Every float step has relative error below 2^-50, so a 2^-30 margin
+// keeps the guess above the root; Newton from above then lands on the exact floor.
+func sqrtGuess(b, kBudget uint256.Int) (x uint256.Int, ok bool) {
+	bf, kf := b.Float64(), kBudget.Float64()
+	root := math.Sqrt(bf*bf+2e54*kf) * (1 + 0x1p-30)
+	if math.IsInf(root, 0) || root >= 0x1p255 {
+		return x, false
+	}
+	mantissa, exp := math.Frexp(root) // root = mantissa·2^exp, mantissa in [0.5, 1)
+	x.SetUint64(uint64(math.Ldexp(mantissa, 53)))
+	if shift := exp - 53; shift > 0 {
+		x.Lsh(&x, uint(shift))
+	} else {
+		x.Rsh(&x, uint(-shift))
+	}
+	x.AddUint64(&x, 2)
+	return x, true
+}
+
 func sqrtDiscriminantCeil(m *arithmetic, b, kBudget uint256.Int) uint256.Int {
 	if kBudget.IsZero() {
 		return b
@@ -115,9 +144,19 @@ func sqrtDiscriminantCeil(m *arithmetic, b, kBudget uint256.Int) uint256.Int {
 	if square != kBudget {
 		root = m.add(root, u(1))
 	}
-	x := m.add(b, m.mul(root, sqrt2e54))
-	for m.err == nil {
+	x := m.add(b, m.mul(root, sqrt2e54)) // b + sqrt(2e54·kBudget) ≥ sqrt(D)
+	if guess, ok := sqrtGuess(b, kBudget); ok && guess.Lt(&x) {
+		x = guess
+	}
+	for checkedStart := false; m.err == nil; {
 		q, _ := discriminantDiv(m, b, kBudget, x)
+		if !checkedStart {
+			checkedStart = true
+			if q.Gt(&x) { // below the root after all: restart from the proven bound
+				x = m.add(b, m.mul(root, sqrt2e54))
+				continue
+			}
+		}
 		next := m.div(m.add(x, q), u(2))
 		if next.Cmp(&x) >= 0 {
 			break

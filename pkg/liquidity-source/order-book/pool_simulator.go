@@ -27,6 +27,9 @@ type PoolSimulator struct {
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
+
+// Every orderbook pool (pmm-N, native-v2) quotes from one maker inventory shared across pairs.
+var _ = pool.RegisterUseSwapLimit(DexType)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm1)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm2)
 var _ = pool.RegisterUseSwapLimit(valueobject.ExchangePmm3)

@@ -35,7 +35,9 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	erc4626Tracker := erc4626.NewPoolTracker(&erc4626.Config{
 		DexId: cfg.DexId,
 		Vaults: lo.MapValues(cfg.Vaults, func(vCfg VaultCfg, key string) erc4626.VaultCfg {
-			return erc4626.VaultCfg{Gas: vCfg.Gas}
+			// maxDeposit is 0 for any lender without pool permission; the router grants it, and
+			// liquidityCap bounds deposits instead
+			return erc4626.VaultCfg{Gas: vCfg.Gas, IgnoreZeroMaxDeposit: true}
 		}),
 	}, ethrpcClient)
 
