@@ -75,8 +75,6 @@ type Extra struct {
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
-	// TicksBlock is the block of the last full bitmap scan that produced Ticks.
-	TicksBlock uint64 `json:"ticksBlock,omitempty"`
 
 	DexVariables2                 *big.Int `json:"dexVariables2"`
 	Token0ExchangePricesAndConfig *big.Int `json:"token0ExchangePricesAndConfig"`
