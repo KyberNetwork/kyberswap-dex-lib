@@ -536,7 +536,6 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	extra.Token1ExchangePricesAndConfig = rpcState.Token1ExchangePricesAndConfig
 
 	extra.Ticks = entityPoolTicks
-	extra.TicksBlock = max(extra.TicksBlock, ticksBasedPool.BlockNumber)
 
 	extraBytes, err := json.Marshal(extra)
 

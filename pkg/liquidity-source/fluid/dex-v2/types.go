@@ -75,9 +75,11 @@ type Extra struct {
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
-	// TicksBlock is the block up to which Ticks already include every position event (bitmap scan block at
-	// bootstrap, then the latest log block applied). Position deltas are not idempotent, so logs at or before
-	// it must not be applied again.
+	// TicksBlock is the block of the RPC snapshot the stored ticks were read at (bootstrap). Ticks already
+	// include every position event up to it, and liquidity deltas are not idempotent, so replayed logs at or
+	// before it must be dropped. It is set only by snapshots, never advanced by event batches: backfill chunks
+	// and live blocks interleave, so "applied some later block" does not mean "applied every earlier one".
+	// Zero (event-created pools, built from the first log) means nothing is dropped.
 	TicksBlock uint64 `json:"ticksBlock,omitempty"`
 
 	DexVariables2                 *big.Int `json:"dexVariables2"`
