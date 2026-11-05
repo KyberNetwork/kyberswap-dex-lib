@@ -74,9 +74,8 @@ func (p *BinPool) Check() error {
 }
 
 // ReadBins reads a pool through a bin lens at block (nil for the latest), paging from bin 0 with
-// every page at one block, the first through the Batcher batch asks for (see CallPage). args are
-// the lens's arguments before the bin to start at.
-func ReadBins(ctx context.Context, c Node, batch *BatchConfig, contract *Contract, gas uint64, block *big.Int,
+// every page at one block. args are the lens's arguments before the bin to start at.
+func ReadBins(ctx context.Context, c Node, contract *Contract, gas uint64, block *big.Int,
 	args ...any) (*BinPool, error) {
 	pin, err := Pin(ctx, c, block)
 	if err != nil {
@@ -87,7 +86,7 @@ func ReadBins(ctx context.Context, c Node, batch *BatchConfig, contract *Contrac
 	read, err := Scan(ctx, uint32(0), pin,
 		func(ctx context.Context, start uint32, block *big.Int) (Page[uint32], error) {
 			var out BinSnapshot
-			if err := CallPage(ctx, batch, c, start, uint32(0), contract, &out, gas, block,
+			if err := Call(ctx, c, contract, &out, gas, block,
 				append(slices.Clip(args), new(big.Int).SetUint64(uint64(start)))...); err != nil {
 				return Page[uint32]{}, err
 			}

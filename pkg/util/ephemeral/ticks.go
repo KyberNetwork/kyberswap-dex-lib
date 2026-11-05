@@ -88,12 +88,12 @@ type Node interface {
 }
 
 // ReadTicks reads a pool through a bitmap lens at block (nil for the latest): the words [lower,
-// upper], every page at one block and up to WordsParallel at once, the first through the Batcher
-// batch asks for (see CallPage). args are the lens's arguments before the word range.
+// upper], every page at one block and up to WordsParallel at once. args are the lens's arguments
+// before the word range.
 //
 // A tick without liquidityGross is left out: some forks (monday-v3) leave its bitmap bit set once
 // its liquidity is gone, and a swap would only pay to cross it.
-func ReadTicks(ctx context.Context, c Node, batch *BatchConfig, contract *Contract, gas uint64,
+func ReadTicks(ctx context.Context, c Node, contract *Contract, gas uint64,
 	lower, upper int16, block *big.Int, args ...any) (*TickPool, error) {
 	pin, err := Pin(ctx, c, block)
 	if err != nil {
@@ -103,7 +103,7 @@ func ReadTicks(ctx context.Context, c Node, batch *BatchConfig, contract *Contra
 	read, ticks, err := ScanWords(ctx, lower, upper, pin,
 		func(ctx context.Context, from, to int16, block *big.Int) (Page[int16], []Tick, error) {
 			var out TickSnapshot
-			if err := CallPage(ctx, batch, c, from, lower, contract, &out, gas, block,
+			if err := Call(ctx, c, contract, &out, gas, block,
 				append(slices.Clip(args), from, to)...); err != nil {
 				return Page[int16]{}, nil, err
 			}

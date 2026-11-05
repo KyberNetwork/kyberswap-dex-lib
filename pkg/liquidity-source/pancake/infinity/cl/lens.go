@@ -31,7 +31,7 @@ type lensSnapshot struct {
 // snapshot reads the pool at block (nil for the latest) through the lens and CLPoolManager,
 // paging when the ticks do not fit one call, and checks the ticks against the pool's liquidity.
 func (t *PoolTracker) snapshot(ctx context.Context, poolID string, block *big.Int) (*lensSnapshot, error) {
-	p, err := ephemeral.ReadTicks(ctx, t.ethrpcClient.GetETHClient(), t.config.LensBatch, lens, t.config.LensGas,
+	p, err := ephemeral.ReadTicks(ctx, t.ethrpcClient.GetETHClient(), lens, t.config.LensGas,
 		ephemeral.WordLower, ephemeral.WordUpper, block,
 		common.HexToAddress(t.config.CLPoolManagerAddress), common.HexToHash(poolID))
 	if err != nil {

@@ -39,7 +39,7 @@ type lensSnapshot struct {
 // not fit one call, and checks the ticks against the pool's liquidity.
 func (t *PoolTracker) snapshot(ctx context.Context, address string, block *big.Int) (*lensSnapshot, error) {
 	dexID, dexType := parseFluidDexV2PoolAddress(address)
-	p, err := ephemeral.ReadTicks(ctx, t.ethrpcClient.GetETHClient(), t.config.LensBatch, lens, t.config.LensGas,
+	p, err := ephemeral.ReadTicks(ctx, t.ethrpcClient.GetETHClient(), lens, t.config.LensGas,
 		lensWordLower, lensWordUpper, block,
 		common.HexToAddress(t.config.Dex), new(big.Int).SetUint64(uint64(dexType)), common.HexToHash(dexID))
 	if err != nil {

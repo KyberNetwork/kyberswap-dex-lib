@@ -31,7 +31,7 @@ type lensSnapshot struct {
 // pool's slot0, tickBitmap and ticks, all the lens reads, can be read with it.
 func ReadLens(ctx context.Context, node ephemeral.Node, cfg ephemeral.LensConfig, address string,
 	block *big.Int) (*ephemeral.TickPool, error) {
-	p, err := ephemeral.ReadTicks(ctx, node, cfg.LensBatch, lens, cfg.LensGas, ephemeral.WordLower,
+	p, err := ephemeral.ReadTicks(ctx, node, lens, cfg.LensGas, ephemeral.WordLower,
 		ephemeral.WordUpper, block, common.HexToAddress(address))
 	if err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: %w", address, err)

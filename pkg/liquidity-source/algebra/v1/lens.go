@@ -117,7 +117,7 @@ func (t *PoolTracker) readTable(ctx context.Context, address string, block *big.
 // readLensPages is readLens over the node: the pages of one read, at the block the first one read.
 func (t *PoolTracker) readLensPages(ctx context.Context, address string, block *big.Int, raw bool) (*lensSnapshot,
 	error) {
-	p, err := ephemeral.ReadTicks(ctx, t.EthrpcClient.GetETHClient(), t.config.LensBatch, lens, t.config.LensGas,
+	p, err := ephemeral.ReadTicks(ctx, t.EthrpcClient.GetETHClient(), lens, t.config.LensGas,
 		ephemeral.WordLower, ephemeral.WordUpper, block, common.HexToAddress(address), raw)
 	if err != nil {
 		return nil, err

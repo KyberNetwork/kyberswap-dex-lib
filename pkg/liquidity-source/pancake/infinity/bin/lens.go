@@ -33,7 +33,7 @@ type lensSnapshot struct {
 // not fit one call, and checks that they can be its set. A bin pool keeps no reserves of its own to
 // sum the bins against: the Vault counts tokens per manager.
 func (t *PoolTracker) snapshot(ctx context.Context, poolID string, block *big.Int) (*lensSnapshot, error) {
-	p, err := ephemeral.ReadBins(ctx, t.ethrpcClient.GetETHClient(), t.config.LensBatch, lens, t.config.LensGas,
+	p, err := ephemeral.ReadBins(ctx, t.ethrpcClient.GetETHClient(), lens, t.config.LensGas,
 		block, common.HexToAddress(t.config.BinPoolManagerAddress), common.HexToHash(poolID))
 	if err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: %w", poolID, err)

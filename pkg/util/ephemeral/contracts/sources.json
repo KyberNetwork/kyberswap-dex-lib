@@ -128,14 +128,5 @@
       "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
       "pkg/util/ephemeral/contracts/liquiditybook/v21/LiquidityBookV21Lens.sol": "5e292bd67ed6ed0277c9a9cdb2069504ae61d921444477cb73dcaf7acb633d6f"
     }
-  },
-  "pkg/util/ephemeral/batch.json": {
-    "contract": "LensBatch",
-    "sha256": "2880aa3299e2f42c3e170b88026d1edf17d038df2cbc8f9d9560f6edc08b16be",
-    "sources": {
-      "pkg/util/ephemeral/contracts/batch/LensBatch.sol": "beb393793028f9c3b45624f80041025650154ec3917763b0e305b1fe09f4736b",
-      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
-      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea"
-    }
   }
 }

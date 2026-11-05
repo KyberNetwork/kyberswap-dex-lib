@@ -27,7 +27,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
-	"golang.org/x/time/rate"
 )
 
 // Caller runs an eth_call. *ethclient.Client is one.
@@ -64,16 +63,6 @@ func (e *RevertError) Error() string {
 // An error the node returns without revert data, such as a rate limit or a pruned block, is
 // returned as it is: the call never ran.
 func Call(ctx context.Context, c Caller, contract *Contract, out any, gas uint64, block *big.Int, args ...any) error {
-	return callSmaller(ctx, c, nil, contract, out, gas, block, args...)
-}
-
-// minPageGas is the least gas a call refused for its size is made again with: MinItemGas's
-// default, under which a lens can make no progress at all.
-const minPageGas = defaultBatchMinItemGas
-
-// callSmaller is Call, waiting on limit, when given, before each call it makes again.
-func callSmaller(ctx context.Context, c Caller, limit *rate.Limiter, contract *Contract, out any, gas uint64,
-	block *big.Int, args ...any) error {
 	gas = callGas(ctx, c, gas)
 	for {
 		err := callOnce(ctx, c, contract, out, gas, block, args...)
@@ -81,13 +70,13 @@ func callSmaller(ctx context.Context, c Caller, limit *rate.Limiter, contract *C
 			return err
 		}
 		gas /= 2
-		if limit != nil {
-			if err := limit.Wait(ctx); err != nil {
-				return err
-			}
-		}
 	}
 }
+
+// minPageGas is the least gas a call refused for its size is made again with. A lens given less
+// than its largest step, a full bitmap word, ~4.7M on the forks whose tick getter loads the most,
+// makes no progress at all.
+const minPageGas = 6_000_000
 
 // refusedForSize reports an error that a node, or a proxy in front of it, gives for a response too
 // large to pass on. Through the KyberSwap gateway it is HTTP 502, for 2 MB of revert data on most

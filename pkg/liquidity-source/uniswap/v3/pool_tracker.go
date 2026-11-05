@@ -95,7 +95,7 @@ func NewTracker(
 		config:        initializedCfg,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
-		lensGuard:     ephemeral.NewLensGuard(initializedCfg.LensGuard, initializedCfg.LensBatch),
+		lensGuard:     ephemeral.NewGuard(initializedCfg.LensGuard),
 	}, nil
 }
 

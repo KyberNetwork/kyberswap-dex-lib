@@ -42,18 +42,6 @@ type Guard struct {
 	kept int
 }
 
-// NewLensGuard is the guard of a tracker's lens reads: NewGuard's, or, with batch set, one that
-// keeps each pool's cooldown and the attempt timeout and leaves the rate and the concurrency to the
-// node's Batcher. A guard that counted pools would let two of them read at once, two a second, and
-// a batch would never hold more; the Batcher counts the calls it makes, one per batch.
-func NewLensGuard(cfg GuardConfig, batch *BatchConfig) *Guard {
-	g := NewGuard(cfg)
-	if batch.On() {
-		g.limiter, g.slots = nil, nil
-	}
-	return g
-}
-
 func NewGuard(cfg GuardConfig) *Guard {
 	return &Guard{
 		limiter:  rate.NewLimiter(rate.Limit(cmp.Or(cfg.Rate, 2)), cmp.Or(cfg.Burst, 5)),

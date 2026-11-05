@@ -126,13 +126,11 @@ func (pin Pinned) ranAt(read uint64) bool {
 
 // Scan calls fetch from cursor start until a page is Done, every call at pin's block, and returns
 // that block. A read pinned to none runs its first call at the latest block and the rest at the
-// block that call ran at (see Pin). fetch keeps the data each page carries. A first page that a
-// batch ran with no progress is read once more alone (see CallPage).
+// block that call ran at (see Pin). fetch keeps the data each page carries.
 func Scan[C comparable](ctx context.Context, start C, pin Pinned,
 	fetch func(ctx context.Context, cursor C, block *big.Int) (Page[C], error)) (uint64, error) {
 	cursor := start
-	first := new(firstPage)
-	page, err := fetch(context.WithValue(ctx, firstPageKey{}, first), cursor, pin.Block)
+	page, err := fetch(ctx, cursor, pin.Block)
 	for {
 		if err != nil {
 			return 0, err
@@ -146,12 +144,7 @@ func Scan[C comparable](ctx context.Context, start C, pin Pinned,
 			return pin.Block.Uint64(), nil
 		}
 		if page.Next == cursor {
-			if cursor != start || !first.batched {
-				return 0, ErrNoProgress
-			}
-			first.batched = false
-			page, err = fetch(context.WithValue(ctx, aloneKey{}, true), cursor, pin.Block)
-			continue
+			return 0, ErrNoProgress
 		}
 		cursor = page.Next
 		page, err = fetch(ctx, cursor, pin.Block)
@@ -163,8 +156,7 @@ func Scan[C comparable](ctx context.Context, start C, pin Pinned,
 const WordsParallel = 4
 
 // ScanWords reads the words [lower, upper] of a bitmap lens, every call at pin's block, and returns
-// that block and the items of every call in word order. A first page that a batch ran with no
-// progress is read once more alone (see CallPage).
+// that block and the items of every call in word order.
 //
 // A call reads from its lower word as far as its gas allows. Each time one stops short, the words
 // it left are cut in two, and the upper half goes to another call when fewer than WordsParallel are in
@@ -174,11 +166,7 @@ const WordsParallel = 4
 func ScanWords[T any](ctx context.Context, lower, upper int16, pin Pinned,
 	fetch func(ctx context.Context, lower, upper int16, block *big.Int) (Page[int16], []T, error)) (uint64,
 	[]T, error) {
-	batch := new(firstPage)
-	first, items, err := fetch(context.WithValue(ctx, firstPageKey{}, batch), lower, upper, pin.Block)
-	if err == nil && !first.Done && first.Next <= lower && batch.batched {
-		first, items, err = fetch(context.WithValue(ctx, aloneKey{}, true), lower, upper, pin.Block)
-	}
+	first, items, err := fetch(ctx, lower, upper, pin.Block)
 	if err != nil {
 		return 0, nil, err
 	}
