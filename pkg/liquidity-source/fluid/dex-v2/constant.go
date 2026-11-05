@@ -44,7 +44,11 @@ const (
 )
 
 var (
-	defaultGas = Gas{BaseGas: 155000, CrossInitTickGas: 21492}
+	// BaseGas is deliberately high. Measured through the router on Ethereum, a single D4 hop
+	// costs ~258k beyond the router base (startOperation/settle dominate and are shared by hops
+	// of one operation: a D4->D3->wrap route adds only ~60k per extra hop). Overestimating a
+	// multi-hop route is preferred to underestimating a single hop.
+	defaultGas = Gas{BaseGas: 260000, CrossInitTickGas: 21492}
 
 	SECONDS_PER_YEAR = big.NewInt(365 * 24 * 60 * 60)
 

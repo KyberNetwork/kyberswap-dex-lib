@@ -201,7 +201,7 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 			return nil, err
 		}
 
-		if step.tickNext < MIN_TICK || step.tickNext > MAX_TICK {
+		if step.tickNext <= MIN_TICK || step.tickNext >= MAX_TICK {
 			return nil, ErrNextTickOutOfBounds
 		}
 

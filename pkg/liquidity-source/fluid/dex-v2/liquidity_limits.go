@@ -249,7 +249,7 @@ func (p *PoolSimulator) quoteLiquidity(limit pool.SwapLimit, in, out int, dexTyp
 			return usage, err
 		}
 		if p.extra.SupplyOnlySettlement {
-			// SC PRs #781/#987 convert D4 pending borrow to supply after each hop:
+			// The executor converts D4 pending borrow to supply after each hop:
 			// tokenIn: S=B=-amountIn; tokenOut: S=B=amountOut+protocolFee+lpFee.
 			// These equal-leg settles call Liquidity even if DEX float can fund
 			// the final supply-only endpoint transfer.
