@@ -81,12 +81,12 @@ func TestSwapPriceReferenceAcrossEmptyRegions(t *testing.T) {
 					var want uint256.Int
 					require.NoError(t, utils.GetSqrtRatioAtTickV2(firstTick, &want))
 					require.True(t, want.Eq(&q.sqrtPriceReference))
-					require.NoError(t, _verifySqrtPriceX96ChangeLimits(q.sqrtPriceReference.ToBig(), q.SqrtRatioX96.ToBig()))
-					require.ErrorIs(t, _verifySqrtPriceX96ChangeLimits(p.SqrtRatioX96.ToBig(), q.SqrtRatioX96.ToBig()), ErrSqrtPriceChangeOutOfBounds)
+					require.NoError(t, _verifySqrtPriceX96ChangeLimits(&q.sqrtPriceReference, q.SqrtRatioX96))
+					require.ErrorIs(t, _verifySqrtPriceX96ChangeLimits(p.SqrtRatioX96, q.SqrtRatioX96), ErrSqrtPriceChangeOutOfBounds)
 				} else {
 					require.GreaterOrEqual(t, q.CrossInitTickLoops, 2)
 					require.True(t, p.SqrtRatioX96.Eq(&q.sqrtPriceReference))
-					require.ErrorIs(t, _verifySqrtPriceX96ChangeLimits(q.sqrtPriceReference.ToBig(), q.SqrtRatioX96.ToBig()), ErrSqrtPriceChangeOutOfBounds)
+					require.ErrorIs(t, _verifySqrtPriceX96ChangeLimits(&q.sqrtPriceReference, q.SqrtRatioX96), ErrSqrtPriceChangeOutOfBounds)
 				}
 			})
 		}

@@ -31,7 +31,8 @@ type PoolSimulator struct {
 	tickMax int
 
 	poolAccountingFlag bool
-	tokenReserves      [2]*big.Int
+	tokenReserves      [2]uint256.Int
+	vars               [2]tokenVars
 
 	extra                 Extra
 	staticExtra           StaticExtra
@@ -136,6 +137,23 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		And(&poolAccounting, bignumber.One)
 
 	token0Reserves, token1Reserves := extractTokenReserves(extra.TokenReserves)
+	var reserves256 [2]uint256.Int
+	if reserves256[0].SetFromBig(token0Reserves) || reserves256[1].SetFromBig(token1Reserves) {
+		return nil, ErrOverflow
+	}
+	// Conversion factors only depend on the snapshot, so derive them once with the
+	// verified big.Int formulas; quotes then use fixed-width integers.
+	calc, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig, extra.SnapshotTimestamp)
+	if err != nil {
+		return nil, err
+	}
+	var vars [2]tokenVars
+	var overflow0, overflow1 bool
+	vars[0], overflow0 = newTokenVars(calc.Token0NumeratorPrecision, calc.Token0DenominatorPrecision, calc.Token0SupplyExchangePrice, calc.Token0BorrowExchangePrice)
+	vars[1], overflow1 = newTokenVars(calc.Token1NumeratorPrecision, calc.Token1DenominatorPrecision, calc.Token1SupplyExchangePrice, calc.Token1BorrowExchangePrice)
+	if overflow0 || overflow1 {
+		return nil, ErrOverflow
+	}
 
 	swapFee := big.NewInt(int64(entityPool.SwapFee))
 	tokens := make([]string, 2)
@@ -167,7 +185,8 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		tickMax: tickMax,
 
 		poolAccountingFlag:    poolAccounting.Cmp(bignumber.ZeroBI) == 0,
-		tokenReserves:         [2]*big.Int{token0Reserves, token1Reserves},
+		tokenReserves:         reserves256,
+		vars:                  vars,
 		extra:                 extra,
 		staticExtra:           staticExtra,
 		unsupportedDynamicFee: feeVersion.Uint64() > 1 || extra.DexVariables2.Bit(141) != 0 || (feeVersion.Sign() == 0 && staticExtra.Fee == 0xffffff),
@@ -224,44 +243,28 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	amountInBI := param.TokenAmountIn.Amount
-	if err := _verifyAmountLimits(amountInBI); err != nil {
+	var amountIn uint256.Int
+	if amt := param.TokenAmountIn.Amount; amt.Sign() < 0 || amountIn.SetFromBig(amt) {
+		return nil, ErrAmountOutOfLimits
+	}
+	if err := _verifyAmountLimits(&amountIn); err != nil {
 		return nil, err
 	}
 
 	zeroForOne := tokenInIndex == 0
 	_, dexType := parseFluidDexV2PoolAddress(p.GetAddress())
-	// Adjust amountIn
-	c, err := _calculateVars(p.extra.DexVariables2, p.extra.Token0ExchangePricesAndConfig, p.extra.Token1ExchangePricesAndConfig, p.extra.SnapshotTimestamp)
-	if err != nil {
-		return nil, err
-	}
+	d3 := dexType == D3_MODULE
+	inVars, outVars := &p.vars[tokenInIndex], &p.vars[tokenOutIndex]
 
-	var amountInRawAdjusted, tmp big.Int
-	if zeroForOne {
-		amountInRawAdjusted = *amountToAdjusted(amountInBI, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision,
-			lo.Ternary(dexType == D3_MODULE, c.Token0SupplyExchangePrice, c.Token0BorrowExchangePrice))
-	} else {
-		amountInRawAdjusted = *amountToAdjusted(amountInBI, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision,
-			lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
-	}
-
-	// The deployed module rounds normalized input down before the swap.
-	var roundedInput uint256.Int
-	if roundedInput.SetFromBig(&amountInRawAdjusted) {
-		return nil, ErrOverflow
-	}
-	roundNormalizedDown(&roundedInput)
-	amountInRawAdjusted.Set(roundedInput.ToBig())
-
+	// Adjust amountIn; the deployed module rounds normalized input down before the swap.
+	var amountInRawAdjusted uint256.Int
+	inVars.toAdjusted(&amountInRawAdjusted, &amountIn, inVars.price(d3))
+	roundNormalizedDown(&amountInRawAdjusted)
 	if err := _verifyAdjustedAmountLimits(&amountInRawAdjusted); err != nil {
 		return nil, err
 	}
-
-	var amountIn v3Utils.Int256
-	if overflow := amountIn.SetFromBig(&amountInRawAdjusted); overflow {
-		return nil, ErrOverflow
-	}
+	// Bounded to 86 bits above, so the signed view is the same number.
+	signedIn := v3Utils.Int256(amountInRawAdjusted)
 
 	var priceLimit v3Utils.Uint160
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
@@ -273,23 +276,27 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var startPrice uint256.Int
 	packSqrtPrice(&startPrice, p.V3Pool.SqrtRatioX96, !zeroForOne)
 	quotePool.SqrtRatioX96 = &startPrice
-	amountOutResult, err := quotePool.GetOutputAmountV2(&amountIn, zeroForOne, &priceLimit)
+	amountOutResult, err := quotePool.GetOutputAmountV2(&signedIn, zeroForOne, &priceLimit)
 	if err != nil {
 		return nil, err
 	}
 
-	err = _verifySqrtPriceX96ChangeLimits(amountOutResult.sqrtPriceReference.ToBig(), amountOutResult.SqrtRatioX96.ToBig())
-	if err != nil {
+	if err = _verifySqrtPriceX96ChangeLimits(&amountOutResult.sqrtPriceReference, amountOutResult.SqrtRatioX96); err != nil {
 		return nil, err
 	}
 
-	amountOutRawAdjusted := amountOutResult.ReturnedAmount.ToBig()
+	if amountOutResult.ReturnedAmount.IsNegative() {
+		return nil, ErrOverflow
+	}
+	// The reserve counter uses the engine output before the module rounds it down.
+	reserveOutputRaw := uint256.Int(*amountOutResult.ReturnedAmount)
 
 	if p.poolAccountingFlag {
-		if tmp.Add(p.tokenReserves[tokenInIndex], &amountInRawAdjusted).Cmp(X128) > 0 {
+		var total uint256.Int
+		if _, overflow := total.AddOverflow(&p.tokenReserves[tokenInIndex], &amountInRawAdjusted); overflow || total.BitLen() > 128 {
 			return nil, ErrTokenReservesOverflow
 		}
-		if tmp.Sub(p.tokenReserves[tokenOutIndex], amountOutRawAdjusted).Sign() < 0 {
+		if p.tokenReserves[tokenOutIndex].Lt(&reserveOutputRaw) {
 			return nil, ErrTokenReservesUnderflow
 		}
 	}
@@ -298,58 +305,34 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrNextTickOutOfBounds
 	}
 
-	// The reserve counter uses the engine output before the module rounds it down.
-	var reserveOutputRaw uint256.Int
-	if reserveOutputRaw.SetFromBig(amountOutRawAdjusted) {
-		return nil, ErrOverflow
-	}
 	roundedOutput := reserveOutputRaw
 	roundNormalizedDown(&roundedOutput)
-	amountOutRawAdjusted.Set(roundedOutput.ToBig())
-
-	// Adjust amountOut
-	var amountOut big.Int
-	if err := _verifyAdjustedAmountLimits(amountOutRawAdjusted); err != nil {
+	if err = _verifyAdjustedAmountLimits(&roundedOutput); err != nil {
 		return nil, err
 	}
 
-	if zeroForOne {
-		amountOut = *adjustedToAmount(amountOutRawAdjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision,
-			lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
-	} else {
-		amountOut = *adjustedToAmount(amountOutRawAdjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision,
-			lo.Ternary(dexType == D3_MODULE, c.Token0SupplyExchangePrice, c.Token0BorrowExchangePrice))
+	// Adjust amountOut; the module subtracts one wei in the protocol's favor.
+	var amountOut uint256.Int
+	outVars.toAmount(&amountOut, &roundedOutput, outVars.price(d3))
+	if !amountOut.IsZero() {
+		amountOut.SubUint64(&amountOut, 1)
 	}
-
-	amountOut.Sub(&amountOut, bignumber.One)
-	if err := _verifyAmountLimits(&amountOut); err != nil {
+	if err = _verifyAmountLimits(&amountOut); err != nil {
 		return nil, err
 	}
 
-	var inputValue, outputValue, fees uint256.Int
-	if inputValue.SetFromBig(amountInBI) || outputValue.SetFromBig(&amountOut) {
-		return nil, ErrOverflow
-	}
-	if dexType != D3_MODULE {
-		numerator, denominator, price := c.Token0NumeratorPrecision, c.Token0DenominatorPrecision, c.Token0BorrowExchangePrice
-		if zeroForOne {
-			numerator, denominator, price = c.Token1NumeratorPrecision, c.Token1DenominatorPrecision, c.Token1BorrowExchangePrice
-		}
-		var n, d, e, scale, protocolFee, lpFee uint256.Int
-		if n.SetFromBig(numerator) || d.SetFromBig(denominator) || e.SetFromBig(price) {
-			return nil, ErrOverflow
-		}
-		scale.SetUint64(1000000000000)
-		// Adjusted output is bounded to 86 bits, precision to 1e9 and price to
-		// 64 bits, so each Solidity conversion product fits within 180 bits.
-		n.Mul(&n, &scale)
-		protocolFee.Mul(&amountOutResult.protocolFeeOut, &d).Mul(&protocolFee, &e).Div(&protocolFee, &n)
-		lpFee.Mul(&amountOutResult.lpFeeOut, &d).Mul(&lpFee, &e).Div(&lpFee, &n)
+	// D3 keeps fees inside the supply position; only D4 pays them out of borrowed output.
+	var fees uint256.Int
+	if !d3 {
+		var protocolFee, lpFee uint256.Int
+		// Adjusted output is bounded to 86 bits, so each conversion product fits.
+		outVars.toAmount(&protocolFee, &amountOutResult.protocolFeeOut, &outVars.borrowPrice)
+		outVars.toAmount(&lpFee, &amountOutResult.lpFeeOut, &outVars.borrowPrice)
 		if _, overflow := fees.AddOverflow(&protocolFee, &lpFee); overflow {
 			return nil, ErrOverflow
 		}
 	}
-	usage, err := p.quoteLiquidity(param.Limit, tokenInIndex, tokenOutIndex, dexType, &inputValue, &outputValue, &fees)
+	usage, err := p.quoteLiquidity(param.Limit, tokenInIndex, tokenOutIndex, dexType, &amountIn, &amountOut, &fees)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +344,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: &amountOut,
+			Amount: amountOut.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
 			Token: tokenIn,
@@ -372,7 +355,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			NextStateSqrtRatioX96: amountOutResult.SqrtRatioX96,
 			NextStateTickCurrent:  amountOutResult.CurrentTick,
 			nextStateLiquidity:    amountOutResult.Liquidity,
-			amountInRawAdjusted:   &amountInRawAdjusted,
+			amountInRawAdjusted:   amountInRawAdjusted,
 			amountOutRawAdjusted:  reserveOutputRaw,
 			liquidityUsage:        usage,
 			nextDynamicPacked:     amountOutResult.dynamicPacked,
@@ -384,10 +367,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	v3Pool := *p.V3Pool
 	cloned.V3Pool = &v3Pool
-	cloned.tokenReserves = [2]*big.Int{
-		new(big.Int).Set(p.tokenReserves[0]),
-		new(big.Int).Set(p.tokenReserves[1]),
-	}
+	// tokenReserves, vars and liquidityLimits are value arrays, so the copy is already deep.
 	return &cloned
 }
 
@@ -408,8 +388,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenAmountOut.Token
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 
-	p.tokenReserves[tokenInIndex].Add(p.tokenReserves[tokenInIndex], si.amountInRawAdjusted)
-	p.tokenReserves[tokenOutIndex].Sub(p.tokenReserves[tokenOutIndex], si.amountOutRawAdjusted.ToBig())
+	p.tokenReserves[tokenInIndex].Add(&p.tokenReserves[tokenInIndex], &si.amountInRawAdjusted)
+	p.tokenReserves[tokenOutIndex].Sub(&p.tokenReserves[tokenOutIndex], &si.amountOutRawAdjusted)
 	p.applyLiquidity(si.liquidityUsage, params.SwapLimit)
 
 }

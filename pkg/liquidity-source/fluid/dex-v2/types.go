@@ -18,7 +18,7 @@ type SwapInfo struct {
 	NextStateSqrtRatioX96 *v3Utils.Uint160 `json:"nSqrtRx96"`
 	NextStateTickCurrent  int              `json:"nT"`
 	nextStateLiquidity    *v3Utils.Uint128
-	amountInRawAdjusted   *big.Int
+	amountInRawAdjusted   uint256.Int
 	amountOutRawAdjusted  uint256.Int
 	liquidityUsage        [2]liquidityUsage
 	nextDynamicPacked     uint256.Int
