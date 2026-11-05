@@ -39,6 +39,7 @@ const (
 	slidingFeePluginSlidingFeeEnabledMethod = "slidingFeeEnabled"
 
 	BEFORE_SWAP_FLAG = 1
+	AFTER_SWAP_FLAG  = 2
 	RESOLUTION       = 96
 
 	FEE_FACTOR_SHIFT = 96

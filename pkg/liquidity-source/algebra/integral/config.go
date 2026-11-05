@@ -16,6 +16,7 @@ type Config struct {
 	TickLensAddress   string
 
 	UseBasePluginV2 bool `json:"useBasePluginV2"`
+	UseNamiPlugin   bool `json:"useNamiPlugin"`
 
 	// UseLens reads pools through AlgebraIntegralLens: their price, liquidity and
 	// every tick from one block, walking the pool's tick list. A bootstrap then asks no subgraph, a
