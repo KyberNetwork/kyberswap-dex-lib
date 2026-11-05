@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
-	"reflect"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -94,21 +91,12 @@ func (c *Contract) UnpackCall(payload []byte, out any) error {
 	if len(payload)%32 != 0 {
 		return fmt.Errorf("%d-byte payload is not whole words, so not a result", len(payload))
 	}
+	if err := checkCanonical(c.result, payload); err != nil {
+		return fmt.Errorf("payload is not the canonical encoding of a result: %w", err)
+	}
 	values, err := c.result.Unpack(payload)
 	if err != nil {
 		return err
-	}
-	for i, arg := range c.result {
-		if err := checkWidths(arg.Type, reflect.ValueOf(values[i]), arg.Name); err != nil {
-			return err
-		}
-	}
-	again, err := c.result.Pack(values...)
-	if err != nil {
-		return fmt.Errorf("re-encoding the result: %w", err)
-	}
-	if !bytes.Equal(again, payload) {
-		return errors.New("payload is not the canonical encoding of a result")
 	}
 	return c.result.Copy(out, values)
 }
@@ -167,45 +155,4 @@ func IsContractError(err error, name string) bool {
 	}
 	e, ok := revert.Err.(*ContractError)
 	return ok && e.Name == name
-}
-
-// checkWidths walks a decoded value along its ABI type and checks every intN and uintN fits N bits.
-func checkWidths(t abi.Type, v reflect.Value, path string) error {
-	switch t.T {
-	case abi.IntTy, abi.UintTy:
-		switch t.Size {
-		case 8, 16, 32, 64, 256: // native, or a full word
-			return nil
-		}
-		n, ok := reflect.TypeAssert[*big.Int](v)
-		if !ok {
-			return fmt.Errorf("%s: %T for %s", path, v.Interface(), t)
-		}
-		if fits(n, t.Size, t.T == abi.IntTy) {
-			return nil
-		}
-		return fmt.Errorf("%s: %s does not fit %s", path, n, t)
-	case abi.SliceTy, abi.ArrayTy:
-		for i := range v.Len() {
-			if err := checkWidths(*t.Elem, v.Index(i), fmt.Sprintf("%s[%d]", path, i)); err != nil {
-				return err
-			}
-		}
-	case abi.TupleTy:
-		for i, elem := range t.TupleElems {
-			name := path + "." + strings.TrimSpace(t.TupleRawNames[i])
-			if err := checkWidths(*elem, v.Field(i), name); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func fits(n *big.Int, bits int, signed bool) bool {
-	if !signed {
-		return n.Sign() >= 0 && n.BitLen() <= bits
-	}
-	limit := new(big.Int).Lsh(big.NewInt(1), uint(bits-1))
-	return n.Cmp(limit) < 0 && n.Cmp(new(big.Int).Neg(limit)) >= 0
 }
