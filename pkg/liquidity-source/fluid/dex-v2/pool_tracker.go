@@ -223,11 +223,16 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	ticks, err := t.fetchPoolTicksFromBitmap(ctx, p, extra.SnapshotBlock)
-	if err != nil {
-		return entity.Pool{}, err
+	// State overrides are not reflected in logs, so they always take the full scan.
+	if ticks, scanned, ok := t.cachedTicks(ctx, p, extra.SnapshotBlock); ok && overrides == nil {
+		extra.Ticks, extra.TicksBlock = ticks, scanned
+	} else {
+		ticks, err := t.fetchPoolTicksFromBitmap(ctx, p, extra.SnapshotBlock)
+		if err != nil {
+			return entity.Pool{}, err
+		}
+		extra.Ticks, extra.TicksBlock = ticks, extra.SnapshotBlock
 	}
-	extra.Ticks = ticks
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
