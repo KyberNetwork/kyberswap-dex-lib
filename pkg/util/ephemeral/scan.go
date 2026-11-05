@@ -1,0 +1,232 @@
+package ephemeral
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"maps"
+	"math/big"
+	"slices"
+	"sync"
+
+	"golang.org/x/sync/errgroup"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+// Page is what one call of a scan reports besides its data: the block it read, and where the
+// next call starts unless Done.
+type Page[C comparable] struct {
+	Block uint64
+	Next  C
+	Done  bool
+}
+
+// ErrNoProgress means a call ended where it started: one step of the scan does not fit the gas
+// given, and calling again would loop.
+var ErrNoProgress = errors.New("ephemeral: a call made no progress; raise the gas")
+
+// Chain reports the id of the chain a node serves. *ethclient.Client is one.
+type Chain interface {
+	ChainID(ctx context.Context) (*big.Int, error)
+}
+
+// Pinned is the block a read of several calls is pinned to, nil until its first call reports one,
+// and how the chain's node reports a call. Pin makes one.
+type Pinned struct {
+	Block *big.Int
+	// late: the node runs a call in the block after the one whose state it reads, pinned to block
+	// N or at the latest N alike, and reports N+1. Elsewhere a report of N+1 is a node that ignored
+	// the pin.
+	late bool
+}
+
+// lateChains are the chains whose nodes run a call in the block after the one it is pinned to:
+// Etherlink's.
+var lateChains = map[uint64]bool{uint64(valueobject.ChainIDEtherlink): true}
+
+// lateClients caches, per Chain, whether its chain is one of lateChains: the chain of a client never
+// changes, and asking costs a round trip. The reads that start together, as a backfill's pools do,
+// share one question rather than each asking before any answer is kept.
+var lateClients sync.Map
+
+type lateClient struct {
+	once sync.Once
+	late bool
+	err  error
+}
+
+// Pin pins a read to block, or, when block is nil, to the block its first call runs at: that call
+// goes to the latest block, and the block the lens reports is the read's, which the calls after it
+// are pinned to. Most reads take one call, so a read at the latest asks the node nothing else. The
+// block a lens reports is the chain's own on every chain checked but Etherlink, which runs a call
+// in the block after the one whose state it reads and reports N+1 for N's state; there the read
+// takes the report less one.
+func Pin(ctx context.Context, c Chain, block *big.Int) (Pinned, error) {
+	isLate, err := runsLate(ctx, c)
+	if err != nil {
+		return Pinned{}, err
+	}
+	return Pinned{Block: block, late: isLate}, nil
+}
+
+// take pins pin to the block of state a first call that reported read ran at.
+func (pin *Pinned) take(read uint64) {
+	if pin.late && read > 0 {
+		read--
+	}
+	pin.Block = new(big.Int).SetUint64(read)
+}
+
+func runsLate(ctx context.Context, c Chain) (bool, error) {
+	// A Chain that cannot be a map key is asked every time.
+	if !keyable(c) {
+		return askLate(ctx, c)
+	}
+	v, ok := lateClients.Load(c)
+	if !ok {
+		v, _ = lateClients.LoadOrStore(c, &lateClient{})
+	}
+	l := v.(*lateClient)
+	l.once.Do(func() { l.late, l.err = askLate(ctx, c) })
+	if l.err != nil {
+		// A failed question is not kept: the next read asks again.
+		lateClients.CompareAndDelete(c, l)
+	}
+	return l.late, l.err
+}
+
+func askLate(ctx context.Context, h Chain) (bool, error) {
+	id, err := h.ChainID(ctx)
+	if err != nil {
+		return false, fmt.Errorf("ephemeral: chain id: %w", err)
+	}
+	return id.IsUint64() && lateChains[id.Uint64()], nil
+}
+
+// ErrUnpinned means a call pinned to a block reported running at another: the node does not run
+// calls at the block they name, as HyperEVM's runs them at its head whatever the pin, and what it
+// returned is not the state of that block.
+var ErrUnpinned = errors.New("ephemeral: the node ran a call at another block than the one pinned")
+
+// Unreadable reports a lens read the node cannot serve however often it is tried: it ran a page at
+// another block than the one pinned, as a node that ignores pinned blocks does, or a call made no
+// progress, its gas cap under the pool's densest word. A caller with another way to read the pool
+// takes it then, rather than try the lens again.
+func Unreadable(err error) bool {
+	return errors.Is(err, ErrUnpinned) || errors.Is(err, ErrNoProgress)
+}
+
+// ranAt reports whether a call pinned to pin.Block that reported read ran there: the block itself,
+// or the one after it on a chain that runs a call in the block after the one it names. Accepted
+// elsewhere, a head that moved on between Pin and the call would pass for the pinned block.
+func (pin Pinned) ranAt(read uint64) bool {
+	return read == pin.Block.Uint64() || pin.late && read == pin.Block.Uint64()+1
+}
+
+// Scan calls fetch from cursor start until a page is Done, every call at pin's block, and returns
+// that block. A read pinned to none runs its first call at the latest block and the rest at the
+// block that call ran at (see Pin). fetch keeps the data each page carries.
+func Scan[C comparable](ctx context.Context, start C, pin Pinned,
+	fetch func(ctx context.Context, cursor C, block *big.Int) (Page[C], error)) (uint64, error) {
+	cursor := start
+	page, err := fetch(ctx, cursor, pin.Block)
+	for {
+		if err != nil {
+			return 0, err
+		}
+		if pin.Block == nil {
+			pin.take(page.Block)
+		} else if !pin.ranAt(page.Block) {
+			return 0, fmt.Errorf("%w: page pinned to block %d ran at %d", ErrUnpinned, pin.Block, page.Block)
+		}
+		if page.Done {
+			return pin.Block.Uint64(), nil
+		}
+		if page.Next == cursor {
+			return 0, ErrNoProgress
+		}
+		cursor = page.Next
+		page, err = fetch(ctx, cursor, pin.Block)
+	}
+}
+
+// WordsParallel is how many calls ScanWords has in flight for one read. It bounds the calls one
+// pool's read makes at once, which a lens guard counts as one read.
+const WordsParallel = 4
+
+// ScanWords reads the words [lower, upper] of a bitmap lens, every call at pin's block, and returns
+// that block and the items of every call in word order.
+//
+// A call reads from its lower word as far as its gas allows. Each time one stops short, the words
+// it left are cut in two, and the upper half goes to another call when fewer than WordsParallel are in
+// flight: the ticks of a pool sit in few words, which a plain cut of the range would leave in one
+// window read call after call, while halving whatever is left splits wherever the ticks are. fetch
+// reads words [lower, upper] in one call; it is called concurrently.
+func ScanWords[T any](ctx context.Context, lower, upper int16, pin Pinned,
+	fetch func(ctx context.Context, lower, upper int16, block *big.Int) (Page[int16], []T, error)) (uint64,
+	[]T, error) {
+	first, items, err := fetch(ctx, lower, upper, pin.Block)
+	if err != nil {
+		return 0, nil, err
+	}
+	if pin.Block == nil {
+		pin.take(first.Block)
+	} else if !pin.ranAt(first.Block) {
+		return 0, nil, fmt.Errorf("%w: page pinned to block %d ran at %d", ErrUnpinned, pin.Block, first.Block)
+	}
+	if first.Done {
+		return pin.Block.Uint64(), items, nil
+	}
+	if first.Next <= lower {
+		return 0, nil, ErrNoProgress
+	}
+
+	// Each call's items, by the word it started at: the calls start at distinct words, and those
+	// words order them.
+	var mu sync.Mutex
+	parts := map[int16][]T{lower: items}
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(max(WordsParallel, 1))
+	var read func(lower, upper int16) error
+	read = func(lower, upper int16) error {
+		for {
+			page, got, err := fetch(gctx, lower, upper, pin.Block)
+			if err != nil {
+				return err
+			}
+			if !pin.ranAt(page.Block) {
+				return fmt.Errorf("%w: page pinned to block %d ran at %d", ErrUnpinned, pin.Block, page.Block)
+			}
+			mu.Lock()
+			parts[lower] = got
+			mu.Unlock()
+			if page.Done {
+				return nil
+			}
+			if page.Next <= lower {
+				return ErrNoProgress
+			}
+			lower = page.Next
+			// Never waits for a free call: a goroutine that did would hold one, and with every one
+			// held the read would stop. Without one, this goroutine reads both halves in turn.
+			if mid := int16((int(lower) + int(upper)) / 2); mid < upper {
+				hi := upper
+				if g.TryGo(func() error { return read(mid+1, hi) }) {
+					upper = mid
+				}
+			}
+		}
+	}
+	g.Go(func() error { return read(first.Next, upper) })
+	if err := g.Wait(); err != nil {
+		return 0, nil, err
+	}
+
+	starts := slices.Sorted(maps.Keys(parts))
+	items = nil
+	for _, start := range starts {
+		items = append(items, parts[start]...)
+	}
+	return pin.Block.Uint64(), items, nil
+}

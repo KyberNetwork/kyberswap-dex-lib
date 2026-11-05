@@ -2,13 +2,16 @@ package machima
 
 import (
 	"context"
+	"maps"
 	"math/big"
+	"reflect"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 
@@ -40,11 +43,12 @@ var _ = pooltrack.RegisterFactoryCEG(DexType, NewPoolTracker)
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client) (*PoolTracker, error) {
 	// AlwaysUseTickLens: the Machima subgraph indexes pools only and has no Tick entity, so the
-	// bootstrap has to read ticks from the TickLens contract.
+	// bootstrap has to read ticks from the TickLens contract, unless the lens reads them.
 	v3, err := uniswapv3.NewTracker(&uniswapv3.Config{
 		DexID:             cfg.DexID,
 		TickLensAddress:   cfg.TickLensAddress,
 		AlwaysUseTickLens: true,
+		LensConfig:        cfg.LensConfig,
 	}, ethrpcClient, graphqlClient)
 	if err != nil {
 		return nil, err
@@ -100,21 +104,56 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 //     at latest. This is the path that keeps the tax config and XMA floor fresh.
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	params poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
-	var (
-		blockNumber uint64
-		err         error
-	)
+	var err error
+	hadState := ticks.HasState(p)
 
-	if len(params.Logs) > 0 {
-		blockNumber = eth.GetBlockNumberFromLogs(params.Logs)
+	switch {
+	case len(params.Logs) > 0:
 		if p, err = t.v3.GetNewPoolState(ctx, p, params); err != nil {
 			return entity.Pool{}, err
 		}
-	} else if p, err = t.refreshStateKeepingTicks(ctx, p); err != nil {
-		return entity.Pool{}, err
+	case t.config.UseLens && !ticks.HasState(p):
+		// A pool without state, such as one created from its PoolCreated log, gets it only from
+		// the lens, which the UniV3 layer reads on an update. The interval refresh would instead
+		// give it a liquidity and no ticks, and the pool would then count as having state and never
+		// be read whole. The empty log is the one the caller triggers an update with: it carries
+		// no event and no block, so nothing is applied from it.
+		if p, err = t.v3.GetNewPoolState(ctx, p, poolpkg.GetNewPoolStateParams{Logs: []ethtypes.Log{{}}}); err != nil {
+			return entity.Pool{}, err
+		}
+	default:
+		if p, err = t.refreshStateKeepingTicks(ctx, p); err != nil {
+			return entity.Pool{}, err
+		}
 	}
 
-	return t.applyMachimaState(ctx, p, blockNumber)
+	return t.applyMachimaState(ctx, p, taxBlock(hadState, p, params.Logs))
+}
+
+// taxBlock is the block the tax is read at: that of the lens snapshot the UniV3 layer just gave a
+// pool without state, which dates the pool, past its logs; else the logs' own, 0 for the latest.
+func taxBlock(hadState bool, p entity.Pool, logs []ethtypes.Log) uint64 {
+	if !hadState && ticks.HasState(p) {
+		return p.BlockNumber
+	}
+	return eth.GetBlockNumberFromLogs(logs)
+}
+
+var (
+	_ poolpkg.IPoolTrackerWithReset    = (*PoolTracker)(nil)
+	_ poolpkg.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
+)
+
+// ResetPoolState is the UniV3 layer's: it drops the ticks and liquidity for the lens to read them
+// whole on the next update, and edits Extra in place, so the Machima half is kept.
+func (t *PoolTracker) ResetPoolState(p entity.Pool, block uint64) (entity.Pool, bool) {
+	return t.v3.ResetPoolState(p, block)
+}
+
+// NextUpdateAt is the UniV3 layer's: a pool without state whose lens read was declined is updated
+// again as soon as the guard would take it.
+func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
+	return t.v3.NextUpdateAt(p)
 }
 
 // refreshStateKeepingTicks re-reads slot0, liquidity and reserves at latest while leaving the tick
@@ -224,9 +263,9 @@ func (t *PoolTracker) applyMachimaState(ctx context.Context, p entity.Pool,
 	if err = setExtra(&p, extra); err != nil {
 		return entity.Pool{}, err
 	}
-	if blockNumber > 0 {
-		p.BlockNumber = blockNumber
-	}
+	// Never lowered: logs that arrive late, from a retry or a backfill, carry an older block than
+	// the one the UniV3 layer has the pool's state at, and the lens may have read it at a newer one.
+	p.BlockNumber = max(p.BlockNumber, blockNumber)
 
 	return p, nil
 }
@@ -254,7 +293,10 @@ func unmarshalExtra(raw string) (Extra, error) {
 
 	extra.ProtocolState = u256.ProtocolState
 	extra.TickSpacing = u256.TickSpacing
+	extra.LensBlock = u256.LensBlock
 	extra.BuyRestrictedToken = u256.BuyRestrictedToken
+	extra.MaxTxToken = u256.MaxTxToken
+	extra.MaxTxAmount = u256.MaxTxAmount
 	if u256.Liquidity != nil {
 		extra.Liquidity = u256.Liquidity.ToBig()
 	}
@@ -278,11 +320,59 @@ func unmarshalExtra(raw string) (Extra, error) {
 	return extra, nil
 }
 
+// setExtra writes extra over p's Extra, keeping the keys extra does not model. The UniV3 layer
+// writes some of its own into Extra outside its Extra type, such as lensDue, the block a lens read
+// of a pool without state must reach; dropping one would let that read land below logs the pool
+// has already seen. A key extra models but leaves out, as it omits a price floor gone back to nil,
+// is cleared.
 func setExtra(p *entity.Pool, extra Extra) error {
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return errors.WithMessage(err, "marshal extra")
 	}
+
+	var kept map[string]json.RawMessage
+	if p.Extra == "" || json.Unmarshal([]byte(p.Extra), &kept) != nil || len(kept) == 0 {
+		p.Extra = string(extraBytes)
+		return nil
+	}
+	var written map[string]json.RawMessage
+	if err = json.Unmarshal(extraBytes, &written); err != nil {
+		return errors.WithMessage(err, "remarshal extra")
+	}
+	for _, key := range modeledKeys {
+		delete(kept, key)
+	}
+	maps.Copy(kept, written)
+	if extraBytes, err = json.Marshal(kept); err != nil {
+		return errors.WithMessage(err, "marshal extra")
+	}
 	p.Extra = string(extraBytes)
 	return nil
+}
+
+// modeledKeys are the keys Extra writes into a pool's Extra, those it may omit included.
+var modeledKeys = jsonKeys(reflect.TypeFor[Extra]())
+
+// jsonKeys are the JSON keys of struct type t's fields, those of embedded structs it inlines
+// included.
+func jsonKeys(t reflect.Type) []string {
+	var keys []string
+	for field := range t.Fields() {
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+		switch {
+		case name == "-":
+		case field.Anonymous && name == "":
+			embedded := field.Type
+			if embedded.Kind() == reflect.Pointer {
+				embedded = embedded.Elem()
+			}
+			keys = append(keys, jsonKeys(embedded)...)
+		case name == "":
+			keys = append(keys, field.Name)
+		default:
+			keys = append(keys, name)
+		}
+	}
+	return keys
 }

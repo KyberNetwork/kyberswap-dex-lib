@@ -3,19 +3,15 @@ package integral
 import (
 	"cmp"
 	"context"
+	"fmt"
 	"math"
 	"math/big"
+	"math/rand/v2"
 	"slices"
-	"strings"
 	"sync"
 	"testing"
 
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -23,11 +19,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
-
-const multicallAggregateABI = `[{"name":"aggregate","type":"function","stateMutability":"view",
-"inputs":[{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],
-"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"returnData","type":"bytes[]"}]}]`
 
 const (
 	tpNow     = uint32(1737563754)
@@ -42,6 +35,8 @@ type fakeChain struct {
 	index     uint16
 	override  map[uint16]Timepoint // exact on-chain values for some slots, instead of derived ones
 	requested []uint16
+	// multicalls and lensCalls count the calls made of the chain, by multicall and through the lens.
+	multicalls, lensCalls int
 }
 
 // newFakeChain creates a chain whose slots all hold previous-cycle data, except for the last n slots ending at index
@@ -82,72 +77,70 @@ func (c *fakeChain) takeRequested() []uint16 {
 	return r
 }
 
-type ethAPI struct{ chain *fakeChain }
-
-func (e *ethAPI) Call(args struct {
-	To    *common.Address `json:"to"`
-	Data  *hexutil.Bytes  `json:"data"`
-	Input *hexutil.Bytes  `json:"input"`
-}, _ rpc.BlockNumberOrHash, _ *map[common.Address]any) (hexutil.Bytes, error) {
-	multicallABI := lo.Must(abi.JSON(strings.NewReader(multicallAggregateABI)))
-	data := cmp.Or(args.Input, args.Data)
-	var in struct {
-		Calls []struct {
-			Target   common.Address
-			CallData []byte
-		}
-	}
-	vals, err := multicallABI.Methods["aggregate"].Inputs.Unpack((*data)[4:])
+// reply is the plugin's answer to a call: whether it succeeds, and what it returns. It has a
+// volatility oracle and the adaptive fee, and no directional fees.
+func (c *fakeChain) reply(data []byte) (bool, []byte, error) {
+	m, err := basePluginV2ABI.MethodById(data[:4])
 	if err != nil {
-		return nil, err
+		return false, nil, err
 	}
-	if err = multicallABI.Methods["aggregate"].Inputs.Copy(&in, vals); err != nil {
-		return nil, err
-	}
-
-	e.chain.mu.Lock()
-	defer e.chain.mu.Unlock()
-	rets := make([][]byte, 0, len(in.Calls))
-	for _, call := range in.Calls {
-		m, err := basePluginV2ABI.MethodById(call.CallData[:4])
+	var out []byte
+	switch m.Name {
+	case votalityOraclePluginTimepointsMethod:
+		params, err := m.Inputs.Unpack(data[4:])
 		if err != nil {
-			return nil, err
-		}
-		params, err := m.Inputs.Unpack(call.CallData[4:])
-		if err != nil {
-			return nil, err
+			return false, nil, err
 		}
 		idx := uint16(params[0].(*big.Int).Uint64())
-		e.chain.requested = append(e.chain.requested, idx)
-		ts := e.chain.slots[idx]
-		// a distinct tick per timestamp makes any mix-up between cycles visible in the result
-		tp := TimepointRPC{Initialized: ts != 0, BlockTimestamp: ts, TickCumulative: big.NewInt(int64(ts)),
-			VolatilityCumulative: big.NewInt(int64(ts) + 1), Tick: big.NewInt(int64(ts % 100)),
-			AverageTick: big.NewInt(int64(ts % 100))}
-		if o, ok := e.chain.override[idx]; ok {
-			tp = TimepointRPC{Initialized: o.Initialized, BlockTimestamp: o.BlockTimestamp,
-				TickCumulative: big.NewInt(o.TickCumulative), VolatilityCumulative: o.VolatilityCumulative.ToBig(),
-				Tick: big.NewInt(int64(o.Tick)), AverageTick: big.NewInt(int64(o.AverageTick)),
-				WindowStartIndex: o.WindowStartIndex}
-		}
-		out, err := m.Outputs.Pack(tp.Initialized, tp.BlockTimestamp, tp.TickCumulative, tp.VolatilityCumulative,
-			tp.Tick, tp.AverageTick, tp.WindowStartIndex)
-		if err != nil {
-			return nil, err
-		}
-		rets = append(rets, out)
+		c.requested = append(c.requested, idx)
+		out, err = c.packTimepoint(idx)
+		return err == nil, out, err
+	case votalityOraclePluginIsInitializedMethod:
+		out, err = m.Outputs.Pack(true)
+	case votalityOraclePluginLastTimepointTimestampMethod:
+		out, err = m.Outputs.Pack(c.headTs())
+	case votalityOraclePluginTimepointIndexMethod:
+		out, err = m.Outputs.Pack(c.index)
+	case dynamicFeeManagerPluginFeeConfigMethod:
+		out, err = m.Outputs.Pack(uint16(2900), uint16(12000), uint32(360), uint32(60000), uint16(59), uint16(8500),
+			uint16(100))
+	default:
+		return false, nil, nil
 	}
-	out, err := multicallABI.Methods["aggregate"].Outputs.Pack(big.NewInt(1), rets)
-	return out, err
+	return err == nil, out, err
+}
+
+// packTimepoint is timepoints(idx)'s reply.
+func (c *fakeChain) packTimepoint(idx uint16) ([]byte, error) {
+	ts := c.slots[idx]
+	// a distinct tick per timestamp makes any mix-up between cycles visible in the result
+	tp := TimepointRPC{Initialized: ts != 0, BlockTimestamp: ts, TickCumulative: big.NewInt(int64(ts)),
+		VolatilityCumulative: big.NewInt(int64(ts) + 1), Tick: big.NewInt(int64(ts % 100)),
+		AverageTick: big.NewInt(int64(ts % 100))}
+	if o, ok := c.override[idx]; ok {
+		tp = TimepointRPC{Initialized: o.Initialized, BlockTimestamp: o.BlockTimestamp,
+			TickCumulative: big.NewInt(o.TickCumulative), VolatilityCumulative: o.VolatilityCumulative.ToBig(),
+			Tick: big.NewInt(int64(o.Tick)), AverageTick: big.NewInt(int64(o.AverageTick)),
+			WindowStartIndex: o.WindowStartIndex}
+	}
+	return basePluginV2ABI.Methods[votalityOraclePluginTimepointsMethod].Outputs.Pack(tp.Initialized,
+		tp.BlockTimestamp, tp.TickCumulative, tp.VolatilityCumulative, tp.Tick, tp.AverageTick, tp.WindowStartIndex)
 }
 
 func newTrackerOnChain(t *testing.T, chain *fakeChain) *PoolTracker {
-	srv := rpc.NewServer()
-	require.NoError(t, srv.RegisterName("eth", &ethAPI{chain}))
-	client := rpc.DialInProc(srv)
-	t.Cleanup(func() { client.Close(); srv.Stop() })
-	return &PoolTracker{
-		EthrpcClient: ethrpc.NewWithClient(ethclient.NewClient(client))}
+	node := testutil.NewNodeStub(t, 1, 1, func(c testutil.NodeCall) ([]byte, error) {
+		chain.mu.Lock()
+		defer chain.mu.Unlock()
+		chain.multicalls++
+		var failed error
+		ret, _, err := testutil.Multicall(*c.To, c.Data, c.Block, 0, func(_ common.Address, data []byte) (bool, []byte) {
+			ok, out, err := chain.reply(data)
+			failed = cmp.Or(failed, err)
+			return ok, out
+		})
+		return ret, cmp.Or(failed, err)
+	})
+	return &PoolTracker{EthrpcClient: node.Client()}
 }
 
 func (c *fakeChain) fetch(t *testing.T, tr *PoolTracker, cache map[uint16]Timepoint) map[uint16]Timepoint {
@@ -307,3 +300,54 @@ const stalePoolFixture = `{"address":"0x7491c04dc4575e086a8ee31f7ce1c6d56fb7dcc1
 // onchainTimepointsFixture holds the on-chain timepoints the simulator reads for that pool at index 41557:
 // the head, its window start (41256) with neighbours, the oldest ones (41558, 41559) and slot 0.
 const onchainTimepointsFixture = `{"0":{"avgT":-6,"cum":-32563279,"init":true,"tick":-6,"ts":1783659516,"vo":"92493043","wsI":65190},"41256":{"avgT":-5,"cum":-72751097,"init":true,"tick":-8,"ts":1790829857,"vo":"3149047994275","wsI":40658},"41257":{"avgT":-5,"cum":-72763841,"init":true,"tick":-8,"ts":1790831450,"vo":"3149048008612","wsI":40658},"41556":{"avgT":-14,"cum":-74028713,"init":true,"tick":-4,"ts":1790916237,"vo":"3936278050862","wsI":41255},"41557":{"avgT":-14,"cum":-74029513,"init":true,"tick":-4,"ts":1790916437,"vo":"3936278070862","wsI":41256},"41558":{"avgT":-9,"cum":-8527411,"init":true,"tick":-8,"ts":1780562543,"vo":"85242951","wsI":39491},"41559":{"avgT":-9,"cum":-8527419,"init":true,"tick":-8,"ts":1780562544,"vo":"85242952","wsI":39491}}`
+
+// TestReadAtAnOlderBlockDropsFutureTimepoints: a reset keeps the plugin's timepoints, cached at the
+// latest block of the pool's last update. Read again at an older batch head, the slots past the head
+// hold nothing that block had written, by lens and multicall alike.
+func TestReadAtAnOlderBlockDropsFutureTimepoints(t *testing.T) {
+	later := newFakeChain(1000, 300, false)
+	later.write(7) // the last update read at the latest block, 7 timepoints on
+	cached, _, _, _ := readBoth(t, later, nil, 0)
+
+	head := newFakeChain(1000, 300, false) // the batch head the reset pool is read at
+	got, _, _, _ := readBoth(t, head, cached.timepoints, 0)
+	require.Zero(t, head.slots[1001], "slot 1001 is unwritten at the head")
+	require.False(t, got.timepoints[1001].Initialized,
+		"slot 1001 kept the cached ts %d, written after the block read", got.timepoints[1001].BlockTimestamp)
+}
+
+// TestFutureCacheMatchesTheChain: a cache read at a later state than the one read now, as a reset
+// pool's read again at an older batch head is, leaves every slot read as the chain holds it, by lens
+// and multicall alike.
+func TestFutureCacheMatchesTheChain(t *testing.T) {
+	rng := rand.New(rand.NewPCG(11, 12))
+	for i := range 400 {
+		index, cnt, full := uint16(rng.Uint32()), 1+rng.IntN(3000), rng.IntN(2) == 0
+		spacing, age := 1+rng.Uint32N(1200), rng.Uint32N(2*WINDOW)
+		perCall := []int{0, 0, 3, 100}[rng.IntN(4)]
+		ahead := 1 + rng.IntN(400)
+		t.Run(fmt.Sprintf("%d: index %d, %d by %ds, %ds old, full %v, %d a call, ahead %d", i, index, cnt, spacing,
+			age, full, perCall, ahead), func(t *testing.T) {
+			t.Parallel()
+			mk := func() *fakeChain {
+				c := newFakeChain(index, 0, full)
+				for j := range cnt {
+					c.slots[index-uint16(j)] = tpNow - age - uint32(j)*spacing
+				}
+				return c
+			}
+			later := mk()
+			later.write(ahead)
+			future, _, _, _ := readBoth(t, later, nil, perCall)
+			earlier := mk()
+			got, _, _, _ := readBoth(t, earlier, future.timepoints, perCall)
+			if got.timepoints != nil {
+				for idx, tp := range got.timepoints {
+					if tp.Initialized && tp.BlockTimestamp != earlier.slots[idx] {
+						t.Errorf("slot %d holds ts %d, the chain %d", idx, tp.BlockTimestamp, earlier.slots[idx])
+					}
+				}
+			}
+		})
+	}
+}

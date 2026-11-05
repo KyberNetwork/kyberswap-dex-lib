@@ -39,6 +39,16 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool,
 ) (entity.Pool, error) {
+	// The lens read the ticks at the block it read the state, which is what reading them again is
+	// for; a bootstrap that fell back from the lens read them again itself.
+	if t.config.UseLens {
+		return p, nil
+	}
+	return t.refetchTicks(ctx, p)
+}
+
+// refetchTicks reads the pool's stored ticks again at the block of its state.
+func (t *PoolTracker) refetchTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	// Extract current ticks from entity pool extra
 	var extra Extra
 	if len(p.Extra) > 0 {
@@ -62,7 +72,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool,
 		return p, nil
 	}
 
-	refetchedTicks, err := t.queryTicksFromRPC(ctx, p.Address, ticksToRefetch, p.BlockNumber)
+	refetchedTicks, err := t.readTicks(ctx, p.Address, ticksToRefetch, p.BlockNumber)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -117,6 +127,17 @@ func (t *PoolTracker) GetNewPoolState(
 		"exchange":    p.Exchange,
 	})
 
+	if t.config.UseLens && !tickspkg.HasState(p) {
+		return tickspkg.StateFromLens(ctx, t.lensGuard, p, param,
+			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
+				return t.bootstrapFromLens(ctx, p, param, block)
+			},
+			func(ctx context.Context) (entity.Pool, error) {
+				return t.bootstrapWithoutLens(ctx, p, param)
+			},
+			l), nil
+	}
+
 	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs)
 	if err != nil {
 		l.Error(err.Error())
@@ -144,12 +165,28 @@ func (t *PoolTracker) newTicksBasedPool(
 		return tickspkg.TicksBasedPool{}, err
 	}
 
+	held := ticksBasedPool.Holds(logs, p.BlockNumber)
 	blockNumber := eth.GetBlockNumberFromLogs(logs)
 	ticksBasedPool.BlockNumber = blockNumber
 
 	// Log ordering: [optional empty log] + [logs from reverted blocks] + [logs from new blocks]
 	// If reorg happens, only extract affected tick ids from logs and fetch their state from RPC
 	if eth.HasRevertedLog(logs) {
+		return t.fetchTicksFromLogs(ctx, ticksBasedPool, logs, l)
+	}
+
+	// Ticks are refetched at the batch's block, never at one older than the pool's own: logs that
+	// arrive late, from a retry or a backfill of a gap, would otherwise put the ticks they touch
+	// back to their values at that older block.
+	if blockNumber != 0 {
+		ticksBasedPool.BlockNumber = max(blockNumber, held)
+	}
+
+	// A log at or below the block the pool's state holds may be in its ticks already, replayed
+	// after a crash or by a backfill of a gap, or may never have been, a retry's or one a reorg
+	// brought in below a lens snapshot. Adding its delta could count it twice or never, so the
+	// ticks the batch touches are read whole instead, at that block, which holds the log either way.
+	if tickspkg.HasLateLog(logs, held) {
 		return t.fetchTicksFromLogs(ctx, ticksBasedPool, logs, l)
 	}
 
@@ -179,7 +216,7 @@ func (t *PoolTracker) fetchTicksFromLogs(
 		"blockNumber":   tickBasedPool.BlockNumber,
 	}).Info("fetching affected ticks from RPC for reverted blocks")
 
-	affectedTicks, err := t.queryTicksFromRPC(ctx, tickBasedPool.Address, affectedTickIds, tickBasedPool.BlockNumber)
+	affectedTicks, err := t.readTicks(ctx, tickBasedPool.Address, affectedTickIds, tickBasedPool.BlockNumber)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -197,15 +234,12 @@ func (t *PoolTracker) fetchTicksFromLogs(
 		"blockNumber":   tickBasedPool.BlockNumber,
 	}).Warn("invalid pool ticks data after fetching ticks from logs")
 
-	allTicks, err := t.queryTicksFromRPC(ctx, tickBasedPool.Address, lo.Keys(tickBasedPool.Ticks), tickBasedPool.BlockNumber)
-	if err != nil {
+	if err := t.refetchAllTicks(ctx, &tickBasedPool); err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to fetch all ticks from RPC")
 		return tickBasedPool, err
 	}
-
-	updateTicksMap(tickBasedPool.Ticks, allTicks)
 	if !tickBasedPool.HasAllValidTicks() {
 		l.WithFields(logger.Fields{
 			"blockNumber": tickBasedPool.BlockNumber,
@@ -280,7 +314,7 @@ func (t *PoolTracker) computeTicksFromLogs(
 		}
 		l.WithFields(logFields).Warn("tick state accumulated from logs invalid, fetching affected ticks from RPC")
 
-		affectedTicks, err := t.queryTicksFromRPC(ctx, tickBasedPool.Address, affectedTickIds, tickBasedPool.BlockNumber)
+		affectedTicks, err := t.readTicks(ctx, tickBasedPool.Address, affectedTickIds, tickBasedPool.BlockNumber)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -299,15 +333,12 @@ func (t *PoolTracker) computeTicksFromLogs(
 			"blockNumber":   tickBasedPool.BlockNumber,
 		}).Warn("invalid pool ticks data after fetching ticks from logs")
 
-		allTicks, err := t.queryTicksFromRPC(ctx, tickBasedPool.Address, lo.Keys(tickBasedPool.Ticks), tickBasedPool.BlockNumber)
-		if err != nil {
+		if err := t.refetchAllTicks(ctx, &tickBasedPool); err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
 			}).Error("failed to refetch all ticks from RPC")
 			return tickBasedPool, err
 		}
-
-		updateTicksMap(tickBasedPool.Ticks, allTicks)
 
 		if !tickBasedPool.HasAllValidTicks() {
 			l.WithFields(logger.Fields{
@@ -319,6 +350,45 @@ func (t *PoolTracker) computeTicksFromLogs(
 	}
 
 	return tickBasedPool, nil
+}
+
+// refetchAllTicks reads the pool's ticks again at its block, once those accumulated from logs no
+// longer sum to zero. Without the lens it reads the ticks already stored, which cannot find one the
+// stored set never had; the lens reads every initialized tick and replaces the set.
+//
+// The lens read goes through the guard, so it never makes the update wait: when the guard declines
+// it, or it fails, the stored ticks are refetched as without the lens.
+func (t *PoolTracker) refetchAllTicks(ctx context.Context, p *tickspkg.TicksBasedPool) error {
+	if t.config.UseLens {
+		ran, err := t.lensGuard.Try(ctx, p.Address, func(ctx context.Context) error {
+			snap, err := t.snapshot(ctx, p.Address, new(big.Int).SetUint64(p.BlockNumber))
+			if err != nil {
+				return err
+			}
+			p.Ticks = make(map[int]tickspkg.Tick, len(snap.ticks))
+			for _, tick := range snap.ticks {
+				p.Ticks[tick.Index] = tickspkg.Tick{
+					TickIdx:        tick.Index,
+					LiquidityGross: tick.LiquidityGross,
+					LiquidityNet:   tick.LiquidityNet,
+				}
+			}
+			p.LensBlock = max(p.LensBlock, snap.block)
+			return nil
+		})
+		if ran && err == nil {
+			return nil
+		}
+		logger.WithFields(logger.Fields{"address": p.Address, "ran": ran, "error": err}).
+			Warn("ticks not read through the lens; refetching the stored ones")
+	}
+
+	allTicks, err := t.readTicks(ctx, p.Address, lo.Keys(p.Ticks), p.BlockNumber)
+	if err != nil {
+		return err
+	}
+	updateTicksMap(p.Ticks, allTicks)
+	return nil
 }
 
 func updateTicksMap(ticksMap map[int]tickspkg.Tick, newTicks []tickspkg.Tick) {
@@ -454,7 +524,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 
 	// Always fetch scalar state at latest, never at this batch's own block: see the
 	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
-	rpcState, err := t.FetchRPCData(ctx, &p, 0)
+	rpcState, err := t.readState(ctx, &p, 0)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -481,49 +551,18 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
-	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return p, err
-	}
-
-	extra.Liquidity = rpcState.Liquidity
-	extra.SqrtPriceX96 = rpcState.SqrtPriceX96
-	extra.Tick = rpcState.Tick
-
-	extra.Token0ExchangePricesAndConfig = rpcState.Token0ExchangePricesAndConfig
-	extra.Token1ExchangePricesAndConfig = rpcState.Token1ExchangePricesAndConfig
-
-	extra.Ticks = entityPoolTicks
-
-	extraBytes, err := json.Marshal(extra)
-
-	if err != nil {
+	rpcState.Ticks = entityPoolTicks
+	rpcState.LensBlock = ticksBasedPool.LensBlock
+	if p, err = withState(p, rpcState); err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
-		}).Error("failed to marshal extra data")
-		return p, err
+		}).Error("failed to write pool state")
+		return entity.Pool{}, err
 	}
-
-	p.Extra = string(extraBytes)
 	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
 	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
 
-	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
-	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig)
-	if err != nil {
-		return entity.Pool{}, err
-	}
-
-	_, dexType := parseFluidDexV2PoolAddress(p.Address)
-	reserve0 := adjustedToAmount(reserve0Adjusted, c.Token0NumeratorPrecision, c.Token0DenominatorPrecision,
-		lo.Ternary(dexType == D3_MODULE, c.Token0SupplyExchangePrice, c.Token0BorrowExchangePrice))
-	reserve1 := adjustedToAmount(reserve1Adjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision,
-		lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
-
-	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
-	p.Reserves = []string{reserve0.String(), reserve1.String()}
-
-	return p, err
+	return p, nil
 }
 
 // queryRPCTicksByChunk returns univ3 Ticks data.
@@ -608,4 +647,27 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 	}
 
 	return result, nil
+}
+
+var _ poolpkg.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
+
+// NextUpdateAt asks for a pool still without state, its lens read declined by the guard, to be
+// updated again as soon as the guard would take it: it may see no log for a long time, and only an
+// update gives it its state. Every other pool needs no update without an event.
+func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
+	if t.config.UseLens && !tickspkg.HasState(p) {
+		return t.lensGuard.ReadyAt(p.Address, time.Now()).Unix()
+	}
+	return 0
+}
+
+var _ poolpkg.IPoolTrackerWithReset = (*PoolTracker)(nil)
+
+// ResetPoolState drops the pool's state for its next update to read it whole through the lens, at
+// a block no lower than block. Without the lens nothing can read it whole, and the pool is kept.
+func (t *PoolTracker) ResetPoolState(p entity.Pool, block uint64) (entity.Pool, bool) {
+	if !t.config.UseLens {
+		return p, false
+	}
+	return tickspkg.WithoutState(p, block), true
 }

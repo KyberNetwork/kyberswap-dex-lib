@@ -2,8 +2,12 @@ package algebrav1
 
 import (
 	"context"
+	"fmt"
+	"maps"
 	"math/big"
+	"slices"
 	"sort"
+	"sync/atomic"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -22,7 +26,7 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	abipkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -34,6 +38,13 @@ type PoolTracker struct {
 	algebra.PoolTracker[Timepoint, TimepointRPC]
 	config        *Config
 	graphqlClient *graphqlpkg.Client
+	lensGuard     *ephemeral.Guard
+	// tickTable is how the exchange's pools index their tick table, once a lens read learnt it.
+	tickTable atomic.Int32
+	readLens  readLens
+	// readTicks reads ticks by index at a block, queryRPCTicksByIndexes but for tests.
+	readTicks func(ctx context.Context, address string, tickIndexes []int, blockNumber uint64) ([]tickspkg.Tick,
+		error)
 }
 
 func NewPoolTracker(
@@ -41,11 +52,15 @@ func NewPoolTracker(
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
 ) *PoolTracker {
-	return &PoolTracker{
+	t := &PoolTracker{
 		EthrpcClient:  ethrpcClient,
 		config:        cfg,
 		graphqlClient: graphqlClient,
+		lensGuard:     ephemeral.NewGuard(cfg.LensGuard),
 	}
+	t.readLens = t.readLensPages
+	t.readTicks = t.queryRPCTicksByIndexes
+	return t
 }
 
 func (t *PoolTracker) BootstrapPoolState(
@@ -59,6 +74,36 @@ func (t *PoolTracker) BootstrapPoolState(
 	})
 
 	l.Info("Start getting new state of pool")
+
+	if t.config.UseLens {
+		lensPool, _, err := t.bootstrapFromLens(ctx, p, param, nil, l)
+		if err == nil {
+			return lensPool, nil
+		}
+		// A node that cannot serve a lens read at all, as one ignoring a pinned block (HyperEVM's)
+		// does for a read across blocks, has the pool bootstrapped without the lens rather than left
+		// unsaved; any other failure is the bootstrap's own, to be tried again.
+		if !ephemeral.Unreadable(err) {
+			return lensPool, err
+		}
+		l.WithFields(logger.Fields{"error": err}).Warn("failed to bootstrap the pool through the lens, bootstrapping it without")
+		return t.bootstrapWithoutLens(ctx, p, param)
+	}
+
+	return t.bootstrapPool(ctx, p, param)
+}
+
+// bootstrapPool reads the pool's state without the lens. FetchPoolTicks reads its ticks again at
+// the block of that state, unless the lens is on.
+func (t *PoolTracker) bootstrapPool(
+	ctx context.Context,
+	p entity.Pool,
+	param sourcePool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+		"dexID":       t.config.DexID,
+	})
 
 	var (
 		rpcData   *FetchRPCResult
@@ -125,13 +170,84 @@ func (t *PoolTracker) BootstrapPoolState(
 		ticks = append(ticks, tick)
 	}
 
+	return withState(p, rpcData, ticks, param, 0, l)
+}
+
+// bootstrapWithoutLens bootstraps the pool without the lens and reads its ticks again at the block
+// of its state, as FetchPoolTicks does when the lens is off: with the lens on, FetchPoolTicks
+// leaves them as they are.
+func (t *PoolTracker) bootstrapWithoutLens(ctx context.Context, p entity.Pool,
+	param sourcePool.GetNewPoolStateParams) (entity.Pool, error) {
+	p, err := t.bootstrapPool(ctx, p, param)
+	if err != nil {
+		return p, err
+	}
+	return t.refetchTicks(ctx, p)
+}
+
+var _ sourcePool.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
+
+// NextUpdateAt asks for a pool still without state, its lens read declined by the guard, to be
+// updated again as soon as the guard would take it: it may see no log for a long time, and only an
+// update gives it its state. Every other pool needs no update without an event.
+func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
+	if t.config.UseLens && !tickspkg.HasState(p) {
+		return t.lensGuard.ReadyAt(p.Address, time.Now()).Unix()
+	}
+	return 0
+}
+
+var _ sourcePool.IPoolTrackerWithReset = (*PoolTracker)(nil)
+
+// ResetPoolState drops the pool's state for its next update to read it whole through the lens, at
+// a block no lower than block. Without the lens nothing can read it whole, and the pool is kept.
+func (t *PoolTracker) ResetPoolState(p entity.Pool, block uint64) (entity.Pool, bool) {
+	if !t.config.UseLens {
+		return p, false
+	}
+	return tickspkg.WithoutState(p, block), true
+}
+
+// bootstrapFromLens reads the pool's state and ticks through the lens at block (nil for the
+// latest), then the rest of its state, which the lens does not return, at the same block. It
+// returns the pool with the block the lens read it at.
+func (t *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, param sourcePool.GetNewPoolStateParams,
+	block *big.Int, l logger.Logger) (entity.Pool, uint64, error) {
+	snap, err := t.snapshot(ctx, p.Address, block)
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Warn("failed to read pool through the lens")
+		return entity.Pool{}, 0, err
+	}
+
+	rpcData, err := t.FetchRPCData(ctx, &p, snap.block)
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch data from RPC")
+		return entity.Pool{}, 0, err
+	}
+	if rpcData.Liquidity.Cmp(snap.liquidity) != 0 || rpcData.State.Tick.Int64() != int64(snap.tick) {
+		return entity.Pool{}, 0, fmt.Errorf("pool %s at block %d: RPC and lens disagree on liquidity or tick",
+			p.Address, snap.block)
+	}
+
+	p, err = withState(p, rpcData, entityTicks(snap.ticks), param, snap.block, l)
+	return p, snap.block, err
+}
+
+// withState writes the fetched state into p. lensBlock is the block the lens read the state and
+// ticks whole at, 0 when they came another way: on Arbitrum it is the chain's own block, where the
+// multicall's is Ethereum's.
+func withState(p entity.Pool, rpcData *FetchRPCResult, ticks []v3Entities.Tick,
+	param sourcePool.GetNewPoolStateParams, lensBlock uint64, l logger.Logger) (entity.Pool, error) {
 	extraBytes, err := json.Marshal(Extra{
 		Liquidity:   rpcData.Liquidity,
 		GlobalState: rpcData.State,
 		Ticks:       ticks,
 		TickSpacing: int24(rpcData.TickSpacing.Int64()),
 	})
-
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -145,7 +261,7 @@ func (t *PoolTracker) BootstrapPoolState(
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber, rpcData.BlockNumber)
+	p.BlockNumber = max(p.BlockNumber, lensBlock, lo.LastOrEmpty(param.Logs).BlockNumber, rpcData.BlockNumber)
 
 	l.WithFields(logger.Fields{
 		"feeZto": rpcData.State.FeeZto,
@@ -153,6 +269,23 @@ func (t *PoolTracker) BootstrapPoolState(
 	}).Info("Finish updating state of pool")
 
 	return p, nil
+}
+
+// entityTicks is ticks as the pool's Extra keeps them, ascending, without the uninitialized ones.
+func entityTicks(ticks []tickspkg.Tick) []v3Entities.Tick {
+	out := make([]v3Entities.Tick, 0, len(ticks))
+	for _, tick := range ticks {
+		if tick.LiquidityGross.Sign() == 0 {
+			continue
+		}
+		out = append(out, v3Entities.Tick{
+			Index:          tick.TickIdx,
+			LiquidityGross: tick.LiquidityGross,
+			LiquidityNet:   tick.LiquidityNet,
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Index < out[j].Index })
+	return out
 }
 
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
@@ -500,6 +633,17 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 		"exchange": p.Exchange,
 	})
 
+	if t.config.UseLens && !tickspkg.HasState(p) {
+		return tickspkg.StateFromLens(ctx, t.lensGuard, p, param,
+			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
+				return t.bootstrapFromLens(ctx, p, param, block, l)
+			},
+			func(ctx context.Context) (entity.Pool, error) {
+				return t.bootstrapWithoutLens(ctx, p, param)
+			},
+			l), nil
+	}
+
 	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs)
 	if err != nil {
 		l.Error(err.Error())
@@ -510,6 +654,16 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+	// The lens read the ticks at the block it read the state, which is what reading them again is
+	// for; a bootstrap that fell back from the lens read them again itself.
+	if t.config.UseLens {
+		return p, nil
+	}
+	return t.refetchTicks(ctx, p)
+}
+
+// refetchTicks reads the pool's stored ticks again at the block of its state.
+func (t *PoolTracker) refetchTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	// Extract current ticks from entity pool extra
 	var extra Extra
 	if len(p.Extra) > 0 {
@@ -539,26 +693,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 		return p, err
 	}
 
-	// convert back to algebra v1 ticks (uniswapv3entities.Tick actually)
-	// https://github.com/KyberNetwork/kyberswap-dex-lib/blob/599887838de51928f8d41b7c9f88434f31f1b3d8/pkg/liquidity-source/algebra/v1/pool_tracker.go#L100
-	entityPoolTicks := make([]v3Entities.Tick, 0, len(refetchedTicks))
-	for _, tick := range refetchedTicks {
-		// skip uninitialized ticks
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-
-		entityPoolTicks = append(entityPoolTicks, v3Entities.Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: tick.LiquidityGross,
-			LiquidityNet:   tick.LiquidityNet,
-		})
-	}
-
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
+	entityPoolTicks := entityTicks(refetchedTicks)
 
 	extra.Ticks = entityPoolTicks
 
@@ -590,16 +725,16 @@ func (t *PoolTracker) newTicksBasedPool(ctx context.Context, p entity.Pool, logs
 		return ticksBasedPool, err
 	}
 
-	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs)
+	blockNumber := tickspkg.ReadBlock(logs, p.BlockNumber)
+	ticksBasedPool.BlockNumber = blockNumber
+
+	ticks, err := t.fetchTicksFromLogs(ctx, p.Address, logs, blockNumber)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to FetchTicksFromLogs")
 		return ticksBasedPool, err
 	}
-
-	blockNumber := eth.GetBlockNumberFromLogs(logs)
-	ticksBasedPool.BlockNumber = blockNumber
 
 	if len(ticks) == 0 {
 		return ticksBasedPool, nil
@@ -610,6 +745,10 @@ func (t *PoolTracker) newTicksBasedPool(ctx context.Context, p entity.Pool, logs
 			"numTicks": len(ticks),
 			"error":    err,
 		}).Warn("invalid pool ticks data after fetching ticks from logs")
+
+		if t.ticksFromLens(ctx, &ticksBasedPool) {
+			return ticksBasedPool, nil
+		}
 
 		l.WithFields(logger.Fields{
 			"numTicks": len(ticksBasedPool.Ticks),
@@ -655,24 +794,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		return p, err
 	}
 
-	entityPoolTicks := make([]v3Entities.Tick, 0, len(ticksBasedPool.Ticks))
-	for _, tick := range ticksBasedPool.Ticks {
-		// skip uninitialized ticks
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-
-		entityPoolTicks = append(entityPoolTicks, v3Entities.Tick{
-			Index:          tick.TickIdx,
-			LiquidityGross: tick.LiquidityGross,
-			LiquidityNet:   tick.LiquidityNet,
-		})
-	}
-
-	// Sort the ticks by tick index
-	sort.Slice(entityPoolTicks, func(i, j int) bool {
-		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
-	})
+	entityPoolTicks := entityTicks(slices.Collect(maps.Values(ticksBasedPool.Ticks)))
 
 	extraBytes, err := json.Marshal(Extra{
 		Liquidity:   rpcState.Liquidity,
@@ -698,8 +820,9 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	return p, nil
 }
 
+// fetchTicksFromLogs reads the ticks logs touch at blockNumber (see tickspkg.ReadBlock).
 func (t *PoolTracker) fetchTicksFromLogs(
-	ctx context.Context, address string, logs []ethtypes.Log,
+	ctx context.Context, address string, logs []ethtypes.Log, blockNumber uint64,
 ) ([]tickspkg.Tick, error) {
 	l := logger.WithFields(logger.Fields{
 		"address": address,
@@ -720,9 +843,42 @@ func (t *PoolTracker) fetchTicksFromLogs(
 	if len(tickIndexes) == 0 {
 		return nil, nil
 	}
-	blockNumber := eth.GetBlockNumberFromLogs(logs)
 
-	return t.queryRPCTicksByIndexes(ctx, address, tickIndexes, blockNumber)
+	return t.readTicks(ctx, address, tickIndexes, blockNumber)
+}
+
+// ticksFromLens replaces the pool's ticks with the lens's set once those accumulated from logs no
+// longer sum to zero, and reports whether it did. Refetching the stored ticks cannot find one the
+// stored set never had; the lens reads every initialized tick. It reads at the block the logs'
+// ticks were read at (see tickspkg.ReadBlock), the latest when they named none.
+//
+// The read goes through the guard, so it never makes the update wait: when the guard declines it,
+// or it fails, the stored ticks are refetched as without the lens.
+func (t *PoolTracker) ticksFromLens(ctx context.Context, p *tickspkg.TicksBasedPool) bool {
+	if !t.config.UseLens {
+		return false
+	}
+	ran, err := t.lensGuard.Try(ctx, p.Address, func(ctx context.Context) error {
+		var block *big.Int
+		if p.BlockNumber != 0 {
+			block = new(big.Int).SetUint64(p.BlockNumber)
+		}
+		snap, err := t.snapshot(ctx, p.Address, block)
+		if err != nil {
+			return err
+		}
+		p.Ticks = make(map[int]tickspkg.Tick, len(snap.ticks))
+		for _, tick := range snap.ticks {
+			p.Ticks[tick.TickIdx] = tick
+		}
+		return nil
+	})
+	if ran && err == nil {
+		return true
+	}
+	logger.WithFields(logger.Fields{"address": p.Address, "ran": ran, "error": err}).
+		Warn("ticks not read through the lens; refetching the stored ones")
+	return false
 }
 
 func (t *PoolTracker) fetchAllTicksForPool(
@@ -742,7 +898,7 @@ func (t *PoolTracker) fetchAllTicksForPool(
 		}
 	}
 
-	ticksFromPool, err := t.queryRPCTicksByIndexes(ctx, pool.Address, tickIdsFromPool, pool.BlockNumber)
+	ticksFromPool, err := t.readTicks(ctx, pool.Address, tickIdsFromPool, pool.BlockNumber)
 	if err != nil {
 		return nil, err
 	}

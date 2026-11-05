@@ -1,0 +1,107 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "pool",
+          "type": "address"
+        },
+        {
+          "internalType": "int24",
+          "name": "startTick",
+          "type": "int24"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "pool",
+          "type": "address"
+        },
+        {
+          "internalType": "int24",
+          "name": "startTick",
+          "type": "int24"
+        }
+      ],
+      "name": "getSnapshot",
+      "outputs": [
+        {
+          "internalType": "int24",
+          "name": "tickSpacing",
+          "type": "int24"
+        },
+        {
+          "internalType": "uint160",
+          "name": "sqrtPriceX96",
+          "type": "uint160"
+        },
+        {
+          "internalType": "int24",
+          "name": "tick",
+          "type": "int24"
+        },
+        {
+          "internalType": "uint128",
+          "name": "liquidity",
+          "type": "uint128"
+        },
+        {
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "int24",
+          "name": "nextTick",
+          "type": "int24"
+        },
+        {
+          "internalType": "bool",
+          "name": "done",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "int24",
+              "name": "tick",
+              "type": "int24"
+            },
+            {
+              "internalType": "int128",
+              "name": "liquidityNet",
+              "type": "int128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "liquidityGross",
+              "type": "uint128"
+            }
+          ],
+          "internalType": "struct AlgebraIntegralLens.PopulatedTick[]",
+          "name": "ticks",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BrokenTickLink",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "UnexpectedPoolResponse",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x6080601f61034d38819003918201601f19168301916001600160401b03831184841017610338578084926040948552833981010312610334578051906001600160a01b03821682036103345760200151908160020b8203610334576334324e9f60e21b5f525f60045260205f600481845afa15610329575f519060203d10610300576339db007960e21b5f525f60045260405f600481845afa15610329575f5160205160403d1061030057630d34328160e11b5f525f60045260205f600481865afa15610329575f5160203d10610300576040805161014081018252909690945f93908461ef64935b845a10610318576040519063f30dba9360e01b82528060020b806004840152608083602481885afa1561030f573d92805190602081015191608060606040840151930151961061030057600295860b956001600160801b039091169184910b620d89e71982036102fa57145b156102e357620d89e883036102f2578285145b156102e35780610233575b5050821461018057506100e8565b9450505050610140959697506001925b5f915f60643b61020c575b15610204575b606086029661012088018a5260208a019a60020b8b5260018060a01b031660408a015260020b606089015260018060801b0316608088015260a087015260020b60c0860152151560e0850152610100808501526101208401528201016040525190fd5b4392506101a1565b50915063a3b1b31d60e01b5f5260205f6004816064614e20fa60203d1416915f519261019b565b906101a0918d60608d959d0201918c610140840152600f0b610160830152610180820152016040525f1981146102cf57600101978c8914610276575b5f80610172565b955060408c01809c116102cf578b6060810290808204606014901517156102cf576101200180610120116102cf576102bc90601f0160051c80800260091c906006020190565b61ea60018061ea60116102cf579561026f565b634e487b7160e01b5f52601160045260245ffd5b63d903c95d60e01b5f5260045ffd5b828513610167565b12610154565b630bf4f75560e21b5f5260045ffd5b823d5f823e3d90fd5b935093905061014096979850610190565b6040513d5f823e3d90fd5b5f80fd5b634e487b7160e01b5f52604160045260245ffdfe"
+}

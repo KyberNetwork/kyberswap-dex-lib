@@ -4,6 +4,7 @@ import (
 	"errors"
 	"maps"
 	"math/big"
+	"strconv"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/int256"
@@ -25,6 +26,7 @@ type ExtraTickU256 struct {
 	TickSpacing  uint64       `json:"tickSpacing"`
 	Tick         *int         `json:"tick"`
 	Ticks        []TickU256   `json:"ticks"`
+	LensBlock    uint64       `json:"lensBlock,omitempty"`
 }
 
 type Tick struct {
@@ -44,6 +46,94 @@ type TicksBasedPool struct {
 	Ticks       map[int]Tick `json:"ticks"`
 	BlockNumber uint64       `json:"blockNumber"`
 	Exchange    string       `json:"exchange"`
+	// LensBlock is the block the ticks were last read whole at through a lens, 0 if never: a log
+	// at or below it is late (see Holds).
+	LensBlock uint64 `json:"lensBlock,omitempty"`
+}
+
+// LensDue is the block a lens snapshot of a pool still without state must reach: the newest block
+// of the logs the pool has seen without state, which a snapshot below it would not hold. 0 if none.
+func LensDue(p entity.Pool) uint64 {
+	var extra struct {
+		LensDue uint64 `json:"lensDue"`
+	}
+	_ = json.Unmarshal([]byte(p.Extra), &extra)
+	return extra.LensDue
+}
+
+// WithLensDue records in p's Extra that a snapshot must reach due, the newest block of logs, and
+// keeps the rest of the Extra, such as what a pool factory filled in, as it is.
+func WithLensDue(p entity.Pool, logs []ethtypes.Log) entity.Pool {
+	return editExtra(p, func(extra map[string]json.RawMessage) {
+		extra["lensDue"] = json.RawMessage(strconv.FormatUint(lensDueOf(p, logs), 10))
+	})
+}
+
+// WithoutState drops the state of p its logs built, its liquidity, ticks and lens block, keeping
+// the rest of the Extra as it is, and records that a lens snapshot must reach due: p is then a
+// pool without state, which a tracker with useLens reads whole on its next update.
+func WithoutState(p entity.Pool, due uint64) entity.Pool {
+	return editExtra(p, func(extra map[string]json.RawMessage) {
+		delete(extra, "liquidity")
+		delete(extra, "ticks")
+		delete(extra, "lensBlock")
+		extra["lensDue"] = json.RawMessage(strconv.FormatUint(max(LensDue(p), due), 10))
+	})
+}
+
+// lensDueOf is the block a lens snapshot of p must reach once it has seen logs: the newer of the
+// one recorded and the newest of logs, removed ones aside.
+func lensDueOf(p entity.Pool, logs []ethtypes.Log) uint64 {
+	due := LensDue(p)
+	for _, l := range logs {
+		if !l.Removed {
+			due = max(due, l.BlockNumber)
+		}
+	}
+	return due
+}
+
+// editExtra applies edit to p's Extra as raw values, so the fields it leaves, such as a price
+// wider than a float64, are kept to the digit.
+func editExtra(p entity.Pool, edit func(map[string]json.RawMessage)) entity.Pool {
+	extra := map[string]json.RawMessage{}
+	_ = json.Unmarshal([]byte(p.Extra), &extra)
+	edit(extra)
+	if b, err := json.Marshal(extra); err == nil {
+		p.Extra = string(b)
+	}
+	return p
+}
+
+// Holds is the newest block whose logs the pool's state already holds: the pool's own block, or
+// the lens snapshot's when newer. A log at or below it is late: it may be in the state already,
+// replayed by a backfill or after a crash, or may never have been, as a log a reorg brought in
+// below a snapshot read on the abandoned fork, which no removed log of this pool announces when it
+// had none in the reverted blocks. Its delta could count twice or never, so the trackers read the
+// ticks it touches whole at this block instead, which holds it either way.
+//
+// A removed log at or below the snapshot's block means the snapshot was read on the abandoned fork
+// from that block on: LensBlock drops to the block before.
+func (t *TicksBasedPool) Holds(logs []ethtypes.Log, poolBlock uint64) uint64 {
+	for _, l := range logs {
+		if l.Removed && l.BlockNumber > 0 && l.BlockNumber <= t.LensBlock {
+			t.LensBlock = l.BlockNumber - 1
+		}
+	}
+	return max(poolBlock, t.LensBlock)
+}
+
+// ReadBlock is the block at which an update reads again the ticks its logs touch: the newest of
+// the logs' blocks, or the pool's own when that is newer, as it is for logs retried or replayed
+// after newer ones were applied, whose own block would put those ticks back to their values there.
+// A reorg reads at its logs' block, since the pool's may be one of the abandoned fork, past the new
+// head. 0 when the logs carry no block.
+func ReadBlock(logs []ethtypes.Log, poolBlock uint64) uint64 {
+	block := eth.GetBlockNumberFromLogs(logs)
+	if block == 0 || eth.HasRevertedLog(logs) {
+		return block
+	}
+	return max(block, poolBlock)
 }
 
 func NewTicksBasedPool(pool entity.Pool) (TicksBasedPool, error) {
@@ -65,9 +155,10 @@ func NewTicksBasedPool(pool entity.Pool) (TicksBasedPool, error) {
 	}
 
 	return TicksBasedPool{
-		Address:  pool.Address,
-		Exchange: pool.Exchange,
-		Ticks:    ticks,
+		Address:   pool.Address,
+		Exchange:  pool.Exchange,
+		Ticks:     ticks,
+		LensBlock: extra.LensBlock,
 	}, nil
 }
 

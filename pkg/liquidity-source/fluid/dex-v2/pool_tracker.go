@@ -3,6 +3,7 @@ package dexv2
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -14,9 +15,11 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -25,6 +28,13 @@ type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
+	lensGuard     *ephemeral.Guard
+
+	// readState and readTicks are the pool's state and tick reads, FetchRPCData and
+	// queryTicksFromRPC unless a test stands in for the chain.
+	readState func(ctx context.Context, p *entity.Pool, blockNumber uint64) (Extra, error)
+	readTicks func(ctx context.Context, address string, tickIndexes []int, blockNumber uint64) ([]tickspkg.Tick,
+		error)
 }
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
@@ -34,11 +44,15 @@ func NewPoolTracker(
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
 ) *PoolTracker {
-	return &PoolTracker{
+	t := &PoolTracker{
 		config:        config,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
+		lensGuard:     ephemeral.NewGuard(config.LensGuard),
 	}
+	t.readState = t.FetchRPCData
+	t.readTicks = t.queryTicksFromRPC
+	return t
 }
 
 func (t *PoolTracker) BootstrapPoolState(
@@ -46,7 +60,67 @@ func (t *PoolTracker) BootstrapPoolState(
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	if t.config.UseLens {
+		lensPool, _, err := t.bootstrapFromLens(ctx, p, params, nil)
+		if err == nil {
+			return lensPool, nil
+		}
+		// A node that cannot serve a lens read at all, as one ignoring a pinned block (HyperEVM's)
+		// does for a read across blocks, has the pool bootstrapped without the lens rather than left
+		// unsaved; any other failure is the bootstrap's own, to be tried again.
+		if !ephemeral.Unreadable(err) {
+			return lensPool, err
+		}
+		logger.WithFields(logger.Fields{"address": p.Address, "error": err}).Warn("failed to bootstrap the pool through the lens, bootstrapping it without")
+		return t.bootstrapWithoutLens(ctx, p, params)
+	}
 	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+// bootstrapWithoutLens bootstraps the pool without the lens and reads its ticks again at the block
+// of its state, as FetchPoolTicks does when the lens is off: with the lens on, FetchPoolTicks
+// leaves them as they are.
+func (t *PoolTracker) bootstrapWithoutLens(ctx context.Context, p entity.Pool,
+	params pool.GetNewPoolStateParams) (entity.Pool, error) {
+	p, err := t.getNewPoolState(ctx, p, params, nil)
+	if err != nil {
+		return p, err
+	}
+	return t.refetchTicks(ctx, p)
+}
+
+// bootstrapFromLens reads the pool's state and ticks through the lens at block (nil for the
+// latest), then the rest of its state, which the lens does not return, at the same block. It
+// returns the pool with the block the lens read it at.
+func (t *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, params pool.GetNewPoolStateParams,
+	block *big.Int) (entity.Pool, uint64, error) {
+	snap, err := t.snapshot(ctx, p.Address, block)
+	if err != nil {
+		return entity.Pool{}, 0, err
+	}
+
+	extra, err := t.readState(ctx, &p, snap.block)
+	if err != nil {
+		return entity.Pool{}, 0, err
+	}
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return entity.Pool{}, 0, err
+	}
+	if extra.Liquidity.Cmp(snap.liquidity) != 0 || extra.Tick.Int64() != int64(snap.tick) ||
+		extra.SqrtPriceX96.Cmp(snap.sqrtPriceX96) != 0 || int(staticExtra.TickSpacing) != snap.tickSpacing {
+		return entity.Pool{}, 0, fmt.Errorf("pool %s at block %d: the state read and the lens disagree",
+			p.Address, snap.block)
+	}
+
+	extra.Ticks = snap.ticks
+	extra.LensBlock = snap.block
+	if p, err = withState(p, extra); err != nil {
+		return entity.Pool{}, 0, err
+	}
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(params.Logs).BlockTimestamp))
+	p.BlockNumber = max(p.BlockNumber, snap.block, lo.LastOrEmpty(params.Logs).BlockNumber)
+	return p, snap.block, nil
 }
 
 func (t *PoolTracker) GetNewPoolStateWithOverrides(
@@ -170,14 +244,26 @@ func (t *PoolTracker) getNewPoolState(
 	}
 	extra.Ticks = ticks
 
+	if p, err = withState(p, extra); err != nil {
+		return entity.Pool{}, err
+	}
+	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(params.Logs).BlockTimestamp))
+	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(params.Logs).BlockNumber)
+
+	logger.Infof("[%s] Finish getting new state of pool %v", t.config.DexID, p.Address)
+
+	return p, nil
+}
+
+// withState writes extra into p, with the reserves it holds converted to token amounts. Every field
+// of extra but the ticks comes from one state read: the simulator takes the fee, its dynamic part
+// and the pool accounting flag from DexVariables2 and checks swaps against TokenReserves, so none
+// of them may be kept from an older read.
+func withState(p entity.Pool, extra Extra) (entity.Pool, error) {
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return entity.Pool{}, err
 	}
-
-	p.Extra = string(extraBytes)
-	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(params.Logs).BlockTimestamp))
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(params.Logs).BlockNumber)
 
 	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
 	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig)
@@ -191,10 +277,8 @@ func (t *PoolTracker) getNewPoolState(
 	reserve1 := adjustedToAmount(reserve1Adjusted, c.Token1NumeratorPrecision, c.Token1DenominatorPrecision,
 		lo.Ternary(dexType == D3_MODULE, c.Token1SupplyExchangePrice, c.Token1BorrowExchangePrice))
 
+	p.Extra = string(extraBytes)
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
-
-	logger.Infof("[%s] Finish getting new state of pool %v", t.config.DexID, p.Address)
-
 	return p, nil
 }
 

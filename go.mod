@@ -36,6 +36,7 @@ require (
 	golang.org/x/exp v0.0.0-20250811191247-51f88131bc50
 	golang.org/x/mod v0.36.0
 	golang.org/x/sync v0.21.0
+	golang.org/x/time v0.14.0
 )
 
 require (
