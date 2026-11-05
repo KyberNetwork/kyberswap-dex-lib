@@ -85,23 +85,19 @@ func (t *PoolTracker) bootstrapPool(ctx context.Context, p entity.Pool, _ pool.G
 	var (
 		rpcData        *QueryRpcPoolStateResult
 		subgraphResult *querySubgraphPoolStateResult
-		err            error
 	)
 
+	// Each read keeps its own error: the two run at once.
 	g := new(errgroup.Group)
 	g.Go(func() error {
+		var err error
 		rpcData, err = t.FetchRPCData(ctx, &p, 0)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 	g.Go(func() error {
+		var err error
 		subgraphResult, err = t.querySubgraph(ctx, p)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 	if err := g.Wait(); err != nil {
 		return entity.Pool{}, err
