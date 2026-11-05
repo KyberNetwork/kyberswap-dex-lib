@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -57,6 +58,17 @@ func ticksLogQuery(dex common.Address, dexType uint32, dexID common.Hash, scanne
 	}
 }
 
+// liquidityChanged reports whether a tick-change event moved any liquidity. The last data word is
+// liquidityIncreaseRaw/liquidityDecreaseRaw; a zero there is a fee-only call (how fees are collected),
+// which leaves tick gross, net and the bitmap untouched. Unexpected layouts count as changed.
+func liquidityChanged(l ethtypes.Log) bool {
+	const words = 8 // tickLower, tickUpper, salt, amount0, amount1, fee0, fee1, liquidity
+	if len(l.Data) != 32*words {
+		return true
+	}
+	return new(big.Int).SetBytes(l.Data[32*(words-1):]).Sign() != 0
+}
+
 // cachedTicks returns the ticks stored in the previous pool state when they are provably unchanged
 // up to snapshotBlock. Any doubt (no cache, stale cache, RPC error, any matching log) returns false
 // so the caller falls back to a full bitmap scan.
@@ -72,8 +84,10 @@ func (t *PoolTracker) cachedTicks(ctx context.Context, p entity.Pool, snapshotBl
 		logger.Warnf("[%s] tick log check failed for %s, rescanning bitmap: %v", t.config.DexID, p.Address, err)
 		return nil, 0, false
 	}
-	if len(logs) > 0 {
-		return nil, 0, false
+	for _, l := range logs {
+		if liquidityChanged(l) {
+			return nil, 0, false
+		}
 	}
 	return prev.Ticks, prev.TicksBlock, true
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,4 +32,12 @@ func TestTicksLogQuery(t *testing.T) {
 	require.Equal(t, common.BigToHash(big.NewInt(3)), q.Topics[1][0])
 	require.Equal(t, id, q.Topics[2][0])
 	require.Equal(t, uint64(0), ticksLogQuery(dex, 3, id, 5, 10).FromBlock.Uint64())
+}
+
+func TestLiquidityChanged(t *testing.T) {
+	data := make([]byte, 256)
+	require.False(t, liquidityChanged(ethtypes.Log{Data: data}), "fee-only call")
+	data[255] = 1
+	require.True(t, liquidityChanged(ethtypes.Log{Data: data}))
+	require.True(t, liquidityChanged(ethtypes.Log{Data: data[:224]}), "unknown layout")
 }
