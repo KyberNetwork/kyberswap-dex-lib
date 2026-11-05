@@ -37,7 +37,7 @@ const (
 	// headroom. Above this value the pool is not quoted: the contract allows up
 	// to 5M, which would make every hop of a route carry a huge gas limit.
 	MaxMinGasLeft uint64 = 1_000_000
-	// Pool-service polls plugin state every 10s. Stop routing after a minute
+	// Plugin state is expected to be refreshed every ~10s. Stop routing after a minute
 	// without a recent chain snapshot; an idle volatility timepoint is valid.
 	MaxSnapshotAge uint64 = 60
 )
