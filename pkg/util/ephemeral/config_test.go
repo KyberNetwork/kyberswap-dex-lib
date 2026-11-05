@@ -16,7 +16,7 @@ func TestLensConfigKeysSitBesideTheDexs(t *testing.T) {
 		DexID string `json:"dexID"`
 		LensConfig
 	}
-	raw := []byte(`{"dexID":"d","useLens":true,"lensGas":5,"lensGuard":{"cooldownSecs":3},"lensBatch":{}}`)
+	raw := []byte(`{"dexID":"d","useLens":true,"lensGas":5,"lensGuard":{"cooldownSecs":3}}`)
 	for name, unmarshal := range map[string]func([]byte, any) error{
 		"encoding/json": json.Unmarshal, "goccy/go-json": gojson.Unmarshal,
 	} {
@@ -26,6 +26,5 @@ func TestLensConfigKeysSitBesideTheDexs(t *testing.T) {
 		assert.True(t, cfg.UseLens, name)
 		assert.EqualValues(t, 5, cfg.LensGas, name)
 		assert.EqualValues(t, 3, cfg.LensGuard.CooldownSecs, name)
-		assert.NotNil(t, cfg.LensBatch, name)
 	}
 }

@@ -27,8 +27,8 @@ type nodeLimiter struct {
 	slots *semaphore.Weighted // nil: no cap
 }
 
-// LimitNode keeps every lens call made through c to limit, from the next call on: Call, the pages
-// of a scan, a batch and the reads it makes alone. A call waits for its turn instead of being
+// LimitNode keeps every lens call made through c to limit, from the next call on: Call and the
+// pages of a scan alike. A call waits for its turn instead of being
 // refused by the node. c is the Caller the trackers read through, such as the *ethclient.Client of
 // their ethrpc client; a Caller that cannot be a map key cannot be limited. A zero limit removes
 // c's.

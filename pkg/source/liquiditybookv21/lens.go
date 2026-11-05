@@ -35,7 +35,7 @@ type lensSnapshot struct {
 // leaves out the protocol fees, which no bin holds either, so a bin missing or wrong shows as a
 // difference.
 func (t *PoolTracker) snapshot(ctx context.Context, address string, block *big.Int) (*lensSnapshot, error) {
-	p, err := ephemeral.ReadBins(ctx, t.ethrpcClient.GetETHClient(), t.cfg.LensBatch, lens, t.cfg.LensGas, block,
+	p, err := ephemeral.ReadBins(ctx, t.ethrpcClient.GetETHClient(), lens, t.cfg.LensGas, block,
 		common.HexToAddress(address))
 	if err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: %w", address, err)

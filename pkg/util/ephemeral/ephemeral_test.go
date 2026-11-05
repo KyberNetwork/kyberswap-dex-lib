@@ -533,3 +533,28 @@ func TestScanWordsReadsWindowsInParallel(t *testing.T) {
 		})
 	assert.ErrorIs(t, err, ErrUnpinned)
 }
+
+// countingChain is a Chain that counts the chain ids it is asked.
+type countingChain struct {
+	asked atomic.Int64
+}
+
+func (h *countingChain) ChainID(context.Context) (*big.Int, error) {
+	h.asked.Add(1)
+	time.Sleep(20 * time.Millisecond)
+	return big.NewInt(1), nil
+}
+
+// TestPinAsksTheChainOnce: reads that start together share one chain id question.
+func TestPinAsksTheChainOnce(t *testing.T) {
+	h := &countingChain{}
+	var wg sync.WaitGroup
+	for range 50 {
+		wg.Go(func() {
+			_, err := Pin(context.Background(), h, big.NewInt(7))
+			assert.NoError(t, err)
+		})
+	}
+	wg.Wait()
+	assert.EqualValues(t, 1, h.asked.Load())
+}

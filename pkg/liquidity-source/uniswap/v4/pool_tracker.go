@@ -55,7 +55,7 @@ func NewPoolTracker(
 		config:        config,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
-		lensGuard:     ephemeral.NewLensGuard(config.LensGuard, config.LensBatch),
+		lensGuard:     ephemeral.NewGuard(config.LensGuard),
 	}
 }
 

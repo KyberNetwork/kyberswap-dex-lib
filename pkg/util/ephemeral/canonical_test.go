@@ -72,6 +72,18 @@ func refFits(n *big.Int, bits int, signed bool) bool {
 	return n.Cmp(limit) < 0 && n.Cmp(new(big.Int).Neg(limit)) >= 0
 }
 
+// listContract returns a dynamic array of tuples that hold bytes: offsets, lengths and padding
+// to check.
+var listContract = MustLoad("List", []byte(`{
+  "bytecode": "0xfe",
+  "abi": [
+    {"type": "function", "name": "get", "stateMutability": "view", "inputs": [],
+     "outputs": [{"name": "blockNumber", "type": "uint256"}, {"name": "count", "type": "uint256"},
+       {"name": "results", "type": "tuple[]", "components": [{"name": "ran", "type": "bool"},
+         {"name": "gas", "type": "uint256"}, {"name": "data", "type": "bytes"}]}]}
+  ]
+}`))
+
 // TestCheckCanonicalAgreesWithEncodingAgain: on results and on results with bytes changed, cut or
 // added, checkCanonical takes exactly what decoding and encoding again gives back.
 func TestCheckCanonicalAgreesWithEncodingAgain(t *testing.T) {
@@ -82,9 +94,9 @@ func TestCheckCanonicalAgreesWithEncodingAgain(t *testing.T) {
 	}
 	results := []batchResult{{true, big.NewInt(5), []byte{1, 2, 3}}, {false, big.NewInt(0), nil},
 		{true, big.NewInt(1 << 40), bytes.Repeat([]byte{0xab}, 64)}}
-	batch, err := lensBatch.result.Pack(big.NewInt(100), big.NewInt(3), results)
+	batch, err := listContract.result.Pack(big.NewInt(100), big.NewInt(3), results)
 	require.NoError(t, err)
-	emptyBatch, err := lensBatch.result.Pack(big.NewInt(100), big.NewInt(0), []batchResult{})
+	emptyBatch, err := listContract.result.Pack(big.NewInt(100), big.NewInt(0), []batchResult{})
 	require.NoError(t, err)
 	tick := common32(7)
 	for _, c := range []struct {
@@ -94,8 +106,8 @@ func TestCheckCanonicalAgreesWithEncodingAgain(t *testing.T) {
 		{testContract.result, append(bytes.Clone(tick), tickWord(-5)...)},
 		{testContract.result, append(bytes.Clone(tick), tickWord(1<<23-1)...)},
 		{testContract.result, append(bytes.Clone(tick), tickWord(-1<<23)...)},
-		{lensBatch.result, batch},
-		{lensBatch.result, emptyBatch},
+		{listContract.result, batch},
+		{listContract.result, emptyBatch},
 	} {
 		require.NoError(t, checkCanonical(c.args, c.payload))
 		require.True(t, refCanonical(c.args, c.payload))

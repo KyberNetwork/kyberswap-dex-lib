@@ -37,7 +37,7 @@ func (t *PoolTracker) snapshot(ctx context.Context, p entity.Pool, block *big.In
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: static extra: %w", p.Address, err)
 	}
-	pool, err := ephemeral.ReadTicks(ctx, t.ethrpcClient.GetETHClient(), t.config.LensBatch, lens, t.config.LensGas,
+	pool, err := ephemeral.ReadTicks(ctx, t.ethrpcClient.GetETHClient(), lens, t.config.LensGas,
 		ephemeral.WordLower, ephemeral.WordUpper, block,
 		common.HexToAddress(t.config.StateViewAddress), common.HexToHash(p.Address),
 		big.NewInt(int64(staticExtra.TickSpacing)))
