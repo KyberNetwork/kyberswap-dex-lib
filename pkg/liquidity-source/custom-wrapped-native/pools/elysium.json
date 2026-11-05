@@ -1,0 +1,211 @@
+[
+  {
+    "id": "0x0269031ace34a7821e9d9980d087c35ce7c19eef",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x0269031ace34a7821e9d9980d087c35ce7c19eef",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0xa27c79491bac6e20e2b18c0b21feb8dedd8caa41",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0xa27c79491bac6e20e2b18c0b21feb8dedd8caa41",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0xaeb7ede82165bb12ea5c0c80ce8c0a0d05bce6af",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0xaeb7ede82165bb12ea5c0c80ce8c0a0d05bce6af",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0x43ca3cee078d8cb8528915b16e8bdcc9adbe6090",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x43ca3cee078d8cb8528915b16e8bdcc9adbe6090",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0x3ae578dfc286735e777f0d441ec02b5799a77ede",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x3ae578dfc286735e777f0d441ec02b5799a77ede",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0x4d5598c2ac5e9edc3efb3834221c8964d8ca6971",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x4d5598c2ac5e9edc3efb3834221c8964d8ca6971",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0x0513c5cb3e30bf133ef852095ff481569d6d2fd0",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x0513c5cb3e30bf133ef852095ff481569d6d2fd0",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0x1d2b85e19bb453f5ba416a1c76c06beeeef4f69a",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x1d2b85e19bb453f5ba416a1c76c06beeeef4f69a",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0x14023d7bdff00fc8c59dab61b1528168ea5daf62",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x14023d7bdff00fc8c59dab61b1528168ea5daf62",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0x75b2ff9c9b1dc5911c58e2efb86883f3e2176059",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x75b2ff9c9b1dc5911c58e2efb86883f3e2176059",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  },
+  {
+    "id": "0x0427106837f38ac72b322c4ef27f75a4f4834fc5",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xba876237b0f021a6c6d852d6c26e107997cc5e81",
+        "symbol": "WHYPE",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x0427106837f38ac72b322c4ef27f75a4f4834fc5",
+        "symbol": "mWHYPE",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  }
+]
