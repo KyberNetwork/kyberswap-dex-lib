@@ -63,8 +63,12 @@ type LensBootstrap func(ctx context.Context, block *big.Int) (entity.Pool, uint6
 // Either read must hold every log the pool has seen and its own block: a batch's head can be older
 // than both, as a backfill chunk handled with a newer pool's pending task is, and a snapshot there
 // would miss the logs in between, which nothing sends again.
+//
+// A node that cannot serve a lens read at all, as one ignoring a pinned block (HyperEVM's) does for a
+// read across blocks, would fail every update of the pool the same way: the pool is bootstrapped by
+// withoutLens instead, as BootstrapPoolState does.
 func StateFromLens(ctx context.Context, guard *ephemeral.Guard, p entity.Pool, param pool.GetNewPoolStateParams,
-	bootstrap LensBootstrap, l logger.Logger) entity.Pool {
+	bootstrap LensBootstrap, withoutLens func(ctx context.Context) (entity.Pool, error), l logger.Logger) entity.Pool {
 	head, due := BatchHead(param.BlockHeaders), max(lensDueOf(p, param.Logs), p.BlockNumber)
 	var newPool entity.Pool
 	ran, err := guard.Try(ctx, p.Address, func(ctx context.Context) error {
@@ -83,6 +87,12 @@ func StateFromLens(ctx context.Context, guard *ephemeral.Guard, p entity.Pool, p
 		}
 		return nil
 	})
+	if ran && ephemeral.Unreadable(err) {
+		l.WithFields(logger.Fields{"error": err}).Warn("pool without state not readable through the lens, reading it without")
+		if newPool, err = withoutLens(ctx); err == nil {
+			return newPool
+		}
+	}
 	if !ran || err != nil {
 		l.WithFields(logger.Fields{"ran": ran, "error": err}).
 			Warn("pool without state not read through the lens; leaving it for its next update")

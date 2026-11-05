@@ -72,8 +72,21 @@ func (t *PoolTracker) BootstrapPoolState(
 			return lensPool, err
 		}
 		logger.WithFields(logger.Fields{"address": p.Address, "error": err}).Warn("failed to bootstrap the pool through the lens, bootstrapping it without")
+		return t.bootstrapWithoutLens(ctx, p, params)
 	}
 	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+// bootstrapWithoutLens bootstraps the pool without the lens and reads its ticks again at the block
+// of its state, as FetchPoolTicks does when the lens is off: with the lens on, FetchPoolTicks
+// leaves them as they are.
+func (t *PoolTracker) bootstrapWithoutLens(ctx context.Context, p entity.Pool,
+	params pool.GetNewPoolStateParams) (entity.Pool, error) {
+	p, err := t.getNewPoolState(ctx, p, params, nil)
+	if err != nil {
+		return p, err
+	}
+	return t.refetchTicks(ctx, p)
 }
 
 // bootstrapFromLens reads the pool's state and ticks through the lens at block (nil for the
