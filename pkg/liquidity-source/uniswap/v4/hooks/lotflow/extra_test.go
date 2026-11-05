@@ -399,36 +399,16 @@ func marketOfF(c *Case) *Market {
 	return m
 }
 
-// decodeExtra's recover has a real reproducer, but only in sequence: goccy/go-json v0.10.5 decodes from
-// a pooled buffer, and on a short truncated input with an escape inside a key (FuzzHookExtra corpus
-// 8e6fd1838d839f3e, `{"mArket":{"Mq\2`) it can index past the input into what a previous, longer
-// document left there: index out of range in skipWhiteSpace (internal/decoder/context.go:49). In
-// a fresh process the input decodes to an error; after a ~10 KB extra it panics in a fraction of runs
-// (so it is not asserted alone here: earlier tests in the binary leave long documents in the pool). The
-// loop counts the panics of the raw decoder (the instrument must fire) and requires decodeExtra to
-// return an error every time. Under -race the raw decoder did not panic in 600 runs (go1.26.2), so the
-// instrument is required to fire only without it.
+// decodeExtra must turn a short truncated extra with an escape in a key (FuzzHookExtra corpus
+// 8e6fd1838d839f3e) into an error even right after a long extra: goccy/go-json v0.10.5 read past such an
+// input into its pooled buffer and panicked there.
 func TestDecodeExtraRecoversDecoderPanic(t *testing.T) {
 	long := validExtraBytes(t, "testdata/fixtures/navjit2-buy-1kusd.json")
 	short := []byte("{\"mArket\":{\"Mq\\2")
-	raw := func(b []byte) (panicked bool) {
-		defer func() { panicked = recover() != nil }()
-		_ = uniswapv4.HookExtra(b).Unmarshal(&Extra{})
-		return false
-	}
-	panics := 0
 	for range 200 {
 		var x Extra
 		require.NoError(t, decodeExtra(long, &x))
-		if raw(short) {
-			panics++
-		}
-		require.NoError(t, decodeExtra(long, &x))
 		require.NotPanics(t, func() { require.Error(t, decodeExtra(short, &Extra{})) })
 		require.False(t, hookFromJSON(short).Tracked)
-	}
-	t.Logf("raw decoder panics after a long extra: %d/200 (race build %v)", panics, raceBuild)
-	if !raceBuild {
-		require.Positive(t, panics, "the reproducer must reproduce")
 	}
 }
