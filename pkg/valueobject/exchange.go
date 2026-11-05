@@ -117,6 +117,7 @@ const (
 	ExchangeEtherFieBTC                 = "etherfi-ebtc"
 	ExchangeEtherfiEETH                 = "etherfi-eeth"
 	ExchangeEtherfiLiquid               = "etherfi-liquid"
+	ExchangeEfraProp                    = "efra-prop"
 	ExchangeEtherfiVampire              = "etherfi-vampire"
 	ExchangeEtherfiWEETH                = "etherfi-weeth"
 	ExchangeEtherVista                  = "ether-vista"
@@ -508,6 +509,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeBiconomyProp:       {},
 	ExchangeDaikonProp:         {},
 	ExchangeStelaxisProp:       {},
+	ExchangeEfraProp:           {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
