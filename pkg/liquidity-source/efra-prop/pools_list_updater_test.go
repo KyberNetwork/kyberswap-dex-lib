@@ -13,8 +13,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
-const testOther = "0x4444444444444444444444444444444444444444"
-
 // Every market of this venue shares one contract address, so the pool id has to be derived
 // from the pair or two markets would collide in the store.
 func TestBuildPools(t *testing.T) {
