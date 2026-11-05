@@ -89,6 +89,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool,
 	})
 
 	extra.Ticks = entityPoolTicks
+	extra.TicksBlock = p.BlockNumber // ticks were re-read at the pool's snapshot block
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -118,13 +119,33 @@ func (t *PoolTracker) GetNewPoolState(
 		"exchange":    p.Exchange,
 	})
 
-	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs)
+	// Ticks already include every event up to TicksBlock (bootstrap reads them at a block that can be
+	// ahead of the worker's replay checkpoint), and liquidity deltas are not idempotent.
+	var current Extra
+	if len(p.Extra) > 0 {
+		if err := json.Unmarshal([]byte(p.Extra), &current); err != nil {
+			return p, err
+		}
+	}
+	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, dropAppliedLogs(param.Logs, current.TicksBlock))
 	if err != nil {
 		l.Error(err.Error())
 		return p, err
 	}
 
 	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders)
+}
+
+// dropAppliedLogs removes position logs the stored ticks already include. The empty trigger log of an
+// interval task and logs of reverted blocks are kept: the former carries no event, the latter are
+// resolved by re-reading the affected ticks.
+func dropAppliedLogs(logs []ethtypes.Log, ticksBlock uint64) []ethtypes.Log {
+	if ticksBlock == 0 {
+		return logs
+	}
+	return lo.Filter(logs, func(l ethtypes.Log, _ int) bool {
+		return l.Removed || eth.IsZeroAddress(l.Address) || l.BlockNumber > ticksBlock
+	})
 }
 
 func (t *PoolTracker) newTicksBasedPool(
@@ -515,6 +536,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 	extra.Token1ExchangePricesAndConfig = rpcState.Token1ExchangePricesAndConfig
 
 	extra.Ticks = entityPoolTicks
+	extra.TicksBlock = max(extra.TicksBlock, ticksBasedPool.BlockNumber)
 
 	extraBytes, err := json.Marshal(extra)
 

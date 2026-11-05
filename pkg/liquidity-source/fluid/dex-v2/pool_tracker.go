@@ -228,6 +228,7 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 	extra.Ticks = ticks
+	extra.TicksBlock = extra.SnapshotBlock
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

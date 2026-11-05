@@ -75,6 +75,10 @@ type Extra struct {
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
+	// TicksBlock is the block up to which Ticks already include every position event (bitmap scan block at
+	// bootstrap, then the latest log block applied). Position deltas are not idempotent, so logs at or before
+	// it must not be applied again.
+	TicksBlock uint64 `json:"ticksBlock,omitempty"`
 
 	DexVariables2                 *big.Int `json:"dexVariables2"`
 	Token0ExchangePricesAndConfig *big.Int `json:"token0ExchangePricesAndConfig"`
