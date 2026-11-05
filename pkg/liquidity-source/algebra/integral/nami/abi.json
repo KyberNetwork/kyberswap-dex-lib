@@ -1,0 +1,164 @@
+[
+  {
+    "type": "function",
+    "name": "feeBounds",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          {
+            "name": "floor",
+            "type": "uint16"
+          },
+          {
+            "name": "cap",
+            "type": "uint16"
+          },
+          {
+            "name": "premium0For1",
+            "type": "uint16"
+          },
+          {
+            "name": "premium1For0",
+            "type": "uint16"
+          },
+          {
+            "name": "decayWindow",
+            "type": "uint32"
+          },
+          {
+            "name": "maxDiscountBps",
+            "type": "uint16"
+          }
+        ],
+        "name": "bounds"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "feeOverride",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          {
+            "name": "fee0For1",
+            "type": "uint16"
+          },
+          {
+            "name": "fee1For0",
+            "type": "uint16"
+          },
+          {
+            "name": "expiresAt",
+            "type": "uint40"
+          }
+        ],
+        "name": "overrideState"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "feeSource",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "source",
+        "type": "address"
+      },
+      {
+        "name": "enabled",
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "antiSniperConfig",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          {
+            "name": "feeReceiver",
+            "type": "address"
+          },
+          {
+            "name": "period",
+            "type": "uint32"
+          },
+          {
+            "name": "startingFee",
+            "type": "uint24"
+          },
+          {
+            "name": "disabledPriorStart",
+            "type": "bool"
+          },
+          {
+            "name": "easeIn",
+            "type": "uint16"
+          },
+          {
+            "name": "easeOut",
+            "type": "uint16"
+          }
+        ],
+        "name": "config"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "startTimestamp",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getMevxRouter",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getMinGasLeft",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getCallGasBudget",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  }
+]

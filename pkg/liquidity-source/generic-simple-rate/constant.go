@@ -18,8 +18,9 @@ var (
 	ErrOverflow   = errors.New("overflow")
 
 	supportNativeSwapExchanges = map[string]struct{}{
-		valueobject.ExchangeFrxETH: {},
-		valueobject.ExchangeOETH:   {},
-		valueobject.ExchangeWBETH:  {},
+		valueobject.ExchangeFrxETH:              {},
+		valueobject.ExchangeOETH:                {},
+		valueobject.ExchangeWBETH:               {},
+		valueobject.ExchangeCustomWrappedNative: {},
 	}
 )

@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 
 	arberastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/stake"
+	customwrappednative "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/custom-wrapped-native"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/frxeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/wrseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/oeth"
@@ -14,11 +15,12 @@ import (
 )
 
 var bytesByPathMap = map[string]map[string][]byte{
-	valueobject.ExchangeWBETH:       wbeth.BytesByPath,
-	valueobject.ExchangeOETH:        oeth.BytesByPath,
-	valueobject.ExchangeFrxETH:      frxeth.BytesByPath,
-	valueobject.ExchangeArberaStake: arberastake.BytesByPath,
-	valueobject.ExchangeWRSETH:      wrseth.BytesByPath,
+	valueobject.ExchangeWBETH:               wbeth.BytesByPath,
+	valueobject.ExchangeOETH:                oeth.BytesByPath,
+	valueobject.ExchangeFrxETH:              frxeth.BytesByPath,
+	valueobject.ExchangeArberaStake:         arberastake.BytesByPath,
+	valueobject.ExchangeWRSETH:              wrseth.BytesByPath,
+	valueobject.ExchangeCustomWrappedNative: customwrappednative.BytesByPath,
 }
 
 var abiByPathMap = map[string]abi.ABI{
