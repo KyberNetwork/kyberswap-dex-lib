@@ -31,7 +31,19 @@ func DeploylessCallWithGas(
 	ctx context.Context, client *rpc.Client, initCode []byte, gas uint64,
 	overrides map[common.Address]gethclient.OverrideAccount, blockOverrides *gethclient.BlockOverrides,
 ) ([]byte, error) {
+	return DeploylessCallWithGasPrice(ctx, client, initCode, gas, nil, overrides, blockOverrides)
+}
+
+// DeploylessCallWithGasPrice also sets the simulated transaction gas price. A
+// nonzero value preserves BASEFEE on clients that zero it for zero-price calls.
+func DeploylessCallWithGasPrice(
+	ctx context.Context, client *rpc.Client, initCode []byte, gas uint64, gasPrice *hexutil.Big,
+	overrides map[common.Address]gethclient.OverrideAccount, blockOverrides *gethclient.BlockOverrides,
+) ([]byte, error) {
 	call := map[string]any{"data": hexutil.Bytes(initCode)}
+	if gasPrice != nil {
+		call["gasPrice"] = gasPrice
+	}
 	if gas > 0 {
 		call["gas"] = hexutil.Uint64(gas)
 	}
