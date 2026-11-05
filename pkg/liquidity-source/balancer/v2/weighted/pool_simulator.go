@@ -924,20 +924,10 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 	return lo.Keys(result)
 }
 
+// GetTokens lists the pool's own tokens in reserve order, then its base pools' other tokens, sorted.
+// GetTokens()[i] pairs with GetReserves()[i] for i < len(GetReserves()).
 func (s *PoolSimulator) GetTokens() []string {
-	tokenSet := make(map[string]struct{})
-
-	for _, basePool := range s.basePools {
-		for _, token := range basePool.GetTokens() {
-			tokenSet[token] = struct{}{}
-		}
-	}
-
-	for _, token := range s.GetInfo().Tokens {
-		tokenSet[token] = struct{}{}
-	}
-
-	return lo.Keys(tokenSet)
+	return shared.PoolTokens(s.Info.Tokens, s.basePools)
 }
 
 func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {

@@ -38,15 +38,18 @@ const (
 )
 
 // CrossEmptyWordGas prices one swap-loop iteration that walks a tick-bitmap word without crossing
-// an initialized tick: a cold SLOAD of the word (2100 under EIP-2929) plus the getSqrtRatioAtTick
-// and computeSwapStep the step runs either way.
+// an initialized tick: a cold SLOAD of the word (2100 under EIP-2929), getSqrtRatioAtTick,
+// computeSwapStep and the loop's own bookkeeping, which the step runs either way.
 //
-// It is an estimate, not a calibrated measurement, but it replaces an estimate of zero: the old
-// model charged nothing for walking words, so a swap through a pool thin enough to spend its whole
-// input on per-word rounding was priced as though it crossed no ticks and did no work. Ekubo's
-// independently derived GasTickSpacingCrossed is 2507 for the same operation, which is the closest
-// cross-check available in this repository.
-const CrossEmptyWordGas = 2500
+// Measured on Ethereum (fork at block 26307077, debug_traceCall of whole routes): five uniswap v3
+// swaps through four pools that walked 43 to 585 words spent 7,350-7,500 gas a word, and a fit over
+// all 56 v3 swaps of those routes gives 7,404 (7,400-7,406 leaving any one swap out). The first
+// estimate, 2,500 (#1591), priced such swaps at a third of their gas.
+const CrossEmptyWordGas = 7400
+
+// UnmeasuredCrossEmptyWordGas is the first, uncalibrated estimate of CrossEmptyWordGas, kept for the
+// forks whose word walk has not been measured (machima, pancake infinity CL).
+const UnmeasuredCrossEmptyWordGas = 2500
 
 var (
 	zeroBI     = big.NewInt(0)

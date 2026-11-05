@@ -1,7 +1,12 @@
 package netstaking
 
 import (
+	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -426,4 +431,117 @@ func TestNewPoolSimulator_NoWrap(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, big.NewInt(1_000_000_000), res.TokenAmountOut.Amount)
+}
+
+// TestCalcAmountOut_ConcurrentSharedSimulator runs CalcAmountOut from many
+// goroutines on one simulator, as the router does with a shared pool set.
+// Each result must match the value computed on a private simulator; run with
+// -race to catch writes to shared receiver state.
+func TestCalcAmountOut_ConcurrentSharedSimulator(t *testing.T) {
+	pairs := [][2]string{
+		{testNETAddress, testSNETAddress},
+		{testSNETAddress, testNETAddress},
+		{testSNETAddress, testWSNETAddress},
+		{testWSNETAddress, testSNETAddress},
+		{testNETAddress, testWSNETAddress},
+		{testWSNETAddress, testNETAddress},
+	}
+	type job struct {
+		in, out string
+		amt     *big.Int
+		want    *big.Int
+	}
+	var jobs []job
+	for i := range 64 {
+		p := pairs[i%len(pairs)]
+		amt := new(big.Int).Mul(big.NewInt(int64(1000+i*7919)), big.NewInt(1e6))
+		res, err := newSimulator(t, indexLive).CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: p[0], Amount: amt},
+			TokenOut:      p[1],
+		})
+		require.NoError(t, err)
+		jobs = append(jobs, job{p[0], p[1], amt, res.TokenAmountOut.Amount})
+	}
+
+	shared := newSimulator(t, indexLive)
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range 50 {
+				for _, j := range jobs {
+					res, err := shared.CalcAmountOut(pool.CalcAmountOutParams{
+						TokenAmountIn: pool.TokenAmount{Token: j.in, Amount: j.amt},
+						TokenOut:      j.out,
+					})
+					if !assert.NoError(t, err) {
+						return
+					}
+					if !assert.Equal(t, j.want.String(), res.TokenAmountOut.Amount.String(), "%s->%s", j.in, j.out) {
+						return
+					}
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+const identityGolden = "testdata/calc_amount_out_identity.golden"
+
+// identityAmounts covers zero, dust, typical sizes, cap-hitting sizes and a
+// value above 2^256-1.
+func identityAmounts() []*big.Int {
+	out := []*big.Int{big.NewInt(0), big.NewInt(1), big.NewInt(7)}
+	for e := 3; e <= 33; e += 3 {
+		v := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(e)), nil)
+		out = append(out, v, new(big.Int).Add(v, big.NewInt(int64(e*131))))
+	}
+	return append(out, new(big.Int).Lsh(big.NewInt(1), 256))
+}
+
+// TestCalcAmountOut_Identity pins CalcAmountOut results on the package
+// fixtures (live, capped-reserve and zero-index simulators) so refactors of
+// the arithmetic are checked to keep behaviour identical.
+// Regenerate with UPDATE_GOLDEN=1.
+func TestCalcAmountOut_Identity(t *testing.T) {
+	sims := []struct {
+		name string
+		sim  *PoolSimulator
+	}{
+		{"live", newSimulator(t, indexLive)},
+		{"capped", newSimulatorWithReserves(t, indexLive,
+			uint256.NewInt(5_000_000), uint256.NewInt(3_000_000), uint256.NewInt(2_000_000))},
+		{"index0", newSimulator(t, uint256.NewInt(0))},
+	}
+	tokens := []string{testNETAddress, testSNETAddress, testWSNETAddress}
+
+	var b strings.Builder
+	for _, sc := range sims {
+		for _, in := range tokens {
+			for _, out := range tokens {
+				for _, amt := range identityAmounts() {
+					res, err := sc.sim.CalcAmountOut(pool.CalcAmountOutParams{
+						TokenAmountIn: pool.TokenAmount{Token: in, Amount: amt},
+						TokenOut:      out,
+					})
+					fmt.Fprintf(&b, "%s %s>%s %s => ", sc.name, in[:6], out[:6], amt)
+					if err != nil {
+						fmt.Fprintf(&b, "err %v\n", err)
+						continue
+					}
+					fmt.Fprintf(&b, "%s gas %d %+v\n", res.TokenAmountOut.Amount, res.Gas, res.SwapInfo)
+				}
+			}
+		}
+	}
+
+	if os.Getenv("UPDATE_GOLDEN") != "" {
+		require.NoError(t, os.MkdirAll(filepath.Dir(identityGolden), 0o755))
+		require.NoError(t, os.WriteFile(identityGolden, []byte(b.String()), 0o644))
+	}
+	want, err := os.ReadFile(identityGolden)
+	require.NoError(t, err)
+	require.Equal(t, string(want), b.String())
 }

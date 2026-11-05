@@ -119,6 +119,7 @@ func (d *PoolTracker) getPoolData(
 		unitOfAccounts [3]common.Address // last element is for controller vault
 		collaterals    []common.Address
 		controllers    []common.Address
+		vaultDecimals  [2]uint8
 	)
 	data.Vaults = vaults
 
@@ -189,6 +190,10 @@ func (d *PoolTracker) getPoolData(
 			Target: v.VaultAddress,
 			Method: shared.VaultMethodUnitOfAccount,
 		}, []any{&unitOfAccounts[i]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: v.VaultAddress,
+			Method: shared.VaultMethodDecimals,
+		}, []any{&vaultDecimals[i]}).AddCall(&ethrpc.Call{
 			ABI:    evcABI,
 			Target: evc,
 			Method: shared.EvcMethodIsControllerEnabled,
@@ -200,6 +205,7 @@ func (d *PoolTracker) getPoolData(
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "1st rt")
 	}
+	vaultList = shared.WithVaultDecimals(vaultList, vaultDecimals[:])
 
 	var (
 		controllerDecimals       uint8
@@ -347,17 +353,14 @@ func (d *PoolTracker) getPoolData(
 		return nil, nil, errors.WithMessage(err, "3rd rt")
 	}
 
-	for i, v := range vaults {
+	for i := range vaults {
 		if i < 2 {
-			v.EulerAccountBalance = shared.ConvertToAssets(v.EulerAccountBalance, v.TotalAssets, v.TotalSupply)
+			vaults[i].EulerAccountBalance = shared.ConvertToAssets(vaults[i].EulerAccountBalance, vaults[i].TotalAssets,
+				vaults[i].TotalSupply)
 		}
 		for j, otherV := range vaultList {
 			for k, q := range data.VaultPrices[j][i] {
-				if q != nil {
-					q.Div(q, otherV.QuoteAmount)
-				} else {
-					data.VaultPrices[j][i][k] = big.NewInt(0)
-				}
+				data.VaultPrices[j][i][k] = shared.UnitPrice(q, otherV.QuoteAmount)
 			}
 		}
 		for j, collateral := range collaterals {
@@ -366,11 +369,7 @@ func (d *PoolTracker) getPoolData(
 				continue
 			}
 			for k, q := range data.CollatPrices[j][i] {
-				if q != nil {
-					q.Div(q, collatQuoteAmts[j])
-				} else {
-					data.CollatPrices[j][i][k] = big.NewInt(0)
-				}
+				data.CollatPrices[j][i][k] = shared.UnitPrice(q, collatQuoteAmts[j])
 			}
 		}
 	}

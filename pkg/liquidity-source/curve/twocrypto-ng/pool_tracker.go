@@ -71,11 +71,13 @@ func (t *PoolTracker) getNewPoolState(
 	defer func() { lg.Info("Finish updating state.") }()
 
 	var (
-		math common.Address
+		math, policy common.Address
+		v21d         V21dRPC
+		v3           V3RPC
 
 		d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 
-		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply *big.Int
+		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply, rebalancingParams *big.Int
 
 		balances = make([]*big.Int, len(p.Tokens))
 
@@ -143,8 +145,18 @@ func (t *PoolTracker) getNewPoolState(
 	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
 		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
+		Method: poolMethodPackedRebalancingParams,
+	}, []any{&rebalancingParams}).AddCall(&ethrpc.Call{
+		ABI:    CurveTwocryptoNGABI,
+		Target: p.Address,
 		Method: poolMethodMath,
-	}, []any{&math})
+	}, []any{&math}).AddCall(&ethrpc.Call{
+		ABI:    CurveTwocryptoNGABI,
+		Target: p.Address,
+		Method: poolMethodPolicy,
+	}, []any{&policy})
+	AddV21dCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, &v21d)
+	AddV3Calls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, PreviousPolicy(p.Extra), &v3)
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
@@ -194,6 +206,16 @@ func (t *PoolTracker) getNewPoolState(
 		AllowedExtraProfit: number.SetFromBig(allowedExtraProfit),
 		AdjustmentStep:     number.SetFromBig(adjustmentStep),
 		UseCustomMath:      UseCustomMath(math),
+		Policy:             PolicyHex(policy),
+	}
+	v21d.Apply(&extra)
+	v3.Apply(&extra, rebalancingParams)
+	now := time.Now().Unix()
+	if rebalancingParams != nil {
+		if maTime := MaTimeFromRebalancingParams(rebalancingParams); !maTime.IsZero() {
+			extra.MaTime = maTime
+			extra.PriceOracleTimestamp = now
+		}
 	}
 	extra.PriceScale = make([]uint256.Int, len(priceScales))
 	lo.ForEach(priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })
@@ -214,7 +236,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = now
 	p.Reserves = reserves
 
 	return p, nil

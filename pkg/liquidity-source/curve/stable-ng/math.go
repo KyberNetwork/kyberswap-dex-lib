@@ -700,7 +700,7 @@ func (t *PoolSimulator) ApplyRemoveLiquidityOneCoinU256(i int, tokenAmount, dy, 
 		&t.Reserves[i],
 		number.SafeAdd(dy, number.Div(number.SafeMul(dyFee, t.Extra.AdminFee), FeeDenominator)),
 		&t.Reserves[i])
-	number.FillBig(&t.Reserves[i], t.Info.Reserves[i]) // always sync back update to t.Info, will be removed later
+	t.Info.Reserves[i] = t.Reserves[i].ToBig() // sync back to t.Info as a new big.Int: clones share the old one
 	t.LpSupply.Sub(&t.LpSupply, tokenAmount)
 	t.cacheD()
 	return nil
@@ -710,7 +710,7 @@ func (t *PoolSimulator) ApplyAddLiquidity(amounts, feeAmounts []uint256.Int, min
 	for i := 0; i < t.NumTokens; i++ {
 		number.SafeAddZ(&t.Reserves[i], &amounts[i], &t.Reserves[i])
 		number.SafeSubZ(&t.Reserves[i], &feeAmounts[i], &t.Reserves[i])
-		number.FillBig(&t.Reserves[i], t.Info.Reserves[i]) // always sync back update to t.Info, will be removed later
+		t.Info.Reserves[i] = t.Reserves[i].ToBig() // sync back to t.Info as a new big.Int: clones share the old one
 	}
 
 	t.LpSupply.Add(&t.LpSupply, mintAmount)

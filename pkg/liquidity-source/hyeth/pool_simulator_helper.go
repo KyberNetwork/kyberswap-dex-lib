@@ -59,7 +59,7 @@ func (s *PoolSimulator) issueSetFromETH(_quantity *uint256.Int) (*uint256.Int, e
 }
 
 func (s *PoolSimulator) getRequiredAmountSetToken(componentShares *uint256.Int) *uint256.Int {
-	equityUnit := new(uint256.Int).Set(s._getTotalIssuanceUnitsFromBalances())
+	equityUnit := s._getTotalIssuanceUnitsFromBalances()
 	// uint256 _quantityAfterFee = (componentShares * 10 ** 18) / uint256(cumulativeEquity);
 	quantityAfterFee := new(uint256.Int).Div(
 		new(uint256.Int).Mul(componentShares, U_1e18),
@@ -133,7 +133,7 @@ func (s *PoolSimulator) calculateTotalFees(_quantity *uint256.Int, _isIssue bool
  * @param _isIssue          Whether Sets are being issued or redeemed (rounding process)
  */
 func (s *PoolSimulator) _calculateRequiredComponentIssuanceUnits(_quantity *uint256.Int, _ bool) *uint256.Int {
-	equityUnit := new(uint256.Int).Set(s._getTotalIssuanceUnits())
+	equityUnit := s._getTotalIssuanceUnits()
 	totalEquityUnit := equityUnit.Mul(equityUnit, _quantity).Div(equityUnit, U_1e18)
 	return totalEquityUnit
 }
@@ -144,7 +144,8 @@ func (s *PoolSimulator) _calculateRequiredComponentIssuanceUnits(_quantity *uint
 *
  */
 func (s *PoolSimulator) _getTotalIssuanceUnits() *uint256.Int {
-	equityUnit := s.defaultPositionRealUnit
+	// Copy: the simulator is shared across quotes, so the sum must not be built in its field.
+	equityUnit := new(uint256.Int).Set(s.defaultPositionRealUnit)
 	for _, externalPositionRealUnit := range s.externalPositionRealUnits {
 		if externalPositionRealUnit.Sign() > 0 {
 			equityUnit.Add(equityUnit, externalPositionRealUnit)

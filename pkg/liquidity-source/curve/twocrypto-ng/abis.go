@@ -8,6 +8,8 @@ import (
 
 var (
 	CurveTwocryptoNGABI abi.ABI
+	// YBTwocryptoPolicyABI is the Yield Basis twocrypto policy's views (see PolicyState).
+	YBTwocryptoPolicyABI abi.ABI
 )
 
 func init() {
@@ -16,6 +18,7 @@ func init() {
 		data []byte
 	}{
 		{&CurveTwocryptoNGABI, curveTwocryptoNGABIBytes},
+		{&YBTwocryptoPolicyABI, ybTwocryptoPolicyABIBytes},
 	}
 
 	var err error

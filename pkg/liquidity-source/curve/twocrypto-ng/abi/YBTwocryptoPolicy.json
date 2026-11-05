@@ -1,0 +1,114 @@
+[
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "state",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "last_update_ts",
+        "type": "uint256"
+      },
+      {
+        "name": "last_prices",
+        "type": "uint256"
+      },
+      {
+        "name": "fast_ema",
+        "type": "uint256"
+      },
+      {
+        "name": "slow_ema",
+        "type": "uint256"
+      },
+      {
+        "name": "price_scale",
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "get_price_scale",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "FAST_HALF_LIFE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "SLOW_HALF_LIFE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "KAPPA",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "DEADBAND",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "MIN_CAP",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "MAX_CAP",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ]
+  }
+]

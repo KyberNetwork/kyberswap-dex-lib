@@ -60,13 +60,6 @@ type PoolSimulator struct {
 	netReserve         *uint256.Int
 	sNetStakingReserve *uint256.Int
 	sNetWrapReserve    *uint256.Int
-
-	// scratch and scratchIn are pre-allocated uint256.Ints reused across CalcAmountOut
-	// calls to avoid per-call heap allocations. scratchIn holds the parsed amountIn;
-	// scratch holds the intermediate/final result. Neither must escape across goroutines
-	// or be shared between a simulator and its clone.
-	scratch   uint256.Int
-	scratchIn uint256.Int
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -126,13 +119,15 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn := strings.ToLower(params.TokenAmountIn.Token)
 	tokenOut := strings.ToLower(params.TokenOut)
-	// Use scratchIn to parse amountIn without a heap allocation.
+	// in and out are call-local: simulators are shared across concurrent
+	// requests, so CalcAmountOut must not write receiver fields.
+	var in, out uint256.Int
 	// SetFromBig returns true on overflow (amount > 2^256-1), which cannot occur for
 	// realistic token amounts; treat it the same as invalid input.
-	if overflow := s.scratchIn.SetFromBig(params.TokenAmountIn.Amount); overflow {
+	if overflow := in.SetFromBig(params.TokenAmountIn.Amount); overflow {
 		return nil, ErrInvalidTokenIn
 	}
-	amountIn := &s.scratchIn
+	amountIn := &in
 
 	if amountIn.IsZero() {
 		return nil, ErrZeroAmount
@@ -151,27 +146,27 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		if amountIn.Gt(s.sNetStakingReserve) {
 			return nil, ErrInsufficientLiquidity
 		}
-		s.scratch.Set(amountIn)
+		out.Set(amountIn)
 		gasEstimate = dfGas.Stake
 	case ActionUnstake:
 		// sNET->NET (1:1): cap on outbound NET.
 		if amountIn.Gt(s.netReserve) {
 			return nil, ErrInsufficientLiquidity
 		}
-		s.scratch.Set(amountIn)
+		out.Set(amountIn)
 		gasEstimate = dfGas.Unstake
 	case ActionWrap:
 		// sNET->wsNET: no cap (wrap has no on-chain supply ceiling).
-		if _, err := sNetToWs(&s.scratch, amountIn, s.index); err != nil {
+		if _, err := sNetToWs(&out, amountIn, s.index); err != nil {
 			return nil, err
 		}
 		gasEstimate = dfGas.Wrap
 	case ActionUnwrap:
 		// wsNET->sNET: cap on outbound sNET (wrap's own balance).
-		if _, err := wsToSNet(&s.scratch, amountIn, s.index); err != nil {
+		if _, err := wsToSNet(&out, amountIn, s.index); err != nil {
 			return nil, err
 		}
-		if s.scratch.Gt(s.sNetWrapReserve) {
+		if out.Gt(s.sNetWrapReserve) {
 			return nil, ErrInsufficientLiquidity
 		}
 		gasEstimate = dfGas.Unwrap
@@ -181,7 +176,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		if amountIn.Gt(s.sNetStakingReserve) {
 			return nil, ErrInsufficientLiquidity
 		}
-		if _, err := sNetToWs(&s.scratch, amountIn, s.index); err != nil {
+		if _, err := sNetToWs(&out, amountIn, s.index); err != nil {
 			return nil, err
 		}
 		gasEstimate = dfGas.StakeAndWrap
@@ -189,13 +184,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		// wsNET->NET composite: unwrap leg (ratio, capped by SNETWrapReserve), then unstake
 		// leg (1:1, capped by NETReserve). Unstake is 1:1 so the unwrap result is also the
 		// final NET amount out — one cap check against each leg's binding reserve.
-		if _, err := wsToSNet(&s.scratch, amountIn, s.index); err != nil {
+		if _, err := wsToSNet(&out, amountIn, s.index); err != nil {
 			return nil, err
 		}
-		if s.scratch.Gt(s.sNetWrapReserve) {
+		if out.Gt(s.sNetWrapReserve) {
 			return nil, ErrInsufficientLiquidity
 		}
-		if s.scratch.Gt(s.netReserve) {
+		if out.Gt(s.netReserve) {
 			return nil, ErrInsufficientLiquidity
 		}
 		gasEstimate = dfGas.UnwrapAndUnstake
@@ -204,7 +199,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: s.scratch.ToBig()},
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: out.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            gasEstimate,
 		SwapInfo:       SwapInfo{Action: action},
