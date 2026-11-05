@@ -146,15 +146,13 @@ func _calcExchangePrice(exchangePricesAndConfig *big.Int, snapshotTimestamp uint
 		temp.Div(&utilization, tmp.Mul(FOUR_DECIMALS, FOUR_DECIMALS))
 	}
 
-	if borrowRatio.Bit(0) == 1 {
-		borrowRatio.Rsh(&borrowRatio, 1).
-			Mul(&borrowRatio, TenPow27).
-			Div(&borrowRatio, tmp.Add(FOUR_DECIMALS, &borrowRatio))
-	} else {
-		borrowRatio.Rsh(&borrowRatio, 1).
-			Mul(&borrowRatio, TenPow27).
-			Div(&borrowRatio, tmp.Add(FOUR_DECIMALS, &borrowRatio)).
-			Sub(TenPow27, &borrowRatio)
+	// The divisor must be read before the multiplication below changes borrowRatio.
+	borrowRatioIsInverted := borrowRatio.Bit(0) == 1
+	borrowRatio.Rsh(&borrowRatio, 1)
+	tmp.Add(FOUR_DECIMALS, &borrowRatio)
+	borrowRatio.Mul(&borrowRatio, TenPow27).Div(&borrowRatio, &tmp)
+	if !borrowRatioIsInverted {
+		borrowRatio.Sub(TenPow27, &borrowRatio)
 	}
 
 	temp.Mul(&temp, FOUR_DECIMALS).
