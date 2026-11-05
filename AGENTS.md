@@ -183,5 +183,3 @@ This repo has `pkg/msgpack`; run the second command here. Other downstream repos
 Create a PR from your feature branch to **kyberswap-dex-lib** `main`.
 The PR must contain brief explanation about the DEX background, pricing logic, links to existing documentation, important contract addresses, and anything you think could help us review your code faster.
 Add supporting evidence when available, such as explorer links, sample transactions, contract sources, fixtures, or quote comparison results.
-
-This repo is public: PR titles, descriptions, commit messages, code comments and test names must not mention internal repositories or services (e.g. `kyberswap-dex-lib-private`, `pool-service`, `router-service`, `aggregator-encoding`, `ks-dex-aggregator-sc`) or link to their PRs, issues or code. Describe the requirement generically instead, e.g. "consumers must refresh pool state periodically" or "the on-chain executor's quote path". Do not paste internal URLs, request IDs or dashboards either, unless the reviewer asks for them in a private channel.
