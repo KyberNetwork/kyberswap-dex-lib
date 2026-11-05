@@ -111,15 +111,20 @@ func refusedForSize(err error) bool {
 	return strings.Contains(msg, "response") && (strings.Contains(msg, "too big") || strings.Contains(msg, "too large"))
 }
 
-// callOnce runs contract with args at block in one call sent gas as it is, and decodes the result
-// into out.
+// callOnce runs contract with args at block in one call sent gas as it is, within c's limit (see
+// LimitNode), and decodes the result into out.
 func callOnce(ctx context.Context, c Caller, contract *Contract, out any, gas uint64, block *big.Int,
 	args ...any) error {
 	data, err := contract.PackCall(args...)
 	if err != nil {
 		return err
 	}
+	release, err := nodeLimit(c).wait(ctx)
+	if err != nil {
+		return err
+	}
 	_, err = c.CallContract(ctx, ethereum.CallMsg{Data: data, Gas: gas}, block)
+	release()
 	if err == nil {
 		return ErrNotReverted
 	}

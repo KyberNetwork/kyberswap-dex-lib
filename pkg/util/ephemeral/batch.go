@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -167,7 +166,7 @@ var sharedBatchers sync.Map
 // every exchange reading through one node fill the same batches. cfg is that of the first to ask;
 // nil or false asks for none, as does a Caller that cannot be a map key, which cannot be shared.
 func SharedBatcher(c Caller, cfg *BatchConfig) *Batcher {
-	if !cfg.On() || c == nil || !reflect.TypeOf(c).Comparable() {
+	if !cfg.On() || !keyable(c) {
 		return nil
 	}
 	if b, ok := sharedBatchers.Load(c); ok {
