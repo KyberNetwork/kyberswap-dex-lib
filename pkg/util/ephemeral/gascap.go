@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 	"sync"
 	"time"
 
@@ -56,6 +57,11 @@ type probe struct {
 
 // gasCaps caches, per Caller, its node's Cap: a client's node does not change.
 var gasCaps sync.Map
+
+// keyable reports whether c can key the maps kept per Caller or Chain: a nil or a func cannot.
+func keyable(c any) bool {
+	return c != nil && reflect.TypeOf(c).Comparable()
+}
 
 // GasCap returns the gas c's node gives one eth_call, probed once per client and kept. Nodes say
 // it nowhere; the probe reads it off a call that returns the gas it was run with.
