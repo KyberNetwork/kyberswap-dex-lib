@@ -50,8 +50,8 @@ func LimitNode(c Caller, limit NodeLimit) {
 	nodeLimits.Store(c, &l)
 }
 
-// keyable reports whether c can key a map of Callers: SharedBatcher's and LimitNode's.
-func keyable(c Caller) bool {
+// keyable reports whether c can key the maps kept per Caller or Chain: a nil or a func cannot.
+func keyable(c any) bool {
 	return c != nil && reflect.TypeOf(c).Comparable()
 }
 

@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/sync/semaphore"
 	"golang.org/x/time/rate"
 )
 
@@ -98,7 +99,7 @@ type Batcher struct {
 	mu      sync.Mutex
 	pending map[uint64]*batch
 	// inFlight holds a slot per batch call being made.
-	inFlight chan struct{}
+	inFlight *semaphore.Weighted
 	// calls bounds the lens calls made through the node, batches and reads alone alike.
 	calls *rate.Limiter
 
@@ -156,7 +157,7 @@ func NewBatcher(c Caller, cfg BatchConfig) *Batcher {
 	if cfg.Burst <= 0 {
 		cfg.Burst = defaultBatchBurst
 	}
-	return &Batcher{caller: c, cfg: cfg, pending: map[uint64]*batch{}, inFlight: make(chan struct{}, cfg.Concurrency),
+	return &Batcher{caller: c, cfg: cfg, pending: map[uint64]*batch{}, inFlight: semaphore.NewWeighted(int64(cfg.Concurrency)),
 		calls: rate.NewLimiter(rate.Limit(cfg.Rate), cfg.Burst)}
 }
 
@@ -372,8 +373,8 @@ func (b *Batcher) flush(cur *batch) {
 		}
 	}
 
-	b.inFlight <- struct{}{}
-	defer func() { <-b.inFlight }()
+	_ = b.inFlight.Acquire(context.Background(), 1) // never fails: a background context is never done
+	defer b.inFlight.Release(1)
 	ctx, cancel := context.WithTimeout(context.Background(), batchTimeout)
 	defer cancel()
 	b.run(ctx, cur.block, codes, cur.reads, items)

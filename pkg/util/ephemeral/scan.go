@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"maps"
 	"math/big"
-	"reflect"
 	"slices"
 	"sync"
 
@@ -81,7 +80,7 @@ func (pin *Pinned) take(read uint64) {
 
 func runsLate(ctx context.Context, c Chain) (bool, error) {
 	// A Chain that cannot be a map key is asked every time.
-	if !reflect.TypeOf(c).Comparable() {
+	if !keyable(c) {
 		return askLate(ctx, c)
 	}
 	v, ok := lateClients.Load(c)

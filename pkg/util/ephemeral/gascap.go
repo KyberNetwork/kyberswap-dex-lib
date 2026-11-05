@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"sync"
 	"time"
 
@@ -61,7 +60,7 @@ var gasCaps sync.Map
 // GasCap returns the gas c's node gives one eth_call, probed once per client and kept. Nodes say
 // it nowhere; the probe reads it off a call that returns the gas it was run with.
 func GasCap(ctx context.Context, c Caller) (Cap, error) {
-	if !reflect.TypeOf(c).Comparable() {
+	if !keyable(c) {
 		return probeGasCap(ctx, c)
 	}
 	for {
@@ -134,7 +133,7 @@ func callGas(ctx context.Context, c Caller, gas uint64) uint64 {
 	if gas != 0 {
 		if err == nil && !gasCap.Unlimited && gas > gasCap.Gas {
 			// A Caller that cannot be a map key is warned of every time.
-			if !reflect.TypeOf(c).Comparable() {
+			if !keyable(c) {
 				logger.Warnf("ephemeral: lens gas %d exceeds the node's eth_call cap %d", gas, gasCap.Gas)
 			} else if _, warned := warnedCaps.LoadOrStore(c, true); !warned {
 				logger.Warnf("ephemeral: lens gas %d exceeds the node's eth_call cap %d", gas, gasCap.Gas)
