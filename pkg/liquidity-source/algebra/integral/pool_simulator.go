@@ -1,6 +1,7 @@
 package integral
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -16,6 +17,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -47,9 +49,40 @@ type PoolSimulator struct {
 	lastTimepointTs uint32
 
 	useBasePluginV2 bool
+	namiFee         *nami.Config
+	namiStaleCheck  bool
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, newPoolSimulatorWithParams)
+
+func newPoolSimulatorWithParams(params pool.FactoryParams) (*PoolSimulator, error) {
+	p, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	p.namiStaleCheck = params.Opts.StaleCheck
+	if err = p.checkNamiSnapshot(); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (p *PoolSimulator) checkNamiSnapshot() error {
+	if !p.namiStaleCheck {
+		return nil
+	}
+	if p.namiFee == nil {
+		if p.Info.Exchange == "nami-v4" {
+			return ErrNamiStaleSnapshot
+		}
+		return nil
+	}
+	now, snapshot := uint64(blockTimestamp()), p.namiFee.SnapshotTimestamp
+	if snapshot == 0 || snapshot > now || now-snapshot > nami.MaxSnapshotAge {
+		return ErrNamiStaleSnapshot
+	}
+	return nil
+}
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -106,6 +139,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		slidingFee:         extra.SlidingFee,
 		writeTimePointOnce: new(sync.Once),
 		useBasePluginV2:    staticExtra.UseBasePluginV2,
+		namiFee:            extra.NamiFee,
 	}
 	if p.usesFeeFactors() && p.volatilityOracle != nil {
 		p.lastTick = p.getLastTick()
@@ -179,17 +213,18 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 // swapOutcome is what a swap leaves: amounts, fees, gas and the pool state after it.
 type swapOutcome struct {
-	remaining  uint256.Int // amountRequired left unswapped, signed like the request
-	calculated uint256.Int // signed: negative output for exact-in, positive input for exact-out
-	fee        uint256.Int // community plus plugin fee
-	price      uint256.Int
-	liquidity  uint256.Int
-	tick       int32
-	gas        int64
+	remaining     uint256.Int // amountRequired left unswapped, signed like the request
+	calculated    uint256.Int // signed: negative output for exact-in, positive input for exact-out
+	fee           uint256.Int // community plus plugin fee
+	price         uint256.Int
+	liquidity     uint256.Int
+	tick          int32
+	gas           int64
+	namiTimepoint *NamiTimepointUpdate
 }
 
 func (o *swapOutcome) stateUpdate() StateUpdate {
-	return StateUpdate{Liquidity: &o.liquidity, Price: &o.price, Tick: o.tick}
+	return StateUpdate{Liquidity: &o.liquidity, Price: &o.price, Tick: o.tick, NamiTimepoint: o.namiTimepoint}
 }
 
 // calcAmountOutBacking holds everything a CalcAmountOut result points to, so a quote costs one
@@ -225,7 +260,9 @@ func (p *PoolSimulator) swap(tokenIn, tokenOut string, amtRequired *uint256.Int,
 	zeroForOne := tokenInIndex == 0
 	var overrideFee, pluginFee uint32
 	var err error
-	if p.slidingFee != nil && p.slidingFee.SlidingFeeEnabled {
+	if p.namiFee != nil {
+		overrideFee, o.namiTimepoint, err = p.beforeNamiSwap(zeroForOne)
+	} else if p.slidingFee != nil && p.slidingFee.SlidingFeeEnabled {
 		overrideFee, pluginFee, err = p.beforeSwapSliding(zeroForOne)
 	} else if p.useBasePluginV2 && p.slidingFee != nil && p.slidingFee.FeeType {
 		overrideFee, pluginFee, err = p.beforeSwapV2(zeroForOne)
@@ -271,9 +308,21 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		}
 		p.swapFeeFactors = next
 	}
-	p.liquidity = si.Liquidity
-	p.globalState.Price = si.Price
+	p.liquidity = si.Liquidity.Clone()
+	p.globalState.Price = si.Price.Clone()
 	p.globalState.Tick = si.Tick
+	if si.NamiTimepoint != nil {
+		oracle := *p.volatilityOracle
+		oracle.TimepointIndex = si.NamiTimepoint.Index
+		oracle.LastTimepointTimestamp = si.NamiTimepoint.Timestamp
+		p.volatilityOracle = &oracle
+		p.timepoints = p.timepoints.clone()
+		point := si.NamiTimepoint.Timepoint
+		if point.VolatilityCumulative != nil {
+			point.VolatilityCumulative = point.VolatilityCumulative.Clone()
+		}
+		p.timepoints.set(si.NamiTimepoint.Index, point)
+	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
@@ -564,6 +613,10 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	o.fee.Add(&communityFeeAmount, &pluginFeeAmount)
 	o.tick = currentTick
 	o.gas = BaseGas + ticksCrossed*CrossInitTickGas
+	if p.namiFee != nil && p.namiFee.MEVXGas != 0 && p.globalState.PluginConfig&AFTER_SWAP_FLAG != 0 {
+		// Also normalize snapshots written before gas-budget/usage were separated.
+		o.gas += int64(p.namiFee.HookGas())
+	}
 	return nil
 }
 
@@ -647,4 +700,39 @@ func movePriceTowardsTarget(zeroToOne bool, currentPrice, targetPrice, liquidity
 	}
 
 	return v3Utils.MulDivRoundingUpV2(input, feeAmount.SetUint64(fee), &feeDenoMinusFee, feeAmount)
+}
+
+func (p *PoolSimulator) beforeNamiSwap(zeroToOne bool) (uint32, *NamiTimepointUpdate, error) {
+	if err := p.checkNamiSnapshot(); err != nil {
+		return 0, nil, err
+	}
+	if p.namiFee.Unsupported != "" {
+		return 0, nil, errors.New(p.namiFee.Unsupported)
+	}
+	if p.globalState.PluginConfig&BEFORE_SWAP_FLAG == 0 {
+		return 0, nil, nil
+	}
+	if p.volatilityOracle == nil || !p.volatilityOracle.IsInitialized || p.dynamicFee == nil {
+		return 0, nil, ErrNotInitialized
+	}
+	now := blockTimestamp()
+	tmp := p.timepoints.clone()
+	idx, _, err := tmp.write(p.volatilityOracle.TimepointIndex, now, p.globalState.Tick)
+	if err != nil {
+		return 0, nil, err
+	}
+	point := tmp.Get(idx)
+	if point.VolatilityCumulative != nil {
+		point.VolatilityCumulative = point.VolatilityCumulative.Clone()
+	}
+	update := &NamiTimepointUpdate{Index: idx, Timestamp: now, Timepoint: point}
+	base := p.dynamicFee.BaseFee
+	if p.dynamicFee.Alpha1 != 0 || p.dynamicFee.Alpha2 != 0 {
+		volatility, err := tmp.getAverageVolatility(now, p.globalState.Tick, idx, tmp.getOldestIndex(idx))
+		if err != nil {
+			return 0, nil, err
+		}
+		base = getFee(volatility, p.dynamicFee)
+	}
+	return uint32(p.namiFee.Fee(base, zeroToOne, uint64(now))), update, nil
 }
