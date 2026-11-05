@@ -453,8 +453,13 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		"poolAddress": p.Address,
 	})
 
-	// Scalar state and the tick changes must describe the same block.
-	rpcState, err := t.FetchRPCData(ctx, &p, ticksBasedPool.BlockNumber)
+	// Always fetch the scalar state (prices, reserves, Liquidity budgets) at latest, never at this
+	// batch's own block. Ticks are merged incrementally from logs, so event batches, replayed
+	// backfill chunks and interval tasks all funnel through this one path; pinning scalars to a
+	// batch block would let an older batch overwrite newer state, and a catch-up batch's block can
+	// be older than the RPC's pruning window. The scalars, the exchange prices and the timestamp
+	// still come from one block (the Aggregate block), so they stay mutually consistent.
+	rpcState, err := t.FetchRPCData(ctx, &p, 0)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -522,7 +527,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
-	p.BlockNumber = extra.SnapshotBlock
+	p.BlockNumber = max(p.BlockNumber, extra.SnapshotBlock)
 
 	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
 	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig, extra.SnapshotTimestamp)
@@ -597,6 +602,12 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 	}).Debug("fetching ticks")
 
 	if _, err := ticksRequest.Aggregate(); err != nil {
+		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
+			// The batch's block is older than the node's pruning window (catch-up/backfill):
+			// re-query the ticks at latest, as the other ticks-based dexes do.
+			return t.queryRPCTicksByChunk(ctx, addr, ticks, 0)
+		}
+
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to process aggregate to get ticks")
