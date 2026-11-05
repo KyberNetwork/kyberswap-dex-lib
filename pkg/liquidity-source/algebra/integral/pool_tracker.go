@@ -92,7 +92,23 @@ func (d *PoolTracker) BootstrapPoolState(
 			return lensPool, err
 		}
 		l.WithFields(logger.Fields{"error": err}).Warn("failed to bootstrap the pool through the lens, bootstrapping it without")
+		return d.bootstrapWithoutLens(ctx, p, param)
 	}
+
+	return d.bootstrapPool(ctx, p, param)
+}
+
+// bootstrapPool reads the pool's state without the lens. FetchPoolTicks reads its ticks again at
+// the block of that state, unless the lens is on.
+func (d *PoolTracker) bootstrapPool(
+	ctx context.Context,
+	p entity.Pool,
+	param sourcePool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+		"dexID":       d.config.DexID,
+	})
 
 	// The state is read at a block named first, which the pool is dated by: the caller reads the
 	// ticks of a bootstrapped pool again at its block, and the pool's older one, its creation block
@@ -171,6 +187,18 @@ func (d *PoolTracker) BootstrapPoolState(
 	}
 
 	return withState(p, rpcData, ticks, param.Logs, head, l)
+}
+
+// bootstrapWithoutLens bootstraps the pool without the lens and reads its ticks again at the block
+// of its state, as FetchPoolTicks does when the lens is off: with the lens on, FetchPoolTicks
+// leaves them as they are.
+func (d *PoolTracker) bootstrapWithoutLens(ctx context.Context, p entity.Pool,
+	param sourcePool.GetNewPoolStateParams) (entity.Pool, error) {
+	p, err := d.bootstrapPool(ctx, p, param)
+	if err != nil {
+		return p, err
+	}
+	return d.refetchTicks(ctx, p)
 }
 
 var _ sourcePool.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
@@ -680,6 +708,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
 				return t.bootstrapFromLens(ctx, p, param.Logs, block, l)
 			},
+			func(ctx context.Context) (entity.Pool, error) {
+				return t.bootstrapWithoutLens(ctx, p, param)
+			},
 			l), nil
 	}
 
@@ -713,8 +744,17 @@ func (t *PoolTracker) getNewPoolState(ctx context.Context, p entity.Pool, logs [
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	// The lens read the ticks at the block it read the state, which is what refetching is for.
-	if t.config.UseLens || len(p.Extra) == 0 {
+	// The lens read the ticks at the block it read the state, which is what reading them again is
+	// for; a bootstrap that fell back from the lens read them again itself.
+	if t.config.UseLens {
+		return p, nil
+	}
+	return t.refetchTicks(ctx, p)
+}
+
+// refetchTicks reads the pool's stored ticks again at the block of its state.
+func (t *PoolTracker) refetchTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+	if len(p.Extra) == 0 {
 		return p, nil
 	}
 

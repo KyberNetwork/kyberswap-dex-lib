@@ -53,7 +53,7 @@ func NewPoolTracker(
 	}
 }
 
-func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool,
+func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, param pool.GetNewPoolStateParams) (entity.Pool,
 	error) {
 	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 	l.Info().Msg("GetNewPoolState starts")
@@ -70,7 +70,17 @@ func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ p
 			return lensPool, err
 		}
 		l.Warn().Err(err).Msg("failed to bootstrap the pool through the lens, bootstrapping it without")
+		return t.bootstrapWithoutLens(ctx, p, param)
 	}
+
+	return t.bootstrapPool(ctx, p, param)
+}
+
+// bootstrapPool reads the pool's state without the lens. FetchPoolTicks reads its bins again at
+// the block of that state, unless the lens is on.
+func (t *PoolTracker) bootstrapPool(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool,
+	error) {
+	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
 	var (
 		rpcData        *QueryRpcPoolStateResult
@@ -120,6 +130,18 @@ func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ p
 
 	l.Info().Msg("GetNewPoolState finished")
 	return p, nil
+}
+
+// bootstrapWithoutLens bootstraps the pool without the lens and reads its bins again at the block
+// of its state, as FetchPoolTicks does when the lens is off: with the lens on, FetchPoolTicks
+// leaves them as they are.
+func (t *PoolTracker) bootstrapWithoutLens(ctx context.Context, p entity.Pool,
+	param pool.GetNewPoolStateParams) (entity.Pool, error) {
+	p, err := t.bootstrapPool(ctx, p, param)
+	if err != nil {
+		return p, err
+	}
+	return t.refetchBins(ctx, p)
 }
 
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult,
@@ -324,6 +346,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
 				return t.bootstrapFromLens(ctx, p, block)
 			},
+			func(ctx context.Context) (entity.Pool, error) {
+				return t.bootstrapWithoutLens(ctx, p, param)
+			},
 			logger.WithFields(logger.Fields{"address": p.Address, "exchange": p.Exchange})), nil
 	}
 
@@ -342,11 +367,16 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	// The lens read the bins at the block it read the state, which is what reading them again is for.
+	// The lens read the bins at the block it read the state, which is what reading them again is
+	// for; a bootstrap that fell back from the lens read them again itself.
 	if t.cfg.UseLens {
 		return p, nil
 	}
+	return t.refetchBins(ctx, p)
+}
 
+// refetchBins reads the pool's stored bins again at the block of its state.
+func (t *PoolTracker) refetchBins(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
 	var extra Extra

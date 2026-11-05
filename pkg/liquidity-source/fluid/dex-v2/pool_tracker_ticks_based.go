@@ -39,11 +39,16 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool,
 ) (entity.Pool, error) {
-	// The lens read the ticks at the block it read the state, which is what refetching is for.
+	// The lens read the ticks at the block it read the state, which is what reading them again is
+	// for; a bootstrap that fell back from the lens read them again itself.
 	if t.config.UseLens {
 		return p, nil
 	}
+	return t.refetchTicks(ctx, p)
+}
 
+// refetchTicks reads the pool's stored ticks again at the block of its state.
+func (t *PoolTracker) refetchTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	// Extract current ticks from entity pool extra
 	var extra Extra
 	if len(p.Extra) > 0 {
@@ -126,6 +131,9 @@ func (t *PoolTracker) GetNewPoolState(
 		return tickspkg.StateFromLens(ctx, t.lensGuard, p, param,
 			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
 				return t.bootstrapFromLens(ctx, p, param, block)
+			},
+			func(ctx context.Context) (entity.Pool, error) {
+				return t.bootstrapWithoutLens(ctx, p, param)
 			},
 			l), nil
 	}
