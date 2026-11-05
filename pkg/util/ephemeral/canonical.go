@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/holiman/uint256"
@@ -165,11 +166,7 @@ func isDynamic(t *abi.Type) bool {
 	case abi.ArrayTy:
 		return isDynamic(t.Elem)
 	case abi.TupleTy:
-		for _, elem := range t.TupleElems {
-			if isDynamic(elem) {
-				return true
-			}
-		}
+		return slices.ContainsFunc(t.TupleElems, isDynamic)
 	}
 	return false
 }
