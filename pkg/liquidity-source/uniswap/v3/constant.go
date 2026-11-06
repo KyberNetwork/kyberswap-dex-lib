@@ -55,6 +55,7 @@ var (
 	ErrOverflow            = errors.New("bigInt overflow int/uint256")
 	ErrInvalidFeeTier      = errors.New("invalid feeTier")
 	ErrTickNil             = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
+	ErrNoState             = errors.WithMessage(pool.ErrUnsupported, "liquidity or price is nil")
 	ErrV3TicksEmpty        = errors.WithMessage(pool.ErrUnsupported, "v3Ticks empty")
 	ErrInvalidToken        = errors.New("invalid token")
 	ErrZeroAmount          = errors.New("zero amount")
