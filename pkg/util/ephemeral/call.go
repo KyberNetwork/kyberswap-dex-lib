@@ -79,11 +79,10 @@ func Call(ctx context.Context, c Caller, contract *Contract, out any, gas uint64
 const minPageGas = 6_000_000
 
 // refusedForSize reports an error that a node, or a proxy in front of it, gives for a response too
-// large to pass on. Through the KyberSwap gateway it is HTTP 502, for 2 MB of revert data on most
-// chains and 3 MB on BSC; 401 from its upstream on Unichain, for 1.5 MB; and on HyperEVM the
-// JSON-RPC error -32008 "Response is too big", for a body past 1 MiB. 413 is the standard refusal.
-// A 502 can also be a passing failure, and a 401 a key the node refuses: each then costs a few
-// calls more.
+// large to pass on: HTTP 413, the standard refusal; 502 or 401 from a proxy, seen for 1.5 to 3 MB of
+// revert data; or the JSON-RPC error -32008 "Response is too big", seen on HyperEVM for a body past
+// 1 MiB. A 502 can also be a passing failure, and a 401 a key the node refuses: each then costs a
+// few calls more.
 func refusedForSize(err error) bool {
 	if refused, ok := errors.AsType[rpc.HTTPError](err); ok {
 		switch refused.StatusCode {
