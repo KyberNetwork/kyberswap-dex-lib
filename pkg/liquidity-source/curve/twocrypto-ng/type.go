@@ -33,8 +33,10 @@ type (
 		AdjustmentStep     *uint256.Int
 		UseCustomMath      bool `json:",omitempty"`
 		// Twocrypto v3 (no allowed_extra_profit): AllowedExtraProfit is nil.
-		// PolicyFee is the flat fee while a policy contract is attached: pool.fee() at rest
-		// is the policy fallback fee, the most a swap pays (report discounts only lower it).
+		// Policy prices swaps through YBOraclizedPolicy.get_fee (report-aware discount).
+		Policy *PolicyState `json:",omitempty"`
+		// PolicyFee is the flat fee of an attached policy of unknown shape: pool.fee() at rest
+		// is its fallback fee, the most a swap pays. Both nil: the pool's native fee.
 		PolicyFee *uint256.Int `json:",omitempty"`
 	}
 

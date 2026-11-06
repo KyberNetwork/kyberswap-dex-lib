@@ -78,22 +78,23 @@ func (t *PoolTracker) getNewPoolState(
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
 	addRPCCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, d)
 
-	if res, err := calls.TryBlockAndAggregate(); err != nil {
+	res, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
-	} else if res.BlockNumber != nil {
+	}
+	if res.BlockNumber != nil {
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
-	return buildPoolState(lg, p, d)
+	return buildPoolState(ctx, t, lg, p, d, res.BlockNumber, overrides)
 }
 
 type rpcData struct {
 	d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 	xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply                         *big.Int
-	math, policy                                                                                   common.Address
-	poolFee                                                                                        *big.Int
-	balances, priceScales, priceOracles, lastPrices                                                []*big.Int
+	math, policy                                                                                  common.Address
+	balances, priceScales, priceOracles, lastPrices                                               []*big.Int
 }
 
 func newRPCData(numTokens, numDepCoins int) *rpcData {
@@ -121,7 +122,6 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodMath}, []any{&d.math})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodPolicy}, []any{&d.policy})
-	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodFee}, []any{&d.poolFee})
 	for i := range d.balances {
 		addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
 	}
@@ -132,7 +132,8 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData
 	}
 }
 
-func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, error) {
+func buildPoolState(ctx context.Context, t *PoolTracker, lg logger.Logger, p entity.Pool, d *rpcData,
+	block *big.Int, overrides map[common.Address]gethclient.OverrideAccount) (entity.Pool, error) {
 	var extra = twocryptong.Extra{
 		InitialA:           number.SetFromBig(new(big.Int).Rsh(d.initialAGamma, 128)),
 		InitialGamma:       new(uint256.Int).And(number.SetFromBig(d.initialAGamma), twocryptong.PriceMask),
@@ -152,7 +153,11 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 		UseCustomMath:      twocryptong.UseCustomMath(d.math),
 	}
 	if d.policy != (common.Address{}) {
-		extra.PolicyFee = number.SetFromBig(d.poolFee)
+		var err error
+		if extra.Policy, err = twocryptong.FetchPolicy(ctx, t.ethrpcClient, overrides, d.policy, block); err != nil {
+			lg.WithFields(logger.Fields{"error": err}).Error("failed to fetch policy")
+			return entity.Pool{}, err
+		}
 	}
 	extra.PriceScale = make([]uint256.Int, len(d.priceScales))
 	lo.ForEach(d.priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })

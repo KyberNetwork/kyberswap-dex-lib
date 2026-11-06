@@ -223,6 +223,12 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Extra.XcpProfit = &swapInfo.XcpProfit
 	t.Extra.D = &swapInfo.D
 	t.Extra.VirtualPrice = &swapInfo.VirtualPrice
+	if p := t.Extra.Policy; p != nil { // the pool calls policy.update_pool_state after the swap
+		np := *p
+		np.SnapXp = swapInfo.Xp
+		np.SnapD, np.SnapPriceScl = &swapInfo.D, &swapInfo.PriceScale[0]
+		t.Extra.Policy = &np
+	}
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {

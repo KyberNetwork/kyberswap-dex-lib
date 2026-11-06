@@ -11,7 +11,25 @@ import (
 // (there is no CurveTwocryptoOptimizedWETH.vy)
 
 func (t *PoolSimulator) FeeCalc(xp []uint256.Int, fee *uint256.Int) error {
-	if t.Extra.PolicyFee != nil { // policy get_fee: fallback fee, or a lower report-based discount
+	return t.feeCalc(xp, fee, true)
+}
+
+// feeCalc: with discount=false a policy pool pays its fallback fee, the most a swap pays.
+func (t *PoolSimulator) feeCalc(xp []uint256.Int, fee *uint256.Int, discount bool) error {
+	if p := t.Extra.Policy; p != nil {
+		if !discount {
+			fee.Set(p.FallbackFee)
+		} else if err := p.fee(xp, t.Extra.D, fee); err != nil {
+			return err
+		}
+		if fee.CmpUint64(policyMinFee) < 0 {
+			fee.SetUint64(policyMinFee)
+		} else if fee.CmpUint64(policyMaxFee) > 0 {
+			fee.SetUint64(policyMaxFee)
+		}
+		return nil
+	}
+	if t.Extra.PolicyFee != nil { // unknown policy: flat fallback fee, the most a swap pays
 		fee.Set(t.Extra.PolicyFee)
 		return nil
 	}
@@ -44,7 +62,8 @@ func (t *PoolSimulator) GetDy(
 
 	// When A/gamma is actively ramping, recompute D from current balances (mirrors _calc_D_ramp).
 	D := t.Extra.D
-	if time.Now().Unix() < t.Extra.FutureAGammaTime {
+	ramping := time.Now().Unix() < t.Extra.FutureAGammaTime
+	if ramping {
 		for k := range NumTokens {
 			xp[k].Set(&t.Reserves[k])
 		}
@@ -99,7 +118,9 @@ func (t *PoolSimulator) GetDy(
 	}
 	dy.Div(dy, &t.precisionMultipliers[j])
 
-	err = t.FeeCalc(xp[:], fee)
+	// During a ramp the pool stores a re-solved D before charging the fee, so the policy's
+	// snapshot D no longer matches and it charges the fallback fee.
+	err = t.feeCalc(xp[:], fee, !ramping)
 	if err != nil {
 		return err
 	}
@@ -131,7 +152,7 @@ func (t *PoolSimulator) GetDx(
 			return err
 		}
 
-		err = t.FeeCalc(xp, feeDy)
+		err = t.feeCalc(xp, feeDy, false)
 		if err != nil {
 			return err
 		}
@@ -163,7 +184,8 @@ func (t *PoolSimulator) _getDxFee(
 
 	// When A/gamma is actively ramping, recompute D from current balances (mirrors _calc_D_ramp).
 	D := t.Extra.D
-	if time.Now().Unix() < t.Extra.FutureAGammaTime {
+	ramping := time.Now().Unix() < t.Extra.FutureAGammaTime
+	if ramping {
 		for k := range NumTokens {
 			xp[k].Set(&t.Reserves[k])
 		}

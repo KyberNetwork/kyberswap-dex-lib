@@ -73,8 +73,6 @@ func (t *PoolTracker) getNewPoolState(
 	var (
 		math, policy common.Address
 
-		poolFee *big.Int
-
 		d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 
 		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply *big.Int
@@ -150,11 +148,7 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodPolicy,
-	}, []any{&policy}).AddCall(&ethrpc.Call{
-		ABI:    CurveTwocryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodFee,
-	}, []any{&poolFee})
+	}, []any{&policy})
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
@@ -180,10 +174,12 @@ func (t *PoolTracker) getNewPoolState(
 			Method: poolMethodLastPrices,
 		}, []any{&lastPrices[i]})
 	}
+	var block *big.Int
 	if res, err := calls.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
 	} else if res.BlockNumber != nil {
+		block = res.BlockNumber
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
@@ -206,7 +202,11 @@ func (t *PoolTracker) getNewPoolState(
 		UseCustomMath:      UseCustomMath(math),
 	}
 	if policy != (common.Address{}) {
-		extra.PolicyFee = number.SetFromBig(poolFee)
+		var err error
+		if extra.Policy, err = FetchPolicy(ctx, t.ethrpcClient, overrides, policy, block); err != nil {
+			lg.WithFields(logger.Fields{"error": err}).Error("failed to fetch policy")
+			return entity.Pool{}, err
+		}
 	}
 	extra.PriceScale = make([]uint256.Int, len(priceScales))
 	lo.ForEach(priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })
