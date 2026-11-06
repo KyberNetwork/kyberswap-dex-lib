@@ -31,6 +31,8 @@ const (
 	poolMethodPriceOracle        = "price_oracle"
 	poolMethodLastPrices         = "last_prices"
 	poolMethodMath               = "MATH"
+	poolMethodPolicy             = "POLICY"
+	poolMethodFee                = "fee"
 
 	PoolMethodD                  = poolMethodD
 	PoolMethodFeeGamma           = poolMethodFeeGamma
@@ -49,6 +51,8 @@ const (
 	PoolMethodPriceOracle        = poolMethodPriceOracle
 	PoolMethodLastPrices         = poolMethodLastPrices
 	PoolMethodMath               = poolMethodMath
+	PoolMethodPolicy             = poolMethodPolicy
+	PoolMethodFee                = poolMethodFee
 
 	MaxLoopLimit = 256
 	NumTokens    = 2

@@ -32,6 +32,10 @@ type (
 		AllowedExtraProfit *uint256.Int
 		AdjustmentStep     *uint256.Int
 		UseCustomMath      bool `json:",omitempty"`
+		// Twocrypto v3 (no allowed_extra_profit): AllowedExtraProfit is nil.
+		// PolicyFee is the flat fee while a policy contract is attached: pool.fee() at rest
+		// is the policy fallback fee, the most a swap pays (report discounts only lower it).
+		PolicyFee *uint256.Int `json:",omitempty"`
 	}
 
 	SwapInfo struct {

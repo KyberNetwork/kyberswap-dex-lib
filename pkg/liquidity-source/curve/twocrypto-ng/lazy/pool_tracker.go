@@ -91,7 +91,8 @@ func (t *PoolTracker) getNewPoolState(
 type rpcData struct {
 	d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 	xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply                         *big.Int
-	math                                                                                           common.Address
+	math, policy                                                                                   common.Address
+	poolFee                                                                                        *big.Int
 	balances, priceScales, priceOracles, lastPrices                                                []*big.Int
 }
 
@@ -119,6 +120,8 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodAdjustmentStep}, []any{&d.adjustmentStep})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodMath}, []any{&d.math})
+	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodPolicy}, []any{&d.policy})
+	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodFee}, []any{&d.poolFee})
 	for i := range d.balances {
 		addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
 	}
@@ -147,6 +150,9 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 		AllowedExtraProfit: number.SetFromBig(d.allowedExtraProfit),
 		AdjustmentStep:     number.SetFromBig(d.adjustmentStep),
 		UseCustomMath:      twocryptong.UseCustomMath(d.math),
+	}
+	if d.policy != (common.Address{}) {
+		extra.PolicyFee = number.SetFromBig(d.poolFee)
 	}
 	extra.PriceScale = make([]uint256.Int, len(d.priceScales))
 	lo.ForEach(d.priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })

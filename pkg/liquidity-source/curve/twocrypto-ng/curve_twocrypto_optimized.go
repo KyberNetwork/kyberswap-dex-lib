@@ -11,6 +11,10 @@ import (
 // (there is no CurveTwocryptoOptimizedWETH.vy)
 
 func (t *PoolSimulator) FeeCalc(xp []uint256.Int, fee *uint256.Int) error {
+	if t.Extra.PolicyFee != nil { // policy get_fee: fallback fee, or a lower report-based discount
+		fee.Set(t.Extra.PolicyFee)
+		return nil
+	}
 	var f uint256.Int
 	var err = reductionCoefficient(xp, t.Extra.FeeGamma, &f)
 	if err != nil {
@@ -288,14 +292,17 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 		// #                                        else the pool suffers a loss.
 		if t.Extra.FutureAGammaTime < blockTimestamp {
 			// assert virtual_price > old_virtual_price, "Loss"
-			if virtual_price.Cmp(old_virtual_price) <= 0 {
+			// v3 only asserts virtual_price >= old (non-strict)
+			if c := virtual_price.Cmp(old_virtual_price); c < 0 || (c == 0 && !t.isV3()) {
 				return ErrLoss
 			}
 		}
 	}
 
 	// # ------------ Rebalance liquidity if there's enough profits to adjust it:
-	if number.SafeSub(number.SafeMul(virtual_price, number.Number_2), U_1e18).Cmp(
+	// v3 rebalancing (lp_xcp_profit, donations, policy price_scale target) is not modeled: it only
+	// moves price_scale after the swap, never the swap's own output.
+	if !t.isV3() && number.SafeSub(number.SafeMul(virtual_price, number.Number_2), U_1e18).Cmp(
 		number.SafeAdd(xcp_profit, number.SafeMul(number.Number_2, t.Extra.AllowedExtraProfit))) > 0 {
 		// # ------------------- Get adjustment step ----------------------------
 
