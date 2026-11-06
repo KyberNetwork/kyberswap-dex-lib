@@ -13,6 +13,8 @@ var (
 	ErrSqrtPriceChangeOutOfBounds = errors.New("sqrt price change out of bounds")
 	ErrTokenReservesOverflow      = errors.New("token reserves overflow")
 	ErrTokenReservesUnderflow     = errors.New("token reserves underflow")
+	ErrUnsupportedLiquidityState  = errors.New("unsupported liquidity state or limit exceeded")
+	ErrUnsupportedDynamicFee      = errors.New("unsupported dynamic fee")
 	ErrUnsupportedController      = errors.New("unsupported controller")
 	ErrV3TicksEmpty               = errors.New("v3 ticks is empty")
 )
