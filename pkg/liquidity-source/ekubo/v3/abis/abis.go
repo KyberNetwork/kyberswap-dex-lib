@@ -16,6 +16,7 @@ var (
 	BoostedFeesDataFetcherABI abi.ABI
 	Ve33ABI                   abi.ABI
 	Ve33DataFetcherABI        abi.ABI
+	ZeroSeedLaunchABI         abi.ABI
 
 	OrderUpdatedEvent      abi.Event
 	PositionUpdatedEvent   abi.Event
@@ -38,6 +39,7 @@ func init() {
 		{&BoostedFeesDataFetcherABI, boostedFeesDataFetcherJson},
 		{&Ve33ABI, ve33Json},
 		{&Ve33DataFetcherABI, ve33DataFetcherJson},
+		{&ZeroSeedLaunchABI, zeroSeedLaunchJSON},
 	}
 
 	for _, b := range builder {

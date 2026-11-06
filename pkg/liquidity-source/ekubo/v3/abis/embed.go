@@ -3,6 +3,9 @@ package abis
 import _ "embed"
 
 var (
+	//go:embed ZeroSeedLaunch.json
+	zeroSeedLaunchJSON []byte
+
 	//go:embed Core.json
 	coreJson []byte
 
