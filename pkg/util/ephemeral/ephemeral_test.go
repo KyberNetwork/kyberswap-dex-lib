@@ -132,8 +132,8 @@ func TestCall(t *testing.T) {
 		"arguments that do not fit the constructor")
 }
 
-// TestCallAsksASmallerPageOfARefusedResponse: a lens pages by gas, and the KyberSwap gateway
-// refuses a large response, each chain in its own way. A call so refused is made again with half
+// TestCallAsksASmallerPageOfARefusedResponse: a lens pages by gas, and a node or a proxy in front
+// of it refuses a large response, each in its own way. A call so refused is made again with half
 // the gas, for a smaller page, down to the least gas a lens makes progress with.
 func TestCallAsksASmallerPageOfARefusedResponse(t *testing.T) {
 	ctx := t.Context()
@@ -163,9 +163,9 @@ func TestCallAsksASmallerPageOfARefusedResponse(t *testing.T) {
 
 	refuseAbove = 30_000_000
 	for _, refusal = range []error{
-		// 2 MB of revert data on Base, and on most chains.
+		// A proxy, for 2 MB of revert data.
 		rpc.HTTPError{StatusCode: http.StatusBadGateway, Status: "502 Bad Gateway"},
-		// 1.5 MB on Unichain, from the gateway's upstream there.
+		// Another proxy, for 1.5 MB.
 		rpc.HTTPError{StatusCode: http.StatusUnauthorized, Status: "401 Unauthorized",
 			Body: []byte(`{"error":"UNAUTHORIZED"}`)},
 		// A body past 1 MiB on HyperEVM, its data no revert data.
