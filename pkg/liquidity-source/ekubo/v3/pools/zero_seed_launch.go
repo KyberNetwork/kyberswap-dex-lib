@@ -77,7 +77,7 @@ func (p *ZeroSeedLaunchPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting
 		limitTick = p.launch.TickUpper
 	}
 	limit := ekubomath.ToSqrtRatio(limitTick)
-	quote, err := p.ConcentratedPool.quoteWithLimit(amount, isToken1, limit)
+	quote, err := p.quoteWithLimit(amount, isToken1, limit)
 	if err != nil {
 		return nil, err
 	}
