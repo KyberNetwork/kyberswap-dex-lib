@@ -156,3 +156,8 @@ func TestCalcAmountIn(t *testing.T) {
 }
 
 var big1 = big.NewInt(1)
+
+// onchain-price-service derives its sell pool types from CanCalcAmountIn.
+func TestRegisteredAsExactOut(t *testing.T) {
+	assert.Contains(t, poolPkg.CanCalcAmountIn, DexType)
+}
