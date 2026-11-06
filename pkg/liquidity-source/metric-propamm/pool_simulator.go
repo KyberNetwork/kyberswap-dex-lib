@@ -112,26 +112,21 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
 		s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 
-		zeroToOne := indexIn == 0
-		if zeroToOne {
-			s.extra.Bids = lo.Filter(s.extra.Bids, func(bin Bin, _ int) bool {
-				return bin.CumulativeVolume.Cmp(params.TokenAmountOut.Amount) <= 0
-			})
-
-			s.extra.Bids = lo.Map(s.extra.Bids, func(bin Bin, _ int) Bin {
-				bin.CumulativeVolume.Sub(bin.CumulativeVolume, params.TokenAmountOut.Amount)
-				return bin
-			})
-		} else {
-			s.extra.Asks = lo.Filter(s.extra.Asks, func(bin Bin, _ int) bool {
-				return bin.CumulativeVolume.Cmp(params.TokenAmountOut.Amount) <= 0
-			})
-
-			s.extra.Asks = lo.Map(s.extra.Asks, func(bin Bin, _ int) Bin {
-				bin.CumulativeVolume.Sub(bin.CumulativeVolume, params.TokenAmountOut.Amount)
-				return bin
-			})
+		bins := &s.extra.Asks
+		if indexIn == 0 {
+			bins = &s.extra.Bids
 		}
+		// Drop fully consumed bins; shift the rest so cumulative values restart after this swap.
+		*bins = lo.FilterMap(*bins, func(bin Bin, _ int) (Bin, bool) {
+			if bin.CumulativeVolume.Cmp(params.TokenAmountOut.Amount) <= 0 {
+				return bin, false
+			}
+			bin.CumulativeVolume = new(big.Int).Sub(bin.CumulativeVolume, params.TokenAmountOut.Amount)
+			if bin.CumulativeInput != nil {
+				bin.CumulativeInput = new(big.Int).Sub(bin.CumulativeInput, params.TokenAmountIn.Amount)
+			}
+			return bin, true
+		})
 	}
 }
 
@@ -166,7 +161,16 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return &cloned
 }
 
+// getRate walks the depth per Metric's "Estimate a fill from depth". Pools stored without
+// cumulative input (before it was tracked) use the legacy price-averaging estimate.
 func (s *PoolSimulator) getRate(zeroToOne bool, amountIn *big.Int) (*big.Int, error) {
+	if bins := lo.Ternary(zeroToOne, s.extra.Bids, s.extra.Asks); len(bins) > 0 && bins[0].CumulativeInput != nil {
+		return s.walkDepth(!zeroToOne, bins, amountIn)
+	}
+	return s.getRateLegacy(zeroToOne, amountIn)
+}
+
+func (s *PoolSimulator) getRateLegacy(zeroToOne bool, amountIn *big.Int) (*big.Int, error) {
 	var currentPrice big.Int
 	currentPrice.Set(lo.Ternary(zeroToOne, s.extra.InitBid, s.extra.InitAsk))
 
