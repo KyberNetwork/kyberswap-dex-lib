@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -63,13 +64,24 @@ func (e *RevertError) Error() string {
 // An error the node returns without revert data, such as a rate limit or a pruned block, is
 // returned as it is: the call never ran.
 func Call(ctx context.Context, c Caller, contract *Contract, out any, gas uint64, block *big.Int, args ...any) error {
-	gas = callGas(ctx, c, gas)
+	var settled atomic.Uint64
+	settled.Store(callGas(ctx, c, gas))
+	return callSettled(ctx, c, contract, out, &settled, block, args...)
+}
+
+// callSettled is Call with the gas the calls of one read share: a call refused for its size halves
+// it for the calls after it too, so a read of many pages is refused once for each size, not on every
+// page.
+func callSettled(ctx context.Context, c Caller, contract *Contract, out any, settled *atomic.Uint64,
+	block *big.Int, args ...any) error {
 	for {
+		gas := settled.Load()
 		err := callOnce(ctx, c, contract, out, gas, block, args...)
 		if !refusedForSize(err) || gas/2 < minPageGas {
 			return err
 		}
-		gas /= 2
+		// Calls in flight refused at the same gas halve it once.
+		settled.CompareAndSwap(gas, gas/2)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"slices"
+	"sync/atomic"
 )
 
 // Tick is an initialized tick as tick-based contracts return it.
@@ -100,10 +101,13 @@ func ReadTicks(ctx context.Context, c Node, contract *Contract, gas uint64,
 		return nil, err
 	}
 	var p TickPool
+	// The pages share the gas a refusal for size settles on.
+	var settled atomic.Uint64
+	settled.Store(callGas(ctx, c, gas))
 	read, ticks, err := ScanWords(ctx, lower, upper, pin,
 		func(ctx context.Context, from, to int16, block *big.Int) (Page[int16], []Tick, error) {
 			var out TickSnapshot
-			if err := Call(ctx, c, contract, &out, gas, block,
+			if err := callSettled(ctx, c, contract, &out, &settled, block,
 				append(slices.Clip(args), from, to)...); err != nil {
 				return Page[int16]{}, nil, err
 			}
