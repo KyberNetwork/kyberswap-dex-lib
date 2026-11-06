@@ -68,7 +68,9 @@ func (d *PoolTracker) getNewPoolState(
 		blockNumber: p.BlockNumber,
 	}
 
-	needRpcCall := len(params.Logs) == 0
+	// Launch fees use the refresh block's timestamp even when there are no
+	// launch-specific events. Refresh state and schedule together at one block.
+	needRpcCall := len(params.Logs) == 0 || staticExtra.ExtensionType == ExtensionTypeZeroSeedLaunch
 	if !needRpcCall {
 		if err := d.applyLogs(params, poolWithBlockNumber); err != nil {
 			lg.Errorf("apply log failed, falling back to RPC, error: %v", err)
@@ -226,5 +228,8 @@ func (d *PoolTracker) forceUpdateState(
 		return nil, fmt.Errorf("fetching pool state: %w", err)
 	}
 
+	if len(pools) != 1 {
+		return nil, fmt.Errorf("expected one refreshed pool, got %d", len(pools))
+	}
 	return &pools[0].PoolWithBlockNumber, nil
 }

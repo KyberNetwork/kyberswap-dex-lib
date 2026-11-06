@@ -190,3 +190,18 @@ func TestSmallDenominatorLargeNumerator(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, big256.New("226854911280625642308916404954512140970"), res)
 }
+
+func TestMulDivOverflowDetectsOverflow(t *testing.T) {
+	t.Parallel()
+
+	maxUint := new(uint256.Int).SetAllOne()
+	for _, roundUp := range []bool{false, true} {
+		_, err := MulDivOverflow(maxUint, uint256.NewInt(2), uint256.NewInt(1), roundUp)
+		require.ErrorIs(t, err, ErrMulDivOverflow)
+		result, err := MulDivOverflow(maxUint, uint256.NewInt(2), uint256.NewInt(2), roundUp)
+		require.NoError(t, err)
+		require.Equal(t, maxUint, result)
+	}
+	_, err := MulDivOverflow(maxUint, maxUint, maxUint, true)
+	require.NoError(t, err)
+}

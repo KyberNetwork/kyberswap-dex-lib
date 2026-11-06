@@ -1,17 +1,25 @@
 package math
 
 import (
+	"github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func MulDivOverflow(x, y, d *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	if d.IsZero() {
 		return nil, ErrDivZero
 	}
-	return lo.Ternary(roundUp, big256.MulDivUp, big256.MulDivDown)(new(uint256.Int), x, y, d), nil
+
+	var result uint256.Int
+	if roundUp {
+		if err := utils.MulDivRoundingUpV2(x, y, d, &result); err != nil {
+			return nil, ErrMulDivOverflow
+		}
+	} else if _, overflow := result.MulDivOverflow(x, y, d); overflow {
+		return nil, ErrMulDivOverflow
+	}
+
+	return &result, nil
 }
 
 func div(x, y *uint256.Int, roundUp bool) (*uint256.Int, error) {

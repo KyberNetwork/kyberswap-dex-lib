@@ -19,6 +19,7 @@ type Config struct {
 	BoostedFeesDataFetcher  string               `json:"boostedFeesDataFetcher"`
 	Ve33                    common.Address       `json:"ve33"`
 	Ve33DataFetcher         string               `json:"ve33DataFetcher"`
+	ZeroSeedLaunch          common.Address       `json:"zeroSeedLaunch"`
 
 	supportedExtensions map[common.Address]ExtensionType
 }
@@ -26,6 +27,14 @@ type Config struct {
 type TwammConfig struct {
 	V1 TwammDeployment `json:"v1"`
 	V2 TwammDeployment `json:"v2"`
+}
+
+// Only this deployment uses the final packed-metadata/tick-rate ABI. Earlier
+// launch addresses must keep their own matching decoder and fee model.
+var zeroSeedLaunchRobinhood = common.HexToAddress("0x517621Ea1bf51F31826819b118fa4dfEb4D198D2")
+
+func (c *Config) supportsZeroSeedLaunch() bool {
+	return c.ChainId == valueobject.ChainIDRobinhood && c.ZeroSeedLaunch == zeroSeedLaunchRobinhood
 }
 
 type TwammDeployment struct {
@@ -80,6 +89,9 @@ func (c *Config) ExtensionType(extension common.Address) ExtensionType {
 		}
 		if c.Ve33 != (common.Address{}) {
 			c.supportedExtensions[c.Ve33] = ExtensionTypeVe33
+		}
+		if c.supportsZeroSeedLaunch() {
+			c.supportedExtensions[c.ZeroSeedLaunch] = ExtensionTypeZeroSeedLaunch
 		}
 	}
 

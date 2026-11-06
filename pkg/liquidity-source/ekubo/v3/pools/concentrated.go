@@ -235,14 +235,17 @@ func (p *ConcentratedPool) SetSwapState(state any) {
 }
 
 func (p *ConcentratedPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
+	limit := lo.Ternary(ekubomath.IsPriceIncreasing(amount, isToken1), ekubomath.MaxSqrtRatio, ekubomath.MinSqrtRatio)
+	return p.quoteWithLimit(amount, isToken1, limit)
+}
+
+func (p *ConcentratedPool) quoteWithLimit(amount *uint256.Int, isToken1 bool, sqrtRatioLimit *uint256.Int) (*quoting.Quote, error) {
 	var liquidity uint256.Int
 	sqrtRatio := p.SqrtRatio.Clone()
 	liquidity.Set(p.Liquidity)
 	activeTickIndex := p.ActiveTickIndex
 
 	isIncreasing := ekubomath.IsPriceIncreasing(amount, isToken1)
-
-	sqrtRatioLimit := lo.Ternary(isIncreasing, ekubomath.MaxSqrtRatio, ekubomath.MinSqrtRatio)
 
 	var calculatedAmount, feesPaid, amountRemaining, tmp uint256.Int
 	var initializedTicksCrossed uint32 = 0

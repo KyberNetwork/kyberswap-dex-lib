@@ -1,0 +1,232 @@
+{
+  "source": "https://github.com/EkuboProtocol/evm-contracts/blob/1d74ed414a5a91100440b128ef07fbe15acf37a5/test/vectors/zero-seed-launch.json",
+  "create": [
+    {
+      "order": "t0",
+      "dec": "18/18",
+      "ask": "-13815500",
+      "upper": "-9210300",
+      "spacing": "17990",
+      "alignedAsk": "-13798330",
+      "alignedUpper": "-9210880",
+      "requested": "1000000000000000000000000000",
+      "installed": "999999999999999999999999508",
+      "liquidity": "1121810267768648385524834",
+      "tickLower": "-13798330",
+      "tickUpper": "-9210880",
+      "initialTick": "-13798330",
+      "withdrawable": "999999999999999999999999507"
+    },
+    {
+      "order": "t0",
+      "dec": "18/6",
+      "ask": "-41446500",
+      "upper": "-36841300",
+      "spacing": "17990",
+      "alignedAsk": "-41430970",
+      "alignedUpper": "-36843520",
+      "requested": "1000000000000000000000000000",
+      "installed": "999999999999999999488107389",
+      "liquidity": "1120910338181752946",
+      "tickLower": "-41430970",
+      "tickUpper": "-36843520",
+      "initialTick": "-41430970",
+      "withdrawable": "999999999999999999488107388"
+    },
+    {
+      "order": "t1",
+      "dec": "18/18",
+      "ask": "-13815500",
+      "upper": "-9210300",
+      "spacing": "17990",
+      "alignedAsk": "-13798330",
+      "alignedUpper": "-9210880",
+      "requested": "1000000000000000000000000000",
+      "installed": "999999999999999999999999559",
+      "liquidity": "1121810267768648385525007",
+      "tickLower": "9210880",
+      "tickUpper": "13798330",
+      "initialTick": "13798330",
+      "withdrawable": "999999999999999999999999558"
+    },
+    {
+      "order": "t1",
+      "dec": "18/6",
+      "ask": "-41446500",
+      "upper": "-36841300",
+      "spacing": "17990",
+      "alignedAsk": "-41430970",
+      "alignedUpper": "-36843520",
+      "requested": "1000000000000000000000000000",
+      "installed": "999999999999999999449009087",
+      "liquidity": "1120910338181752946",
+      "tickLower": "36843520",
+      "tickUpper": "41430970",
+      "initialTick": "41430970",
+      "withdrawable": "999999999999999999449009086"
+    }
+  ],
+  "trade": [
+    {
+      "order": "t0",
+      "dec": "18/18",
+      "quoteIn": "1000000000000000000",
+      "gross": "982091443427432213916824",
+      "fee": "49104572171371610653250",
+      "net": "932986871256060603263574",
+      "decimals": "18/18",
+      "step": "buyExactIn"
+    },
+    {
+      "order": "t0",
+      "dec": "18/18",
+      "tokenOut": "932986871256060603263574",
+      "calcQuote": "951638594087469002",
+      "fee": "50086241794077316",
+      "paid": "1001724835881546318",
+      "decimals": "18/18",
+      "step": "buyExactOut"
+    },
+    {
+      "order": "t0",
+      "dec": "18/18",
+      "tokenIn": "932986871256060603263574",
+      "quoteOut": "904056664383095550",
+      "decimals": "18/18",
+      "step": "sellExactIn"
+    },
+    {
+      "order": "t0",
+      "dec": "18/6",
+      "quoteIn": "1000000",
+      "gross": "983667637211529436923507",
+      "fee": "49183381860576471803516",
+      "net": "934484255350952965119991",
+      "decimals": "18/6",
+      "step": "buyExactIn"
+    },
+    {
+      "order": "t0",
+      "dec": "18/6",
+      "tokenOut": "934484255350952965119991",
+      "calcQuote": "951642",
+      "fee": "50087",
+      "paid": "1001729",
+      "decimals": "18/6",
+      "step": "buyExactOut"
+    },
+    {
+      "order": "t0",
+      "dec": "18/6",
+      "tokenIn": "934484255350952965119991",
+      "quoteOut": "904058",
+      "decimals": "18/6",
+      "step": "sellExactIn"
+    },
+    {
+      "order": "t1",
+      "dec": "18/18",
+      "quoteIn": "1000000000000000000",
+      "gross": "982091443427432213710037",
+      "fee": "49104572171371610642911",
+      "net": "932986871256060603067126",
+      "decimals": "18/18",
+      "step": "buyExactIn"
+    },
+    {
+      "order": "t1",
+      "dec": "18/18",
+      "tokenOut": "932986871256060603067126",
+      "calcQuote": "951638594087469001",
+      "fee": "50086241794077316",
+      "paid": "1001724835881546317",
+      "decimals": "18/18",
+      "step": "buyExactOut"
+    },
+    {
+      "order": "t1",
+      "dec": "18/18",
+      "tokenIn": "932986871256060603067126",
+      "quoteOut": "904056664383095550",
+      "decimals": "18/18",
+      "step": "sellExactIn"
+    },
+    {
+      "order": "t1",
+      "dec": "18/6",
+      "quoteIn": "1000000",
+      "gross": "983667120985587257409989",
+      "fee": "49183356049279362827840",
+      "net": "934483764936307894582149",
+      "decimals": "18/6",
+      "step": "buyExactIn"
+    },
+    {
+      "order": "t1",
+      "dec": "18/6",
+      "tokenOut": "934483764936307894582149",
+      "calcQuote": "951641",
+      "fee": "50087",
+      "paid": "1001728",
+      "decimals": "18/6",
+      "step": "buyExactOut"
+    },
+    {
+      "order": "t1",
+      "dec": "18/6",
+      "tokenIn": "934483764936307894582149",
+      "quoteOut": "904058",
+      "decimals": "18/6",
+      "step": "sellExactIn"
+    }
+  ],
+  "fee_curve": {
+    "digests_sha256": [
+      {
+        "label": "default 50% -> 0.3%, every second 0..3600",
+        "initialFee": "9223372036854775808",
+        "finalFee": "55340232221128654",
+        "decayRateX32": "68913100933",
+        "last": 3600,
+        "step": 1,
+        "digest": "c3de4d91d476acc61f73455efe7fb8c750b89de3759a0c500bbde0bdf9bcd062"
+      },
+      {
+        "label": "default 50% -> 0.3%, every minute 0..30 days",
+        "initialFee": "9223372036854775808",
+        "finalFee": "55340232221128654",
+        "decayRateX32": "68913100933",
+        "last": 2592000,
+        "step": 60,
+        "digest": "b2c022f5cbbc90cedca9834bcf64f636b97c45dee08c730ab4dbf17d8d5acc74"
+      },
+      {
+        "label": "600 s half-life 5% -> 0.3%, every second 0..3600",
+        "initialFee": "922337203685477580",
+        "finalFee": "55340232221128654",
+        "decayRateX32": "9923486534471",
+        "last": 3600,
+        "step": 1,
+        "digest": "c4db35cd45f48222463cb9a940c506599715162db6c37b01428331ff5263bdc6"
+      },
+      {
+        "label": "2 ticks/s 99.9% -> 0, every hour 0..30 days",
+        "initialFee": "18428297329635842064",
+        "finalFee": "0",
+        "decayRateX32": "8589934592",
+        "last": 2592000,
+        "step": 3600,
+        "digest": "8fdefff5fe4cfb98c43bbbf6ed6f0b9a0ae398f1f810ffea0522d5504e1321da"
+      },
+      {
+        "label": "1/4 tick/s max -> 0, every second 0..3600",
+        "initialFee": "18446744073709551615",
+        "finalFee": "0",
+        "decayRateX32": "1073741824",
+        "last": 3600,
+        "step": 1,
+        "digest": "11ff0a905ab22707579e714aba31b895ed3234788a0dab10b0daa0881a9ccf36"
+      }
+    ]
+  }
+}

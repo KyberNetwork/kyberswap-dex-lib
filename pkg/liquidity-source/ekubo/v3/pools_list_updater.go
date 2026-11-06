@@ -126,6 +126,9 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]pools.AnyPoolKe
 		if u.config.Ve33 != (common.Address{}) {
 			extensions = append(extensions, u.config.Ve33)
 		}
+		if u.config.supportsZeroSeedLaunch() {
+			extensions = append(extensions, u.config.ZeroSeedLaunch)
+		}
 		req.Var("extensions", extensions)
 
 		var res struct {
