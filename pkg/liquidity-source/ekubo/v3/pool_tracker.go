@@ -68,7 +68,9 @@ func (d *PoolTracker) getNewPoolState(
 		blockNumber: p.BlockNumber,
 	}
 
-	needRpcCall := len(params.Logs) == 0
+	// MEVCapture v2.1 updates its anchor state on swaps and position updates without emitting it, so its pools are
+	// refetched (Core state, ticks and anchor at one block) on any event instead of applying the events
+	needRpcCall := len(params.Logs) == 0 || staticExtra.ExtensionType == ExtensionTypeMevCaptureV21
 	if !needRpcCall {
 		if err := d.applyLogs(params, poolWithBlockNumber); err != nil {
 			lg.Errorf("apply log failed, falling back to RPC, error: %v", err)
@@ -224,6 +226,8 @@ func (d *PoolTracker) forceUpdateState(
 	)
 	if err != nil {
 		return nil, fmt.Errorf("fetching pool state: %w", err)
+	} else if len(pools) == 0 {
+		return nil, fmt.Errorf("no valid state fetched for pool %s", poolAddress)
 	}
 
 	return &pools[0].PoolWithBlockNumber, nil

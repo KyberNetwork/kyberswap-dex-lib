@@ -58,6 +58,8 @@ func (e *EventParser) DecodePoolAddressesFromFactoryLog(_ context.Context, log t
 		return e.handleBoostedFeesLog(log)
 	case e.config.Ve33:
 		return e.handleVe33Log(log)
+	case e.config.MevCaptureV21:
+		return e.handleMevCaptureV21Log(log)
 	default:
 		return nil, nil
 	}
@@ -164,6 +166,17 @@ func (e *EventParser) handleVe33Log(log types.Log) ([]string, error) {
 	}
 
 	return []string{hexutil.Encode(poolID[:])}, nil
+}
+
+// handleMevCaptureV21Log decodes AnchorGateFailed, the only event of the extension. Every other change of its pool
+// state happens in a swap or position update, which Core events already report.
+func (e *EventParser) handleMevCaptureV21Log(log types.Log) ([]string, error) {
+	if e.config.MevCaptureV21 == (common.Address{}) || len(log.Topics) < 2 ||
+		log.Topics[0] != abis.AnchorGateFailedEvent.ID {
+		return nil, nil
+	}
+
+	return []string{hexutil.Encode(log.Topics[1][:])}, nil
 }
 
 func (e *EventParser) IsEventSupported(event common.Hash) bool {

@@ -8,6 +8,7 @@ const (
 	ExtensionTypeMevCapture
 	ExtensionTypeBoostedFeesConcentrated
 	ExtensionTypeVe33
+	ExtensionTypeMevCaptureV21
 )
 
 type ExtensionType int
