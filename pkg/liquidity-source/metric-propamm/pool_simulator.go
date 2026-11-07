@@ -138,6 +138,13 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	}
 }
 
+func cloneBig(x *big.Int) *big.Int {
+	if x == nil {
+		return nil
+	}
+	return new(big.Int).Set(x)
+}
+
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
@@ -147,6 +154,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 			BinIdx:           ask.BinIdx,
 			Price:            ask.Price,
 			CumulativeVolume: new(big.Int).Set(ask.CumulativeVolume),
+			CumulativeInput:  cloneBig(ask.CumulativeInput),
 		}
 	}
 
@@ -156,6 +164,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 			BinIdx:           bid.BinIdx,
 			Price:            bid.Price,
 			CumulativeVolume: new(big.Int).Set(bid.CumulativeVolume),
+			CumulativeInput:  cloneBig(bid.CumulativeInput),
 		}
 	}
 	return &cloned

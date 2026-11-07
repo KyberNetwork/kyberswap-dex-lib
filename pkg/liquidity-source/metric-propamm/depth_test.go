@@ -91,3 +91,13 @@ func TestDepthInsufficientAndUpdateBalance(t *testing.T) {
 	require.Equal(t, "2000", s.extra.Bids[0].CumulativeVolume.String())
 	require.Equal(t, "1000", s.extra.Bids[0].CumulativeInput.String())
 }
+
+func TestCloneStateKeepsCumulativeInput(t *testing.T) {
+	s := &PoolSimulator{}
+	s.extra.Asks = []Bin{{CumulativeVolume: big.NewInt(1), CumulativeInput: big.NewInt(2)}}
+	s.extra.Bids = []Bin{{CumulativeVolume: big.NewInt(3), CumulativeInput: big.NewInt(4)}}
+	c := s.CloneState().(*PoolSimulator)
+	require.Equal(t, "2", c.extra.Asks[0].CumulativeInput.String())
+	require.Equal(t, "4", c.extra.Bids[0].CumulativeInput.String())
+	require.NotSame(t, s.extra.Asks[0].CumulativeInput, c.extra.Asks[0].CumulativeInput)
+}
