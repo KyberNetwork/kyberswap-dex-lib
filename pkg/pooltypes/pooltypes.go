@@ -169,6 +169,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	rangev3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/range/weighted"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/range/weighted/lazy"
+	rateob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rate-ob"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap/lazy"
@@ -537,6 +538,7 @@ type Types struct {
 	BTRProp                    string
 	KuruOB                     string
 	KuruOBV2                   string
+	RateOB                     string
 }
 
 var (
@@ -810,5 +812,6 @@ var (
 		BTRProp:                    btrprop.DexType,
 		KuruOB:                     kuruob.DexType,
 		KuruOBV2:                   kuruobv2.DexType,
+		RateOB:                     rateob.DexType,
 	}
 )
