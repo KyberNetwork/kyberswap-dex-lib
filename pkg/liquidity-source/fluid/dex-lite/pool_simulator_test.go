@@ -113,6 +113,41 @@ func TestPoolSimulatorEdgeCases(t *testing.T) {
 	})
 }
 
+func TestExternalCenterPriceWithoutShift(t *testing.T) {
+	// nonce=1 at bits 63-81 → external source configured, shift bit off
+	mockDexVariables := uint256.NewInt(0)
+	mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(uint256.NewInt(1), 63))    // center price contract nonce
+	mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(uint256.NewInt(1e12), 23)) // stale packed center price
+
+	dexVars := unpackDexVariables(mockDexVariables)
+	require.NotNil(t, dexVars)
+	require.False(t, dexVars.CenterPriceShiftActive)
+	require.False(t, dexVars.CenterPriceContractAddress.IsZero())
+
+	poolSim := &PoolSimulator{
+		DexVars:   dexVars,
+		PoolState: PoolState{NewCenterPrice: big256.TenPow(27)},
+	}
+
+	centerPrice, _, err := poolSim.getPricesAndReservesWithState(dexVars)
+	require.NoError(t, err)
+	require.Equal(t, big256.TenPow(27), centerPrice)
+
+	// Control: no external source → packed (decompressed) price used
+	packedDexVariables := uint256.NewInt(0)
+	packedDexVariables.Or(packedDexVariables, new(uint256.Int).Lsh(uint256.NewInt(1e12), 23))
+	packedDexVars := unpackDexVariables(packedDexVariables)
+	require.True(t, packedDexVars.CenterPriceContractAddress.IsZero())
+
+	packedSim := &PoolSimulator{
+		DexVars:   packedDexVars,
+		PoolState: PoolState{NewCenterPrice: big256.TenPow(27)},
+	}
+	packedCenterPrice, _, err := packedSim.getPricesAndReservesWithState(packedDexVars)
+	require.NoError(t, err)
+	require.Equal(t, expandCenterPrice(packedDexVars.CenterPrice), packedCenterPrice)
+}
+
 func TestMathFunctions(t *testing.T) {
 	// Create a properly packed dexVariables for testing
 	// Pack: fee=100, revenueCut=10, rebalancing=1, centerPrice=1e27, token0Supply=1000000, token1Supply=1000000
@@ -142,8 +177,8 @@ func TestMathFunctions(t *testing.T) {
 		// Rebalancing status (1) at bits 20-21
 		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(uint256.NewInt(1), 20))
 
-		// Center price (1e27 compressed) at bits 23-62
-		centerPriceCompressed := uint256.NewInt(1e18) // Simplified for testing
+		// Center price (1e12 compressed) at bits 23-62
+		centerPriceCompressed := uint256.NewInt(1e12) // Simplified for testing
 		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(centerPriceCompressed, 23))
 
 		// Token supplies at bits 136-196

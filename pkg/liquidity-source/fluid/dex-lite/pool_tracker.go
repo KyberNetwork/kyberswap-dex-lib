@@ -61,7 +61,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	poolState, blockNumber, err := t.getPoolStateByDexId(ctx, staticExtra.DexId, overrides)
+	poolState, blockNumber, err := t.getPoolStateByDexId(ctx, staticExtra.DexId, staticExtra.DexKey, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -161,6 +161,7 @@ func adjustFromInternalDecimals(amount *uint256.Int, tokenDecimals uint8) *uint2
 func (t *PoolTracker) getPoolStateByDexId(
 	ctx context.Context,
 	dexId DexId,
+	dexKey DexKey,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*PoolState, uint64, error) {
 	var poolStateSlots [3]*big.Int
@@ -193,14 +194,14 @@ func (t *PoolTracker) getPoolStateByDexId(
 		DexVariables:     uint256.MustFromBig(poolStateSlots[0]),
 		CenterPriceShift: uint256.MustFromBig(poolStateSlots[1]),
 		RangeShift:       uint256.MustFromBig(poolStateSlots[2]),
-		NewCenterPrice:   big256.U0,
+		NewCenterPrice:   new(uint256.Int),
 	}
 
 	centerPriceContractAddress := rshAnd(poolState.DexVariables, BitPosCenterPriceContractAddress, X19)
 	if !centerPriceContractAddress.IsZero() {
-		centerPrice, err := t.getCenterPrice(ctx, centerPriceContractAddress.Uint64(), overrides)
+		centerPrice, err := t.getCenterPrice(ctx, centerPriceContractAddress.Uint64(), dexKey, resp.BlockNumber, overrides)
 		if err != nil {
-			return poolState, resp.BlockNumber.Uint64(), nil
+			return nil, 0, err
 		}
 		poolState.NewCenterPrice = centerPrice
 	}
@@ -209,20 +210,25 @@ func (t *PoolTracker) getPoolStateByDexId(
 }
 
 func (t *PoolTracker) getCenterPrice(ctx context.Context, centerPriceContractAddressNonce uint64,
-	overrides map[common.Address]gethclient.OverrideAccount) (*uint256.Int, error) {
+	dexKey DexKey, blockNumber *big.Int, overrides map[common.Address]gethclient.OverrideAccount) (*uint256.Int, error) {
 	var expandedCenterPrice *big.Int
 	centerPriceSource := crypto.CreateAddress(t.config.DeployerAddress, centerPriceContractAddressNonce)
-	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
+	if blockNumber != nil && blockNumber.Sign() > 0 {
+		req.SetBlockNumber(blockNumber)
+	}
+	if _, err := req.AddCall(&ethrpc.Call{
 		ABI:    centerPriceABI,
 		Target: hexutil.Encode(centerPriceSource[:]),
 		Method: CenterPriceMethodCenterPrice,
+		Params: []any{dexKey.Token0, dexKey.Token1},
 	}, []any{&expandedCenterPrice}).Call(); err != nil {
 		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("failed to get center price")
 		return nil, err
 	}
 
-	centerPrice, ok := uint256.FromBig(expandedCenterPrice)
-	if !ok {
+	centerPrice, overflow := uint256.FromBig(expandedCenterPrice)
+	if overflow {
 		return nil, ErrCenterPriceOverflow
 	}
 

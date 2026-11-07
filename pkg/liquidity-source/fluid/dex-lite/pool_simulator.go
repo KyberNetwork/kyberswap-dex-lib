@@ -398,6 +398,11 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 	var centerPrice *uint256.Int
 	if dexVars.CenterPriceShiftActive {
 		centerPrice = s.calcCenterPrice(&s.PoolState, dexVars, blockTimestamp)
+	} else if !dexVars.CenterPriceContractAddress.IsZero() {
+		// External center price source configured: on-chain contract fetches a fresh
+		// external price on every quote, so mirror the tracker-refreshed value instead
+		// of the (possibly stale) packed center price.
+		centerPrice = s.PoolState.NewCenterPrice
 	} else { // Extract center price with exponential encoding (static price only)
 		centerPrice = expandCenterPrice(dexVars.CenterPrice)
 	}
