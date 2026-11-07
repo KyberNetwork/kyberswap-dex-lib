@@ -83,6 +83,30 @@ type IPoolExactOutSimulator interface {
 	CalcAmountIn(param CalcAmountInParams) (*CalcAmountInResult, error)
 }
 
+// IAmountInRange is implemented by pools that can state the range of amountIn they will quote for
+// a direction, without being asked to quote one.
+//
+// A router that samples a pool at a fixed size cannot tell a refusal caused by price from one
+// caused by capacity: an RFQ ladder, a concentrated-liquidity range and an inventory are all
+// priced normally right up to a hard limit and then simply unavailable. Knowing the range lets the
+// caller sample inside it instead of discarding the pool, and lets it bound how much it allocates.
+//
+// Both bounds are optional and a nil bound means unbounded on that side. Both are needed: a
+// maximum alone cannot express a pool that refuses sizes below a minimum, nor one whose window
+// excludes the size the caller would otherwise have tried.
+//
+// Implementations must not understate the range. A caller can detect an overstated bound -- it
+// samples inside the range and gets refused -- but an understated one silently narrows what the
+// caller will consider, with nothing to reveal it. When in doubt, return ErrUnsupported rather
+// than a guess; a caller that gets no range falls back to its own sampling.
+//
+// limit carries the same inventory as CalcAmountOut, for pools whose capacity depends on it.
+type IAmountInRange interface {
+	// AmountInRange returns the smallest and largest amountIn this pool would quote for
+	// tokenIn->tokenOut, or ErrUnsupported if it cannot say.
+	AmountInRange(tokenIn, tokenOut string, limit SwapLimit) (minIn, maxIn *big.Int, err error)
+}
+
 type IMetaPoolSimulator interface {
 	IPoolSimulator
 	GetBasePools() []IPoolSimulator      // get base pools
