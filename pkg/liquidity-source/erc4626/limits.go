@@ -62,9 +62,23 @@ func (s *PoolState) openVaultV2() bool {
 	return true
 }
 
-// ResolveLimits derives Paused and MintHeadroom from the raw reads. A configured read that failed is an error,
-// so a revert cannot pass as "not paused" or "no cap".
+// AddRedeemLimitCalls adds the optional redeem pause read of a redeem-enabled vault. Unlike AddLimitCalls it
+// does not depend on deposits being enabled.
+func AddRedeemLimitCalls(addFn func(*ethrpc.Call, []any), vaultAddr string, cfg VaultCfg, state *PoolState) {
+	if m := cfg.RedeemsPausedMethod; m != "" && cfg.Gas.Redeem > 0 {
+		addFn(&ethrpc.Call{ABI: Uint256GetterABI(m), Target: vaultAddr, Method: m}, []any{&state.RawRedeemsPaused})
+	}
+}
+
+// ResolveLimits derives Paused, RedeemsPaused and MintHeadroom from the raw reads. A configured read that failed
+// is an error, so a revert cannot pass as "not paused" or "no cap".
 func (s *PoolState) ResolveLimits(cfg VaultCfg) error {
+	if cfg.Gas.Redeem > 0 && cfg.RedeemsPausedMethod != "" {
+		if s.RawRedeemsPaused == nil {
+			return errors.Wrap(ErrReadFailed, cfg.RedeemsPausedMethod)
+		}
+		s.RedeemsPaused = s.RawRedeemsPaused.Sign() != 0
+	}
 	if cfg.Gas.Deposit == 0 {
 		return nil
 	}
@@ -84,4 +98,21 @@ func (s *PoolState) ResolveLimits(cfg VaultCfg) error {
 		}
 	}
 	return nil
+}
+
+// NormalizeState turns the raw maxDeposit / minDeposit / maxRedeem reads into the values the simulator
+// enforces. A nil limit means unbounded. Both trackers call it, so the rules stay in one place.
+func NormalizeState(cfg VaultCfg, s *PoolState) {
+	s.ResolveMaxDeposit(cfg)
+	if s.MinDeposit != nil && s.MinDeposit.Sign() == 0 {
+		s.MinDeposit = nil
+	}
+	switch {
+	case cfg.Gas.Redeem == 0: // redeem unsupported: totalSupply is read only for the deposit conversion
+		s.MaxRedeem = nil
+	case s.MaxRedeem == nil || s.MaxRedeem.Sign() == 0:
+		s.MaxRedeem = s.TotalSupply // fallback to a sensible value
+	case s.MaxRedeem.Cmp(bignumber.MaxUint128) > 0:
+		s.MaxRedeem = nil // no limit
+	}
 }

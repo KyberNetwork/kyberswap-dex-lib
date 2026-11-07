@@ -18,7 +18,6 @@ import (
 	erc4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -111,6 +110,7 @@ func UpdateEntityState(p *entity.Pool, vaultCfg erc4626.VaultCfg, state *erc4626
 		TotalAssets:  uint256.MustFromBig(state.TotalAssets),
 
 		DepositsPaused: state.Paused,
+		RedeemsPaused:  state.RedeemsPaused,
 		MintHeadroom:   mintHeadroom,
 		MaxAge:         vaultCfg.MaxAge,
 	})
@@ -146,7 +146,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	if err = poolState.ResolveLimits(vaultCfg); err != nil {
 		return assetToken, nil, err
 	}
-	normalizePoolState(vaultCfg, &poolState)
+	erc4626.NormalizeState(vaultCfg, &poolState)
 	if resp.BlockNumber != nil {
 		poolState.BlockNumber = resp.BlockNumber.Uint64()
 	}
@@ -184,25 +184,12 @@ func addStateCalls(addFn func(*ethrpc.Call, []any), vaultAddr, tokenAddr string,
 	}
 	if vaultCfg.Gas.Redeem > 0 {
 		addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodMaxRedeem, Params: []any{erc4626.AddrDummy}}, []any{&state.MaxRedeem})
+		erc4626.AddRedeemLimitCalls(addFn, vaultAddr, vaultCfg, state)
 		if !vaultCfg.SupplyReadByLimits() { // else AddLimitCalls already read it
 			addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: totalSupplyTarget, Method: erc4626.Erc4626MethodTotalSupply}, []any{&state.TotalSupply})
 		}
 		for i, amt := range erc4626.PrefetchAmounts {
 			addFn(&ethrpc.Call{ABI: erc4626.ABI, Target: vaultAddr, Method: erc4626.Erc4626MethodPreviewRedeem, Params: []any{amt.ToBig()}}, []any{&state.RedeemRates[i]})
 		}
-	}
-}
-
-func normalizePoolState(cfg erc4626.VaultCfg, state *erc4626.PoolState) {
-	state.ResolveMaxDeposit(cfg)
-	if state.MinDeposit != nil && state.MinDeposit.Sign() == 0 {
-		state.MinDeposit = nil
-	}
-	if cfg.Gas.Redeem == 0 { // redeem unsupported: totalSupply is read only for the deposit conversion
-		state.MaxRedeem = nil
-	} else if state.MaxRedeem == nil || state.MaxRedeem.Sign() == 0 {
-		state.MaxRedeem = state.TotalSupply // fallback to a sensible value
-	} else if state.MaxRedeem.Cmp(bignumber.MaxUint128) > 0 {
-		state.MaxRedeem = nil // no limit
 	}
 }

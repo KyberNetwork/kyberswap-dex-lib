@@ -31,9 +31,11 @@ type (
 		TotalAssets  *uint256.Int   `json:"tA,omitempty"`
 		// DepositsPaused is set only for vaults with DepositsPausedMethod.
 		DepositsPaused bool `json:"p,omitempty"`
+		// RedeemsPaused is set only for vaults with RedeemsPausedMethod.
+		RedeemsPaused bool `json:"rP,omitempty"`
 		// MintHeadroom is maxSupply - totalSupply, the shares still mintable; nil = no cap tracked.
 		MintHeadroom *uint256.Int `json:"mH,omitempty"`
-		// MaxAge is VaultCfg.MaxAge, 0 = no staleness check.
+		// MaxAge is VaultCfg.MaxAge, 0 = no staleness check (deposits and redeems).
 		MaxAge int64 `json:"mA,omitempty"`
 	}
 
@@ -57,11 +59,13 @@ type (
 		RawPaused, MaxSupply *big.Int
 		// Morpho VaultV2 permissions of AddrDummy, 0/1, nil if the vault has no such view.
 		CanReceiveShares, CanSendShares, CanSendAssets *big.Int
+		// Raw redeem pause read, see AddRedeemLimitCalls. Same encoding as RawPaused.
+		RawRedeemsPaused *big.Int
 		// Resolved by ResolveLimits.
-		Paused       bool
-		MintHeadroom *big.Int
-		DepositRates []*big.Int
-		RedeemRates  []*big.Int
+		Paused, RedeemsPaused bool
+		MintHeadroom          *big.Int
+		DepositRates          []*big.Int
+		RedeemRates           []*big.Int
 
 		BlockNumber uint64
 	}

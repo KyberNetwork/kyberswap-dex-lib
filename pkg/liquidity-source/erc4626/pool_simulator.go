@@ -25,7 +25,7 @@ type PoolSimulator struct {
 var _ = pool.RegisterFactory(DexType, NewPoolSimulatorFromParams)
 
 // NewPoolSimulatorFromParams is the registered factory. Without Opts.StaleCheck (indexing) MaxAge is zeroed,
-// so deposits never fail on pool age.
+// so deposits and redeems never fail on pool age.
 func NewPoolSimulatorFromParams(params pool.FactoryParams) (*PoolSimulator, error) {
 	s, err := NewPoolSimulator(params.EntityPool)
 	if err == nil && !params.Opts.StaleCheck {
@@ -87,16 +87,24 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		amountOut, err = GetClosestRate(s.DepositRates, amountIn, false)
 		if err != nil {
 			return nil, ErrInvalidDepositRate
+		} else if amountOut.IsZero() {
+			return nil, ErrZeroAmountOut
 		} else if s.MintHeadroom != nil && amountOut.Gt(s.MintHeadroom) {
 			return nil, ErrERC4626MintMoreThanMax
 		}
 	} else {
-		if s.MaxRedeem != nil && amountIn.Gt(s.MaxRedeem) {
+		if s.stale() {
+			return nil, ErrERC4626StalePoolData
+		} else if s.RedeemsPaused {
+			return nil, ErrERC4626RedeemsPaused
+		} else if s.MaxRedeem != nil && amountIn.Gt(s.MaxRedeem) {
 			return nil, ErrERC4626RedeemMoreThanMax
 		}
 		amountOut, err = GetClosestRate(s.RedeemRates, amountIn, false)
 		if err != nil {
 			return nil, ErrInvalidRedeemRate
+		} else if amountOut.IsZero() {
+			return nil, ErrZeroAmountOut
 		}
 	}
 
@@ -141,6 +149,11 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			return nil, ErrERC4626DepositLessThanMin
 		}
 	} else {
+		if s.stale() {
+			return nil, ErrERC4626StalePoolData
+		} else if s.RedeemsPaused {
+			return nil, ErrERC4626RedeemsPaused
+		}
 		amountIn, err = GetClosestRate(s.RedeemRates, amountOut, true)
 		if err != nil {
 			return nil, ErrInvalidRedeemRate
@@ -162,7 +175,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}, nil
 }
 
-// stale: the limits were last read more than MaxAge ago (off when MaxAge is 0).
+// stale: the limits and pauses were last read more than MaxAge ago (off when MaxAge is 0).
 func (s *PoolSimulator) stale() bool {
 	return s.MaxAge > 0 && s.poolTimestamp+s.MaxAge < time.Now().Unix()
 }
