@@ -111,7 +111,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	tokenInIndex := p.GetTokenIndex(param.TokenIn)
 	tokenOutIndex := p.GetTokenIndex(tokenAmountOut.Token)
 	if tokenInIndex < 0 || tokenOutIndex < 0 || tokenInIndex == tokenOutIndex {
-		return nil, fmt.Errorf("tokenInIndex: %v or tokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
+		return nil, fmt.Errorf("invalid token pair %v (index %d) -> %v (index %d)", param.TokenIn, tokenInIndex, tokenAmountOut.Token, tokenOutIndex)
 	}
 	if tokenInIndex == 1 && !p.isBidirectional {
 		return nil, ErrUnidirectional
