@@ -35,8 +35,8 @@ type (
 		// Twocrypto v3 (no allowed_extra_profit): AllowedExtraProfit is nil.
 		// Policy prices swaps through YBOraclizedPolicy.get_fee (report-aware discount).
 		Policy *PolicyState `json:",omitempty"`
-		// PolicyFee is the flat fee of an attached policy of unknown shape: pool.fee() at rest
-		// is its fallback fee, the most a swap pays. Both nil: the pool's native fee.
+		// PolicyFee is a flat fee override kept for previously stored pool data; the trackers no
+		// longer set it (an unlisted policy errors in FetchPolicy). Both nil: the pool's native fee.
 		PolicyFee *uint256.Int `json:",omitempty"`
 	}
 

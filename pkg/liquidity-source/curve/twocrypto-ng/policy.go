@@ -125,7 +125,9 @@ func FetchPolicy(
 		TryBlockAndAggregate(); err != nil {
 		return nil, err
 	}
-	if cfg.FallbackFee == nil || rep.AssetPrice == nil || snap.D == nil || cached == nil {
+	if cfg.BaseFee == nil || cfg.Capture == nil || cfg.FallbackFee == nil || cfg.RelaxTime == nil ||
+		rep.AssetPrice == nil || rep.ObservationUs == nil || snap.D == nil || snap.PriceScale == nil ||
+		snap.Xp[0] == nil || snap.Xp[1] == nil || cached == nil {
 		return nil, ErrUnsupportedPolicy
 	}
 	if killed { // get_fee returns 0: the pool's native fee

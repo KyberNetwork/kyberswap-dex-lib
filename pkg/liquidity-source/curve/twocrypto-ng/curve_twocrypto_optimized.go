@@ -29,7 +29,7 @@ func (t *PoolSimulator) feeCalc(xp []uint256.Int, fee *uint256.Int, discount boo
 		}
 		return nil
 	}
-	if t.Extra.PolicyFee != nil { // unknown policy: flat fallback fee, the most a swap pays
+	if t.Extra.PolicyFee != nil { // flat fee override (legacy stored data)
 		fee.Set(t.Extra.PolicyFee)
 		return nil
 	}
