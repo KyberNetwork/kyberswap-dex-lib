@@ -21,6 +21,10 @@ type UniV3FluidV2Pool struct {
 	protocolFeeZeroForOne *utils.Uint128
 	protocolFeeOneForZero *utils.Uint128
 	constantLpFee         *utils.Uint128
+	dynamicPacked         uint256.Int
+	dynamicVersion        bool
+	snapshotTimestamp     uint64
+	protocolCutFee        uint64
 }
 
 type SwapResult struct {
@@ -30,6 +34,11 @@ type SwapResult struct {
 	remainingAmountIn  *utils.Int256
 	currentTick        int
 	crossInitTickLoops int
+	grossOut           utils.Uint256
+	dynamicPacked      uint256.Int
+	protocolFeeOut     uint256.Int
+	lpFeeOut           uint256.Int
+	sqrtPriceReference uint256.Int
 }
 
 type StepComputations struct {
@@ -79,28 +88,48 @@ func NewUniV3FluidV2Pool(
 
 	tmp.Set(dexVariables2).Rsh(&tmp, BITS_DEX_V2_VARIABLES2_LP_FEE).And(&tmp, X16)
 	pool.constantLpFee.SetFromBig(&tmp)
+	tmp.Set(dexVariables2).Rsh(&tmp, 24).And(&tmp, big.NewInt(63))
+	pool.protocolCutFee = tmp.Uint64()
 
 	return pool, nil
 }
 
+type fluidAmountResult struct {
+	v3Entities.GetAmountResultV2
+	grossOut           utils.Uint256
+	dynamicPacked      uint256.Int
+	protocolFeeOut     uint256.Int
+	lpFeeOut           uint256.Int
+	sqrtPriceReference uint256.Int
+}
+
 func (p *UniV3FluidV2Pool) GetOutputAmountV2(inputAmount *utils.Int256, zeroForOne bool,
-	sqrtPriceLimitX96 *utils.Uint160) (*v3Entities.GetAmountResultV2, error) {
+	sqrtPriceLimitX96 *utils.Uint160) (*fluidAmountResult, error) {
 	swapResult, err := p.swap(zeroForOne, inputAmount, sqrtPriceLimitX96)
 	if err != nil {
 		return nil, err
 	}
-	return &v3Entities.GetAmountResultV2{
-		ReturnedAmount:     new(utils.Int256).Neg(swapResult.amountCalculated),
-		RemainingAmountIn:  new(utils.Int256).Set(swapResult.remainingAmountIn),
-		SqrtRatioX96:       swapResult.sqrtRatioX96,
-		Liquidity:          swapResult.liquidity,
-		CurrentTick:        swapResult.currentTick,
-		CrossInitTickLoops: swapResult.crossInitTickLoops,
-	}, nil
+	return &fluidAmountResult{
+		sqrtPriceReference: swapResult.sqrtPriceReference,
+		grossOut:           swapResult.grossOut,
+		dynamicPacked:      swapResult.dynamicPacked,
+		protocolFeeOut:     swapResult.protocolFeeOut,
+		lpFeeOut:           swapResult.lpFeeOut,
+		GetAmountResultV2: v3Entities.GetAmountResultV2{
+			ReturnedAmount:     new(utils.Int256).Neg(swapResult.amountCalculated),
+			RemainingAmountIn:  new(utils.Int256).Set(swapResult.remainingAmountIn),
+			SqrtRatioX96:       swapResult.sqrtRatioX96,
+			Liquidity:          swapResult.liquidity,
+			CurrentTick:        swapResult.currentTick,
+			CrossInitTickLoops: swapResult.crossInitTickLoops,
+		}}, nil
 }
 
 func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 	sqrtPriceLimitX96 *utils.Uint160) (*SwapResult, error) {
+	if amountSpecified.Sign() <= 0 {
+		return nil, ErrAmountOutOfLimits
+	}
 	var err error
 	if sqrtPriceLimitX96 == nil {
 		if zeroForOne {
@@ -126,7 +155,9 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 		}
 	}
 
-	exactInput := amountSpecified.Sign() >= 0
+	var sqrtPriceReference uint256.Int
+	sqrtPriceReference.Set(p.SqrtRatioX96)
+	referenceChanged := false
 
 	// keep track of swap state
 
@@ -147,10 +178,19 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 	// crossInitTickLoops is the number of loops that cross an initialized tick.
 	// We only count when tick passes an initialized tick, since gas only significant in this case.
 	crossInitTickLoops := 0
+	var grossOut, protocolFeeOut, lpFeeOut utils.Uint256
+	var dynamic dynamicFeeState
+	if p.dynamicVersion {
+		dynamic, err = prepareDynamicFee(&p.dynamicPacked, state.sqrtPriceX96, zeroForOne, p.snapshotTimestamp)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// start swap while loop
 	for !state.amountSpecifiedRemaining.IsZero() && state.sqrtPriceX96.Cmp(sqrtPriceLimitX96) != 0 {
 		var step StepComputations
+		lpFeeBefore := lpFeeOut
 		step.sqrtPriceStartX96.Set(state.sqrtPriceX96)
 
 		// because each iteration of the while loop rounds, we can't optimize this code (relative to the smart contract)
@@ -161,7 +201,7 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 			return nil, err
 		}
 
-		if step.tickNext < MIN_TICK || step.tickNext > MAX_TICK {
+		if step.tickNext <= MIN_TICK || step.tickNext >= MAX_TICK {
 			return nil, ErrNextTickOutOfBounds
 		}
 
@@ -175,39 +215,75 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 			state.sqrtPriceX96.Set(&step.sqrtPriceNextX96)
 		}
 
-		var nxtSqrtPriceX96 utils.Uint160
-		// TODO: support _computeSwapStepForSwapInWithDynamicFee
-		err = utils.ComputeSwapStep(state.sqrtPriceX96, &step.sqrtPriceNextX96, state.liquidity, state.amountSpecifiedRemaining,
-			0, // _computeSwapStepForSwapInWithoutFee
-			&nxtSqrtPriceX96, &step.amountIn, &step.amountOut, &step.feeAmount)
-		if err != nil {
-			return nil, err
-		}
+		if p.dynamicVersion {
+			var protocolFee, next, net, gross utils.Uint256
+			protocolFee.Set(lo.Ternary(zeroForOne, p.protocolFeeZeroForOne, p.protocolFeeOneForZero))
+			if dynamic.factor.IsZero() {
+				var unused utils.Uint256
+				if err = utils.ComputeSwapStep(state.sqrtPriceX96, &step.sqrtPriceNextX96, state.liquidity, state.amountSpecifiedRemaining, 0, &next, &step.amountIn, &gross, &unused); err != nil {
+					return nil, err
+				}
+				if gross.BitLen() > 86 {
+					return nil, ErrOverflow
+				}
+				var protocolCharge, lpCharge utils.Uint256
+				netSwapInStep(&net, &protocolCharge, &lpCharge, &gross, &protocolFee, &dynamic.minFee)
+				if _, overflow := protocolFeeOut.AddOverflow(&protocolFeeOut, &protocolCharge); overflow {
+					return nil, ErrOverflow
+				}
+				if _, overflow := lpFeeOut.AddOverflow(&lpFeeOut, &lpCharge); overflow {
+					return nil, ErrOverflow
+				}
+			} else {
+				if err = dynamicSwapStep(&dynamic, zeroForOne, state.sqrtPriceX96, &step.sqrtPriceNextX96, state.liquidity, state.amountSpecifiedRemaining, &protocolFee, &next, &step.amountIn, &net, &gross, &protocolFeeOut, &lpFeeOut); err != nil {
+					return nil, err
+				}
+			}
+			if _, overflow := grossOut.AddOverflow(&grossOut, &gross); overflow {
+				return nil, ErrOverflow
+			}
+			state.sqrtPriceX96.Set(&next)
+			var amountInSigned, amountOutSigned utils.Int256
+			if err = utils.ToInt256(&step.amountIn, &amountInSigned); err != nil {
+				return nil, err
+			}
+			if err = utils.ToInt256(&net, &amountOutSigned); err != nil {
+				return nil, err
+			}
+			state.amountSpecifiedRemaining.Sub(state.amountSpecifiedRemaining, &amountInSigned)
+			state.amountCalculated.Sub(state.amountCalculated, &amountOutSigned)
+		} else {
+			var nxtSqrtPriceX96 utils.Uint160
+			err = utils.ComputeSwapStep(state.sqrtPriceX96, &step.sqrtPriceNextX96, state.liquidity, state.amountSpecifiedRemaining,
+				0, // _computeSwapStepForSwapInWithoutFee
+				&nxtSqrtPriceX96, &step.amountIn, &step.amountOut, &step.feeAmount)
+			if err != nil {
+				return nil, err
+			}
 
-		var stepProtocolFee, stepLpFee, protocolFee utils.Uint256
-		protocolFee.Set(lo.Ternary(zeroForOne,
-			p.protocolFeeZeroForOne,
-			p.protocolFeeOneForZero,
-		))
-		if exactInput {
-			// Fluid v2 custom logic: calculate protocol fee and lp fee on amountOut
-			stepProtocolFee.Mul(&step.amountOut, &protocolFee).
-				Div(&stepProtocolFee, SIX_DECIMALS)
-
-			stepLpFee.Mul(&step.amountOut, p.constantLpFee).
-				Div(&stepLpFee, SIX_DECIMALS)
+			if step.amountOut.BitLen() > 86 {
+				return nil, ErrOverflow
+			}
+			if _, overflow := grossOut.AddOverflow(&grossOut, &step.amountOut); overflow {
+				return nil, ErrOverflow
+			}
+			var stepProtocolFee, stepLpFee, protocolFee utils.Uint256
+			protocolFee.Set(lo.Ternary(zeroForOne,
+				p.protocolFeeZeroForOne,
+				p.protocolFeeOneForZero,
+			))
+			// Deployed swap module charges protocol first, then LP on the remainder.
+			// Each non-zero fee rounds as ((amount * fee + 1) / 1e6) + 1.
+			// The contract bounds step output to 86 bits and the fee to 16 bits.
+			var amountOutPlusFee utils.Uint256
+			netSwapInStep(&amountOutPlusFee, &stepProtocolFee, &stepLpFee, &step.amountOut, &protocolFee, p.constantLpFee)
 
 			state.sqrtPriceX96.Set(&nxtSqrtPriceX96)
-
-			// Fluid v2 custom logic: apply fee on amountOut instead of amountIn as in Uniswap v3
 			var amountInSigned utils.Int256
 			err = utils.ToInt256(&step.amountIn, &amountInSigned)
 			if err != nil {
 				return nil, err
 			}
-
-			var amountOutPlusFee utils.Uint256
-			amountOutPlusFee.Sub(&step.amountOut, &stepLpFee)
 
 			var amountOutSigned utils.Int256
 			err = utils.ToInt256(&amountOutPlusFee, &amountOutSigned)
@@ -217,34 +293,33 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 
 			state.amountSpecifiedRemaining.Sub(state.amountSpecifiedRemaining, &amountInSigned)
 			state.amountCalculated.Sub(state.amountCalculated, &amountOutSigned)
-		} else {
-			// TODO: Test this branch
-			var amountInWithFee utils.Uint256
-			amountInWithFee.Mul(&step.amountIn, SIX_DECIMALS).
-				Div(&amountInWithFee, new(utils.Uint256).Sub(SIX_DECIMALS, p.constantLpFee))
-			stepLpFee.Sub(&amountInWithFee, &step.amountIn)
 
-			amountInWithFee.Mul(&amountInWithFee, SIX_DECIMALS).
-				Div(&amountInWithFee, new(utils.Uint256).Sub(SIX_DECIMALS, &protocolFee))
-			stepProtocolFee.Sub(&amountInWithFee, &step.amountIn).
-				Sub(&stepProtocolFee, &stepLpFee)
-
-			var amountInSigned utils.Int256
-			err = utils.ToInt256(&amountInWithFee, &amountInSigned)
-			if err != nil {
-				return nil, err
+			if _, overflow := protocolFeeOut.AddOverflow(&protocolFeeOut, &stepProtocolFee); overflow {
+				return nil, ErrOverflow
 			}
-
-			var amountOutSigned utils.Int256
-			err = utils.ToInt256(&step.amountOut, &amountOutSigned)
-			if err != nil {
-				return nil, err
+			if _, overflow := lpFeeOut.AddOverflow(&lpFeeOut, &stepLpFee); overflow {
+				return nil, ErrOverflow
 			}
-
-			state.amountSpecifiedRemaining.Add(state.amountSpecifiedRemaining, &amountOutSigned)
-			state.amountCalculated.Add(state.amountCalculated, &amountInSigned)
 		}
-
+		// The protocol cut is applied once per tick step, after combining the
+		// dynamic fee zones. It affects the separate fee-token conversions.
+		if p.protocolCutFee != 0 {
+			var lpStep, cut, rate, hundred uint256.Int
+			lpStep.Sub(&lpFeeOut, &lpFeeBefore)
+			if !lpStep.IsZero() {
+				rate.SetUint64(p.protocolCutFee)
+				hundred.SetUint64(100)
+				// Step fees fit the 86-bit gross output bound; cut is at most 63.
+				cut.Mul(&lpStep, &rate).AddUint64(&cut, 1).Div(&cut, &hundred).AddUint64(&cut, 1)
+				if cut.Gt(&lpStep) {
+					cut = lpStep
+				}
+				lpFeeOut.Sub(&lpFeeOut, &cut)
+				if _, overflow := protocolFeeOut.AddOverflow(&protocolFeeOut, &cut); overflow {
+					return nil, ErrOverflow
+				}
+			}
+		}
 		if state.sqrtPriceX96.Cmp(&step.sqrtPriceNextX96) == 0 {
 			// if the tick is initialized, run the tick transition
 			if step.initialized {
@@ -264,6 +339,13 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 					return nil, err
 				}
 
+				// Only swaps starting without liquidity re-base the price-move reference.
+				// The dynamic fee anchor deliberately keeps its original price.
+				if p.Liquidity.IsZero() && !referenceChanged && !state.liquidity.IsZero() {
+					sqrtPriceReference.Set(state.sqrtPriceX96)
+					referenceChanged = true
+				}
+
 				crossInitTickLoops++
 			}
 			if zeroForOne {
@@ -281,6 +363,21 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 		}
 	}
 
+	var nextDynamicPacked uint256.Int
+	if p.dynamicVersion {
+		nextDynamicPacked, err = finishDynamicFee(&dynamic, state.sqrtPriceX96)
+		if err != nil {
+			return nil, err
+		}
+		// The on-chain swap also stores the final active liquidity in bits 38..139.
+		if state.liquidity.BitLen() > 102 {
+			return nil, ErrOverflow
+		}
+		var mask, active uint256.Int
+		mask.SetOne().Lsh(&mask, 102).SubUint64(&mask, 1).Lsh(&mask, 38).Not(&mask)
+		active.Lsh(state.liquidity, 38)
+		nextDynamicPacked.And(&nextDynamicPacked, &mask).Or(&nextDynamicPacked, &active)
+	}
 	return &SwapResult{
 		amountCalculated:   state.amountCalculated,
 		sqrtRatioX96:       state.sqrtPriceX96,
@@ -288,5 +385,32 @@ func (p *UniV3FluidV2Pool) swap(zeroForOne bool, amountSpecified *utils.Int256,
 		currentTick:        state.tick,
 		remainingAmountIn:  state.amountSpecifiedRemaining,
 		crossInitTickLoops: crossInitTickLoops,
+		grossOut:           grossOut,
+		dynamicPacked:      nextDynamicPacked,
+		protocolFeeOut:     protocolFeeOut,
+		lpFeeOut:           lpFeeOut,
+		sqrtPriceReference: sqrtPriceReference,
 	}, nil
+}
+
+// netSwapInStep applies the deployed protocol and LP fee order and rounding.
+// The caller bounds gross to 86 bits, protocol fee to 12 bits and LP fee to 16 bits.
+func netSwapInStep(net, protocolCharge, lpCharge, gross, protocolFee, lpFee *utils.Uint256) {
+	net.Set(gross)
+	if !net.IsZero() && !protocolFee.IsZero() {
+		protocolCharge.Mul(net, protocolFee).AddUint64(protocolCharge, 1).Div(protocolCharge, SIX_DECIMALS).AddUint64(protocolCharge, 1)
+		if net.Cmp(protocolCharge) > 0 {
+			net.Sub(net, protocolCharge)
+		} else {
+			net.Clear()
+		}
+	}
+	if !net.IsZero() && !lpFee.IsZero() {
+		lpCharge.Mul(net, lpFee).AddUint64(lpCharge, 1).Div(lpCharge, SIX_DECIMALS).AddUint64(lpCharge, 1)
+		if net.Cmp(lpCharge) > 0 {
+			net.Sub(net, lpCharge)
+		} else {
+			net.Clear()
+		}
+	}
 }

@@ -2,12 +2,13 @@ package dexv2
 
 import (
 	"math/big"
-	"time"
+
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-func _calculateVars(dexVariables2, token0ExchangePricesAndConfig, token1ExchangePricesAndConfig *big.Int) (CalculatedVars, error) {
+func _calculateVars(dexVariables2, token0ExchangePricesAndConfig, token1ExchangePricesAndConfig *big.Int, snapshotTimestamp uint64) (CalculatedVars, error) {
 	// NOTE: Should not mutate CalculatedVars's fields (readonly)
 	var tmp big.Int
 	tmp.Set(dexVariables2).
@@ -31,11 +32,11 @@ func _calculateVars(dexVariables2, token0ExchangePricesAndConfig, token1Exchange
 	}
 	token1NumeratorPrecision, token1DenominatorPrecision := _calculateNumeratorAndDenominatorPrecisions(decimals)
 
-	token0SupplyExchangePrice, token0BorrowExchangePrice, err := _calcExchangePrice(token0ExchangePricesAndConfig)
+	token0SupplyExchangePrice, token0BorrowExchangePrice, err := _calcExchangePrice(token0ExchangePricesAndConfig, snapshotTimestamp)
 	if err != nil {
 		return CalculatedVars{}, err
 	}
-	token1SupplyExchangePrice, token1BorrowExchangePrice, err := _calcExchangePrice(token1ExchangePricesAndConfig)
+	token1SupplyExchangePrice, token1BorrowExchangePrice, err := _calcExchangePrice(token1ExchangePricesAndConfig, snapshotTimestamp)
 	if err != nil {
 		return CalculatedVars{}, err
 	}
@@ -61,7 +62,7 @@ func _calculateNumeratorAndDenominatorPrecisions(decimals int64) (*big.Int, *big
 	}
 }
 
-func _calcExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, *big.Int, error) {
+func _calcExchangePrice(exchangePricesAndConfig *big.Int, snapshotTimestamp uint64) (*big.Int, *big.Int, error) {
 	var supplyExchangePrice, borrowExchangePrice, tmp big.Int
 	supplyExchangePrice.
 		Rsh(exchangePricesAndConfig, BITS_EXCHANGE_PRICES_SUPPLY_EXCHANGE_PRICE).
@@ -79,7 +80,7 @@ func _calcExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, *big.Int, e
 	temp.And(exchangePricesAndConfig, X16)
 
 	var secondsSinceLastUpdate big.Int
-	currentTime := time.Now().Unix()
+	currentTime := int64(snapshotTimestamp)
 	secondsSinceLastUpdate.
 		Rsh(exchangePricesAndConfig, BITS_EXCHANGE_PRICES_LAST_TIMESTAMP).
 		And(&secondsSinceLastUpdate, X33)
@@ -93,6 +94,9 @@ func _calcExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, *big.Int, e
 		Rsh(exchangePricesAndConfig, BITS_EXCHANGE_PRICES_BORROW_RATIO).
 		And(&borrowRatio, X15)
 
+	if secondsSinceLastUpdate.Sign() < 0 {
+		return nil, nil, ErrFluidLiquidityCalcsError
+	}
 	if secondsSinceLastUpdate.Sign() == 0 || temp.Sign() == 0 || borrowRatio.Cmp(bignumber.One) == 0 {
 		return &supplyExchangePrice, &borrowExchangePrice, nil
 	}
@@ -100,8 +104,12 @@ func _calcExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, *big.Int, e
 	var borrowExchangePriceIncrease big.Int
 	borrowExchangePriceIncrease.
 		Mul(&borrowExchangePrice, &temp).
-		Mul(&borrowExchangePriceIncrease, &secondsSinceLastUpdate).
-		Div(&borrowExchangePriceIncrease, tmp.Mul(SECONDS_PER_YEAR, FOUR_DECIMALS))
+		Mul(&borrowExchangePriceIncrease, &secondsSinceLastUpdate)
+	// Deployed LiquidityCalcs rounds borrow growth up; supply growth stays floored.
+	tmp.Mul(SECONDS_PER_YEAR, FOUR_DECIMALS)
+	borrowExchangePriceIncrease.Add(&borrowExchangePriceIncrease, &tmp).
+		Sub(&borrowExchangePriceIncrease, bignumber.One).
+		Div(&borrowExchangePriceIncrease, &tmp)
 
 	borrowExchangePrice.Add(&borrowExchangePrice, &borrowExchangePriceIncrease)
 
@@ -138,15 +146,13 @@ func _calcExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, *big.Int, e
 		temp.Div(&utilization, tmp.Mul(FOUR_DECIMALS, FOUR_DECIMALS))
 	}
 
-	if borrowRatio.Bit(0) == 1 {
-		borrowRatio.Rsh(&borrowRatio, 1).
-			Mul(&borrowRatio, TenPow27).
-			Div(&borrowRatio, tmp.Add(FOUR_DECIMALS, &borrowRatio))
-	} else {
-		borrowRatio.Rsh(&borrowRatio, 1).
-			Mul(&borrowRatio, TenPow27).
-			Div(&borrowRatio, tmp.Add(FOUR_DECIMALS, &borrowRatio)).
-			Sub(TenPow27, &borrowRatio)
+	// The divisor must be read before the multiplication below changes borrowRatio.
+	borrowRatioIsInverted := borrowRatio.Bit(0) == 1
+	borrowRatio.Rsh(&borrowRatio, 1)
+	tmp.Add(FOUR_DECIMALS, &borrowRatio)
+	borrowRatio.Mul(&borrowRatio, TenPow27).Div(&borrowRatio, &tmp)
+	if !borrowRatioIsInverted {
+		borrowRatio.Sub(TenPow27, &borrowRatio)
 	}
 
 	temp.Mul(&temp, FOUR_DECIMALS).
@@ -174,36 +180,43 @@ func _calcExchangePrice(exchangePricesAndConfig *big.Int) (*big.Int, *big.Int, e
 	return &supplyExchangePrice, &borrowExchangePrice, nil
 }
 
-func _verifyAmountLimits(amount *big.Int) error {
-	if amount.Cmp(FOUR_DECIMALS) < 0 || amount.Cmp(X128) > 0 {
+var (
+	u256FourDecimals = uint256.NewInt(10_000)
+	u256TenDecimals  = uint256.NewInt(10_000_000_000)
+	u256Precision    = uint256.NewInt(1_000_000_000_000) // Liquidity EXCHANGE_PRICES_PRECISION (1e12)
+	u256MaxSqrtMove  = uint256.NewInt(2_000_000_000)
+	u256MinSqrtMove  = uint256.NewInt(5)
+)
+
+// _verifyAmountLimits mirrors the swap module's 212004 bound: [1e4, 2^128).
+func _verifyAmountLimits(amount *uint256.Int) error {
+	if amount.Lt(u256FourDecimals) || amount.BitLen() > 128 {
 		return ErrAmountOutOfLimits
 	}
 	return nil
 }
 
-func _verifyAdjustedAmountLimits(amount *big.Int) error {
-	if amount.Cmp(FOUR_DECIMALS) < 0 || amount.Cmp(X86) > 0 {
+// _verifyAdjustedAmountLimits mirrors the swap module's 212005 bound: [1e4, 2^86).
+func _verifyAdjustedAmountLimits(amount *uint256.Int) error {
+	if amount.Lt(u256FourDecimals) || amount.BitLen() > 86 {
 		return ErrAdjustedAmountOutOfLimits
 	}
 	return nil
 }
 
-func _verifySqrtPriceX96ChangeLimits(sqrtPriceStartX96, sqrtPriceEndX96 *big.Int) error {
-	var percentageChange big.Int
-
-	if sqrtPriceEndX96.Cmp(sqrtPriceStartX96) > 0 {
-		percentageChange.Sub(sqrtPriceEndX96, sqrtPriceStartX96)
+// _verifySqrtPriceX96ChangeLimits mirrors 212006. Prices are below 2^160, so the
+// difference times 1e10 (< 2^34) stays below 2^194.
+func _verifySqrtPriceX96ChangeLimits(sqrtPriceStartX96, sqrtPriceEndX96 *uint256.Int) error {
+	var change uint256.Int
+	if sqrtPriceEndX96.Gt(sqrtPriceStartX96) {
+		change.Sub(sqrtPriceEndX96, sqrtPriceStartX96)
 	} else {
-		percentageChange.Sub(sqrtPriceStartX96, sqrtPriceEndX96)
+		change.Sub(sqrtPriceStartX96, sqrtPriceEndX96)
 	}
-
-	percentageChange.Mul(&percentageChange, TEN_DECIMALS).
-		Div(&percentageChange, sqrtPriceStartX96)
-
-	if percentageChange.Cmp(MAX_SQRT_PRICE_CHANGE_PERCENTAGE) > 0 || percentageChange.Cmp(MIN_SQRT_PRICE_CHANGE_PERCENTAGE) < 0 {
+	change.Mul(&change, u256TenDecimals).Div(&change, sqrtPriceStartX96)
+	if change.Gt(u256MaxSqrtMove) || change.Lt(u256MinSqrtMove) {
 		return ErrSqrtPriceChangeOutOfBounds
 	}
-
 	return nil
 }
 
@@ -254,4 +267,44 @@ func adjustedToAmount(adjustedAmount, tokenNumeratorPrecision, tokenDenominatorP
 			EXCHANGE_PRICES_PRECISION,
 		),
 	)
+}
+
+// tokenVars holds one token's conversion factors between normal and raw-adjusted units.
+// They depend only on the pool snapshot (decimals, exchange prices at the snapshot
+// timestamp), so a simulator computes them once with the verified big.Int formulas
+// above and quotes with fixed-width integers afterwards.
+type tokenVars struct {
+	numerator, denominator, supplyPrice, borrowPrice uint256.Int
+}
+
+func newTokenVars(numerator, denominator, supplyPrice, borrowPrice *big.Int) (v tokenVars, overflow bool) {
+	overflow = v.numerator.SetFromBig(numerator) || v.denominator.SetFromBig(denominator) ||
+		v.supplyPrice.SetFromBig(supplyPrice) || v.borrowPrice.SetFromBig(borrowPrice)
+	return
+}
+
+func (v *tokenVars) price(d3 bool) *uint256.Int {
+	if d3 {
+		return &v.supplyPrice
+	}
+	return &v.borrowPrice
+}
+
+// toAdjusted is amountToAdjusted in fixed width: amount * 1e12 * numerator / (price * denominator).
+// amount < 2^128 (checked by the caller), 1e12 < 2^40 and numerator <= 1e9 < 2^30, so the
+// product stays below 2^198; price < 2^64 and denominator <= 1e9 keep the divisor below 2^94.
+func (v *tokenVars) toAdjusted(dst, amount, price *uint256.Int) *uint256.Int {
+	var den uint256.Int
+	dst.Mul(amount, u256Precision).Mul(dst, &v.numerator)
+	den.Mul(price, &v.denominator)
+	return dst.Div(dst, &den)
+}
+
+// toAmount is adjustedToAmount in fixed width: adjusted * denominator * price / (numerator * 1e12).
+// adjusted < 2^86 (checked by the caller), denominator <= 1e9 and price < 2^64: below 2^180.
+func (v *tokenVars) toAmount(dst, adjusted, price *uint256.Int) *uint256.Int {
+	var den uint256.Int
+	dst.Mul(adjusted, &v.denominator).Mul(dst, price)
+	den.Mul(&v.numerator, u256Precision)
+	return dst.Div(dst, &den)
 }
