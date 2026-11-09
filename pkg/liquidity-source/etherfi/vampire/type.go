@@ -67,5 +67,6 @@ type VampireTokenInfo struct {
 }
 
 type SwapInfo struct {
-	dx *big.Int
+	dx    *big.Int
+	share *big.Int
 }
