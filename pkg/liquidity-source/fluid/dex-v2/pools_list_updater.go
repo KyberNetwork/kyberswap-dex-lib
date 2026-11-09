@@ -2,149 +2,102 @@ package dexv2
 
 import (
 	"context"
+	"strings"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolsListUpdater struct {
-	config        *Config
-	graphqlClient *graphql.Client
+	config       *Config
+	ethrpcClient *ethrpc.Client
 }
 
-var _ = poollist.RegisterFactoryCG(DexType, NewPoolsListUpdater)
+type onchainListMetadata struct {
+	SeenPoolIDs []string `json:"seenPoolIds"`
+}
 
-func NewPoolsListUpdater(
-	cfg *Config,
-	graphqlClient *graphql.Client,
-) *PoolsListUpdater {
-	return &PoolsListUpdater{
-		config:        cfg,
-		graphqlClient: graphqlClient,
-	}
+var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
+
+func NewPoolsListUpdater(cfg *Config, client *ethrpc.Client) *PoolsListUpdater {
+	return &PoolsListUpdater{config: cfg, ethrpcClient: client}
 }
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	metadata := Metadata{
-		LastCreatedAtTimestamp: 0,
-	}
-	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
-		if err != nil {
+	var metadata onchainListMetadata
+	if len(metadataBytes) > 0 {
+		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 			return nil, metadataBytes, err
 		}
 	}
-
-	subgraphPools, err := d.getPoolsList(ctx, metadata.LastCreatedAtTimestamp, metadata.LastPoolIds)
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to get pools list from subgraph")
+	var keys [2][]DexKey
+	request := d.ethrpcClient.R().SetContext(ctx)
+	for i, method := range []string{"getD3PermissionedDexes", "getD4PermissionedDexes"} {
+		request.AddCall(&ethrpc.Call{ABI: abis.ResolverABI, Target: d.config.Resolver, Method: method}, []any{&keys[i]})
+	}
+	if _, err := request.Aggregate(); err != nil {
 		return nil, metadataBytes, err
 	}
-
-	numSubgraphPools := len(subgraphPools)
-
-	if numSubgraphPools == 0 {
-		return nil, metadataBytes, nil
+	seen := make(map[string]bool, len(metadata.SeenPoolIDs))
+	for _, id := range metadata.SeenPoolIDs {
+		seen[id] = true
 	}
-
-	// Track the last pool's CreatedAtTimestamp
-	var lastPoolIds []string
-	lastCreatedAtTimestamp := subgraphPools[numSubgraphPools-1].CreatedAt
-
-	pools := make([]entity.Pool, 0, len(subgraphPools))
-	for _, p := range subgraphPools {
-		token0 := entity.PoolToken{
-			Address:   p.Token0,
-			Swappable: true,
-		}
-
-		token1 := entity.PoolToken{
-			Address:   p.Token1,
-			Swappable: true,
-		}
-
-		tokens := []*entity.PoolToken{&token0, &token1}
-		isNative := [2]bool{false, false}
-		for i, token := range tokens {
-			if valueobject.IsNative(token.Address) {
-				tokens[i].Address = valueobject.WrapNativeLower(token.Address, valueobject.ChainID(d.config.ChainID))
-				isNative[i] = true
+	var pools []entity.Pool
+	for i, list := range keys {
+		for _, key := range list {
+			p, err := d.poolFromKey(key, uint32(i+3))
+			if err != nil {
+				return nil, metadataBytes, err
 			}
-		}
-
-		staticExtra := StaticExtra{
-			Dex:         d.config.Dex,
-			DexType:     p.DexType,
-			Fee:         p.Fee,
-			TickSpacing: p.TickSpacing,
-			IsNative:    isNative,
-		}
-		if p.Controller != valueobject.ZeroAddress {
-			staticExtra.Controller = p.Controller
-		}
-		staticExtraBytes, err := json.Marshal(staticExtra)
-		if err != nil {
-			return nil, metadataBytes, err
-		}
-
-		var newPool = entity.Pool{
-			Address:     encodeFluidDexV2PoolAddress(p.DexId, p.DexType),
-			Exchange:    d.config.DexID,
-			Type:        DexType,
-			Reserves:    []string{"0", "0"},
-			Tokens:      tokens,
-			StaticExtra: string(staticExtraBytes),
-			Extra:       "{}",
-			Timestamp:   time.Now().Unix(),
-		}
-
-		pools = append(pools, newPool)
-		if p.CreatedAt == lastCreatedAtTimestamp {
-			lastPoolIds = append(lastPoolIds, p.ID)
+			if seen[p.Address] {
+				continue
+			}
+			seen[p.Address] = true
+			metadata.SeenPoolIDs = append(metadata.SeenPoolIDs, p.Address)
+			pools = append(pools, p)
 		}
 	}
-
-	newMetadataBytes, err := json.Marshal(Metadata{
-		LastCreatedAtTimestamp: lastCreatedAtTimestamp,
-		LastPoolIds:            lastPoolIds,
-	})
+	updated, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
-
-	logger.WithFields(logger.Fields{
-		"dex":   d.config.DexID,
-		"pools": len(pools),
-	}).Info("fetched new pools from subgraph")
-
-	return pools, newMetadataBytes, nil
+	return pools, updated, nil
 }
 
-func (d *PoolsListUpdater) getPoolsList(
-	ctx context.Context,
-	lastCreatedAtTimestamp int,
-	lastPoolIds []string,
-) ([]SubgraphPool, error) {
-	req := graphql.NewRequest(getPoolsListQuery(lastCreatedAtTimestamp, lastPoolIds))
-
-	var response struct {
-		Pools []SubgraphPool `json:"pools"`
+func (d *PoolsListUpdater) poolFromKey(key DexKey, dexType uint32) (entity.Pool, error) {
+	// getDexPoolState's second argument is the same DexKey tuple used by abi.encode(dexKey).
+	encoded, err := abis.ResolverABI.Methods["getDexPoolState"].Inputs[1:].Pack(key)
+	if err != nil {
+		return entity.Pool{}, err
 	}
-
-	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
-		logger.WithFields(logger.Fields{
-			"dex":   d.config.DexID,
-			"error": err,
-		}).Errorf("failed to query subgraph")
-		return nil, err
+	static := StaticExtra{Dex: strings.ToLower(d.config.Dex), DexType: dexType,
+		Fee: uint32(key.Fee.Uint64()), TickSpacing: uint32(key.TickSpacing.Uint64()), TrackLiquidityLimits: d.config.TrackLiquidityLimits}
+	if key.Controller != (common.Address{}) {
+		static.Controller = hexutil.Encode(key.Controller[:])
 	}
-
-	return response.Pools, nil
+	tokens := make([]*entity.PoolToken, 2)
+	for i, token := range []common.Address{key.Token0, key.Token1} {
+		address := hexutil.Encode(token[:])
+		if valueobject.IsNative(address) {
+			static.IsNative[i] = true
+			address = valueobject.WrapNativeLower(address, d.config.ChainID)
+		}
+		tokens[i] = &entity.PoolToken{Address: address, Swappable: true}
+	}
+	data, err := json.Marshal(static)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+	return entity.Pool{Address: encodeFluidDexV2PoolAddress(crypto.Keccak256Hash(encoded).Hex(), dexType),
+		Exchange: d.config.DexID, Type: DexType, Tokens: tokens, Reserves: []string{"0", "0"},
+		StaticExtra: string(data), Extra: "{}", Timestamp: time.Now().Unix()}, nil
 }

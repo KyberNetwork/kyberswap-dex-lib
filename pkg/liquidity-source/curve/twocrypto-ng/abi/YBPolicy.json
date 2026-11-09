@@ -1,0 +1,126 @@
+[
+ {
+  "name": "report",
+  "type": "function",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "asset_price",
+    "type": "uint256"
+   },
+   {
+    "name": "observation_us",
+    "type": "uint256"
+   }
+  ]
+ },
+ {
+  "name": "config",
+  "type": "function",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "base_fee",
+    "type": "uint256"
+   },
+   {
+    "name": "capture",
+    "type": "uint256"
+   },
+   {
+    "name": "fallback_fee",
+    "type": "uint256"
+   },
+   {
+    "name": "relax_time",
+    "type": "uint256"
+   },
+   {
+    "name": "fast_half_life",
+    "type": "uint256"
+   },
+   {
+    "name": "slow_half_life",
+    "type": "uint256"
+   },
+   {
+    "name": "trend_gate",
+    "type": "uint256"
+   },
+   {
+    "name": "step_cap",
+    "type": "uint256"
+   },
+   {
+    "name": "report_lifetime",
+    "type": "uint256"
+   },
+   {
+    "name": "ratio_tolerance",
+    "type": "uint256"
+   }
+  ]
+ },
+ {
+  "name": "state",
+  "type": "function",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "last_update_ts",
+    "type": "uint256"
+   },
+   {
+    "name": "fast_ema",
+    "type": "uint256"
+   },
+   {
+    "name": "slow_ema",
+    "type": "uint256"
+   },
+   {
+    "name": "price_scale",
+    "type": "uint256"
+   },
+   {
+    "name": "xp",
+    "type": "uint256[2]"
+   },
+   {
+    "name": "D",
+    "type": "uint256"
+   },
+   {
+    "name": "last_prices",
+    "type": "uint256"
+   }
+  ]
+ },
+ {
+  "name": "cached_A",
+  "type": "function",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ]
+ },
+ {
+  "name": "is_killed",
+  "type": "function",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ]
+ }
+]

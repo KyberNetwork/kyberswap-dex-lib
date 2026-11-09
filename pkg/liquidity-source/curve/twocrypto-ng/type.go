@@ -32,6 +32,12 @@ type (
 		AllowedExtraProfit *uint256.Int
 		AdjustmentStep     *uint256.Int
 		UseCustomMath      bool `json:",omitempty"`
+		// Twocrypto v3 (no allowed_extra_profit): AllowedExtraProfit is nil.
+		// Policy prices swaps through YBOraclizedPolicy.get_fee (report-aware discount).
+		Policy *PolicyState `json:",omitempty"`
+		// PolicyFee is a flat fee override kept for previously stored pool data; the trackers no
+		// longer set it (an unlisted policy errors in FetchPolicy). Both nil: the pool's native fee.
+		PolicyFee *uint256.Int `json:",omitempty"`
 	}
 
 	SwapInfo struct {

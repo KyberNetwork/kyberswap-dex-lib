@@ -21,6 +21,7 @@ type PairBin struct {
 	BinIdx           int64  `json:"binIdx"`
 	Price            string `json:"price"`
 	CummlativeVolume string `json:"cumulativeVolume"`
+	CumulativeInput  string `json:"cumulativeInputVolume"`
 	PriceImpactE6    string `json:"priceImpactE6"`
 }
 
@@ -51,6 +52,8 @@ type Bin struct {
 	BinIdx           int64    `json:"bi"`
 	Price            *big.Int `json:"p"`
 	CumulativeVolume *big.Int `json:"cv"` // total amountOut that can be swapped up to this bin (inclusive)
+	// CumulativeInput is the total amountIn paid through this bin. Nil in pools stored before it was tracked.
+	CumulativeInput *big.Int `json:"ci,omitempty"`
 }
 
 type PoolMeta struct {

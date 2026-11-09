@@ -8,6 +8,7 @@ import (
 
 var (
 	CurveTwocryptoNGABI abi.ABI
+	YBPolicyABI         abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&CurveTwocryptoNGABI, curveTwocryptoNGABIBytes},
+		{&YBPolicyABI, ybPolicyABIBytes},
 	}
 
 	var err error

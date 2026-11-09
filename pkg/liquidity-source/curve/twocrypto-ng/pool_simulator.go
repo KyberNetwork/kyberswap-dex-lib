@@ -121,6 +121,10 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, errors.WithMessage(err, "tweak price")
 	}
 
+	if t.isV3() && !balanceOK(swapInfo.Xp[:]) {
+		return nil, ErrUnsafeXi
+	}
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
@@ -219,6 +223,12 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Extra.XcpProfit = &swapInfo.XcpProfit
 	t.Extra.D = &swapInfo.D
 	t.Extra.VirtualPrice = &swapInfo.VirtualPrice
+	if p := t.Extra.Policy; p != nil { // the pool calls policy.update_pool_state after the swap
+		np := *p
+		np.SnapXp = swapInfo.Xp
+		np.SnapD, np.SnapPriceScl = &swapInfo.D, &swapInfo.PriceScale[0]
+		t.Extra.Policy = &np
+	}
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
@@ -245,4 +255,20 @@ func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobj
 func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
 	meta := s.GetMetaInfo(tokenIn, tokenOut).(curve.Meta)
 	return meta.TokenOutIsNative != nil && *meta.TokenOutIsNative
+}
+
+// isV3 reports a Twocrypto v3.0.0 pool, which has no allowed_extra_profit.
+func (t *PoolSimulator) isV3() bool { return t.Extra.AllowedExtraProfit == nil }
+
+// balanceOK mirrors v3 _assert_balance: both xp > 0 and max/min < 1000 after the swap.
+func balanceOK(xp []uint256.Int) bool {
+	if xp[0].IsZero() || xp[1].IsZero() {
+		return false
+	}
+	hi, lo := &xp[0], &xp[1]
+	if hi.Lt(lo) {
+		hi, lo = lo, hi
+	}
+	var r uint256.Int
+	return r.Div(hi, lo).CmpUint64(1000) < 0
 }

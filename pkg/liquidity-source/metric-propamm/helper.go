@@ -11,6 +11,9 @@ func ConvertBins(apiBins []PairBin) []Bin {
 			Price:            bignumber.NewBig(bin.Price),
 			CumulativeVolume: bignumber.NewBig(bin.CummlativeVolume),
 		}
+		if bin.CumulativeInput != "" {
+			bins[i].CumulativeInput = bignumber.NewBig(bin.CumulativeInput)
+		}
 	}
 	return bins
 }

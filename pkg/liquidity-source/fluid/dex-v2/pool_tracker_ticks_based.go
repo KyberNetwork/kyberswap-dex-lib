@@ -7,16 +7,17 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
-	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (Extra, error) {
@@ -98,6 +99,7 @@ func (t *PoolTracker) refetchTicks(ctx context.Context, p entity.Pool) (entity.P
 	})
 
 	extra.Ticks = entityPoolTicks
+	extra.TicksBlock = p.BlockNumber // ticks were re-read at the pool's snapshot block
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -138,13 +140,33 @@ func (t *PoolTracker) GetNewPoolState(
 			l), nil
 	}
 
-	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, param.Logs)
+	// Ticks already include every event up to TicksBlock (bootstrap reads them at a block that can be
+	// ahead of the worker's replay checkpoint), and liquidity deltas are not idempotent.
+	var current Extra
+	if len(p.Extra) > 0 {
+		if err := json.Unmarshal([]byte(p.Extra), &current); err != nil {
+			return p, err
+		}
+	}
+	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, dropAppliedLogs(param.Logs, current.TicksBlock))
 	if err != nil {
 		l.Error(err.Error())
 		return p, err
 	}
 
 	return t.updateState(ctx, p, ticksBasedPool, param.Logs, param.BlockHeaders)
+}
+
+// dropAppliedLogs removes position logs the stored ticks already include. The empty trigger log of an
+// interval task and logs of reverted blocks are kept: the former carries no event, the latter are
+// resolved by re-reading the affected ticks.
+func dropAppliedLogs(logs []ethtypes.Log, ticksBlock uint64) []ethtypes.Log {
+	if ticksBlock == 0 {
+		return logs
+	}
+	return lo.Filter(logs, func(l ethtypes.Log, _ int) bool {
+		return l.Removed || eth.IsZeroAddress(l.Address) || l.BlockNumber > ticksBlock
+	})
 }
 
 func (t *PoolTracker) newTicksBasedPool(
@@ -522,8 +544,12 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		"poolAddress": p.Address,
 	})
 
-	// Always fetch scalar state at latest, never at this batch's own block: see the
-	// comment on the equivalent fetch in uniswap/v3/pool_tracker.go's updateState.
+	// Always fetch the scalar state (prices, reserves, Liquidity budgets) at latest, never at this
+	// batch's own block. Ticks are merged incrementally from logs, so event batches, replayed
+	// backfill chunks and interval tasks all funnel through this one path; pinning scalars to a
+	// batch block would let an older batch overwrite newer state, and a catch-up batch's block can
+	// be older than the RPC's pruning window. The scalars, the exchange prices and the timestamp
+	// still come from one block (the Aggregate block), so they stay mutually consistent.
 	rpcState, err := t.readState(ctx, &p, 0)
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -551,7 +577,13 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		return entityPoolTicks[i].Index < entityPoolTicks[j].Index
 	})
 
+	// Every field but the ticks and the blocks they hold comes from the state read just made.
+	var stored Extra
+	if err := json.Unmarshal([]byte(p.Extra), &stored); err != nil {
+		return p, err
+	}
 	rpcState.Ticks = entityPoolTicks
+	rpcState.TicksBlock = stored.TicksBlock
 	rpcState.LensBlock = ticksBasedPool.LensBlock
 	if p, err = withState(p, rpcState); err != nil {
 		l.WithFields(logger.Fields{
@@ -560,7 +592,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		return entity.Pool{}, err
 	}
 	p.Timestamp = tickspkg.EstimateLastActivityTime(&p, logs, blockHeaders)
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+	p.BlockNumber = max(p.BlockNumber, rpcState.SnapshotBlock)
 
 	return p, nil
 }
@@ -622,7 +654,8 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 
 	if _, err := ticksRequest.Aggregate(); err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
-			// Re-query ticks data with latest block number
+			// The batch's block is older than the node's pruning window (catch-up/backfill):
+			// re-query the ticks at latest, as the other ticks-based dexes do.
 			return t.queryRPCTicksByChunk(ctx, addr, ticks, 0)
 		}
 

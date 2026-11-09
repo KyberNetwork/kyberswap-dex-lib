@@ -98,6 +98,43 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}, nil
 }
 
+var _ pool.IPoolExactOutSimulator = (*PoolSimulator)(nil)
+
+// CalcAmountIn returns the minimal amountIn for which CalcAmountOut gives at least TokenAmountOut.
+// Reserves are not checked, as CalcAmountOut ignores them.
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	if p.paused {
+		return nil, ErrPoolPaused
+	}
+
+	tokenAmountOut := param.TokenAmountOut
+	tokenInIndex := p.GetTokenIndex(param.TokenIn)
+	tokenOutIndex := p.GetTokenIndex(tokenAmountOut.Token)
+	if tokenInIndex < 0 || tokenOutIndex < 0 || tokenInIndex == tokenOutIndex {
+		return nil, fmt.Errorf("invalid token pair %v (index %d) -> %v (index %d)", param.TokenIn, tokenInIndex, tokenAmountOut.Token, tokenOutIndex)
+	}
+	if tokenInIndex == 1 && !p.isBidirectional {
+		return nil, ErrUnidirectional
+	}
+
+	amountIn, err := p.calcAmountIn(tokenInIndex, tokenAmountOut.Amount)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{
+			Token:  param.TokenIn,
+			Amount: amountIn.ToBig(),
+		},
+		Fee: &pool.TokenAmount{
+			Token:  param.TokenIn,
+			Amount: bignumber.ZeroBI,
+		},
+		Gas: p.gas,
+	}, nil
+}
+
 func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {
 }
 
@@ -146,4 +183,41 @@ func (p *PoolSimulator) calcAmountOut(tokenInIndex int, amountIn *big.Int) (*uin
 		amountOut = amountOut.Div(amountOut, p.rateUnit).Mul(amountOut, p.rate)
 	}
 	return amountOut, nil
+}
+
+// calcAmountIn inverts calcAmountOut with ceiling rounding.
+func (p *PoolSimulator) calcAmountIn(tokenInIndex int, amountOut *big.Int) (*uint256.Int, error) {
+	var out uint256.Int
+	if out.SetFromBig(amountOut) {
+		return nil, ErrOverflow
+	}
+	if out.IsZero() || p.rate.IsZero() || p.rateUnit.IsZero() {
+		return nil, ErrZeroAmount
+	}
+
+	amountIn := new(uint256.Int)
+	if p.isRateInversed == (tokenInIndex == 0) {
+		// out = in*unit/rate  =>  in = ceil(out*rate/unit)
+		_, overflow := amountIn.MulDivOverflow(&out, p.rate, p.rateUnit)
+		if overflow {
+			return nil, ErrOverflow
+		}
+		var rem uint256.Int
+		if !rem.MulMod(&out, p.rate, p.rateUnit).IsZero() {
+			if _, carry := amountIn.AddOverflow(amountIn, uint256.NewInt(1)); carry {
+				return nil, ErrOverflow
+			}
+		}
+	} else {
+		// out = (in/unit)*rate  =>  in = ceil(out/rate)*unit
+		var rem uint256.Int
+		amountIn.DivMod(&out, p.rate, &rem)
+		if !rem.IsZero() {
+			amountIn.AddUint64(amountIn, 1)
+		}
+		if _, overflow := amountIn.MulOverflow(amountIn, p.rateUnit); overflow {
+			return nil, ErrOverflow
+		}
+	}
+	return amountIn, nil
 }
