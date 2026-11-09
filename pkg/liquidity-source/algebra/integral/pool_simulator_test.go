@@ -185,7 +185,6 @@ func TestCalcAmountOut(t *testing.T) {
 					VolumeGamma: mockVolumeGamma,
 					BaseFee:     mockBaseFee,
 				},
-				stateMu:         new(sync.RWMutex),
 				useBasePluginV2: false,
 			},
 			input: pool.CalcAmountOutParams{
@@ -259,7 +258,6 @@ func TestCalcAmountOut(t *testing.T) {
 					VolumeGamma: mockVolumeGamma,
 					BaseFee:     mockBaseFee,
 				},
-				stateMu:         new(sync.RWMutex),
 				useBasePluginV2: false,
 			},
 			input: pool.CalcAmountOutParams{
@@ -333,7 +331,6 @@ func TestCalcAmountOut(t *testing.T) {
 					VolumeGamma: mockVolumeGamma,
 					BaseFee:     mockBaseFee,
 				},
-				stateMu:         new(sync.RWMutex),
 				useBasePluginV2: false,
 			},
 			input: pool.CalcAmountOutParams{
@@ -407,7 +404,6 @@ func TestCalcAmountOut(t *testing.T) {
 					VolumeGamma: mockVolumeGamma,
 					BaseFee:     mockBaseFee,
 				},
-				stateMu:         new(sync.RWMutex),
 				useBasePluginV2: false,
 			},
 			input: pool.CalcAmountOutParams{

@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/big"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/KyberNetwork/logger"
@@ -44,10 +43,9 @@ type PoolSimulator struct {
 	// that wrote would change theirs. The first UpdateBalance stores it and sets pending to nil. It is
 	// nil from the start when the swap's plugin path writes no timepoint.
 	pending *pendingWrite
-	// stateMu orders UpdateBalance's write before a copy of the state: CloneState copies under it. The
-	// timepoints themselves are never written once a simulator holds them: every write goes into a new
-	// copy-on-write overlay (TimepointStorage.clone), so clones share them safely.
-	stateMu *sync.RWMutex
+	// The timepoints are never written once a simulator holds them: every write goes into a new
+	// copy-on-write overlay (TimepointStorage.clone), so clones share them. A host clones a simulator
+	// before it calls UpdateBalance, so nothing quotes or clones a simulator while it is updated.
 
 	// swapFeeFactors are the fee factors the next swap takes on a pool priced by its fee factors: the
 	// plugin's stored factors, moved by the price change since its last timepoint, whose tick and time
@@ -146,7 +144,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		volatilityOracle: extra.VolatilityOracle,
 		dynamicFee:       extra.DynamicFee,
 		slidingFee:       extra.SlidingFee,
-		stateMu:          new(sync.RWMutex),
 		useBasePluginV2:  staticExtra.UseBasePluginV2,
 		namiFee:          extra.NamiFee,
 	}
@@ -302,10 +299,7 @@ func (p *PoolSimulator) swap(tokenIn, tokenOut string, amtRequired *uint256.Int,
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
-	p.stateMu.RLock()
 	cloned := *p
-	p.stateMu.RUnlock()
-	cloned.stateMu = new(sync.RWMutex)
 	cloned.liquidity = p.liquidity.Clone()
 	cloned.globalState.Price = p.globalState.Price.Clone()
 	return &cloned
@@ -350,9 +344,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			point.VolatilityCumulative = point.VolatilityCumulative.Clone()
 		}
 		timepoints.set(si.NamiTimepoint.Index, point)
-		p.stateMu.Lock()
 		p.volatilityOracle, p.timepoints = &oracle, timepoints
-		p.stateMu.Unlock()
 	}
 }
 
@@ -473,8 +465,6 @@ func (p *PoolSimulator) applyWrite(w *pendingWrite, fee uint16) {
 	if p.pending == nil || w == nil || w.err != nil {
 		return
 	}
-	p.stateMu.Lock()
-	defer p.stateMu.Unlock()
 	if w.oracle != nil {
 		oracle := *w.oracle
 		p.volatilityOracle, p.timepoints = &oracle, w.timepoints
