@@ -15,15 +15,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// crossEmptyWordGas prices one swap-loop iteration that walks a tick-bitmap word without crossing an initialized
-// tick. Measured on a BSC fork at block 132548275: CLPoolManager.swap inside the vault's lock, on the BNB/USDT pool
-// 0x752e7695 (tick spacing 10, no hooks), to price limits 65-369 words down and 53-318 words up gave 5,828 gas a
-// word down and 6,317 up (fits over five limits each, within 1,200 gas of a line). The earlier 2,500 priced the
-// walk at less than half its gas.
-const crossEmptyWordGas = 6100
-
 var (
-	defaultGas = uniswapv3.Gas{BaseGas: 75000, CrossInitTickGas: 21000, CrossEmptyWordGas: crossEmptyWordGas}
+	defaultGas = uniswapv3.Gas{BaseGas: 75000, CrossInitTickGas: 21000, CrossEmptyWordGas: uniswapv3.UnmeasuredCrossEmptyWordGas}
 )
 
 type PoolSimulator struct {

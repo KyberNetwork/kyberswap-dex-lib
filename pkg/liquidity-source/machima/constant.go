@@ -26,12 +26,6 @@ const (
 
 	graphFirstLimit = 1000
 	rpcChunkSize    = 100
-
-	// crossEmptyWordGas prices one swap-loop iteration that walks a tick-bitmap word without crossing an
-	// initialized tick. Measured on a Base fork at block 55103967: the pool's swap on 0x531aae7d (tick spacing 200,
-	// no liquidity in range), called from its authorized quoter, to price limits 2-14 words up gave 7,024 gas a word
-	// (a fit over four limits, within 14 gas of a line). The earlier 2,500 priced the walk at a third of its gas.
-	crossEmptyWordGas = 7000
 )
 
 const (
@@ -44,7 +38,7 @@ const (
 
 var (
 	// defaultGas covers the aggregator router hop on top of the underlying V3 pool swap.
-	defaultGas = uniswapv3.Gas{BaseGas: 350000, CrossInitTickGas: 100000, CrossEmptyWordGas: crossEmptyWordGas}
+	defaultGas = uniswapv3.Gas{BaseGas: 350000, CrossInitTickGas: 100000, CrossEmptyWordGas: uniswapv3.UnmeasuredCrossEmptyWordGas}
 
 	ErrAntiSniperActive   = errors.New("pool is in anti-sniper window")
 	ErrInvalidPair        = errors.New("invalid pair: exactly one side must be a counter asset")

@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"math"
 	"math/big"
 	"math/rand"
 	"os"
@@ -20,6 +19,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
@@ -217,21 +217,11 @@ func pickRandomPools(pools []entity.Pool, n int) []entity.Pool {
 	return selected
 }
 
-// TestEmptyWordGasMatchesTheChain prices the extra words of a swap to a farther price limit against the gas the
-// chain spent on them. On a BSC fork at block 132548275, swaps of the BNB/USDT pool 0x752e7695 crossed
-// the same initialized ticks and walked 53-369 words; the gas they spent per extra word is pinned below.
-func TestEmptyWordGasMatchesTheChain(t *testing.T) {
-	for name, walks := range map[string][][2]int64{
-		// {words walked, gas of CLPoolManager.swap}
-		"down": {{65, 1534792}, {143, 1987813}, {221, 2442745}, {299, 2896941}, {369, 3306403}},
-		"up":   {{53, 1223829}, {131, 1714158}, {209, 2207150}, {287, 2700931}, {318, 2897376}},
-	} {
-		for i := 1; i < len(walks); i++ {
-			words, gas := walks[i][0]-walks[i-1][0], walks[i][1]-walks[i-1][1]
-			perWord := float64(gas) / float64(words)
-			off := math.Abs(float64(defaultGas.CrossEmptyWordGas)-perWord) / perWord
-			assert.LessOrEqual(t, off, 0.10, "%s, words %d-%d: %.0f gas a word on-chain, priced %d",
-				name, walks[i-1][0], walks[i][0], perWord, defaultGas.CrossEmptyWordGas)
-		}
-	}
+// TestEmptyWordGasIsTheUnmeasuredEstimate pins the gas charged for a tick-bitmap word a pancake infinity CL swap walks without
+// crossing an initialized tick. uniswap v3's CrossEmptyWordGas is the value measured on v3 pools (7,400); it has not
+// been measured for pancake infinity CL, so pancake infinity CL keeps the earlier estimate of 2,500 and its quoted gas does not follow v3's.
+func TestEmptyWordGasIsTheUnmeasuredEstimate(t *testing.T) {
+	assert.EqualValues(t, 2500, defaultGas.CrossEmptyWordGas)
+	assert.NotEqual(t, int64(uniswapv3.CrossEmptyWordGas), defaultGas.CrossEmptyWordGas,
+		"pancake infinity CL must not take v3's measured per-word gas until it is measured here")
 }

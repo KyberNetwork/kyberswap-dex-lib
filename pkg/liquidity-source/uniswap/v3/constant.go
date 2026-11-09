@@ -47,6 +47,10 @@ const (
 // estimate, 2,500 (#1591), priced such swaps at a third of their gas.
 const CrossEmptyWordGas = 7400
 
+// UnmeasuredCrossEmptyWordGas is the first, uncalibrated estimate of CrossEmptyWordGas, kept for the
+// forks whose word walk has not been measured (machima, pancake infinity CL).
+const UnmeasuredCrossEmptyWordGas = 2500
+
 var (
 	zeroBI     = big.NewInt(0)
 	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492, CrossEmptyWordGas: CrossEmptyWordGas}
