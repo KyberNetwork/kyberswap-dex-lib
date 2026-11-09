@@ -208,14 +208,12 @@ func (d *PoolTracker) getPoolData(
 	vaultList = shared.WithVaultDecimals(vaultList, vaultDecimals[:])
 
 	var (
-		controllerDecimals       uint8
-		controllerAsset          common.Address
-		collatTotalAssets        = make([]*big.Int, len(collaterals))
-		collatTotalSupplies      = make([]*big.Int, len(collaterals))
-		collateralDecimals       = make([]uint8, len(collaterals))
-		collateralAssets         = make([]common.Address, len(collaterals))
-		collateralOracles        = make([]common.Address, len(collaterals))
-		collateralUnitOfAccounts = make([]common.Address, len(collaterals))
+		controllerDecimals  uint8
+		controllerAsset     common.Address
+		collatTotalAssets   = make([]*big.Int, len(collaterals))
+		collatTotalSupplies = make([]*big.Int, len(collaterals))
+		collateralDecimals  = make([]uint8, len(collaterals))
+		collateralAssets    = make([]common.Address, len(collaterals))
 	)
 	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
 	if len(controllers) > 0 {
@@ -281,15 +279,7 @@ func (d *PoolTracker) getPoolData(
 			ABI:    vaultABI,
 			Target: collateralStr,
 			Method: shared.VaultMethodAsset,
-		}, []any{&collateralAssets[i]}).AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: collateralStr,
-			Method: shared.VaultMethodOracle,
-		}, []any{&collateralOracles[i]}).AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: collateralStr,
-			Method: shared.VaultMethodUnitOfAccount,
-		}, []any{&collateralUnitOfAccounts[i]})
+		}, []any{&collateralAssets[i]})
 	}
 
 	if len(req.Calls) > 0 {
@@ -319,7 +309,7 @@ func (d *PoolTracker) getPoolData(
 				ABI:    routerABI,
 				Target: oracleStr,
 				Method: shared.RouterMethodGetQuotes,
-				Params: []any{otherV.QuoteAmount, common.HexToAddress(otherV.AssetAddress), unitOfAccounts[j]},
+				Params: []any{otherV.QuoteAmount, common.HexToAddress(otherV.AssetAddress), unitOfAccounts[i]},
 			}, []any{&data.VaultPrices[j][i]})
 			if vaultList[i].VaultAddress != vaultList[j].VaultAddress {
 				req.AddCall(&ethrpc.Call{
@@ -339,7 +329,7 @@ func (d *PoolTracker) getPoolData(
 				ABI:    routerABI,
 				Target: oracleStr,
 				Method: shared.RouterMethodGetQuotes,
-				Params: []any{collatQuoteAmts[j], collateralAssets[j], collateralUnitOfAccounts[j]},
+				Params: []any{collatQuoteAmts[j], collateralAssets[j], unitOfAccounts[i]},
 			}, []any{&data.CollatPrices[j][i]}).AddCall(&ethrpc.Call{
 				ABI:    vaultABI,
 				Target: vaultList[i].VaultAddress,
