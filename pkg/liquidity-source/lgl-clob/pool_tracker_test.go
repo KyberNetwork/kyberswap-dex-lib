@@ -88,9 +88,10 @@ func TestPoolTracker_SharedMaker(t *testing.T) {
 }
 
 // TestPoolTracker_Timestamp checks that a refresh stamps the pool with the time
-// it was read. Consumers treat a pool whose Timestamp has not moved as unchanged
-// and keep quoting from the copy they already hold, so a pool without one keeps
-// its first order book there forever.
+// it was read. pool-service treats Timestamp 0 as always active (IsPoolActive),
+// so the pool could never be archived, and saved it on every refresh because
+// skipSave's heartbeat compares against it; router-service's blacklist cleanup
+// skipped it.
 func TestPoolTracker_Timestamp(t *testing.T) {
 	t.Parallel()
 
