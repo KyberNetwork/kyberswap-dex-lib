@@ -23,6 +23,10 @@ type SmardexPair struct {
 
 	// fee for FEE_POOL
 	FeeToAmount FeeToAmount
+
+	// FeeOff is set when the factory has no feeTo. The pair then keeps the pool fee in its reserves instead of
+	// adding it to feeToAmount. Stored state without it is read as fee on, which every factory is today.
+	FeeOff bool `json:",omitempty"`
 }
 
 type PairFeeResult struct {

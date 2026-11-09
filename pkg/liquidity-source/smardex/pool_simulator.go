@@ -50,6 +50,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		FictiveReserve: pair.FictiveReserve,
 		PriceAverage:   pair.PriceAverage,
 		FeeToAmount:    pair.FeeToAmount,
+		FeeOff:         pair.FeeOff,
 		gas:            DefaultGas,
 	}, nil
 }
@@ -119,8 +120,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	feeToAmount0, feeToAmount1 := new(uint256.Int).Set(p.FeeToAmount.Fees0), new(uint256.Int).Set(p.FeeToAmount.Fees1)
 	// The pool's reserves are its balances less feeToAmount (getReserves), so the input side moves by the input less
 	// the one pool fee the pair takes on it, whatever the legs' rounding in getAmountOut. The output side moves by
-	// the output. feeToAmount is already left out.
-	poolFee := new(uint256.Int).Div(new(uint256.Int).Mul(amountIn, p.PairFee.FeesPool), p.PairFee.FeesBase)
+	// the output. feeToAmount is already left out. Without a feeTo the pair takes no pool fee: it stays in the
+	// reserves.
+	poolFee := new(uint256.Int)
+	if !p.FeeOff {
+		poolFee.Div(new(uint256.Int).Mul(amountIn, p.PairFee.FeesPool), p.PairFee.FeesBase)
+	}
 	newReserveIn := new(uint256.Int).Add(uint256.MustFromBig(balanceIn), amountIn)
 	newReserveIn.Sub(newReserveIn, poolFee)
 	newPriceAverageIn, newPriceAverageOut := priceAverageIn, priceAverageOut

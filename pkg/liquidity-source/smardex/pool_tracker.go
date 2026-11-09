@@ -2,6 +2,7 @@ package smardex
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -19,6 +20,9 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
+	// factories holds each pair's factory, which never changes: the pair reads feeTo from it. The factory the pool
+	// list comes from is not always the pairs' factory: on Ethereum it lists the pairs of 0x7753f36e.
+	factories sync.Map
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexTypeSmardex, NewPoolTracker)
@@ -126,6 +130,19 @@ func (u *PoolTracker) getNewPoolState(
 		Method: pairGetPriceAverageMethod,
 	}, []any{&priceAverage})
 
+	// The pair adds the pool fee to feeToAmount only while its factory has a feeTo.
+	factory, err := u.factory(ctx, p.Address)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+	var feeTo common.Address
+	feeToCall := len(rpcRequest.Calls)
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: factory.Hex(),
+		Method: factoryFeeToMethod,
+	}, []any{&feeTo})
+
 	resp, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -157,6 +174,8 @@ func (u *PoolTracker) getNewPoolState(
 			Fees0: uint256.MustFromBig(feeToAmount.Fees0),
 			Fees1: uint256.MustFromBig(feeToAmount.Fees1),
 		},
+		// A failed feeTo read keeps the fee on, as the pair had it before.
+		FeeOff: resp != nil && feeToCall < len(resp.Result) && resp.Result[feeToCall] && feeTo == (common.Address{}),
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -173,4 +192,21 @@ func (u *PoolTracker) getNewPoolState(
 
 	return p, nil
 
+}
+
+// factory returns the pair's factory, read once.
+func (u *PoolTracker) factory(ctx context.Context, pair string) (common.Address, error) {
+	if f, ok := u.factories.Load(pair); ok {
+		return f.(common.Address), nil
+	}
+	var f common.Address
+	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+		ABI:    pairABI,
+		Target: pair,
+		Method: pairFactoryMethod,
+	}, []any{&f}).Call(); err != nil {
+		return common.Address{}, err
+	}
+	u.factories.Store(pair, f)
+	return f, nil
 }
