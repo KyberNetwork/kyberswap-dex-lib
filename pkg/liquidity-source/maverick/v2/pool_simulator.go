@@ -90,18 +90,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// scale back to token amount
 	scaledAmountOut := ScaleToAmount(amountOut, p.decimals[tokenOutIndex])
 
-	// Past the liquidity the quote can reach, report the input it did not use. The executor swaps with
-	// tickLimit = int32.max, so sending that input would walk empty ticks until the transaction runs out of gas.
-	var remaining *pool.TokenAmount
+	// Past the liquidity the quote can reach, the swap is refused. The executor swaps with tickLimit = int32.max,
+	// so the input the quote did not use would walk empty ticks until the transaction runs out of gas, and the
+	// router does not act on a RemainingTokenAmountIn: it would send the whole input.
 	if unfilled != nil && !unfilled.IsZero() {
-		remaining = &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: ScaleToAmount(unfilled.Clone(), p.decimals[tokenInIndex]).ToBig(),
-		}
+		return nil, ErrInsufficientLiquidity
 	}
 
 	return &pool.CalcAmountOutResult{
-		RemainingTokenAmountIn: remaining,
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: scaledAmountOut.ToBig(),
@@ -142,17 +138,12 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	// scale back to token amount
 	scaledAmountIn := ScaleToAmount(amountIn, p.decimals[tokenInIndex])
 
-	// Past the liquidity the quote can reach, report the output it could not deliver.
-	var remaining *pool.TokenAmount
+	// Past the liquidity the quote can reach, the swap is refused, as in CalcAmountOut.
 	if unfilled != nil && !unfilled.IsZero() {
-		remaining = &pool.TokenAmount{
-			Token:  tokenAmountOut.Token,
-			Amount: ScaleToAmount(unfilled.Clone(), p.decimals[tokenOutIndex]).ToBig(),
-		}
+		return nil, ErrInsufficientLiquidity
 	}
 
 	return &pool.CalcAmountInResult{
-		RemainingTokenAmountOut: remaining,
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: scaledAmountIn.ToBig(),

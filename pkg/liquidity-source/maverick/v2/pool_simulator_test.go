@@ -419,14 +419,22 @@ func quoteOut(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut string, amount
 	return res
 }
 
-func remainingIn(res *pool.CalcAmountOutResult) *big.Int {
-	if res.RemainingTokenAmountIn == nil || res.RemainingTokenAmountIn.Amount == nil {
-		return big.NewInt(0)
+// fillable is the part of amountIn the pool's liquidity can take, from the swap the quote runs.
+func fillable(t *testing.T, sim *PoolSimulator, zeroForOne bool, amountIn *big.Int, decimals uint8) *big.Int {
+	t.Helper()
+	scaled := scaleFromAmount(uint256.MustFromBig(amountIn), decimals)
+	_, unfilled, _, _, err := swap(sim.state.Clone(true), scaled, zeroForOne, false)
+	require.NoError(t, err)
+	if unfilled == nil {
+		return amountIn
 	}
-	return res.RemainingTokenAmountIn.Amount
+	return new(big.Int).Sub(amountIn, ScaleToAmount(unfilled.Clone(), decimals).ToBig())
 }
 
-func TestCalcAmountOut_PastCapacityReturnsRemaining(t *testing.T) {
+// Past the liquidity the quote can reach, the swap is refused: the executor's tickLimit is int32.max, so the
+// unused input would walk empty ticks until the transaction runs out of gas, and the router does not act on a
+// remaining amount. The amount the pool can take still quotes as a full fill.
+func TestCalcAmountOut_PastCapacityIsRefused(t *testing.T) {
 	t.Parallel()
 	sim, ep := loadEzEthWeth(t)
 	ezEth, weth := ep.Tokens[0].Address, ep.Tokens[1].Address
@@ -442,22 +450,19 @@ func TestCalcAmountOut_PastCapacityReturnsRemaining(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			amountIn := bignumber.NewBig10(tc.amountIn)
-			res := quoteOut(t, sim, tc.tokenIn, tc.tokOut, amountIn)
-			rem := remainingIn(res)
+			_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: amountIn},
+				TokenOut:      tc.tokOut,
+			})
+			require.ErrorIs(t, err, ErrInsufficientLiquidity)
 
-			// The unfilled input is reported, not dropped.
-			require.Positive(t, rem.Sign(), "a quote past capacity must report RemainingTokenAmountIn")
-			require.Equal(t, tc.tokenIn, res.RemainingTokenAmountIn.Token)
-			consumed := new(big.Int).Sub(amountIn, rem)
+			in := sim.GetTokenIndex(tc.tokenIn)
+			consumed := fillable(t, sim, in == 0, amountIn, sim.decimals[in])
 			require.Positive(t, consumed.Sign())
 			require.Negative(t, consumed.Cmp(amountIn))
-
-			// Quoting the consumed amount is a full fill with the same output and gas: that is the swap the
-			// executor can run.
-			full := quoteOut(t, sim, tc.tokenIn, tc.tokOut, consumed)
-			require.Zero(t, remainingIn(full).Sign(), "the consumed amount must fill completely")
-			require.Equal(t, res.TokenAmountOut.Amount.String(), full.TokenAmountOut.Amount.String())
-			require.Equal(t, full.Gas, res.Gas, "the partial fill's gas is the gas of the executable swap")
+			res := quoteOut(t, sim, tc.tokenIn, tc.tokOut, consumed)
+			require.Positive(t, res.TokenAmountOut.Amount.Sign())
+			require.Nil(t, res.RemainingTokenAmountIn)
 		})
 	}
 }
@@ -468,25 +473,21 @@ func TestCalcAmountOut_WithinCapacityUnchanged(t *testing.T) {
 	ezEth, weth := ep.Tokens[0].Address, ep.Tokens[1].Address
 
 	res := quoteOut(t, sim, ezEth, weth, big.NewInt(1e16)) // 0.01 ezETH, well within capacity
-	require.Zero(t, remainingIn(res).Sign())
+	require.Nil(t, res.RemainingTokenAmountIn)
 	require.Positive(t, res.TokenAmountOut.Amount.Sign())
 }
 
-func TestCalcAmountIn_PastCapacityReturnsRemaining(t *testing.T) {
+func TestCalcAmountIn_PastCapacityIsRefused(t *testing.T) {
 	t.Parallel()
 	sim, ep := loadEzEthWeth(t)
 	ezEth, weth := ep.Tokens[0].Address, ep.Tokens[1].Address
 
 	want := bignumber.NewBig10("1000000000000000000") // 1 WETH out; the pool holds about 0.0526
-	res, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+	_, err := sim.CalcAmountIn(pool.CalcAmountInParams{
 		TokenAmountOut: pool.TokenAmount{Token: weth, Amount: want},
 		TokenIn:        ezEth,
 	})
-	require.NoError(t, err)
-	require.NotNil(t, res.RemainingTokenAmountOut, "an exact-out quote past capacity must report RemainingTokenAmountOut")
-	require.Equal(t, weth, res.RemainingTokenAmountOut.Token)
-	require.Positive(t, res.RemainingTokenAmountOut.Amount.Sign())
-	require.Negative(t, res.RemainingTokenAmountOut.Amount.Cmp(want))
+	require.ErrorIs(t, err, ErrInsufficientLiquidity)
 }
 
 // The quote counts the ticks without liquidity it walks over to reach a tick it swaps in (about 2,540 gas each
