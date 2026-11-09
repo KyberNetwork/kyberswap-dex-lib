@@ -78,14 +78,16 @@ func (t *PoolTracker) getNewPoolState(
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
 	addRPCCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, twocryptong.PreviousPolicy(p.Extra), d)
 
-	if res, err := calls.TryBlockAndAggregate(); err != nil {
+	res, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
-	} else if res.BlockNumber != nil {
+	}
+	if res.BlockNumber != nil {
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
-	return buildPoolState(lg, p, d)
+	return buildPoolState(ctx, t, lg, p, d, res.BlockNumber, overrides)
 }
 
 type rpcData struct {
@@ -135,7 +137,8 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, previousPolicy st
 	}
 }
 
-func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, error) {
+func buildPoolState(ctx context.Context, t *PoolTracker, lg logger.Logger, p entity.Pool, d *rpcData,
+	block *big.Int, overrides map[common.Address]gethclient.OverrideAccount) (entity.Pool, error) {
 	var extra = twocryptong.Extra{
 		InitialA:           number.SetFromBig(new(big.Int).Rsh(d.initialAGamma, 128)),
 		InitialGamma:       new(uint256.Int).And(number.SetFromBig(d.initialAGamma), twocryptong.PriceMask),
@@ -153,7 +156,7 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 		AllowedExtraProfit: number.SetFromBig(d.allowedExtraProfit),
 		AdjustmentStep:     number.SetFromBig(d.adjustmentStep),
 		UseCustomMath:      twocryptong.UseCustomMath(d.math),
-		Policy:             twocryptong.PolicyHex(d.policy),
+		PolicyAddress:      twocryptong.PolicyHex(d.policy),
 	}
 	d.v21d.Apply(&extra)
 	d.v3.Apply(&extra, d.rebalancingParams)
@@ -162,6 +165,13 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 		if maTime := twocryptong.MaTimeFromRebalancingParams(d.rebalancingParams); !maTime.IsZero() {
 			extra.MaTime = maTime
 			extra.PriceOracleTimestamp = now
+		}
+	}
+	if d.policy != (common.Address{}) {
+		var err error
+		if extra.Policy, err = twocryptong.FetchPolicy(ctx, t.ethrpcClient, overrides, d.policy, block); err != nil {
+			lg.WithFields(logger.Fields{"error": err}).Error("failed to fetch policy")
+			return entity.Pool{}, err
 		}
 	}
 	extra.PriceScale = make([]uint256.Int, len(d.priceScales))

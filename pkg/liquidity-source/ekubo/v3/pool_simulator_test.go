@@ -52,37 +52,8 @@ func (ts *PoolSimulatorTestSuite) SetupSuite() {
 					"swappable": true
 				}
 			],
-			"extra": "{
-				\"liquidity\": 190444832097070393212,
-				\"sqrtRatio\": 340297432795514877548017330683904,
-				\"activeTick\": -27630947,
-				\"sortedTicks\": [
-					{\"number\": -27733347, \"liquidityDelta\": 0},
-					{\"number\": -27634400, \"liquidityDelta\": 1357532262696882268},
-					{\"number\": -27631400, \"liquidityDelta\": 61232925196865067418},
-					{\"number\": -27631200, \"liquidityDelta\": 127854374637508443526},
-					{\"number\": -27630800, \"liquidityDelta\": -127854374637508443526},
-					{\"number\": -27630600, \"liquidityDelta\": -61232925196865067418},
-					{\"number\": -27627600, \"liquidityDelta\": -1357532262696882268},
-					{\"number\": -27528547, \"liquidityDelta\": 0}
-				],
-				\"activeTickIndex\": 3,
-				\"tickBounds\": [-27733347, -27528547]
-			}",
-			"staticExtra": "{
-				\"extensionType\": 1,
-				\"poolKey\": {
-					\"token0\": \"0x7c1156e515aa1a2e851674120074968c905aaf37\",
-					\"token1\": \"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",
-					\"config\": {
-						\"extension\": \"0x0000000000000000000000000000000000000000\",
-						\"fee\": 0,
-						\"typeConfig\": {
-							\"tickSpacing\": 200
-						}
-					}
-				}
-			}"
+			"extra": "{\"liquidity\": 190444832097070393212,\"sqrtRatio\": 340297432795514877548017330683904,\"activeTick\": -27630947,\"sortedTicks\": [{\"number\": -27733347, \"liquidityDelta\": 0},{\"number\": -27634400, \"liquidityDelta\": 1357532262696882268},{\"number\": -27631400, \"liquidityDelta\": 61232925196865067418},{\"number\": -27631200, \"liquidityDelta\": 127854374637508443526},{\"number\": -27630800, \"liquidityDelta\": -127854374637508443526},{\"number\": -27630600, \"liquidityDelta\": -61232925196865067418},{\"number\": -27627600, \"liquidityDelta\": -1357532262696882268},{\"number\": -27528547, \"liquidityDelta\": 0}],\"activeTickIndex\": 3,\"tickBounds\": [-27733347, -27528547]}",
+			"staticExtra": "{\"extensionType\": 1,\"poolKey\": {\"token0\": \"0x7c1156e515aa1a2e851674120074968c905aaf37\",\"token1\": \"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"config\": {\"extension\": \"0x0000000000000000000000000000000000000000\",\"fee\": 0,\"typeConfig\": {\"tickSpacing\": 200}}}}"
 		}`,
 		// Liquidity field (0) contradicts sortedTicks: activeTick 599 sits between tick 550
 		// (delta +3225715779189072) and tick 850, so the true liquidity there is 3225715779189072.
@@ -102,34 +73,8 @@ func (ts *PoolSimulatorTestSuite) SetupSuite() {
 					"swappable": true
 				}
 			],
-			"extra": "{
-				\"sqrtRatio\": 340384466891082766560918035241426223104,
-				\"liquidity\": 0,
-				\"activeTickIndex\": 1,
-				\"sortedTicks\": [
-					{\"number\": -25200, \"liquidityDelta\": 0},
-					{\"number\": 550, \"liquidityDelta\": 3225715779189072},
-					{\"number\": 850, \"liquidityDelta\": -3225715779189072},
-					{\"number\": 26000, \"liquidityDelta\": 0}
-				],
-				\"tickBounds\": [-25200, 26000],
-				\"activeTick\": 599
-			}",
-			"staticExtra": "{
-				\"core\": \"0x00000000000014aa86c5d3c41765bb24e11bd701\",
-				\"extensionType\": 1,
-				\"poolKey\": {
-					\"token0\": \"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",
-					\"token1\": \"0xdac17f958d2ee523a2206206994597c13d831ec7\",
-					\"config\": {
-						\"fee\": 110680464442257,
-						\"typeConfig\": {
-							\"tickSpacing\": 50
-						},
-						\"extension\": \"0x0000000000000000000000000000000000000000\"
-					}
-				}
-			}"
+			"extra": "{\"sqrtRatio\": 340384466891082766560918035241426223104,\"liquidity\": 0,\"activeTickIndex\": 1,\"sortedTicks\": [{\"number\": -25200, \"liquidityDelta\": 0},{\"number\": 550, \"liquidityDelta\": 3225715779189072},{\"number\": 850, \"liquidityDelta\": -3225715779189072},{\"number\": 26000, \"liquidityDelta\": 0}],\"tickBounds\": [-25200, 26000],\"activeTick\": 599}",
+			"staticExtra": "{\"core\": \"0x00000000000014aa86c5d3c41765bb24e11bd701\",\"extensionType\": 1,\"poolKey\": {\"token0\": \"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"token1\": \"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"config\": {\"fee\": 110680464442257,\"typeConfig\": {\"tickSpacing\": 50},\"extension\": \"0x0000000000000000000000000000000000000000\"}}}"
 		}`,
 		"ETH-USDC-oracle": `{
 			"tokens": [
@@ -146,22 +91,8 @@ func (ts *PoolSimulatorTestSuite) SetupSuite() {
 					"swappable": true
 				}
 			],
-			"extra": "{
-				\"liquidity\": 644001943172367,
-				\"sqrtRatio\": 13517496585667842734787457760362496
-			}",
-			"staticExtra": "{
-				\"extensionType\": 2,
-				\"poolKey\": {
-					\"token0\": \"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\",
-					\"token1\": \"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",
-					\"config\": {
-						\"extension\": \"0x51d02a5948496a67827242eabc5725531342527c\",
-						\"fee\": 0,
-						\"typeConfig\": {}
-					}
-				}
-			}"
+			"extra": "{\"liquidity\": 644001943172367,\"sqrtRatio\": 13517496585667842734787457760362496}",
+			"staticExtra": "{\"extensionType\": 2,\"poolKey\": {\"token0\": \"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\",\"token1\": \"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"config\": {\"extension\": \"0x51d02a5948496a67827242eabc5725531342527c\",\"fee\": 0,\"typeConfig\": {}}}}"
 		}`,
 		"ETH-EKUBO-base": `{
 			"tokens": [
@@ -178,39 +109,8 @@ func (ts *PoolSimulatorTestSuite) SetupSuite() {
 					"swappable": true
 				}
 			],
-			"extra": "{
-				\"liquidity\": 69269646872393240672,
-				\"sqrtRatio\": 6843420854794309313390943859390472519680,
-				\"activeTick\": 6002537,
-				\"sortedTicks\": [
-					{\"number\": -4136087, \"liquidityDelta\": 0},
-					{\"number\": 2950498, \"liquidityDelta\": 568821477503452479021},
-					{\"number\": 5207926, \"liquidityDelta\": 3345854232514988052480},
-					{\"number\": 5544560, \"liquidityDelta\": 69269646872393240672},
-					{\"number\": 5564362, \"liquidityDelta\": 24355412055252046472},
-					{\"number\": 5623768, \"liquidityDelta\": -568741057254962452977},
-					{\"number\": 5643570, \"liquidityDelta\": -3345934652763478078524},
-					{\"number\": 5940600, \"liquidityDelta\": -24355412055252046472},
-					{\"number\": 6257432, \"liquidityDelta\": -69269646872393240672},
-					{\"number\": 16141161, \"liquidityDelta\": 0}
-				],
-				\"activeTickIndex\": 7,
-				\"tickBounds\": [-4136087, 16141161]
-			}",
-			"staticExtra": "{
-				\"extensionType\": 1,
-				\"poolKey\": {
-					\"token0\": \"0x0000000000000000000000000000000000000000\",
-					\"token1\": \"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f\",
-					\"config\": {
-						\"extension\": \"0x0000000000000000000000000000000000000000\",
-						\"fee\": 184467440737095516,
-						\"typeConfig\": {
-							\"tickSpacing\": 19802
-						}
-					}
-				}
-			}"
+			"extra": "{\"liquidity\": 69269646872393240672,\"sqrtRatio\": 6843420854794309313390943859390472519680,\"activeTick\": 6002537,\"sortedTicks\": [{\"number\": -4136087, \"liquidityDelta\": 0},{\"number\": 2950498, \"liquidityDelta\": 568821477503452479021},{\"number\": 5207926, \"liquidityDelta\": 3345854232514988052480},{\"number\": 5544560, \"liquidityDelta\": 69269646872393240672},{\"number\": 5564362, \"liquidityDelta\": 24355412055252046472},{\"number\": 5623768, \"liquidityDelta\": -568741057254962452977},{\"number\": 5643570, \"liquidityDelta\": -3345934652763478078524},{\"number\": 5940600, \"liquidityDelta\": -24355412055252046472},{\"number\": 6257432, \"liquidityDelta\": -69269646872393240672},{\"number\": 16141161, \"liquidityDelta\": 0}],\"activeTickIndex\": 7,\"tickBounds\": [-4136087, 16141161]}",
+			"staticExtra": "{\"extensionType\": 1,\"poolKey\": {\"token0\": \"0x0000000000000000000000000000000000000000\",\"token1\": \"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f\",\"config\": {\"extension\": \"0x0000000000000000000000000000000000000000\",\"fee\": 184467440737095516,\"typeConfig\": {\"tickSpacing\": 19802}}}}"
 		}`,
 		"ETH-EKUBO-full-range": `{
 			"tokens": [
@@ -227,22 +127,8 @@ func (ts *PoolSimulatorTestSuite) SetupSuite() {
 					"swappable": true
 				}
 			],
-			"extra": "{
-				\"liquidity\": 59382833771552102,
-				\"sqrtRatio\": 6805254927144693263794887740749196034048
-			}",
-			"staticExtra": "{
-				\"extensionType\": 1,
-				\"poolKey\": {
-					\"token0\": \"0x0000000000000000000000000000000000000000\",
-					\"token1\": \"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f\",
-					\"config\": {
-						\"extension\": \"0x0000000000000000000000000000000000000000\",
-						\"fee\": 184467440737095516,
-						\"typeConfig\": {}
-					}
-				}
-			}"
+			"extra": "{\"liquidity\": 59382833771552102,\"sqrtRatio\": 6805254927144693263794887740749196034048}",
+			"staticExtra": "{\"extensionType\": 1,\"poolKey\": {\"token0\": \"0x0000000000000000000000000000000000000000\",\"token1\": \"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f\",\"config\": {\"extension\": \"0x0000000000000000000000000000000000000000\",\"fee\": 184467440737095516,\"typeConfig\": {}}}}"
 		}`,
 		"ETH-EKUBO-oracle": `{
 			"tokens": [
@@ -259,22 +145,8 @@ func (ts *PoolSimulatorTestSuite) SetupSuite() {
 					"swappable": true
 				}
 			],
-			"extra": "{
-				\"liquidity\": 247970378741493120494,
-				\"sqrtRatio\": 6825734798789139554821795794043866710016
-			}",
-			"staticExtra": "{
-				\"extensionType\": 2,
-				\"poolKey\": {
-					\"token0\": \"0x0000000000000000000000000000000000000000\",
-					\"token1\": \"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f\",
-					\"config\":{
-						\"extension\": \"0x51d02a5948496a67827242eabc5725531342527c\",
-						\"fee\": 0,
-						\"typeConfig\": {}
-					}
-				}
-			}"
+			"extra": "{\"liquidity\": 247970378741493120494,\"sqrtRatio\": 6825734798789139554821795794043866710016}",
+			"staticExtra": "{\"extensionType\": 2,\"poolKey\": {\"token0\": \"0x0000000000000000000000000000000000000000\",\"token1\": \"0x04c46e830bb56ce22735d5d8fc9cb90309317d0f\",\"config\":{\"extension\": \"0x51d02a5948496a67827242eabc5725531342527c\",\"fee\": 0,\"typeConfig\": {}}}}"
 		}`,
 	}
 

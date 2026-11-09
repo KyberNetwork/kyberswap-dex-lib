@@ -305,7 +305,7 @@ func trackWithPolicy(t *testing.T, tr tracker, previousPolicy string) twocrypton
 		Tokens: []*entity.PoolToken{{Address: "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e"},
 			{Address: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"}},
 		Reserves: entity.PoolReserves{"0", "0"},
-		Extra:    `{"Policy":"` + previousPolicy + `"}`,
+		Extra:    `{"PolicyAddress":"` + previousPolicy + `"}`,
 	}
 	got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
@@ -331,8 +331,8 @@ func TestPoolTrackers_StoreV3State(t *testing.T) {
 			require.NotNil(t, extra.AdjustmentStepMin)
 			assert.Equal(t, "10000000000", extra.AdjustmentStepMin.Dec())
 			assert.Equal(t, "5000000000000000", extra.AdjustmentStepMax.Dec())
-			require.NotNil(t, extra.PolicyState)
-			s := extra.PolicyState
+			require.NotNil(t, extra.TwocryptoPolicy)
+			s := extra.TwocryptoPolicy
 			assert.Equal(t, int64(1793379071), s.LastUpdateTs)
 			assert.Equal(t, "72156952696539490158287", s.PriceScale.Dec())
 			assert.Equal(t, "79013462006129642748426", s.SlowEma.Dec())
@@ -350,8 +350,8 @@ func TestPoolTrackers_StoreNoPolicyStateUnlessKnown(t *testing.T) {
 			"0xaea95d551154443e73565be724d59d63d72f8a7d"} {
 			t.Run(name+" "+previous, func(t *testing.T) {
 				extra := trackWithPolicy(t, tr, previous)
-				assert.Equal(t, wbtcPolicy, extra.Policy)
-				assert.Nil(t, extra.PolicyState)
+				assert.Equal(t, wbtcPolicy, extra.PolicyAddress)
+				assert.Nil(t, extra.TwocryptoPolicy)
 			})
 		}
 	}
@@ -362,10 +362,10 @@ func TestPoolTrackers_StoreNoPolicyStateUnlessKnown(t *testing.T) {
 // pure and returns 0 (the pool's own fee applies); the WETH pool's is YBOraclizedPolicy, whose fee depends on the
 // trade and a signed price report.
 const (
-	poolV3WBTC       = `{"address":"0x313698667d7fdd6789a9bc70821309ff891e729a","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1793600892,"reserves":["34253607650019964044778625","31224663074"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","symbol":"WBTC","decimals":8,"swappable":true}],"extra":"{\"InitialA\":\"50000\",\"InitialGamma\":\"11111111111\",\"FutureA\":\"50000\",\"FutureGamma\":\"11111111111\",\"FutureAGammaTime\":0,\"D\":\"56575839380905789716926673\",\"PriceScale\":[\"72156952696539490158287\"],\"PriceOracle\":[\"77644190031455962596650\"],\"LastPrices\":[\"77646391836179594649312\"],\"PriceOracleTimestamp\":1793600892,\"MaTime\":\"865\",\"FeeGamma\":\"30000000000000000\",\"MidFee\":\"130000000\",\"OutFee\":\"130000000\",\"LpSupply\":\"104126966628027347437547\",\"XcpProfit\":\"1036450864470785641\",\"VirtualPrice\":\"1011343532348392001\",\"AllowedExtraProfit\":null,\"AdjustmentStep\":\"100000000\",\"UseCustomMath\":true,\"Policy\":\"0x0436c0648afd66de23f86f23cb42884304743efa\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}","blockNumber":26307080}`
-	poolV3cbBTCFresh = `{"address":"0x862cb4e988fb66e72f128d1183829f8c05b6c6a0","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1793600896,"reserves":["27756702231009188438738141","34993243729"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf","symbol":"cbBTC","decimals":8,"swappable":true}],"extra":"{\"InitialA\":\"50000\",\"InitialGamma\":\"11111111111\",\"FutureA\":\"50000\",\"FutureGamma\":\"11111111111\",\"FutureAGammaTime\":0,\"D\":\"54801030512832732734229143\",\"PriceScale\":[\"77286628838017654881551\"],\"PriceOracle\":[\"77621960495970162655012\"],\"LastPrices\":[\"77621960447248580232137\"],\"PriceOracleTimestamp\":1793600896,\"MaTime\":\"865\",\"FeeGamma\":\"30000000000000000\",\"MidFee\":\"130000000\",\"OutFee\":\"130000000\",\"LpSupply\":\"97097012358894162425702\",\"XcpProfit\":\"1047730358031930301\",\"VirtualPrice\":\"1015080957106381580\",\"AllowedExtraProfit\":null,\"AdjustmentStep\":\"100000000\",\"UseCustomMath\":true,\"Policy\":\"0x038f549d21b9c22a26ada4da2ebf7cfd1c3ca22d\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}","blockNumber":26307080}`
-	poolV3tBTCFresh  = `{"address":"0x4f52c3a81e33521e5a9a47fd9d3be475d2279c2e","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1793600899,"reserves":["21203026424257775725825133","191704654592031099106"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0x18084fba666a33d37592fa2633fd49a74dd93a88","symbol":"tBTC","decimals":18,"swappable":true}],"extra":"{\"InitialA\":\"50000\",\"InitialGamma\":\"11111111111\",\"FutureA\":\"50000\",\"FutureGamma\":\"11111111111\",\"FutureAGammaTime\":0,\"D\":\"34866851668698472812011087\",\"PriceScale\":[\"71980553859879763736828\"],\"PriceOracle\":[\"77615373277783070471157\"],\"LastPrices\":[\"77615373230567813312479\"],\"PriceOracleTimestamp\":1793600899,\"MaTime\":\"865\",\"FeeGamma\":\"30000000000000000\",\"MidFee\":\"130000000\",\"OutFee\":\"130000000\",\"LpSupply\":\"64345677359056618444004\",\"XcpProfit\":\"1032418260550179630\",\"VirtualPrice\":\"1009847441433321294\",\"AllowedExtraProfit\":null,\"AdjustmentStep\":\"100000000\",\"UseCustomMath\":true,\"Policy\":\"0xe99ee179f1cc62d4a1d3e67dd5541ecb63aca396\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}","blockNumber":26307080}`
-	poolV3WETH       = `{"address":"0x656341ef90b622c6634e0573772ffb7f3669b9f3","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1793600902,"reserves":["14491129749364977540372168","6303251288201586488073"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","symbol":"WETH","decimals":18,"swappable":true}],"extra":"{\"InitialA\":\"50000\",\"InitialGamma\":\"11111111111\",\"FutureA\":\"50000\",\"FutureGamma\":\"11111111111\",\"FutureAGammaTime\":0,\"D\":\"28502785833946151738901397\",\"PriceScale\":[\"2223031549528268495568\"],\"PriceOracle\":[\"2236082244245389421581\"],\"LastPrices\":[\"2235519201282954769369\"],\"PriceOracleTimestamp\":1793600902,\"MaTime\":\"865\",\"FeeGamma\":\"4961947600000000\",\"MidFee\":\"136000000\",\"OutFee\":\"282000000\",\"LpSupply\":\"286514690749384893175527\",\"XcpProfit\":\"1096995254713366610\",\"VirtualPrice\":\"1054963917514326009\",\"AllowedExtraProfit\":null,\"AdjustmentStep\":\"100000000\",\"UseCustomMath\":true,\"Policy\":\"0xaea95d551154443e73565be724d59d63d72f8a7d\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}","blockNumber":26307080}`
+	poolV3WBTC       = `{"address":"0x313698667d7fdd6789a9bc70821309ff891e729a","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1793600892,"reserves":["34253607650019964044778625","31224663074"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","symbol":"WBTC","decimals":8,"swappable":true}],"extra":"{\"InitialA\":\"50000\",\"InitialGamma\":\"11111111111\",\"FutureA\":\"50000\",\"FutureGamma\":\"11111111111\",\"FutureAGammaTime\":0,\"D\":\"56575839380905789716926673\",\"PriceScale\":[\"72156952696539490158287\"],\"PriceOracle\":[\"77644190031455962596650\"],\"LastPrices\":[\"77646391836179594649312\"],\"PriceOracleTimestamp\":1793600892,\"MaTime\":\"865\",\"FeeGamma\":\"30000000000000000\",\"MidFee\":\"130000000\",\"OutFee\":\"130000000\",\"LpSupply\":\"104126966628027347437547\",\"XcpProfit\":\"1036450864470785641\",\"VirtualPrice\":\"1011343532348392001\",\"AllowedExtraProfit\":null,\"AdjustmentStep\":\"100000000\",\"UseCustomMath\":true,\"PolicyAddress\":\"0x0436c0648afd66de23f86f23cb42884304743efa\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}","blockNumber":26307080}`
+	poolV3cbBTCFresh = `{"address":"0x862cb4e988fb66e72f128d1183829f8c05b6c6a0","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1793600896,"reserves":["27756702231009188438738141","34993243729"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf","symbol":"cbBTC","decimals":8,"swappable":true}],"extra":"{\"InitialA\":\"50000\",\"InitialGamma\":\"11111111111\",\"FutureA\":\"50000\",\"FutureGamma\":\"11111111111\",\"FutureAGammaTime\":0,\"D\":\"54801030512832732734229143\",\"PriceScale\":[\"77286628838017654881551\"],\"PriceOracle\":[\"77621960495970162655012\"],\"LastPrices\":[\"77621960447248580232137\"],\"PriceOracleTimestamp\":1793600896,\"MaTime\":\"865\",\"FeeGamma\":\"30000000000000000\",\"MidFee\":\"130000000\",\"OutFee\":\"130000000\",\"LpSupply\":\"97097012358894162425702\",\"XcpProfit\":\"1047730358031930301\",\"VirtualPrice\":\"1015080957106381580\",\"AllowedExtraProfit\":null,\"AdjustmentStep\":\"100000000\",\"UseCustomMath\":true,\"PolicyAddress\":\"0x038f549d21b9c22a26ada4da2ebf7cfd1c3ca22d\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}","blockNumber":26307080}`
+	poolV3tBTCFresh  = `{"address":"0x4f52c3a81e33521e5a9a47fd9d3be475d2279c2e","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1793600899,"reserves":["21203026424257775725825133","191704654592031099106"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0x18084fba666a33d37592fa2633fd49a74dd93a88","symbol":"tBTC","decimals":18,"swappable":true}],"extra":"{\"InitialA\":\"50000\",\"InitialGamma\":\"11111111111\",\"FutureA\":\"50000\",\"FutureGamma\":\"11111111111\",\"FutureAGammaTime\":0,\"D\":\"34866851668698472812011087\",\"PriceScale\":[\"71980553859879763736828\"],\"PriceOracle\":[\"77615373277783070471157\"],\"LastPrices\":[\"77615373230567813312479\"],\"PriceOracleTimestamp\":1793600899,\"MaTime\":\"865\",\"FeeGamma\":\"30000000000000000\",\"MidFee\":\"130000000\",\"OutFee\":\"130000000\",\"LpSupply\":\"64345677359056618444004\",\"XcpProfit\":\"1032418260550179630\",\"VirtualPrice\":\"1009847441433321294\",\"AllowedExtraProfit\":null,\"AdjustmentStep\":\"100000000\",\"UseCustomMath\":true,\"PolicyAddress\":\"0xe99ee179f1cc62d4a1d3e67dd5541ecb63aca396\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}","blockNumber":26307080}`
+	poolV3WETH       = `{"address":"0x656341ef90b622c6634e0573772ffb7f3669b9f3","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1793600902,"reserves":["14491129749364977540372168","6303251288201586488073"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","symbol":"WETH","decimals":18,"swappable":true}],"extra":"{\"InitialA\":\"50000\",\"InitialGamma\":\"11111111111\",\"FutureA\":\"50000\",\"FutureGamma\":\"11111111111\",\"FutureAGammaTime\":0,\"D\":\"28502785833946151738901397\",\"PriceScale\":[\"2223031549528268495568\"],\"PriceOracle\":[\"2236082244245389421581\"],\"LastPrices\":[\"2235519201282954769369\"],\"PriceOracleTimestamp\":1793600902,\"MaTime\":\"865\",\"FeeGamma\":\"4961947600000000\",\"MidFee\":\"136000000\",\"OutFee\":\"282000000\",\"LpSupply\":\"286514690749384893175527\",\"XcpProfit\":\"1096995254713366610\",\"VirtualPrice\":\"1054963917514326009\",\"AllowedExtraProfit\":null,\"AdjustmentStep\":\"100000000\",\"UseCustomMath\":true,\"PolicyAddress\":\"0xaea95d551154443e73565be724d59d63d72f8a7d\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}","blockNumber":26307080}`
 
 	errStateAfterTrade = "state after a trade not simulated for this pool version"
 )
@@ -445,7 +445,7 @@ func TestPolicy_StoredByTrackers(t *testing.T) {
 	for name, tr := range trackers(t, srv.URL) {
 		t.Run(name, func(t *testing.T) {
 			extra, _, _, _ := track(t, tr)
-			assert.Equal(t, "0xe99ee179f1cc62d4a1d3e67dd5541ecb63aca396", extra.Policy)
+			assert.Equal(t, "0xe99ee179f1cc62d4a1d3e67dd5541ecb63aca396", extra.PolicyAddress)
 		})
 	}
 }
@@ -457,7 +457,7 @@ func TestPolicy_NotStoredWithoutTheView(t *testing.T) {
 	for name, tr := range trackers(t, srv.URL) {
 		t.Run(name, func(t *testing.T) {
 			extra, got, _, _ := track(t, tr)
-			assert.Empty(t, extra.Policy)
+			assert.Empty(t, extra.PolicyAddress)
 			assert.NotContains(t, got.Extra, "Policy")
 		})
 	}
@@ -470,12 +470,12 @@ func TestPoolV3_RefusedWhereTheQuoteIsNotKnown(t *testing.T) {
 		raw  string
 		edit func(*twocryptong.Extra)
 	}{
-		"oraclized policy (WETH)": {poolV3WETH, nil},
-		"unknown policy":          {poolV3tBTCFresh, func(e *twocryptong.Extra) { e.Policy = "0x1111111111111111111111111111111111111111" }},
-		"no policy read":          {poolV3tBTCFresh, func(e *twocryptong.Extra) { e.Policy = "" }},
-		"ramp scheduled":          {poolV3tBTCFresh, func(e *twocryptong.Extra) { e.FutureAGammaTime = 4102444800 }},
-		"ramp ended":              {poolV3tBTCFresh, func(e *twocryptong.Extra) { e.FutureAGammaTime = 1700000000 }},
-		"cryptoswap math":         {poolV3tBTCFresh, func(e *twocryptong.Extra) { e.UseCustomMath = false }},
+		// A YBOraclizedPolicy pool (WETH) and state without PolicyAddress take the policy fee path instead,
+		// covered by TestYieldBasisPolicy* and TestYieldBasisV3*.
+		"unknown policy":  {poolV3tBTCFresh, func(e *twocryptong.Extra) { e.PolicyAddress = "0x1111111111111111111111111111111111111111" }},
+		"ramp scheduled":  {poolV3tBTCFresh, func(e *twocryptong.Extra) { e.FutureAGammaTime = 4102444800 }},
+		"ramp ended":      {poolV3tBTCFresh, func(e *twocryptong.Extra) { e.FutureAGammaTime = 1700000000 }},
+		"cryptoswap math": {poolV3tBTCFresh, func(e *twocryptong.Extra) { e.UseCustomMath = false }},
 	} {
 		t.Run(name, func(t *testing.T) {
 			sim := newPool(t, c.raw, c.edit)
@@ -542,8 +542,6 @@ const (
 	mathStableswapV010 = "0x79839c2D74531A8222C0F555865aAc1834e82e51"
 	mathStableswapV011 = "0xBfDdF58Cb6ef84e115fF47c10e49A80B2653EA13" // v3.0.0 pools' math
 	mathCryptoswapV200 = "0x2005995a71243be9FB995DaB4742327dc76564Df"
-
-	errPoolVersion = "pool version not supported"
 )
 
 func TestUseCustomMath(t *testing.T) {
@@ -588,10 +586,11 @@ func newPoolV3(t *testing.T, raw string, customMath bool) *twocryptong.PoolSimul
 	return sim
 }
 
-// A v3.0.0 pool's tweak_price is not this package's: quotes are refused, on the state the pool tracker stores today
-// and on the state it stores once the math is selected. Before the refusal the first reached tweak_price and
-// dereferenced the null field for a thousandth of the reserves, and the second for every size.
-func TestPoolV3_QuotesAreRefusedNotPanicked(t *testing.T) {
+// A v3.0.0 pool's state stored before the trackers recorded PolicyAddress, with either math, never panics. Such state
+// takes the policy fee path (v3Native) until the next refresh. Before that path existed, the first case reached
+// tweak_price and dereferenced the null allowed_extra_profit for a thousandth of the reserves, and the second for
+// every size.
+func TestPoolV3_OldStateQuotesDoNotPanic(t *testing.T) {
 	for name, tc := range map[string]struct {
 		raw        string
 		customMath bool
@@ -609,17 +608,14 @@ func TestPoolV3_QuotesAreRefusedNotPanicked(t *testing.T) {
 				amount := func(i int) *big.Int { return new(big.Int).Div(reserves[i], big.NewInt(tc.divisor)) }
 
 				require.NotPanics(t, func() {
-					_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+					_, _ = sim.CalcAmountOut(pool.CalcAmountOutParams{
 						TokenAmountIn: pool.TokenAmount{Token: tokens[d[0]], Amount: amount(d[0])},
 						TokenOut:      tokens[d[1]],
 					})
-					assert.EqualError(t, err, errPoolVersion)
-
-					_, err = sim.CalcAmountIn(pool.CalcAmountInParams{
+					_, _ = sim.CalcAmountIn(pool.CalcAmountInParams{
 						TokenAmountOut: pool.TokenAmount{Token: tokens[d[1]], Amount: amount(d[1])},
 						TokenIn:        tokens[d[0]],
 					})
-					assert.EqualError(t, err, errPoolVersion)
 				})
 			})
 		}

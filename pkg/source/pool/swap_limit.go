@@ -20,3 +20,31 @@ type SwapLimit interface {
 	// It returns the new limits for other purposes
 	UpdateLimit(decreaseKey, increasedKey string, decreasedDelta, increasedDelta *big.Int) (increasedLimitAfter *big.Int, decreasedLimitAfter *big.Int, err error)
 }
+
+// SwapLimitMergePolicy determines how snapshots of the same shared limit are
+// combined. The zero value preserves the existing maximum-value behavior.
+type SwapLimitMergePolicy uint8
+
+const (
+	SwapLimitMergeMax SwapLimitMergePolicy = iota
+	SwapLimitMergeMin
+)
+
+// ISwapLimitMergePolicy is an optional simulator capability. Simulators sharing
+// a limit key must agree on its policy. Keys without a policy default to max.
+type ISwapLimitMergePolicy interface {
+	GetLimitMergePolicy(key string) SwapLimitMergePolicy
+}
+
+// MergeSwapLimits combines a simulator's snapshot into shared limits without
+// mutating either snapshot's integers. Values must be non-nil and remain read-only.
+func MergeSwapLimits(limits map[string]*big.Int, simulator IPoolSimulator) {
+	policy, hasPolicy := simulator.(ISwapLimitMergePolicy)
+	for key, value := range simulator.CalculateLimit() {
+		old, exists := limits[key]
+		useMin := hasPolicy && policy.GetLimitMergePolicy(key) == SwapLimitMergeMin
+		if !exists || (useMin && old.Cmp(value) > 0) || (!useMin && old.Cmp(value) < 0) {
+			limits[key] = value
+		}
+	}
+}

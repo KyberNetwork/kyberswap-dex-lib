@@ -115,23 +115,24 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 
 	if indexIn == 0 {
-		s.extra.Bids, s.extra.InitBid = consumeBins(s.extra.Bids, s.extra.InitBid, params.TokenAmountOut.Amount)
+		s.extra.Bids, s.extra.InitBid = consumeBins(s.extra.Bids, s.extra.InitBid, params.TokenAmountIn.Amount, params.TokenAmountOut.Amount)
 	} else {
-		s.extra.Asks, s.extra.InitAsk = consumeBins(s.extra.Asks, s.extra.InitAsk, params.TokenAmountOut.Amount)
+		s.extra.Asks, s.extra.InitAsk = consumeBins(s.extra.Asks, s.extra.InitAsk, params.TokenAmountIn.Amount, params.TokenAmountOut.Amount)
 	}
 }
 
 // consumeBins takes amountOut of maker volume off the front of bins, which start at price start. The bins the
 // swap fills are dropped; the one it ends in keeps its unfilled volume, and the start price moves to where the
-// fill ended, interpolated within that bin as getRate interpolates. Every bin left has its cumulative volume
-// lowered by amountOut. It returns new bins and a new start price, and does not modify its arguments (a clone
+// fill ended, interpolated within that bin as getRateLegacy interpolates. Every bin left has its cumulative volume
+// lowered by amountOut and its cumulative input, when the pool tracks it, by amountIn, which keeps walkDepth's
+// per-bin input and output. It returns new bins and a new start price, and does not modify its arguments (a clone
 // shares the prices with its original).
 //
 // It moves the swapped side only. The contract keeps one position for both sides, so a swap also moves the other
 // side's start price and adds the crossed bins to it as liquidity. Left as it was, the other side quotes slightly
 // less than the chain does after the swap (0.06-2 bps on an Ethereum fork), never more. Consecutive swaps in the
 // same direction match the contract exactly.
-func consumeBins(bins []Bin, start, amountOut *big.Int) ([]Bin, *big.Int) {
+func consumeBins(bins []Bin, start, amountIn, amountOut *big.Int) ([]Bin, *big.Int) {
 	prevVolume, prevPrice := bignumber.ZeroBI, start
 	for i, bin := range bins {
 		if bin.CumulativeVolume.Cmp(amountOut) <= 0 {
@@ -148,6 +149,9 @@ func consumeBins(bins []Bin, start, amountOut *big.Int) ([]Bin, *big.Int) {
 		left := make([]Bin, len(bins)-i)
 		for j, b := range bins[i:] {
 			left[j] = Bin{BinIdx: b.BinIdx, Price: b.Price, CumulativeVolume: new(big.Int).Sub(b.CumulativeVolume, amountOut)}
+			if b.CumulativeInput != nil {
+				left[j].CumulativeInput = new(big.Int).Sub(b.CumulativeInput, amountIn)
+			}
 		}
 		return left, price
 	}
@@ -162,6 +166,13 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	}
 }
 
+func cloneBig(x *big.Int) *big.Int {
+	if x == nil {
+		return nil
+	}
+	return new(big.Int).Set(x)
+}
+
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
@@ -171,6 +182,7 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 			BinIdx:           ask.BinIdx,
 			Price:            ask.Price,
 			CumulativeVolume: new(big.Int).Set(ask.CumulativeVolume),
+			CumulativeInput:  cloneBig(ask.CumulativeInput),
 		}
 	}
 
@@ -180,12 +192,22 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 			BinIdx:           bid.BinIdx,
 			Price:            bid.Price,
 			CumulativeVolume: new(big.Int).Set(bid.CumulativeVolume),
+			CumulativeInput:  cloneBig(bid.CumulativeInput),
 		}
 	}
 	return &cloned
 }
 
+// getRate walks the depth per Metric's "Estimate a fill from depth". Pools stored without
+// cumulative input (before it was tracked) use the legacy price-averaging estimate.
 func (s *PoolSimulator) getRate(zeroToOne bool, amountIn *big.Int) (*big.Int, error) {
+	if bins := lo.Ternary(zeroToOne, s.extra.Bids, s.extra.Asks); len(bins) > 0 && bins[0].CumulativeInput != nil {
+		return s.walkDepth(!zeroToOne, bins, amountIn)
+	}
+	return s.getRateLegacy(zeroToOne, amountIn)
+}
+
+func (s *PoolSimulator) getRateLegacy(zeroToOne bool, amountIn *big.Int) (*big.Int, error) {
 	var currentPrice big.Int
 	currentPrice.Set(lo.Ternary(zeroToOne, s.extra.InitBid, s.extra.InitAsk))
 

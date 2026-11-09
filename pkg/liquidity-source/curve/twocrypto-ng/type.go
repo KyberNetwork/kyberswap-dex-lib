@@ -44,16 +44,16 @@ type (
 		// v3.0.0 only: lp_xcp_profit, reserved_profit_fraction and admin_fee (the rebalance threshold and the admin
 		// share of each fee), [adjustment_step_min, adjustment_step_max] from packed_rebalancing_params, and the
 		// state of a YBTwocryptoPolicy, whose get_price_scale is the rebalance target.
-		LpXcpProfit            *uint256.Int `json:",omitempty"`
-		ReservedProfitFraction *uint256.Int `json:",omitempty"`
-		AdminFee               *uint256.Int `json:",omitempty"`
-		AdjustmentStepMin      *uint256.Int `json:",omitempty"`
-		AdjustmentStepMax      *uint256.Int `json:",omitempty"`
-		PolicyState            *PolicyState `json:",omitempty"`
+		LpXcpProfit            *uint256.Int          `json:",omitempty"`
+		ReservedProfitFraction *uint256.Int          `json:",omitempty"`
+		AdminFee               *uint256.Int          `json:",omitempty"`
+		AdjustmentStepMin      *uint256.Int          `json:",omitempty"`
+		AdjustmentStepMax      *uint256.Int          `json:",omitempty"`
+		TwocryptoPolicy        *TwocryptoPolicyState `json:",omitempty"`
 
-		// Policy is the pool's POLICY contract (v3.0.0), lower-case hex, empty when the pool has none or no view.
-		// A policy can set the fee and the price-scale target (see nativeFeePolicies).
-		Policy string `json:",omitempty"`
+		// PolicyAddress is the pool's POLICY contract (v3.0.0), lower-case hex, empty when the pool has none or no
+		// view. A policy can set the fee and the price-scale target (see nativeFeePolicies and Policy).
+		PolicyAddress string `json:",omitempty"`
 
 		FeeGamma *uint256.Int
 		MidFee   *uint256.Int
@@ -65,10 +65,16 @@ type (
 		AllowedExtraProfit *uint256.Int
 		AdjustmentStep     *uint256.Int
 		UseCustomMath      bool `json:",omitempty"`
+		// Twocrypto v3 (no allowed_extra_profit): AllowedExtraProfit is nil.
+		// Policy prices swaps through YBOraclizedPolicy.get_fee (report-aware discount).
+		Policy *PolicyState `json:",omitempty"`
+		// PolicyFee is a flat fee override kept for previously stored pool data; the trackers no
+		// longer set it (an unlisted policy errors in FetchPolicy). Both nil: the pool's native fee.
+		PolicyFee *uint256.Int `json:",omitempty"`
 	}
 
-	// PolicyState is a YBTwocryptoPolicy's state() and immutables.
-	PolicyState struct {
+	// TwocryptoPolicyState is a YBTwocryptoPolicy's state() and immutables.
+	TwocryptoPolicyState struct {
 		LastUpdateTs                      int64
 		LastPrices, FastEma, SlowEma      *uint256.Int
 		PriceScale                        *uint256.Int
@@ -98,9 +104,9 @@ type (
 
 		// v3.0.0 only (see tweakPriceV3): the admin share of the fee, which leaves balances[j], lp_xcp_profit, the
 		// policy's state after update_pool_state, and whether the state after the trade is known (V3Exact).
-		AdminFee    uint256.Int
-		LpXcpProfit uint256.Int
-		PolicyState *PolicyState
-		V3Exact     bool
+		AdminFee        uint256.Int
+		LpXcpProfit     uint256.Int
+		TwocryptoPolicy *TwocryptoPolicyState
+		V3Exact         bool
 	}
 )

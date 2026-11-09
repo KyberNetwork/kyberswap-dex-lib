@@ -17,9 +17,13 @@ var (
 	ErrPoolPaused = errors.New("pool is paused")
 	ErrOverflow   = errors.New("overflow")
 
+	ErrUnidirectional = errors.New("pool is not bidirectional")
+	ErrZeroAmount     = errors.New("zero amount or rate")
+
 	supportNativeSwapExchanges = map[string]struct{}{
-		valueobject.ExchangeFrxETH: {},
-		valueobject.ExchangeOETH:   {},
-		valueobject.ExchangeWBETH:  {},
+		valueobject.ExchangeFrxETH:              {},
+		valueobject.ExchangeOETH:                {},
+		valueobject.ExchangeWBETH:               {},
+		valueobject.ExchangeCustomWrappedNative: {},
 	}
 )

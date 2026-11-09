@@ -182,10 +182,12 @@ func (t *PoolTracker) getNewPoolState(
 			Method: poolMethodLastPrices,
 		}, []any{&lastPrices[i]})
 	}
+	var block *big.Int
 	if res, err := calls.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
 	} else if res.BlockNumber != nil {
+		block = res.BlockNumber
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
@@ -206,7 +208,7 @@ func (t *PoolTracker) getNewPoolState(
 		AllowedExtraProfit: number.SetFromBig(allowedExtraProfit),
 		AdjustmentStep:     number.SetFromBig(adjustmentStep),
 		UseCustomMath:      UseCustomMath(math),
-		Policy:             PolicyHex(policy),
+		PolicyAddress:      PolicyHex(policy),
 	}
 	v21d.Apply(&extra)
 	v3.Apply(&extra, rebalancingParams)
@@ -215,6 +217,13 @@ func (t *PoolTracker) getNewPoolState(
 		if maTime := MaTimeFromRebalancingParams(rebalancingParams); !maTime.IsZero() {
 			extra.MaTime = maTime
 			extra.PriceOracleTimestamp = now
+		}
+	}
+	if policy != (common.Address{}) {
+		var err error
+		if extra.Policy, err = FetchPolicy(ctx, t.ethrpcClient, overrides, policy, block); err != nil {
+			lg.WithFields(logger.Fields{"error": err}).Error("failed to fetch policy")
+			return entity.Pool{}, err
 		}
 	}
 	extra.PriceScale = make([]uint256.Int, len(priceScales))

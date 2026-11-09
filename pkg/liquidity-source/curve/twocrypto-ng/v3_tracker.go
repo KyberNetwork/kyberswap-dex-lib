@@ -24,11 +24,11 @@ type V3RPC struct {
 
 // PreviousPolicy is the policy a stored pool state recorded, or "".
 func PreviousPolicy(extra string) string {
-	var e struct{ Policy string }
+	var e struct{ PolicyAddress string }
 	if json.Unmarshal([]byte(extra), &e) != nil {
 		return ""
 	}
-	return e.Policy
+	return e.PolicyAddress
 }
 
 // AddV3Calls adds the reads of lp_xcp_profit, reserved_profit_fraction and admin_fee and, when previousPolicy
@@ -46,7 +46,7 @@ func AddV3Calls(add func(*ethrpc.Call, []any), poolAddress, previousPolicy strin
 	} {
 		add(&ethrpc.Call{ABI: CurveTwocryptoNGABI, Target: poolAddress, Method: c.method}, []any{c.out})
 	}
-	if _, ok := nativeFeePolicies[previousPolicy]; !ok {
+	if !isNativeFeePolicy(previousPolicy) {
 		return
 	}
 	r.policyQueried = previousPolicy
@@ -86,12 +86,12 @@ func (r *V3RPC) Apply(extra *Extra, rebalancingParams *big.Int) {
 		extra.AdjustmentStepMax.And(extra.AdjustmentStepMax, uint256.NewInt(^uint64(0)))
 	}
 	s := &r.State
-	if r.policyQueried == "" || r.policyQueried != extra.Policy || s.LastUpdateTs == nil || s.LastPrices == nil ||
+	if r.policyQueried == "" || r.policyQueried != extra.PolicyAddress || s.LastUpdateTs == nil || s.LastPrices == nil ||
 		s.FastEma == nil || s.SlowEma == nil || s.PriceScale == nil || r.FastHalfLife == nil ||
 		r.SlowHalfLife == nil || r.Kappa == nil || r.Deadband == nil || r.MinCap == nil || r.MaxCap == nil {
 		return
 	}
-	extra.PolicyState = &PolicyState{
+	extra.TwocryptoPolicy = &TwocryptoPolicyState{
 		LastUpdateTs: s.LastUpdateTs.Int64(),
 		LastPrices:   uint256.MustFromBig(s.LastPrices),
 		FastEma:      uint256.MustFromBig(s.FastEma),

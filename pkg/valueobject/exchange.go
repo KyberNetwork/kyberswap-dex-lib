@@ -399,6 +399,7 @@ const (
 	ExchangeWooFiV3                     = "woofi-v3"
 	ExchangeWrappedNative               = "wrapped-native"
 	ExchangeWRSETH                      = "wrseth"
+	ExchangeCustomWrappedNative         = "custom-wrapped-native"
 	ExchangeXSolvBTC                    = "xsolvbtc"
 	ExchangePrintr                      = "printr"
 	ExchangeBaseline                    = "baseline"

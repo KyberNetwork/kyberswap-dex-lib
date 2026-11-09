@@ -22,7 +22,7 @@ func (t *PoolSimulator) v3PostTradeTracked() bool {
 	e := &t.Extra
 	return e.Version == VersionV3 && e.LpXcpProfit != nil && e.ReservedProfitFraction != nil && e.AdminFee != nil &&
 		e.AdjustmentStepMin != nil && e.AdjustmentStepMax != nil && e.MaTime != nil && !e.MaTime.IsZero() &&
-		e.PolicyState != nil && e.DonationShares != nil && e.LpSupply != nil && !e.LpSupply.IsZero() &&
+		e.TwocryptoPolicy != nil && e.DonationShares != nil && e.LpSupply != nil && !e.LpSupply.IsZero() &&
 		e.VirtualPrice != nil && e.XcpProfit != nil && e.D != nil &&
 		len(e.PriceScale) == NumTokens-1 && len(e.PriceOracle) == NumTokens-1 && len(e.LastPrices) == NumTokens-1
 }
@@ -140,11 +140,11 @@ func (t *PoolSimulator) tweakPriceV3(A, gamma *uint256.Int, _xp [NumTokens]uint2
 	if err := assertBalanceXp(&xp); err != nil {
 		return err
 	}
-	policy, err := e.PolicyState.afterUpdate(now, &s.LastPrices[0], &s.PriceScale[0], &s.PriceOracle[0])
+	policy, err := e.TwocryptoPolicy.afterUpdate(now, &s.LastPrices[0], &s.PriceScale[0], &s.PriceOracle[0])
 	if err != nil {
 		return err
 	}
-	s.PolicyState = policy
+	s.TwocryptoPolicy = policy
 	return nil
 }
 
@@ -191,7 +191,7 @@ func (t *PoolSimulator) rebalanceV3(A, gamma *uint256.Int, xp *[NumTokens]uint25
 	virtualPrice, donationShares *uint256.Int, oracleExact bool, now int64, s *SwapInfo) (bool, error) {
 	e := &t.Extra
 	priceScale, priceOracle := &e.PriceScale[0], &s.PriceOracle[0]
-	pPolicy, err := e.PolicyState.PriceScaleAt(now)
+	pPolicy, err := e.TwocryptoPolicy.PriceScaleAt(now)
 	if err != nil {
 		return false, err
 	}

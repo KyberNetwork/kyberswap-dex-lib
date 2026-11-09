@@ -40,7 +40,7 @@ func newTestSimulator(t *testing.T) *PoolSimulator {
 	}
 }
 
-func quote(t *testing.T, s pool.IPoolSimulator, tokenIn, tokenOut, amount string) (*pool.CalcAmountOutResult, error) {
+func quoteResult(t *testing.T, s pool.IPoolSimulator, tokenIn, tokenOut, amount string) (*pool.CalcAmountOutResult, error) {
 	t.Helper()
 	return s.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: bignumber.NewBig(amount)},
@@ -51,7 +51,7 @@ func quote(t *testing.T, s pool.IPoolSimulator, tokenIn, tokenOut, amount string
 // swap quotes amount on s and applies it, as a route's second use of the pool does.
 func swap(t *testing.T, s pool.IPoolSimulator, tokenIn, tokenOut, amount string) *big.Int {
 	t.Helper()
-	res, err := quote(t, s, tokenIn, tokenOut, amount)
+	res, err := quoteResult(t, s, tokenIn, tokenOut, amount)
 	require.NoError(t, err)
 	s.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: bignumber.NewBig(amount)},
@@ -73,12 +73,12 @@ func TestUpdateBalanceKeepsTheUnfilledBins(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s := newTestSimulator(t)
-			whole, err := quote(t, s, tc.in, tc.out, tc.ab)
+			whole, err := quoteResult(t, s, tc.in, tc.out, tc.ab)
 			require.NoError(t, err)
 
 			c := s.CloneState()
 			first := swap(t, c, tc.in, tc.out, tc.a)
-			second, err := quote(t, c, tc.in, tc.out, tc.b)
+			second, err := quoteResult(t, c, tc.in, tc.out, tc.b)
 			require.NoError(t, err, "the pool quotes nothing after one swap")
 
 			got := new(big.Int).Add(first, second.TokenAmountOut.Amount)
@@ -88,7 +88,7 @@ func TestUpdateBalanceKeepsTheUnfilledBins(t *testing.T) {
 			limit := new(big.Int).Div(whole.TokenAmountOut.Amount, big.NewInt(1_000_000))
 			require.True(t, diff.Cmp(limit) <= 0, "a then b returns %s, a+b returns %s", got, whole.TokenAmountOut.Amount)
 
-			again, err := quote(t, s, tc.in, tc.out, tc.ab)
+			again, err := quoteResult(t, s, tc.in, tc.out, tc.ab)
 			require.NoError(t, err)
 			require.Equal(t, whole.TokenAmountOut.Amount.String(), again.TokenAmountOut.Amount.String(),
 				"the clone's swap changed the original")
@@ -105,6 +105,6 @@ func TestUpdateBalanceThroughEveryBin(t *testing.T) {
 		TokenAmountOut: pool.TokenAmount{Token: testUSDC, Amount: new(big.Int).Set(last)},
 	})
 	require.Empty(t, s.extra.Bids)
-	_, err := quote(t, s, testWETH, testUSDC, "1000000000000000")
+	_, err := quoteResult(t, s, testWETH, testUSDC, "1000000000000000")
 	require.Error(t, err)
 }

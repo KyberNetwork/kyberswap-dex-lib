@@ -15,6 +15,28 @@ var nowUnix = func() int64 { return time.Now().Unix() }
 // (there is no CurveTwocryptoOptimizedWETH.vy)
 
 func (t *PoolSimulator) FeeCalc(xp []uint256.Int, fee *uint256.Int) error {
+	return t.feeCalc(xp, fee, true)
+}
+
+// feeCalc: with discount=false a policy pool pays its fallback fee, the most a swap pays.
+func (t *PoolSimulator) feeCalc(xp []uint256.Int, fee *uint256.Int, discount bool) error {
+	if p := t.Extra.Policy; p != nil {
+		if !discount {
+			fee.Set(p.FallbackFee)
+		} else if err := p.fee(xp, t.Extra.D, fee); err != nil {
+			return err
+		}
+		if fee.CmpUint64(policyMinFee) < 0 {
+			fee.SetUint64(policyMinFee)
+		} else if fee.CmpUint64(policyMaxFee) > 0 {
+			fee.SetUint64(policyMaxFee)
+		}
+		return nil
+	}
+	if t.Extra.PolicyFee != nil { // flat fee override (legacy stored data)
+		fee.Set(t.Extra.PolicyFee)
+		return nil
+	}
 	var f uint256.Int
 	var err error
 	v3 := t.isV3()
@@ -54,7 +76,8 @@ func (t *PoolSimulator) GetDy(
 
 	// When A/gamma is actively ramping, recompute D from current balances (mirrors _calc_D_ramp).
 	D := t.Extra.D
-	if nowUnix() < t.Extra.FutureAGammaTime {
+	ramping := nowUnix() < t.Extra.FutureAGammaTime
+	if ramping {
 		for k := range NumTokens {
 			xp[k].Set(&t.Reserves[k])
 		}
@@ -109,7 +132,9 @@ func (t *PoolSimulator) GetDy(
 	}
 	dy.Div(dy, &t.precisionMultipliers[j])
 
-	err = t.FeeCalc(xp[:], fee)
+	// During a ramp the pool stores a re-solved D before charging the fee, so the policy's
+	// snapshot D no longer matches and it charges the fallback fee.
+	err = t.feeCalc(xp[:], fee, !ramping)
 	if err != nil {
 		return err
 	}
@@ -141,7 +166,7 @@ func (t *PoolSimulator) GetDx(
 			return err
 		}
 
-		err = t.FeeCalc(xp, feeDy)
+		err = t.feeCalc(xp, feeDy, false)
 		if err != nil {
 			return err
 		}
@@ -173,7 +198,8 @@ func (t *PoolSimulator) _getDxFee(
 
 	// When A/gamma is actively ramping, recompute D from current balances (mirrors _calc_D_ramp).
 	D := t.Extra.D
-	if nowUnix() < t.Extra.FutureAGammaTime {
+	ramping := nowUnix() < t.Extra.FutureAGammaTime
+	if ramping {
 		for k := range NumTokens {
 			xp[k].Set(&t.Reserves[k])
 		}
@@ -306,14 +332,17 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 		// #                                        else the pool suffers a loss.
 		if t.Extra.FutureAGammaTime < blockTimestamp {
 			// assert virtual_price > old_virtual_price, "Loss"
-			if virtual_price.Cmp(old_virtual_price) <= 0 {
+			// v3 only asserts virtual_price >= old (non-strict)
+			if c := virtual_price.Cmp(old_virtual_price); c < 0 || (c == 0 && !t.isV3()) {
 				return ErrLoss
 			}
 		}
 	}
 
 	// # ------------ Rebalance liquidity if there's enough profits to adjust it:
-	if number.SafeSub(number.SafeMul(virtual_price, number.Number_2), U_1e18).Cmp(
+	// v3 rebalancing (lp_xcp_profit, donations, policy price_scale target) is not modeled: it only
+	// moves price_scale after the swap, never the swap's own output.
+	if !t.isV3() && number.SafeSub(number.SafeMul(virtual_price, number.Number_2), U_1e18).Cmp(
 		number.SafeAdd(xcp_profit, number.SafeMul(number.Number_2, t.Extra.AllowedExtraProfit))) > 0 {
 		// # ------------------- Get adjustment step ----------------------------
 

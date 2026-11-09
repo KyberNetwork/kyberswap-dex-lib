@@ -1,6 +1,7 @@
 package integral
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -16,6 +17,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -42,14 +44,10 @@ type PoolSimulator struct {
 	// that wrote would change theirs. The first UpdateBalance stores it and sets pending to nil. It is
 	// nil from the start when the swap's plugin path writes no timepoint.
 	pending *pendingWrite
-	// stateMu orders UpdateBalance's write before a copy of the state: CloneState copies under it, and
-	// so does a clone's first write, under sharedMu, the stateMu of the simulator whose oracle and
-	// timepoints it shares.
-	stateMu  *sync.RWMutex
-	sharedMu *sync.RWMutex
-	// sharedTimepoints is set on a clone: its timepoints and volatilityOracle are the ones of the
-	// simulator it was cloned from, so its first timepoint write goes into copies of its own.
-	sharedTimepoints bool
+	// stateMu orders UpdateBalance's write before a copy of the state: CloneState copies under it. The
+	// timepoints themselves are never written once a simulator holds them: every write goes into a new
+	// copy-on-write overlay (TimepointStorage.clone), so clones share them safely.
+	stateMu *sync.RWMutex
 
 	// swapFeeFactors are the fee factors the next swap takes on a pool priced by its fee factors: the
 	// plugin's stored factors, moved by the price change since its last timepoint, whose tick and time
@@ -60,9 +58,40 @@ type PoolSimulator struct {
 	lastTimepointTs uint32
 
 	useBasePluginV2 bool
+	namiFee         *nami.Config
+	namiStaleCheck  bool
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, newPoolSimulatorWithParams)
+
+func newPoolSimulatorWithParams(params pool.FactoryParams) (*PoolSimulator, error) {
+	p, err := NewPoolSimulator(params.EntityPool)
+	if err != nil {
+		return nil, err
+	}
+	p.namiStaleCheck = params.Opts.StaleCheck
+	if err = p.checkNamiSnapshot(); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (p *PoolSimulator) checkNamiSnapshot() error {
+	if !p.namiStaleCheck {
+		return nil
+	}
+	if p.namiFee == nil {
+		if p.Info.Exchange == "nami-v4" {
+			return ErrNamiStaleSnapshot
+		}
+		return nil
+	}
+	now, snapshot := uint64(blockTimestamp()), p.namiFee.SnapshotTimestamp
+	if snapshot == 0 || snapshot > now || now-snapshot > nami.MaxSnapshotAge {
+		return ErrNamiStaleSnapshot
+	}
+	return nil
+}
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -119,6 +148,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		slidingFee:       extra.SlidingFee,
 		stateMu:          new(sync.RWMutex),
 		useBasePluginV2:  staticExtra.UseBasePluginV2,
+		namiFee:          extra.NamiFee,
 	}
 	if p.usesFeeFactors() && p.volatilityOracle != nil {
 		p.lastTick = p.getLastTick()
@@ -193,19 +223,21 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 // swapOutcome is what a swap leaves: amounts, fees, gas and the pool state after it.
 type swapOutcome struct {
-	remaining  uint256.Int // amountRequired left unswapped, signed like the request
-	calculated uint256.Int // signed: negative output for exact-in, positive input for exact-out
-	fee        uint256.Int // community plus plugin fee
-	price      uint256.Int
-	liquidity  uint256.Int
-	tick       int32
-	gas        int64
-	write      *pendingWrite // the pending write the quote priced with, for UpdateBalance to store
-	writeFee   uint16
+	remaining     uint256.Int // amountRequired left unswapped, signed like the request
+	calculated    uint256.Int // signed: negative output for exact-in, positive input for exact-out
+	fee           uint256.Int // community plus plugin fee
+	price         uint256.Int
+	liquidity     uint256.Int
+	tick          int32
+	gas           int64
+	namiTimepoint *NamiTimepointUpdate
+	write         *pendingWrite // the pending write the quote priced with, for UpdateBalance to store
+	writeFee      uint16
 }
 
 func (o *swapOutcome) stateUpdate() StateUpdate {
-	return StateUpdate{Liquidity: &o.liquidity, Price: &o.price, Tick: o.tick, write: o.write, writeFee: o.writeFee}
+	return StateUpdate{Liquidity: &o.liquidity, Price: &o.price, Tick: o.tick, NamiTimepoint: o.namiTimepoint,
+		write: o.write, writeFee: o.writeFee}
 }
 
 // calcAmountOutBacking holds everything a CalcAmountOut result points to, so a quote costs one
@@ -246,7 +278,11 @@ func (p *PoolSimulator) swap(tokenIn, tokenOut string, amtRequired *uint256.Int,
 	}
 	var overrideFee, pluginFee uint32
 	var err error
-	if p.slidingFee != nil && p.slidingFee.SlidingFeeEnabled {
+	if p.namiFee != nil {
+		// A Nami swap writes its own timepoint (namiTimepoint), never the pending one.
+		v.pending = nil
+		overrideFee, o.namiTimepoint, err = p.beforeNamiSwap(zeroForOne)
+	} else if p.slidingFee != nil && p.slidingFee.SlidingFeeEnabled {
 		overrideFee, pluginFee, err = p.beforeSwapSliding(&v, zeroForOne)
 	} else if p.useBasePluginV2 && p.slidingFee != nil && p.slidingFee.FeeType {
 		overrideFee, pluginFee, err = p.beforeSwapV2(&v, zeroForOne)
@@ -269,13 +305,9 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	p.stateMu.RLock()
 	cloned := *p
 	p.stateMu.RUnlock()
-	if !cloned.sharedTimepoints { // the oracle and timepoints are p's own: copies of them lock p
-		cloned.sharedMu = p.stateMu
-	}
 	cloned.stateMu = new(sync.RWMutex)
 	cloned.liquidity = p.liquidity.Clone()
 	cloned.globalState.Price = p.globalState.Price.Clone()
-	cloned.sharedTimepoints = true
 	return &cloned
 }
 
@@ -305,9 +337,23 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if p.swapFeeFactors == nil {
 		p.applyWrite(si.write, si.writeFee)
 	}
-	p.liquidity = si.Liquidity
-	p.globalState.Price = si.Price
+	p.liquidity = si.Liquidity.Clone()
+	p.globalState.Price = si.Price.Clone()
 	p.globalState.Tick = si.Tick
+	if si.NamiTimepoint != nil {
+		oracle := *p.volatilityOracle
+		oracle.TimepointIndex = si.NamiTimepoint.Index
+		oracle.LastTimepointTimestamp = si.NamiTimepoint.Timestamp
+		timepoints := p.timepoints.clone()
+		point := si.NamiTimepoint.Timepoint
+		if point.VolatilityCumulative != nil {
+			point.VolatilityCumulative = point.VolatilityCumulative.Clone()
+		}
+		timepoints.set(si.NamiTimepoint.Index, point)
+		p.stateMu.Lock()
+		p.volatilityOracle, p.timepoints = &oracle, timepoints
+		p.stateMu.Unlock()
+	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
@@ -360,8 +406,12 @@ type pendingWrite struct {
 }
 
 // newPendingWrite is p's pendingWrite at ts, or nil when p's swaps write no timepoint: beforeSwapV1
-// writes only with the before-swap flag and a dynamic fee, the sliding and V2 plugins always.
+// writes only with the before-swap flag and a dynamic fee, the sliding and V2 plugins always. A Nami
+// pool's swap writes its own timepoint (beforeNamiSwap), so it has none here either.
 func newPendingWrite(p *PoolSimulator, ts uint32) *pendingWrite {
+	if p.namiFee != nil {
+		return nil
+	}
 	v1Fee := p.globalState.PluginConfig&BEFORE_SWAP_FLAG != 0 && p.dynamicFee != nil
 	sliding := p.slidingFee != nil && p.slidingFee.SlidingFeeEnabled
 	v2 := !sliding && p.useBasePluginV2 && p.slidingFee != nil && p.slidingFee.FeeType
@@ -375,7 +425,7 @@ func newPendingWrite(p *PoolSimulator, ts uint32) *pendingWrite {
 			return w
 		}
 		oracle := *o
-		w.oracle, w.timepoints = &oracle, p.timepoints.overlay()
+		w.oracle, w.timepoints = &oracle, p.timepoints.clone()
 		oracle.LastTimepointTimestamp = ts
 		if oracle.TimepointIndex, _, w.err = w.timepoints.write(o.TimepointIndex, ts, p.globalState.Tick); w.err != nil {
 			return w
@@ -416,8 +466,9 @@ type quoteView struct {
 	pending    *pendingWrite
 }
 
-// applyWrite stores w, the pending write a swap priced with, and fee, the last fee it took. A clone
-// stores into a copy of the timepoints it shares.
+// applyWrite stores w, the pending write a swap priced with, and fee, the last fee it took. w's
+// timepoints are an overlay over the ones the simulator was built with, and nothing writes into it
+// once it is built, so the simulator and its clones take it as their own.
 func (p *PoolSimulator) applyWrite(w *pendingWrite, fee uint16) {
 	if p.pending == nil || w == nil || w.err != nil {
 		return
@@ -425,17 +476,8 @@ func (p *PoolSimulator) applyWrite(w *pendingWrite, fee uint16) {
 	p.stateMu.Lock()
 	defer p.stateMu.Unlock()
 	if w.oracle != nil {
-		if p.sharedTimepoints {
-			p.sharedMu.RLock()
-			p.timepoints = p.timepoints.clone()
-			p.sharedMu.RUnlock()
-			p.sharedTimepoints, p.sharedMu = false, nil
-		}
-		if tp := w.timepoints; tp.extra != nil {
-			p.timepoints.set(tp.extraIdx, *tp.extra)
-		}
 		oracle := *w.oracle
-		p.volatilityOracle = &oracle
+		p.volatilityOracle, p.timepoints = &oracle, w.timepoints
 	}
 	p.globalState.LastFee = fee
 	p.pending = nil
@@ -660,6 +702,10 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, lastFee uin
 	o.fee.Add(&communityFeeAmount, &pluginFeeAmount)
 	o.tick = currentTick
 	o.gas = BaseGas + ticksCrossed*CrossInitTickGas
+	if p.namiFee != nil && p.namiFee.MEVXGas != 0 && p.globalState.PluginConfig&AFTER_SWAP_FLAG != 0 {
+		// Also normalize snapshots written before gas-budget/usage were separated.
+		o.gas += int64(p.namiFee.HookGas())
+	}
 	return nil
 }
 
@@ -743,4 +789,39 @@ func movePriceTowardsTarget(zeroToOne bool, currentPrice, targetPrice, liquidity
 	}
 
 	return v3Utils.MulDivRoundingUpV2(input, feeAmount.SetUint64(fee), &feeDenoMinusFee, feeAmount)
+}
+
+func (p *PoolSimulator) beforeNamiSwap(zeroToOne bool) (uint32, *NamiTimepointUpdate, error) {
+	if err := p.checkNamiSnapshot(); err != nil {
+		return 0, nil, err
+	}
+	if p.namiFee.Unsupported != "" {
+		return 0, nil, errors.New(p.namiFee.Unsupported)
+	}
+	if p.globalState.PluginConfig&BEFORE_SWAP_FLAG == 0 {
+		return 0, nil, nil
+	}
+	if p.volatilityOracle == nil || !p.volatilityOracle.IsInitialized || p.dynamicFee == nil {
+		return 0, nil, ErrNotInitialized
+	}
+	now := blockTimestamp()
+	tmp := p.timepoints.clone()
+	idx, _, err := tmp.write(p.volatilityOracle.TimepointIndex, now, p.globalState.Tick)
+	if err != nil {
+		return 0, nil, err
+	}
+	point := tmp.Get(idx)
+	if point.VolatilityCumulative != nil {
+		point.VolatilityCumulative = point.VolatilityCumulative.Clone()
+	}
+	update := &NamiTimepointUpdate{Index: idx, Timestamp: now, Timepoint: point}
+	base := p.dynamicFee.BaseFee
+	if p.dynamicFee.Alpha1 != 0 || p.dynamicFee.Alpha2 != 0 {
+		volatility, err := tmp.getAverageVolatility(now, p.globalState.Tick, idx, tmp.getOldestIndex(idx))
+		if err != nil {
+			return 0, nil, err
+		}
+		base = getFee(volatility, p.dynamicFee)
+	}
+	return uint32(p.namiFee.Fee(base, zeroToOne, uint64(now))), update, nil
 }

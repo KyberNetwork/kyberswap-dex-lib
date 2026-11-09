@@ -2,6 +2,7 @@ package twocryptong
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"slices"
 	"strings"
@@ -93,14 +94,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return sim, nil
 }
 
-// nativeFeePolicies are v3.0.0 POLICY contracts whose get_fee is pure and returns 0, so the pool charges its own
-// dynamic fee (verified source, YBTwocryptoPolicy, Ethereum). Their get_price_scale steers rebalancing only,
-// which a first quote does not reach. Any other policy (YBOraclizedPolicy prices its fee off the trade and a
-// signed report) is refused.
-var nativeFeePolicies = map[string]struct{}{
-	"0x0436c0648afd66de23f86f23cb42884304743efa": {}, // crvUSD/WBTC 0x31369866
-	"0x038f549d21b9c22a26ada4da2ebf7cfd1c3ca22d": {}, // crvUSD/cbBTC 0x862cb4e9
-	"0xe99ee179f1cc62d4a1d3e67dd5541ecb63aca396": {}, // crvUSD/tBTC 0x4f52c3a8
+// isNativeFeePolicy reports a v3.0.0 POLICY contract whose get_fee is pure and returns 0, so the pool charges its
+// own dynamic fee (nativeFeePolicies, YBTwocryptoPolicy). Its get_price_scale steers rebalancing only, which a
+// first quote does not reach.
+func isNativeFeePolicy(policy string) bool {
+	if !common.IsHexAddress(policy) {
+		return false
+	}
+	_, ok := nativeFeePolicies[common.HexToAddress(policy)]
+	return ok
 }
 
 // isV3 reports state of a v3.0.0 pool: it has no allowed_extra_profit view, so the trackers store none. v3.0.0
@@ -112,11 +114,23 @@ func (t *PoolSimulator) isV3() bool {
 	return t.Extra.AllowedExtraProfit == nil
 }
 
+// v3Native reports a v3.0.0 pool quoted by this file's v3.0.0 model, which refuses what it does not know: a pool
+// that names a policy other than a YBOraclizedPolicy. The others take GetDy and tweak_price, with the rebalance
+// after the trade left out:
+//   - a YBOraclizedPolicy's fee (Policy), or a stored flat fee (PolicyFee);
+//   - a killed YBOraclizedPolicy, whose get_fee is 0, so the pool charges its own fee;
+//   - state stored before the trackers recorded PolicyAddress, until the next refresh.
+func (t *PoolSimulator) v3Native() bool {
+	if !t.isV3() || t.Extra.Policy != nil || t.Extra.PolicyFee != nil || t.Extra.PolicyAddress == "" {
+		return false
+	}
+	return !common.IsHexAddress(t.Extra.PolicyAddress) || !isOraclizedPolicy(common.HexToAddress(t.Extra.PolicyAddress))
+}
+
 // v3PreTradeQuotable reports whether a v3.0.0 pool's first quote is known: the stableswap math, a native-fee
 // policy, and no A/gamma ramp ever scheduled (a ramp makes the pool re-solve D on its next trade).
 func (t *PoolSimulator) v3PreTradeQuotable() bool {
-	_, nativeFee := nativeFeePolicies[t.Extra.Policy]
-	return t.Extra.UseCustomMath && nativeFee && t.Extra.FutureAGammaTime == 0
+	return t.Extra.UseCustomMath && isNativeFeePolicy(t.Extra.PolicyAddress) && t.Extra.FutureAGammaTime == 0
 }
 
 // v3Refusal returns why a v3.0.0 pool's state is not quoted, or nil.
@@ -155,7 +169,7 @@ func (t *PoolSimulator) assertBalance(i, j int, dx, dy *uint256.Int) error {
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	v3 := t.isV3()
+	v3 := t.v3Native()
 	if v3 {
 		if err := t.v3Refusal(); err != nil {
 			return nil, err
@@ -216,6 +230,10 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, errors.WithMessage(err, "tweak price")
 	}
 
+	if t.isV3() && !balanceOK(swapInfo.Xp[:]) {
+		return nil, ErrUnsafeXi
+	}
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
@@ -231,7 +249,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 }
 
 func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	if t.isV3() {
+	if t.v3Native() {
 		// v3.0.0's get_dx is not checked against the chain.
 		if t.stateAfterTrade {
 			return nil, ErrStateAfterTrade
@@ -316,7 +334,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Info.Reserves[outputIndex] = new(big.Int).Sub(t.Info.Reserves[outputIndex], outputAmount)
 	t.Reserves[outputIndex] = *new(uint256.Int).Sub(&t.Reserves[outputIndex], number.SetFromBig(outputAmount))
 
-	if t.isV3() {
+	if t.v3Native() {
 		// The admin share of the fee leaves the balances.
 		if !swapInfo.AdminFee.IsZero() {
 			t.Info.Reserves[outputIndex] = new(big.Int).Sub(t.Info.Reserves[outputIndex], swapInfo.AdminFee.ToBig())
@@ -328,7 +346,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			return
 		}
 		t.Extra.LpXcpProfit = &swapInfo.LpXcpProfit
-		t.Extra.PolicyState = swapInfo.PolicyState
+		t.Extra.TwocryptoPolicy = swapInfo.TwocryptoPolicy
 	}
 
 	t.Extra.LastPrices = swapInfo.LastPrices[:]
@@ -338,11 +356,17 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Extra.XcpProfit = &swapInfo.XcpProfit
 	t.Extra.D = &swapInfo.D
 	t.Extra.VirtualPrice = &swapInfo.VirtualPrice
-	if t.isV21d() || t.isV3() {
+	if t.isV21d() || t.v3Native() {
 		t.Extra.LpSupply = &swapInfo.LpSupply
 		t.Extra.DonationShares = &swapInfo.DonationShares
 		t.Extra.LastDonationReleaseTs = swapInfo.LastDonationReleaseTs
 		t.Extra.LastTimestamp = swapInfo.LastTimestamp
+	}
+	if p := t.Extra.Policy; p != nil { // the pool calls policy.update_pool_state after the swap
+		np := *p
+		np.SnapXp = swapInfo.Xp
+		np.SnapD, np.SnapPriceScl = &swapInfo.D, &swapInfo.PriceScale[0]
+		t.Extra.Policy = &np
 	}
 }
 
@@ -370,4 +394,17 @@ func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobj
 func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
 	meta := s.GetMetaInfo(tokenIn, tokenOut).(curve.Meta)
 	return meta.TokenOutIsNative != nil && *meta.TokenOutIsNative
+}
+
+// balanceOK mirrors v3 _assert_balance: both xp > 0 and max/min < 1000 after the swap.
+func balanceOK(xp []uint256.Int) bool {
+	if xp[0].IsZero() || xp[1].IsZero() {
+		return false
+	}
+	hi, lo := &xp[0], &xp[1]
+	if hi.Lt(lo) {
+		hi, lo = lo, hi
+	}
+	var r uint256.Int
+	return r.Div(hi, lo).CmpUint64(1000) < 0
 }

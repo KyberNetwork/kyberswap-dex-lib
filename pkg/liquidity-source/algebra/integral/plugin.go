@@ -2,7 +2,6 @@ package integral
 
 import (
 	"cmp"
-	"maps"
 	"sync"
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
@@ -16,18 +15,10 @@ import (
 )
 
 type TimepointStorage struct {
-	mu   sync.RWMutex
-	data map[uint16]Timepoint
-
-	// An overlay (overlay) reads through to base and keeps its one write, a quote's timepoint, in
-	// extra: the base is a simulator's, which a quote must not change.
-	base     *TimepointStorage
-	extra    *Timepoint
-	extraIdx uint16
+	mu     sync.RWMutex
+	data   map[uint16]Timepoint
+	parent *TimepointStorage
 }
-
-// overlay is a view of s that a write does not reach.
-func (s *TimepointStorage) overlay() *TimepointStorage { return &TimepointStorage{base: s} }
 
 func NewTimepointStorage(data map[uint16]Timepoint) *TimepointStorage {
 	return &TimepointStorage{
@@ -35,43 +26,32 @@ func NewTimepointStorage(data map[uint16]Timepoint) *TimepointStorage {
 	}
 }
 
-func (s *TimepointStorage) Get(index uint16) Timepoint {
-	if s.base != nil {
-		if s.extra != nil && s.extraIdx == index {
-			return *s.extra
-		}
-		return s.base.Get(index)
-	}
+func (s *TimepointStorage) lookup(index uint16) (Timepoint, bool) {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if v, ok := s.data[index]; ok {
-		return v
+	v, ok := s.data[index]
+	parent := s.parent
+	s.mu.RUnlock()
+	if ok {
+		return v, true
 	}
-
-	return Timepoint{
-		Initialized:          false,
-		BlockTimestamp:       0,
-		TickCumulative:       0,
-		VolatilityCumulative: uint256.NewInt(0),
-		Tick:                 0,
-		AverageTick:          0,
-		WindowStartIndex:     0,
+	if parent != nil {
+		return parent.lookup(index)
 	}
+	return Timepoint{}, false
 }
 
-// clone is a copy of s that writes do not share.
-func (s *TimepointStorage) clone() *TimepointStorage {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return &TimepointStorage{data: maps.Clone(s.data)}
+func (s *TimepointStorage) Get(index uint16) Timepoint {
+	if v, ok := s.lookup(index); ok {
+		// A fork is copy-on-write. Some oracle calculations mutate their returned integers.
+		if s.parent != nil && v.VolatilityCumulative != nil {
+			v.VolatilityCumulative = v.VolatilityCumulative.Clone()
+		}
+		return v
+	}
+	return Timepoint{VolatilityCumulative: uint256.NewInt(0)}
 }
 
 func (s *TimepointStorage) set(index uint16, v Timepoint) {
-	if s.base != nil {
-		s.extra, s.extraIdx = &v, index
-		return
-	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -646,4 +626,9 @@ func getNewPrice(res, price, liquidity, amount *uint256.Int, zeroToOne, fromInpu
 // c <  b <  a | false
 func lteConsideringOverflow[T cmp.Ordered](a, b, currentTime T) bool {
 	return algebra.LteConsideringOverflow(a, b, currentTime)
+}
+
+// clone creates a copy-on-write overlay; quotes only write one timepoint.
+func (s *TimepointStorage) clone() *TimepointStorage {
+	return &TimepointStorage{data: make(map[uint16]Timepoint, 1), parent: s}
 }

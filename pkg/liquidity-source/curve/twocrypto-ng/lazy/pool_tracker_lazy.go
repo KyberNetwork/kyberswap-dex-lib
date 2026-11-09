@@ -60,6 +60,6 @@ func (t *PoolTracker) lazycall(
 		if blockNumber != nil {
 			p.BlockNumber = blockNumber.Uint64()
 		}
-		return buildPoolState(lg, *p, d)
+		return buildPoolState(ctx, t, lg, *p, d, blockNumber, overrides)
 	}
 }

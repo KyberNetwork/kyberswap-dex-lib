@@ -22,8 +22,8 @@ import (
 // (mevblocker eth_call). The cbBTC policy sits inside its deadband and returns price_scale.
 func TestPolicyState_PriceScaleMatchesChain(t *testing.T) {
 	u := uint256.MustFromDecimal
-	policy := func(lastUpdate int64, lastPrices, fast, slow, priceScale string) *PolicyState {
-		return &PolicyState{
+	policy := func(lastUpdate int64, lastPrices, fast, slow, priceScale string) *TwocryptoPolicyState {
+		return &TwocryptoPolicyState{
 			LastUpdateTs: lastUpdate, LastPrices: u(lastPrices), FastEma: u(fast), SlowEma: u(slow),
 			PriceScale: u(priceScale), FastHalfLife: u("8100"), SlowHalfLife: u("57600"),
 			Kappa: u("1300000000000000000"), Deadband: u("800000000000000"), MinCap: u("1200000000000000"),
@@ -33,7 +33,7 @@ func TestPolicyState_PriceScaleMatchesChain(t *testing.T) {
 	for _, c := range []struct {
 		name  string
 		at    int64
-		state *PolicyState
+		state *TwocryptoPolicyState
 		want  string
 	}{
 		{"WBTC 26307080", 1793381459, policy(1793379071, "77646391836179594649312", "77634216023848666491693",
@@ -417,7 +417,7 @@ func TestPoolV3_PostTradeMatchesChain(t *testing.T) {
 			assert.Equal(t, c.Rebalanced, sim.Extra.PriceScale[0].Dec() != psBefore, "rebalanced")
 
 			e := &sim.Extra
-			require.NotNil(t, e.PolicyState)
+			require.NotNil(t, e.TwocryptoPolicy)
 			for name, got := range map[string]string{
 				"balances0":                sim.Reserves[0].Dec(),
 				"balances1":                sim.Reserves[1].Dec(),
@@ -432,11 +432,11 @@ func TestPoolV3_PostTradeMatchesChain(t *testing.T) {
 				"donation_shares":          e.DonationShares.Dec(),
 				"last_donation_release_ts": strconv.FormatInt(e.LastDonationReleaseTs, 10),
 				"last_timestamp":           strconv.FormatInt(e.LastTimestamp, 10),
-				"policy.last_update_ts":    strconv.FormatInt(e.PolicyState.LastUpdateTs, 10),
-				"policy.last_prices":       e.PolicyState.LastPrices.Dec(),
-				"policy.fast_ema":          e.PolicyState.FastEma.Dec(),
-				"policy.slow_ema":          e.PolicyState.SlowEma.Dec(),
-				"policy.price_scale":       e.PolicyState.PriceScale.Dec(),
+				"policy.last_update_ts":    strconv.FormatInt(e.TwocryptoPolicy.LastUpdateTs, 10),
+				"policy.last_prices":       e.TwocryptoPolicy.LastPrices.Dec(),
+				"policy.fast_ema":          e.TwocryptoPolicy.FastEma.Dec(),
+				"policy.slow_ema":          e.TwocryptoPolicy.SlowEma.Dec(),
+				"policy.price_scale":       e.TwocryptoPolicy.PriceScale.Dec(),
 			} {
 				assert.Equal(t, c.After[name], got, name)
 			}
@@ -481,11 +481,11 @@ func TestPoolV3_PostTradeUnknownStateRefused(t *testing.T) {
 	defer func(f func() int64) { nowUnix = f }(nowUnix)
 	c := loadV3PostTradeCases(t)[1] // rebalances
 	for name, edit := range map[string]func(e *Extra){
-		"no policy state":  func(e *Extra) { e.PolicyState = nil },
+		"no policy state":  func(e *Extra) { e.TwocryptoPolicy = nil },
 		"no lp_xcp_profit": func(e *Extra) { e.LpXcpProfit = nil },
 		"carried oracle, target outside the band": func(e *Extra) {
 			// price_oracle at 83% of the policy's target puts the target just above the band (oracle + 20%).
-			target, err := e.PolicyState.PriceScaleAt(c.Now)
+			target, err := e.TwocryptoPolicy.PriceScaleAt(c.Now)
 			require.NoError(t, err)
 			oracle := new(uint256.Int).Mul(target, uint256.NewInt(83))
 			e.PriceOracle = []uint256.Int{*oracle.Div(oracle, uint256.NewInt(100))}
