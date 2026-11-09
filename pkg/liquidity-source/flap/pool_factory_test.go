@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -147,7 +148,36 @@ func encodeTokenStateV8(quoteToken common.Address) string {
 // DecodePoolCreated path - including quote token resolution and native-wrapping - is exercised
 // deterministically, without depending on live network access.
 func TestDecodePoolCreated_Success(t *testing.T) {
-	quoteToken := common.HexToAddress("0x0000000000000000000000000000000000000000") // native
+	p := decodePoolCreated(t, common.Address{}) // native quote
+	require.NotNil(t, p)
+
+	assert.Equal(t, "0x279c3ef82ed0a886f8fcaa53d7e4215eb9297777", p.Address)
+	assert.Equal(t, DexType, p.Type)
+	assert.Equal(t, entity.PoolReserves{"0", "0"}, p.Reserves)
+	assert.Equal(t, uint64(12345), p.BlockNumber)
+	require.Len(t, p.Tokens, 2)
+	// zero-address quote token must be wrapped to the chain's native-wrapped token.
+	assert.NotEqual(t, "0x0000000000000000000000000000000000000000", p.Tokens[0].Address)
+	assert.Equal(t, "0x279c3ef82ed0a886f8fcaa53d7e4215eb9297777", p.Tokens[1].Address)
+
+	// Portal reverts a wrapped-native ERC-20 input for a native-quote token, so the simulator must
+	// know the quote is native (SwapReceiveNativeIn/SwapReturnNativeOut) for factory-discovered pools.
+	var se StaticExtra
+	require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &se))
+	assert.True(t, se.HasNative)
+}
+
+func TestDecodePoolCreated_ERC20Quote(t *testing.T) {
+	usd := common.HexToAddress("0x55d398326f99059ff775485246999027b3197955")
+	p := decodePoolCreated(t, usd)
+	assert.Equal(t, strings.ToLower(usd.Hex()), p.Tokens[0].Address)
+	var se StaticExtra
+	require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &se))
+	assert.False(t, se.HasNative)
+}
+
+func decodePoolCreated(t *testing.T, quoteToken common.Address) *entity.Pool {
+	t.Helper()
 	token := common.HexToAddress("0x279c3ef82ed0a886f8fcaa53d7e4215eb9297777")
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -202,14 +232,5 @@ func TestDecodePoolCreated_Success(t *testing.T) {
 		BlockNumber: 12345,
 	})
 	require.NoError(t, err)
-	require.NotNil(t, p)
-
-	assert.Equal(t, "0x279c3ef82ed0a886f8fcaa53d7e4215eb9297777", p.Address)
-	assert.Equal(t, DexType, p.Type)
-	assert.Equal(t, entity.PoolReserves{"0", "0"}, p.Reserves)
-	assert.Equal(t, uint64(12345), p.BlockNumber)
-	require.Len(t, p.Tokens, 2)
-	// zero-address quote token must be wrapped to the chain's native-wrapped token.
-	assert.NotEqual(t, "0x0000000000000000000000000000000000000000", p.Tokens[0].Address)
-	assert.Equal(t, "0x279c3ef82ed0a886f8fcaa53d7e4215eb9297777", p.Tokens[1].Address)
+	return p
 }
