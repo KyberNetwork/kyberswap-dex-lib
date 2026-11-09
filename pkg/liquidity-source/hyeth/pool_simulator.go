@@ -110,37 +110,57 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrExact1Component
 	}
 
-	amountOut := new(uint256.Int)
-	var err error
-	var postTotalShares, postTotalAssets *uint256.Int
-
+	// The swap's state after it: the component vault's shares and assets, hyETH's balance of those shares
+	// and hyETH's supply. The vault's shares move by the component shares deposited or redeemed, not by the
+	// hyETH amount: a hyETH holds about 1.26 shares.
 	isRedeem := strings.EqualFold(tokenAmountIn.Token, hyethToken)
+	var (
+		amountOut *uint256.Int
+		post      SwapInfo
+		err       error
+	)
 	if isRedeem {
-		amountOut, err = s.redeemSetForETH(amountIn)
-		if err != nil {
+		var position *uint256.Int
+		if amountOut, position, err = s.redeemSetForETH(amountIn); err != nil {
 			return nil, err
 		}
-		postTotalShares = new(uint256.Int).Sub(s.componentTotalSupply, amountIn)
-		postTotalAssets = new(uint256.Int).Sub(s.componentTotalAsset, amountOut)
+		// DebtIssuanceModule.redeem burns the quantity and mints the fee to the fee recipient.
+		burnt := s.calculateTotalFees(amountIn, false)
+		post = SwapInfo{
+			TotalSupply:  new(uint256.Int).Sub(s.componentTotalSupply, position),
+			TotalAssets:  new(uint256.Int).Sub(s.componentTotalAsset, amountOut),
+			HyethBalance: new(uint256.Int).Sub(s.componentHyethBalance, position),
+			HyethSupply:  new(uint256.Int).Sub(s.hyethTotalSupply, burnt),
+			MaxDeposit:   new(uint256.Int).Add(s.maxDeposit, amountOut),
+		}
 	} else {
-		amountOut, err = s.issueSetFromETH(amountIn)
-		if err != nil {
+		var componentShares *uint256.Int
+		if amountOut, componentShares, err = s.issueSetFromETH(amountIn); err != nil {
 			return nil, err
 		}
-		postTotalShares = new(uint256.Int).Add(s.componentTotalSupply, amountOut)
-		postTotalAssets = new(uint256.Int).Add(s.componentTotalAsset, amountIn)
+		// DebtIssuanceModule.issue mints the quantity and its fee, and takes the components for both,
+		// rounded up.
+		minted := s.calculateTotalFees(amountOut, true)
+		used, _ := new(uint256.Int).MulDivOverflow(minted, s._getTotalIssuanceUnits(), U_1e18)
+		if new(uint256.Int).MulMod(minted, s._getTotalIssuanceUnits(), U_1e18).Sign() > 0 {
+			used.AddUint64(used, 1)
+		}
+		post = SwapInfo{
+			TotalSupply:  new(uint256.Int).Add(s.componentTotalSupply, componentShares),
+			TotalAssets:  new(uint256.Int).Add(s.componentTotalAsset, amountIn),
+			HyethBalance: new(uint256.Int).Add(s.componentHyethBalance, used),
+			HyethSupply:  new(uint256.Int).Add(s.hyethTotalSupply, minted),
+			MaxDeposit:   new(uint256.Int).Sub(s.maxDeposit, amountIn),
+		}
 	}
+	post.Fee = lo.Ternary(isRedeem, s.managerRedeemFee, s.managerIssueFee)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: big.NewInt(0)},
 		Gas:            lo.Ternary(isRedeem, s.gas.Redeem, s.gas.Issue),
 
-		SwapInfo: SwapInfo{
-			Fee:         lo.Ternary(strings.EqualFold(tokenAmountIn.Token, hyethToken), s.managerRedeemFee, s.managerIssueFee),
-			TotalSupply: postTotalShares,
-			TotalAssets: postTotalAssets,
-		},
+		SwapInfo: post,
 	}, nil
 }
 
@@ -159,10 +179,20 @@ func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	return s.GetAddress()
 }
 
+// CloneState copies the simulator. UpdateBalance replaces the state's values instead of writing into them, so the
+// copy shares them with the original.
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	return &cloned
+}
+
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	postSwapState := params.SwapInfo.(SwapInfo)
-	s.componentTotalSupply.Set(postSwapState.TotalSupply)
-	s.componentTotalAsset.Set(postSwapState.TotalAssets)
+	post, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		return
+	}
+	s.componentTotalSupply, s.componentTotalAsset = post.TotalSupply, post.TotalAssets
+	s.componentHyethBalance, s.hyethTotalSupply, s.maxDeposit = post.HyethBalance, post.HyethSupply, post.MaxDeposit
 }
 
 func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, chainId valueobject.ChainID) bool {
