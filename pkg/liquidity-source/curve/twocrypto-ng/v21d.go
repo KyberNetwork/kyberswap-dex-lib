@@ -117,7 +117,7 @@ func (t *PoolSimulator) donationSharesAt(now int64, protection bool) *uint256.In
 func (t *PoolSimulator) tweakPriceV21d(A, gamma *uint256.Int, _xp [NumTokens]uint256.Int, K0_prev *uint256.Int,
 	s *SwapInfo) error {
 	e := &t.Extra
-	now := nowUnix()
+	now := t.chainNow()
 	var err error
 	if s.PriceOracleTimestamp, err = t.priceOracleAt(now, s.PriceOracle[:]); err != nil {
 		return err

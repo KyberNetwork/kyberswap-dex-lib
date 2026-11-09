@@ -506,3 +506,53 @@ func TestPoolV3_PostTradeUnknownStateRefused(t *testing.T) {
 		})
 	}
 }
+
+// A server clock behind the chain trades as at the latest time the state holds, never earlier: the pool's
+// last_timestamp and the policy's last_update_ts do not move back, and the policy's EMAs do not jump to
+// last_prices, as an elapsed time that wrapped would make them.
+func TestPoolV3_ClockBehindTheChain(t *testing.T) {
+	defer func(f func() int64) { nowUnix = f }(nowUnix)
+	c := loadV3PostTradeCases(t)[1]
+	sim, err := NewPoolSimulator(c.Pool)
+	require.NoError(t, err)
+	e := &sim.Extra
+	held := max(e.LastTimestamp, e.LastDonationReleaseTs, e.TwocryptoPolicy.LastUpdateTs)
+	behind := c
+	behind.Now = held - 600
+
+	atHeld := c
+	atHeld.Now = held
+	want, err := NewPoolSimulator(c.Pool)
+	require.NoError(t, err)
+	wantOut := atHeld.trade(t, want)
+
+	got := behind.trade(t, sim)
+	assert.Equal(t, wantOut.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.String())
+	assert.GreaterOrEqual(t, sim.Extra.LastTimestamp, held)
+	assert.GreaterOrEqual(t, sim.Extra.TwocryptoPolicy.LastUpdateTs, held)
+	assert.Equal(t, want.Extra.TwocryptoPolicy.FastEma.Dec(), sim.Extra.TwocryptoPolicy.FastEma.Dec())
+	assert.Equal(t, want.Extra.TwocryptoPolicy.SlowEma.Dec(), sim.Extra.TwocryptoPolicy.SlowEma.Dec())
+}
+
+// The margin for an oracle carried from a view read grows with the gap the carry closes: up to
+// v3OracleReadLagSec / ma_time of it, on top of the 1e-6 rounding floor.
+func TestPoolV3_OracleErrorCoversTheReadLag(t *testing.T) {
+	c := loadV3PostTradeCases(t)[1]
+	sim, err := NewPoolSimulator(c.Pool)
+	require.NoError(t, err)
+	e := &sim.Extra
+	oracle := new(uint256.Int).Set(&e.PriceScale[0])
+	floor := new(uint256.Int).Div(oracle, v3OracleBandMargin)
+
+	e.LastPrices = []uint256.Int{*oracle}
+	assert.Equal(t, floor.Dec(), sim.oracleError(oracle).Dec(), "no gap: the rounding floor")
+
+	var onePct uint256.Int
+	onePct.Div(oracle, uint256.NewInt(100))
+	e.LastPrices = []uint256.Int{*new(uint256.Int).Add(oracle, &onePct)}
+	want := new(uint256.Int).Mul(&onePct, v3OracleReadLagSec)
+	want.Div(want, e.MaTime).Add(want, floor)
+	assert.Equal(t, want.Dec(), sim.oracleError(oracle).Dec())
+	assert.True(t, sim.oracleError(oracle).Gt(new(uint256.Int).Mul(floor, uint256.NewInt(10))),
+		"a 1% gap needs far more than the rounding floor")
+}
