@@ -99,6 +99,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	vault.TokenBalances = maps.Clone(p.vault.TokenBalances)
 	vault.RealBalances = maps.Clone(p.vault.RealBalances)
 	cloned.vault = &vault
+	cloned.vaultUtils = NewVaultUtils(&vault) // vaultUtils reads the vault: it must read the cloned one
 	return &cloned
 }
 
@@ -129,11 +130,11 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 // swapAmountsFrom reads the amounts from the SwapInfo of CalcAmountOut. ok is false when swapInfo is missing or is not
 // the SwapInfo of this pool. The returned values are new, so the state does not share them with the SwapInfo.
 func (p *PoolSimulator) swapAmountsFrom(swapInfo any) (creditedIn, usdmAmount *big.Int, ok bool) {
-	info, ok := swapInfo.(*SwapInfo)
-	if !ok || info == nil {
+	info, ok := swapInfo.(SwapInfo)
+	if !ok {
 		return nil, nil, false
 	}
-	return info.CreditedIn.ToBig(), info.UsdmAmount.ToBig(), true
+	return info.CreditedAmountIn.ToBig(), info.UsdmAmount.ToBig(), true
 }
 
 // swapAmounts computes what swap does first: the amount credited for the amount sent, the min price of the token in
@@ -155,13 +156,13 @@ func (p *PoolSimulator) swapAmounts(tokenIn string, sent *big.Int) (creditedIn, 
 // itself.
 func newSwapInfo(creditedIn, usdmAmount *big.Int) any {
 	var info SwapInfo
-	if info.CreditedIn.SetFromBig(creditedIn) {
+	if info.CreditedAmountIn.SetFromBig(creditedIn) {
 		return nil
 	}
 	if info.UsdmAmount.SetFromBig(usdmAmount) {
 		return nil
 	}
-	return &info
+	return info
 }
 
 func (p *PoolSimulator) CanSwapFrom(address string) []string {

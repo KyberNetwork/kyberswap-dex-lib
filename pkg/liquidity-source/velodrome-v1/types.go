@@ -36,11 +36,11 @@ type PoolMeta struct {
 
 // SwapInfo is what CalcAmountOut/CalcAmountIn hand to UpdateBalance when the balances of the pair are known: the
 // balances after the swap, which the pair stores as its new reserves, indexed as the pool tokens. UpdateBalance
-// applies them as they are and does not run the swap again. Amounts are decimal strings in JSON; this struct is
-// part of the swap extra in the route response.
+// applies them as they are and does not run the swap again. The fields are internal state, so they are not part of
+// the swap extra in the route response.
 type SwapInfo struct {
-	Balance0 uint256.Int `json:"b0"`
-	Balance1 uint256.Int `json:"b1"`
+	NewBalance0 uint256.Int `json:"-"`
+	NewBalance1 uint256.Int `json:"-"`
 }
 
 type PairMetadata struct {

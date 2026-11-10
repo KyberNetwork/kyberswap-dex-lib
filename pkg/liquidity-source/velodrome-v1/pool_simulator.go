@@ -185,8 +185,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	amtIn, amtOut := uint256.MustFromBig(params.TokenAmountIn.Amount), uint256.MustFromBig(params.TokenAmountOut.Amount)
 	if p.balances != nil {
 		// the pair syncs its reserves to the balances at the end of swap
-		if info, ok := params.SwapInfo.(*SwapInfo); ok && info != nil {
-			p.setBalances(&info.Balance0, &info.Balance1)
+		if info, ok := params.SwapInfo.(SwapInfo); ok {
+			p.setBalances(&info.NewBalance0, &info.NewBalance1)
 			return
 		}
 		// no usable SwapInfo (a result that did not come from this pool's CalcAmountOut/CalcAmountIn): swap again
@@ -218,8 +218,8 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	}
 }
 
-// checkSwap runs swap when the balances are known and returns the SwapInfo UpdateBalance needs. It returns a nil
-// interface (not a nil *SwapInfo) when the balances are unknown.
+// checkSwap runs swap when the balances are known and returns the SwapInfo UpdateBalance needs, or a nil interface
+// when the balances are unknown.
 func (p *PoolSimulator) checkSwap(indexIn, indexOut int, amountIn, amountOut *uint256.Int) (any, error) {
 	if p.balances == nil {
 		return nil, nil
@@ -228,7 +228,7 @@ func (p *PoolSimulator) checkSwap(indexIn, indexOut int, amountIn, amountOut *ui
 	if err != nil {
 		return nil, err
 	}
-	return &SwapInfo{Balance0: post[0], Balance1: post[1]}, nil
+	return SwapInfo{NewBalance0: post[0], NewBalance1: post[1]}, nil
 }
 
 // swap mirrors the checks of DystPair.swap after the quote: the pair pays amountOut out of its balance, then takes

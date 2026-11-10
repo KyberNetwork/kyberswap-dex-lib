@@ -41,13 +41,13 @@ func TestPoolSimulator_SwapInfo(t *testing.T) {
 				amount := big.NewInt(sent)
 				res, err := calcAmountOutOf(viaInfo, hop[0], hop[1], amount)
 				require.NoError(t, err)
-				info, ok := res.SwapInfo.(*SwapInfo)
+				info, ok := res.SwapInfo.(SwapInfo)
 				require.True(t, ok, "SwapInfo has the type %T", res.SwapInfo)
 
 				// the SwapInfo holds what the quote computed
 				credited, err := viaInfo.vault.CreditedAmountIn(hop[0], amount)
 				require.NoError(t, err)
-				assert.Equal(t, credited, info.CreditedIn.ToBig())
+				assert.Equal(t, credited, info.CreditedAmountIn.ToBig())
 				assert.Positive(t, info.UsdmAmount.Sign())
 
 				// consuming it ends where computing the amounts again ends
@@ -68,7 +68,7 @@ func TestPoolSimulator_SwapInfo(t *testing.T) {
 		require.NoError(t, err)
 		credited, usdm := uint256.NewInt(7), uint256.NewInt(9)
 		poolA0Before, usdmA0Before := p.vault.PoolAmounts["A0"], p.vault.USDMAmounts["A0"]
-		updateBalanceOf(p, "A0", amount, res, &SwapInfo{CreditedIn: *credited, UsdmAmount: *usdm})
+		updateBalanceOf(p, "A0", amount, res, SwapInfo{CreditedAmountIn: *credited, UsdmAmount: *usdm})
 		assert.Equal(t, new(big.Int).Add(poolA0Before, big.NewInt(7)), p.vault.PoolAmounts["A0"])
 		assert.Equal(t, new(big.Int).Add(usdmA0Before, big.NewInt(9)), p.vault.USDMAmounts["A0"])
 	})
@@ -79,8 +79,8 @@ func TestPoolSimulator_SwapInfo(t *testing.T) {
 
 		for name, swapInfo := range map[string]any{
 			"nil":               nil,
+			"pointer":           &SwapInfo{CreditedAmountIn: *uint256.NewInt(7)},
 			"nil pointer":       (*SwapInfo)(nil),
-			"value":             SwapInfo{CreditedIn: *uint256.NewInt(7)},
 			"other type":        struct{ C string }{"7"},
 			"decoded from JSON": map[string]any{"c": "7", "u": "9"},
 		} {
@@ -95,12 +95,12 @@ func TestPoolSimulator_SwapInfo(t *testing.T) {
 		amount := big.NewInt(sent)
 		res, err := calcAmountOutOf(p, "A0", "A2", amount)
 		require.NoError(t, err)
-		info := res.SwapInfo.(*SwapInfo)
-		before := *info
+		info := res.SwapInfo.(SwapInfo)
+		before := info
 		updateBalanceOf(p, "A0", amount, res, info)
 		p.vault.PoolAmounts["A0"].Add(p.vault.PoolAmounts["A0"], big.NewInt(1))
 		p.vault.USDMAmounts["A0"].Add(p.vault.USDMAmounts["A0"], big.NewInt(1))
-		assert.Equal(t, before, *info)
+		assert.Equal(t, before, res.SwapInfo)
 	})
 
 	t.Run("a failed quote has no SwapInfo", func(t *testing.T) {
@@ -114,25 +114,20 @@ func TestPoolSimulator_SwapInfo(t *testing.T) {
 func TestSwapInfo_JSON(t *testing.T) {
 	t.Parallel()
 
+	// the amounts are internal state of the vault: they are not part of the swap extra in the route response
 	p := newRealBalanceTestSimulator(t, balancesHealthy, balancesHealthy)
 	res, err := calcAmountOut(p, "A0", "A2")
 	require.NoError(t, err)
+	require.IsType(t, SwapInfo{}, res.SwapInfo)
 	b, err := json.Marshal(res.SwapInfo)
 	require.NoError(t, err)
-	// an example from the fixture: 1e15 wei of A0 credited, valued in USDM at the min price of A0 (about 0.69)
-	assert.JSONEq(t, `{"c":"1000000000000000","u":"690097480000000"}`, string(b))
-	assert.Less(t, len(b), 60, string(b))
+	assert.JSONEq(t, `{}`, string(b))
 
-	// the router moves the swap extra through map[string]any: the amounts stay strings, so no precision is lost
-	var asMap map[string]any
-	require.NoError(t, json.Unmarshal(b, &asMap))
-	assert.Equal(t, map[string]any{"c": "1000000000000000", "u": "690097480000000"}, asMap)
-
-	// the amounts of a bigger swap, up to 1e30 wei, stay under 90 bytes
-	big1e30 := uint256.MustFromDecimal("1000000000000000000000000000000")
-	b, err = json.Marshal(&SwapInfo{CreditedIn: *big1e30, UsdmAmount: *big1e30})
+	b, err = json.Marshal(struct {
+		Extra any `json:"extra"`
+	}{res.SwapInfo})
 	require.NoError(t, err)
-	assert.Less(t, len(b), 90, string(b))
+	assert.JSONEq(t, `{"extra":{}}`, string(b))
 }
 
 func TestNewSwapInfo(t *testing.T) {
@@ -141,6 +136,47 @@ func TestNewSwapInfo(t *testing.T) {
 	tooBig := new(big.Int).Lsh(big.NewInt(1), 256)
 	assert.Nil(t, newSwapInfo(tooBig, big.NewInt(1)))
 	assert.Nil(t, newSwapInfo(big.NewInt(1), tooBig))
-	assert.Equal(t, &SwapInfo{CreditedIn: *uint256.NewInt(1), UsdmAmount: *uint256.NewInt(2)},
+	assert.Equal(t, SwapInfo{CreditedAmountIn: *uint256.NewInt(1), UsdmAmount: *uint256.NewInt(2)},
 		newSwapInfo(big.NewInt(1), big.NewInt(2)))
+}
+
+// The swap fee reads the vault through vaultUtils: after CloneState it must read the cloned vault, so that an
+// UpdateBalance on the clone moves the fee of the clone and leaves the original as it was.
+func TestPoolSimulator_CloneState_VaultUtils(t *testing.T) {
+	t.Parallel()
+
+	feeBps := func(p *PoolSimulator) string {
+		return p.vaultUtils.GetSwapFeeBasisPoints("A0", "A2", bigStr("100000000000000000000000")).String()
+	}
+
+	orig := newRealBalanceTestSimulator(t, balancesHealthy, balancesHealthy)
+	origFee := feeBps(orig)
+	origVault := newRealBalanceTestSimulator(t, balancesHealthy, balancesHealthy).vault
+
+	cloned := orig.CloneState().(*PoolSimulator)
+	assert.Same(t, cloned.vault, cloned.vaultUtils.vault)
+	assert.Same(t, orig.vault, orig.vaultUtils.vault)
+	assert.NotSame(t, orig.vaultUtils, cloned.vaultUtils)
+
+	// move a lot of USDM into A0 (and out of A2) on the clone only (the credited pool amount stays small, so quotes work)
+	res, err := calcAmountOutOf(cloned, "A0", "A2", big.NewInt(sent))
+	require.NoError(t, err)
+	big1e23 := uint256.MustFromDecimal("100000000000000000000000")
+	updateBalanceOf(cloned, "A0", big.NewInt(sent), res, SwapInfo{CreditedAmountIn: *uint256.NewInt(sent), UsdmAmount: *big1e23})
+
+	// the clone quotes with its own state: the same as a simulator that went through the same update
+	ref := newRealBalanceTestSimulator(t, balancesHealthy, balancesHealthy)
+	updateBalanceOf(ref, "A0", big.NewInt(sent), res, SwapInfo{CreditedAmountIn: *uint256.NewInt(sent), UsdmAmount: *big1e23})
+	require.NotEqual(t, origFee, feeBps(ref), "the update must change the fee, or this test proves nothing")
+	assert.Equal(t, feeBps(ref), feeBps(cloned))
+	resCloned, err := calcAmountOutOf(cloned, "A0", "A2", big.NewInt(sent))
+	require.NoError(t, err)
+	resRef, err := calcAmountOutOf(ref, "A0", "A2", big.NewInt(sent))
+	require.NoError(t, err)
+	assert.Equal(t, resRef.TokenAmountOut.Amount, resCloned.TokenAmountOut.Amount)
+	assert.Equal(t, resRef.Fee.Amount, resCloned.Fee.Amount)
+
+	// the original did not move
+	assert.Equal(t, origFee, feeBps(orig))
+	assert.Equal(t, origVault, orig.vault)
 }
