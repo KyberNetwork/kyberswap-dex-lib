@@ -102,6 +102,8 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidAmountIn
 	}
 
+	// The reported fee is taken on the amount sent, as getAmountOut does. When the pair holds more or less than its
+	// reserves, swap takes the fee on the credited amount instead; the reported fee is metadata only.
 	var feeAmount uint256.Int
 	feeAmount.MulDivOverflow(amountIn, p.fee, p.feePrecision)
 	amountInAfterFee := new(uint256.Int).Sub(amountIn, &feeAmount)

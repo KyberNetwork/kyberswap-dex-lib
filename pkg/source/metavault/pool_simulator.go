@@ -104,7 +104,8 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 // https://github.com/gmx-io/gmx-contracts/blob/787d767e033c411f6d083f2725fb54b7fa956f7e/contracts/core/Vault.sol#L547-L548
 // usdmAmounts and poolAmounts move by the credited amount in (not the sent one) and, when the real balances are
 // known, tokenBalances and the real balances follow the transfers (_transferIn / _transferOut). The credited amount
-// is computed from the state before this update, as the quote was.
+// is computed from the state before this update, as the quote was. feeReserves is not tracked: no swap
+// pricing or validation reads it.
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, params.Fee
 	creditedIn, err := p.vault.CreditedAmountIn(input.Token, input.Amount)
@@ -254,7 +255,8 @@ func (p *PoolSimulator) validateMaxUsdmExceed(token string, amount *big.Int) err
 		return nil
 	}
 
-	if newUsdmAmount.Cmp(maxUsdmAmount) < 0 {
+	// _increaseUsdmAmount: _validate(usdmAmounts[_token] <= maxUsdmAmount, 51), so reaching the cap is allowed.
+	if newUsdmAmount.Cmp(maxUsdmAmount) <= 0 {
 		return nil
 	}
 
