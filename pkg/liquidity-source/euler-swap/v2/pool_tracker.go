@@ -3,6 +3,7 @@ package v2
 import (
 	"context"
 	"math/big"
+	"slices"
 	"strings"
 	"time"
 
@@ -296,6 +297,7 @@ func (d *PoolTracker) getPoolData(
 	data.UniqueVaultAddresses = uniqueVaultAddresses
 	data.Vaults = vaults
 
+	data.Collaterals = collaterals
 	data.CollatAmounts = make([]*big.Int, len(collaterals))
 	fullVaultList := lo.Map(uniqueVaultAddresses, func(addr string, _ int) shared.VaultInfo {
 		if v, ok := lo.Find(vaultList, func(v shared.VaultInfo) bool {
@@ -473,6 +475,8 @@ func (d *PoolTracker) updatePool(
 	idx0 := uniqueVaultAddrMap[strings.ToLower(staticExtra.SupplyVault0)]
 	idx1 := uniqueVaultAddrMap[strings.ToLower(staticExtra.SupplyVault1)]
 
+	isCollateral0 := slices.Contains(data.Collaterals, common.HexToAddress(staticExtra.SupplyVault0))
+	isCollateral1 := slices.Contains(data.Collaterals, common.HexToAddress(staticExtra.SupplyVault1))
 	vaultMap := make(map[string]*shared.VaultState, len(data.Vaults))
 	for idx, v := range data.Vaults {
 		addr := strings.ToLower(data.UniqueVaultAddresses[idx])
@@ -496,9 +500,12 @@ func (d *PoolTracker) updatePool(
 				uint256.MustFromBig(data.VaultPrices[idx1][idx][0]),
 			}
 			state.LTVs = lo.Map(data.CollatLtvs, func(l []uint16, _ int) uint64 { return uint64(l[idx]) })
+			// The debt vault counts a supply vault only when the account enabled it as collateral: a deposit
+			// into any other vault adds nothing, and a swap that borrows against it reverts with
+			// E_AccountLiquidity.
 			state.VaultLTVs = [2]uint64{
-				uint64(data.VaultLtvs[idx0][idx]),
-				uint64(data.VaultLtvs[idx1][idx]),
+				lo.Ternary(isCollateral0, uint64(data.VaultLtvs[idx0][idx]), 0),
+				lo.Ternary(isCollateral1, uint64(data.VaultLtvs[idx1][idx]), 0),
 			}
 		}
 		vaultMap[addr] = state
