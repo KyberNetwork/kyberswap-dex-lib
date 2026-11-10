@@ -387,7 +387,19 @@ func (p *PoolSimulator) getAmountIn(amountOut *uint256.Int, indexIn, indexOut in
 
 		result := x.Div(x.Mul(x, decimalsA), big256.BONE)
 
-		return big256.MulDivUp(result, result, p.feePrecision, tmp.Sub(p.feePrecision, p.fee)), nil
+		amountIn := big256.MulDivUp(result, result, p.feePrecision, tmp.Sub(p.feePrecision, p.fee))
+		// the inverse works on scaled amounts and rounds down when it scales back to the decimals of the tokens, so the
+		// amount can be short of the amount out by a unit of the token with fewer decimals: add units until it covers
+		for range maxAmountInRoundingUnits {
+			var amountInAfterFee, fee uint256.Int
+			fee.MulDivOverflow(amountIn, p.fee, p.feePrecision)
+			amountInAfterFee.Sub(amountIn, &fee)
+			if out, err := p.getAmountOut(&amountInAfterFee, indexIn, indexOut); err != nil || !out.Lt(amountOut) {
+				break
+			}
+			amountIn.AddUint64(amountIn, 1)
+		}
+		return amountIn, nil
 	}
 
 	var tmp1, tmp2 uint256.Int

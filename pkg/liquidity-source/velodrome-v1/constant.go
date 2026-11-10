@@ -26,7 +26,13 @@ const (
 	defaultMethodAllPairs       = 0x1e3dd18b // allPairs(uint256)
 	defaultMethodAllPairsLength = 0x574f2ba3 // allPairsLength()
 
+	// exchangeVelodromeV1 is the DexID of Velodrome V1 on Optimism (the "velodrome" source of the router config)
+	exchangeVelodromeV1 = "velodrome"
+
 	defaultGas = 227000
+
+	// maxAmountInRoundingUnits bounds the units added to the amount in of a stable pair (see getAmountIn)
+	maxAmountInRoundingUnits = 8
 )
 
 var (
@@ -37,7 +43,7 @@ var (
 	// solidlyCurveExchanges are the exchanges whose pair computes the stable curve like Solidly's (see _fSolidly),
 	// checked against pair.getAmountOut on-chain. The others keep the form of _k (aero-v2 is verified to be one).
 	solidlyCurveExchanges = map[string]struct{}{
-		"velodrome":                  {},
+		exchangeVelodromeV1:          {},
 		valueobject.ExchangeDystopia: {},
 	}
 	extraGasByExchange = map[string]int64{
