@@ -421,7 +421,7 @@ func (p *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int)
 	var dy uint256.Int
 	y = y.Clone()
 	for range 255 {
-		k := _f(x0, y)
+		k := p._f(x0, y)
 
 		if k.Lt(xy) {
 			dy.Div(
@@ -445,7 +445,22 @@ func (p *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int)
 	return y, nil
 }
 
-func _f(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
+// _fSolidly is the f(x0, y) = x0*y^3 + x0^3*y of the Solidly pair (velodrome v1, dystopia) with its roundings:
+// x0*(y*y/1e18*y/1e18)/1e18 + (x0*x0/1e18*x0/1e18)*y/1e18. It is not the form _k uses, ((x*y)*(x*x+y*y)); the two
+// round differently, which is a few wei apart for a stable pair that is far from balanced.
+func _fSolidly(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
+	var a, b, c uint256.Int
+	a.Div(a.Mul(y, y), big256.BONE)
+	a.Div(a.Mul(&a, y), big256.BONE)
+	a.Div(a.Mul(&a, x0), big256.BONE)
+	b.Div(b.Mul(x0, x0), big256.BONE)
+	b.Div(b.Mul(&b, x0), big256.BONE)
+	c.Div(c.Mul(&b, y), big256.BONE)
+	return a.Add(&a, &c)
+}
+
+// _fK is f written like _k: (x0*y)*(x0*x0+y*y). The Velodrome v2 / Aerodrome pair iterates on it.
+func _fK(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
 	var _a, _b uint256.Int
 	_b.Add(
 		_a.Div(
@@ -459,6 +474,15 @@ func _f(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
 	)
 	_a.Div(_a.Mul(x0, y), big256.BONE)
 	return _a.Div(_a.Mul(&_a, &_b), big256.BONE)
+}
+
+// _f is the f of the exchange's pair: the Solidly form for the exchanges checked against the pair on-chain
+// (solidlyCurveExchanges), _k's form for every other one.
+func (p *PoolSimulator) _f(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
+	if _, ok := solidlyCurveExchanges[p.Info.Exchange]; ok {
+		return _fSolidly(x0, y)
+	}
+	return _fK(x0, y)
 }
 
 func _d(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
