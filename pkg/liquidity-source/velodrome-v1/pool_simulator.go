@@ -24,6 +24,9 @@ type PoolSimulator struct {
 	reserves     []*uint256.Int
 	decimals     []*uint256.Int
 	gas          int64
+
+	// balances is balanceOf(pair) of each token (nil when unknown), see PoolExtra.Balance0.
+	balances []*uint256.Int
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -54,6 +57,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		decimals[i] = big256.TenPow(token.Decimals)
 	}
 
+	var balances []*uint256.Int
+	if extra.Balance0 != nil && extra.Balance1 != nil && len(reserves) == 2 {
+		balance0, overflow0 := uint256.FromBig(extra.Balance0)
+		balance1, overflow1 := uint256.FromBig(extra.Balance1)
+		if overflow0 || overflow1 {
+			return nil, ErrInvalidReserve
+		}
+		balances = []*uint256.Int{balance0, balance1}
+	}
+
 	return &PoolSimulator{
 		Info: pool.PoolInfo{
 			Address:     entityPool.Address,
@@ -70,6 +83,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves:     reserves,
 		decimals:     decimals,
 		gas:          lo.CoalesceOrEmpty(staticExtra.Gas, defaultGas+extraGasByExchange[entityPool.Exchange]),
+		balances:     balances,
 	}, nil
 }
 
@@ -90,7 +104,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	var feeAmount uint256.Int
 	feeAmount.MulDivOverflow(amountIn, p.fee, p.feePrecision)
-	amountInAfterFee := amountIn.Sub(amountIn, &feeAmount)
+	amountInAfterFee := new(uint256.Int).Sub(amountIn, &feeAmount)
 
 	amountOut, err := p.getAmountOut(amountInAfterFee, indexIn, indexOut)
 	if err != nil {
@@ -99,6 +113,10 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientOutputAmount
 	} else if !amountOut.Lt(p.reserves[indexOut]) {
 		return nil, ErrInsufficientLiquidity
+	}
+
+	if _, err = p.swap(indexIn, indexOut, amountIn, amountOut); err != nil {
+		return nil, err
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -132,6 +150,10 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, ErrInsufficientInputAmount
 	}
 
+	if _, err = p.swap(indexIn, indexOut, amountIn, amountOut); err != nil {
+		return nil, err
+	}
+
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
@@ -143,6 +165,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.reserves = slices.Clone(p.reserves)
+	cloned.balances = slices.Clone(p.balances)
 	return &cloned
 }
 
@@ -153,6 +176,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	amtIn, amtOut := uint256.MustFromBig(params.TokenAmountIn.Amount), uint256.MustFromBig(params.TokenAmountOut.Amount)
+	if p.balances != nil {
+		// the pair syncs its reserves to the balances at the end of swap
+		if post, err := p.swap(indexIn, indexOut, amtIn, amtOut); err == nil {
+			p.reserves, p.balances = post, slices.Clone(post)
+			return
+		}
+		p.balances = nil // not a swap the pair accepts: stop trusting the balances and update as without them
+	}
 	p.reserves[indexIn] = amtIn.Add(p.reserves[indexIn], amtIn.Sub(amtIn, uint256.MustFromBig(params.Fee.Amount)))
 	p.reserves[indexOut] = amtOut.Sub(p.reserves[indexOut], amtOut)
 }
@@ -166,6 +197,63 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 		ApprovalAddress: routerAddressByExchange[exchange],
 		BlockNumber:     p.Info.BlockNumber,
 	}
+}
+
+// swap mirrors the checks of DystPair.swap after the quote: the pair pays amountOut out of its balance, then takes
+// as input whatever its balances hold above the reserves (this is how a donation, or a deficit, changes what the
+// swapper is credited), moves the fee of the input out of the pair, and requires the curve not to decrease. It
+// returns the balances after the swap, which the pair stores as its new reserves. amountIn is the amount the router
+// sent to the pair; amountOut was quoted from the reserves.
+// Without balances (unknown) the quote is returned as it is.
+func (p *PoolSimulator) swap(indexIn, indexOut int, amountIn, amountOut *uint256.Int) ([]*uint256.Int, error) {
+	if p.balances == nil {
+		return nil, nil
+	}
+	reserveOut := p.reserves[indexOut]
+	// require(amount0Out < _reserve0 && amount1Out < _reserve1)
+	if !amountOut.Lt(reserveOut) {
+		return nil, ErrInsufficientLiquidity
+	}
+	// safeTransfer(to, amountOut)
+	if p.balances[indexOut].Lt(amountOut) {
+		return nil, ErrInsufficientBalance
+	}
+
+	post := make([]*uint256.Int, 2)
+	// the router has sent amountIn before the swap
+	balanceIn, overflow := new(uint256.Int).AddOverflow(p.balances[indexIn], amountIn)
+	if overflow {
+		return nil, ErrInvalidAmountIn
+	}
+	post[indexIn] = balanceIn
+	post[indexOut] = new(uint256.Int).Sub(p.balances[indexOut], amountOut)
+
+	// amountXIn = balanceX > reserveX - amountXOut ? balanceX - (reserveX - amountXOut) : 0
+	var credited [2]uint256.Int
+	reservesAfterOut := [2]*uint256.Int{p.reserves[0], p.reserves[1]}
+	reservesAfterOut[indexOut] = new(uint256.Int).Sub(reserveOut, amountOut)
+	for i := range post {
+		if post[i].Gt(reservesAfterOut[i]) {
+			credited[i].Sub(post[i], reservesAfterOut[i])
+		}
+	}
+	// require(amount0In > 0 || amount1In > 0)
+	if credited[0].IsZero() && credited[1].IsZero() {
+		return nil, ErrInsufficientInputAmount
+	}
+
+	// _update0/_update1 move the fee of the input out of the pair (to the treasury and the fees contract)
+	for i := range post {
+		var fee uint256.Int
+		fee.MulDivOverflow(&credited[i], p.fee, p.feePrecision)
+		post[i] = new(uint256.Int).Sub(post[i], &fee)
+	}
+
+	// require(_k(balance0, balance1) >= _k(reserve0, reserve1))
+	if p._k(post[0], post[1]).Lt(p._k(p.reserves[0], p.reserves[1])) {
+		return nil, ErrK
+	}
+	return post, nil
 }
 
 func (p *PoolSimulator) getAmountOut(amountIn *uint256.Int, indexIn, indexOut int) (*uint256.Int, error) {

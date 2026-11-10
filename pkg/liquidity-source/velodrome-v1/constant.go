@@ -46,4 +46,6 @@ var (
 	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
 	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
 	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
+	ErrInsufficientBalance      = errors.New("pair token balance below amount out") // safeTransfer of the amount out
+	ErrK                        = errors.New("K")
 )

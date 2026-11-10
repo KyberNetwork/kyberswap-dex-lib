@@ -94,26 +94,36 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	vault := *p.vault
 	vault.USDMAmounts = maps.Clone(p.vault.USDMAmounts)
 	vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	vault.TokenBalances = maps.Clone(p.vault.TokenBalances)
+	vault.RealBalances = maps.Clone(p.vault.RealBalances)
 	cloned.vault = &vault
 	return &cloned
 }
 
-// UpdateBalance update UsdmAmount only
+// UpdateBalance mirrors the state swap leaves behind:
 // https://github.com/gmx-io/gmx-contracts/blob/787d767e033c411f6d083f2725fb54b7fa956f7e/contracts/core/Vault.sol#L547-L548
+// usdmAmounts and poolAmounts move by the credited amount in (not the sent one) and, when the real balances are
+// known, tokenBalances and the real balances follow the transfers (_transferIn / _transferOut). The credited amount
+// is computed from the state before this update, as the quote was.
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, params.Fee
+	creditedIn, err := p.vault.CreditedAmountIn(input.Token, input.Amount)
+	if err != nil {
+		return
+	}
 	priceIn, err := p.vault.GetMinPrice(input.Token)
 	if err != nil {
 		return
 	}
 
-	usdmAmount := new(big.Int).Div(new(big.Int).Mul(input.Amount, priceIn), PricePrecision)
+	usdmAmount := new(big.Int).Div(new(big.Int).Mul(creditedIn, priceIn), PricePrecision)
 	usdmAmount = p.vault.AdjustForDecimals(usdmAmount, input.Token, p.vault.USDM.Address)
 
 	p.vault.IncreaseUSDMAmount(input.Token, usdmAmount)
 	p.vault.DecreaseUSDMAmount(output.Token, usdmAmount)
-	p.vault.IncreasePoolAmount(input.Token, input.Amount)
+	p.vault.IncreasePoolAmount(input.Token, creditedIn)
 	p.vault.DecreasePoolAmount(output.Token, new(big.Int).Add(output.Amount, fee.Amount))
+	p.vault.SyncBalancesAfterSwap(input.Token, input.Amount, output.Token, output.Amount)
 }
 
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
@@ -152,10 +162,17 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return pool.MetaInfo{BlockNumber: p.Info.BlockNumber}
 }
 
-// getAmountOut returns amountOutAfterFees, feeAmount and error
+// getAmountOut returns amountOutAfterFees, feeAmount and error. It follows Vault.swap step by step; amountIn is the
+// amount the router sent to the vault, and the vault works with the credited amount (see Vault.CreditedAmountIn).
 func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) (*big.Int, *big.Int, error) {
 	if !p.vault.IsSwapEnabled {
 		return nil, nil, ErrVaultSwapsNotEnabled
+	}
+
+	// in smart contract: amountIn = _transferIn(tokenIn); require(amountIn > 0, 27)
+	creditedIn, err := p.vault.CreditedAmountIn(tokenIn, amountIn)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	priceIn, err := p.vault.GetMinPrice(tokenIn)
@@ -168,13 +185,27 @@ func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *
 		return nil, nil, err
 	}
 
-	amountOut := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), priceOut)
+	amountOut := new(big.Int).Div(new(big.Int).Mul(creditedIn, priceIn), priceOut)
 	amountOut = p.vault.AdjustForDecimals(amountOut, tokenIn, tokenOut)
 
-	usdmAmount := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), PricePrecision)
+	usdmAmount := new(big.Int).Div(new(big.Int).Mul(creditedIn, priceIn), PricePrecision)
 	usdmAmount = p.vault.AdjustForDecimals(usdmAmount, tokenIn, p.vault.USDM.Address)
 
+	feeBasisPoints := p.vaultUtils.GetSwapFeeBasisPoints(tokenIn, tokenOut, usdmAmount)
+	amountOutAfterFees := new(big.Int).Div(
+		new(big.Int).Mul(
+			amountOut,
+			new(big.Int).Sub(BasisPointsDivisor, feeBasisPoints),
+		),
+		BasisPointsDivisor,
+	)
+
 	if err = p.validateMaxUsdmExceed(tokenIn, usdmAmount); err != nil {
+		return nil, nil, err
+	}
+
+	// in smart contract, this validation is implemented inside _increasePoolAmount method (code 49)
+	if err = p.validatePoolAmountWithinBalance(tokenIn, creditedIn, amountIn); err != nil {
 		return nil, nil, err
 	}
 
@@ -188,18 +219,29 @@ func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *
 		return nil, nil, err
 	}
 
-	feeBasisPoints := p.vaultUtils.GetSwapFeeBasisPoints(tokenIn, tokenOut, usdmAmount)
-	amountOutAfterFees := new(big.Int).Div(
-		new(big.Int).Mul(
-			amountOut,
-			new(big.Int).Sub(BasisPointsDivisor, feeBasisPoints),
-		),
-		BasisPointsDivisor,
-	)
+	// in smart contract, this is the ERC20 transfer out of amountOutAfterFees (_transferOut), the fee stays in the vault
+	if realOut := p.vault.RealBalances[tokenOut]; realOut != nil && realOut.Cmp(amountOutAfterFees) < 0 {
+		return nil, nil, ErrInsufficientRealBalance
+	}
 
 	feeAmount := new(big.Int).Sub(amountOut, amountOutAfterFees)
 
 	return amountOutAfterFees, feeAmount, nil
+}
+
+// validatePoolAmountWithinBalance mirrors _increasePoolAmount: poolAmounts[token] + credited <= balanceOf(vault),
+// where balanceOf(vault) is the real balance before the swap plus the amount sent. Skipped when the real balance is
+// unknown.
+func (p *PoolSimulator) validatePoolAmountWithinBalance(token string, credited, sent *big.Int) error {
+	realBalance := p.vault.RealBalances[token]
+	if realBalance == nil {
+		return nil
+	}
+	newPoolAmount := new(big.Int).Add(p.vault.PoolAmounts[token], credited)
+	if newPoolAmount.Cmp(new(big.Int).Add(realBalance, sent)) > 0 {
+		return ErrVaultPoolAmountExceedsBalance
+	}
+	return nil
 }
 
 func (p *PoolSimulator) validateMaxUsdmExceed(token string, amount *big.Int) error {

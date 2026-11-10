@@ -17,6 +17,12 @@ type PoolStaticExtra struct {
 type PoolExtra struct {
 	IsPaused bool   `json:"isPaused,omitempty"`
 	Fee      uint64 `json:"fee"`
+
+	// Balance0 and Balance1 are balanceOf(pair) of the pool tokens, read at the block of the reserves. They differ
+	// from the reserves when the pair was donated to (above) or lost tokens (below). Both nil (an extra saved before
+	// these fields existed, or a balanceOf that failed) means unknown: the swap is then not checked against them.
+	Balance0 *big.Int `json:"balance0,omitempty"`
+	Balance1 *big.Int `json:"balance1,omitempty"`
 }
 
 type PoolMeta struct {
