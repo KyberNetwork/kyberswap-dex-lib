@@ -61,10 +61,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if extra.Balance0 != nil && extra.Balance1 != nil && len(reserves) == 2 {
 		balance0, overflow0 := uint256.FromBig(extra.Balance0)
 		balance1, overflow1 := uint256.FromBig(extra.Balance1)
-		if overflow0 || overflow1 {
-			return nil, ErrInvalidReserve
+		if !overflow0 && !overflow1 { // a balance that does not fit 256 bits is treated as unknown
+			balances = []*uint256.Int{balance0, balance1}
 		}
-		balances = []*uint256.Int{balance0, balance1}
 	}
 
 	return &PoolSimulator{

@@ -88,7 +88,7 @@ func (d *PoolTracker) GetNewPoolState(
 	if balances[0] == nil || balances[1] == nil {
 		// the multicall succeeded but a balanceOf did not: the pool is stored without balances, so it is not
 		// checked against them
-		logger.WithFields(logger.Fields{"pool_id": p.Address}).Warn("pool token balances could not be read")
+		logger.WithFields(logger.Fields{"pool_id": p.Address}).Debug("pool token balances could not be read")
 		balances = [2]*big.Int{}
 	}
 
