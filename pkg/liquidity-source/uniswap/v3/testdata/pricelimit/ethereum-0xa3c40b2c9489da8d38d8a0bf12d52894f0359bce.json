@@ -1,0 +1,57 @@
+{
+ "chain": "ethereum",
+ "block": 26373319,
+ "quoter": "0x61ffe014ba17989e743c5f6cb21bf9697530b21e",
+ "pool": {
+  "address": "0xa3c40b2c9489da8d38d8a0bf12d52894f0359bce",
+  "swapFee": 100,
+  "exchange": "uniswapv3",
+  "type": "uniswapv3",
+  "reserves": [
+   "9658086371713578714",
+   "394421528289693"
+  ],
+  "tokens": [
+   {
+    "address": "0x17205fab260a7a6383a81452ce6315a39370db97",
+    "swappable": true
+   },
+   {
+    "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "swappable": true
+   }
+  ],
+  "extra": "{\"liquidity\":57965340050342518,\"sqrtPriceX96\":491036284140659119566619586,\"tickSpacing\":1,\"tick\":-101677,\"ticks\":[{\"index\":-887272,\"liquidityGross\":\"57965340050342518\",\"liquidityNet\":\"57965340050342518\"},{\"index\":887272,\"liquidityGross\":\"57965340050342518\",\"liquidityNet\":\"-57965340050342518\"}]}",
+  "blockNumber": 26373319
+ },
+ "quotes": [
+  {
+   "zeroForOne": false,
+   "amountIn": "203944637145127",
+   "sqrtPriceLimitX96": "1461446703485210103287273052203988822378723970341",
+   "amountOut": "3386545239606547897",
+   "sqrtPriceX96After": "769763934590509275742408331"
+  },
+  {
+   "zeroForOne": false,
+   "amountIn": "203944637145127",
+   "sqrtPriceLimitX96": "0",
+   "amountOut": "3386545239606547897",
+   "sqrtPriceX96After": "769763934590509275742408331"
+  },
+  {
+   "zeroForOne": true,
+   "amountIn": "1000000000000000000000",
+   "sqrtPriceLimitX96": "4295128740",
+   "amountOut": "355925465380089",
+   "sqrtPriceX96After": "4550384297357710515683335"
+  },
+  {
+   "zeroForOne": true,
+   "amountIn": "1000000000000000000000",
+   "sqrtPriceLimitX96": "0",
+   "amountOut": "355925465380089",
+   "sqrtPriceX96After": "4550384297357710515683335"
+  }
+ ]
+}
