@@ -2,6 +2,7 @@ package metavault
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -107,6 +108,13 @@ func (vs *VaultScanner) getPriceFeeds(
 
 	for tokenAddress, priceFeedAddress := range priceFeedAddresses {
 		priceFeed, err := vs.priceFeedReader.Read(ctx, priceFeedAddress.String(), roundCount)
+		if errors.Is(err, ErrVaultPriceFeedLatestRoundDataReverted) {
+			// the vault itself reverts when it prices this token (VaultPriceFeed.getPrice), so leave the feed
+			// out: swaps with this token fail with ErrVaultPriceFeedInvalidPriceFeed while the rest of the
+			// vault keeps being tracked, instead of failing the whole scan
+			vs.log.Warnf("price feed of token %s reverts, skipping it: %s", tokenAddress, priceFeedAddress)
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
