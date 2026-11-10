@@ -86,6 +86,7 @@ func updateBalance(sim *PoolSimulator, in int, amountIn *big.Int, res *poolpkg.C
 		TokenAmountIn:  poolpkg.TokenAmount{Token: tokenOf(in), Amount: amountIn},
 		TokenAmountOut: *res.TokenAmountOut,
 		Fee:            *res.Fee,
+		SwapInfo:       res.SwapInfo,
 	})
 }
 

@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
 )
@@ -31,6 +32,15 @@ type PoolMeta struct {
 	Stable          bool   `json:"s,omitempty"`
 	ApprovalAddress string `json:"approvalAddress"`
 	BlockNumber     uint64 `json:"blockNumber"`
+}
+
+// SwapInfo is what CalcAmountOut/CalcAmountIn hand to UpdateBalance when the balances of the pair are known: the
+// balances after the swap, which the pair stores as its new reserves, indexed as the pool tokens. UpdateBalance
+// applies them as they are and does not run the swap again. Amounts are decimal strings in JSON; this struct is
+// part of the swap extra in the route response.
+type SwapInfo struct {
+	Balance0 uint256.Int `json:"b0"`
+	Balance1 uint256.Int `json:"b1"`
 }
 
 type PairMetadata struct {

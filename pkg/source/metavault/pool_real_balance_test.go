@@ -113,6 +113,7 @@ func swapAndUpdate(t *testing.T, p *PoolSimulator, in, out string, amount *big.I
 		TokenAmountIn:  pool.TokenAmount{Token: in, Amount: amount},
 		TokenAmountOut: *res.TokenAmountOut,
 		Fee:            *res.Fee,
+		SwapInfo:       res.SwapInfo,
 	})
 	return res
 }
