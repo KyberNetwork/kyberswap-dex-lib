@@ -243,7 +243,7 @@ const (
 	ExchangePancakeInfinityCLStable     = "pancake-infinity-cl-stable"
 	ExchangePancakeInfinityCLTax        = "pancake-infinity-cl-tax"
 	ExchangePancakeLegacy               = "pancake-legacy"
-	ExchangePancakeProp                 = "pancake-prop"
+	ExchangeLiquidFiProp                = "liquidfi-prop"
 	ExchangePancakeStable               = "pancake-stable"
 	ExchangePandaFun                    = "panda-fun"
 	ExchangePantherSwap                 = "pantherswap"
@@ -504,7 +504,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeNemoProp:           {},
 	ExchangeBTRProp:            {},
 	ExchangeUniswapV4HyFiProp:  {},
-	ExchangePancakeProp:        {},
+	ExchangeLiquidFiProp:       {},
 	ExchangeBiconomyProp:       {},
 	ExchangeDaikonProp:         {},
 	ExchangeStelaxisProp:       {},

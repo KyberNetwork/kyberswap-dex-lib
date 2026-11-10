@@ -1,4 +1,4 @@
-package pancakeprop
+package liquidfiprop
 
 import (
 	"math/big"
@@ -18,7 +18,7 @@ import (
 const (
 	usdt  = "0x55d398326f99059ff775485246999027b3197955"
 	wbnb  = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
-	vault = "0x00fc010f0d2e5010635a0c8702f8b9779fa6befe"
+	vault = "0x8d6fcf96253cd9c828b7c5d37ebcc1e1f0d7aa5e"
 	e18   = "1000000000000000000"
 )
 
@@ -36,7 +36,7 @@ func newSim(t testing.TB, mutate func(*Extra), staleCheck bool) *PoolSimulator {
 	}
 	extraJSON, err := json.Marshal(&extra)
 	require.NoError(t, err)
-	staticJSON, err := json.Marshal(StaticExtra{Entry: "0x12b76204f5a1b390002a73e3d869196f0e6e8b1c", Vault: vault, PairID: 1})
+	staticJSON, err := json.Marshal(StaticExtra{Entry: "0x114b11ae066a7785452c4570b42fff1b7fa5b001", Vault: vault, PairID: 1})
 	require.NoError(t, err)
 	sim, err := NewPoolSimulator(pool.FactoryParams{
 		EntityPool: entity.Pool{
@@ -185,7 +185,7 @@ func TestCloneStateIsIndependent(t *testing.T) {
 
 func TestMetaAndSlot(t *testing.T) {
 	sim := newSim(t, nil, false)
-	assert.Equal(t, PoolMeta{BlockNumber: 128674036, Entry: "0x12b76204f5a1b390002a73e3d869196f0e6e8b1c"}, sim.GetMetaInfo(usdt, wbnb))
-	// Mapping slot of pair 1's price word, as traced on the deployed pricing module.
-	assert.Equal(t, "0xabd6e7cb50984ff9c2f3e18a2660c3353dadf4e3291deeb275dae2cd1e44fe05", priceSlot(1).Hex())
+	assert.Equal(t, PoolMeta{BlockNumber: 128674036, Entry: "0x114b11ae066a7785452c4570b42fff1b7fa5b001"}, sim.GetMetaInfo(usdt, wbnb))
+	// Mapping slot of pair 1's price word on the LiquidFi pricing module (BSC and Base).
+	assert.Equal(t, "0xd61fc50f5da629347f6bd9d3d325fba6241c04ec01b687e5d89c356860cfe3f6", priceSlot(1).Hex())
 }

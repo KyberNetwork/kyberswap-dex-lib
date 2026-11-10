@@ -1,4 +1,4 @@
-package pancakeprop
+package liquidfiprop
 
 import (
 	"encoding/json"
@@ -25,7 +25,7 @@ type quoteCase struct {
 	Err      string `json:"err"`
 }
 
-// quote_cases.json holds PropAMMPricing.quoteExactInput results from forks of BSC (random price
+// quote_cases.json holds PropAMM pricing.quoteExactInput results from forks of BSC (random price
 // words, capacities, cumulatives and sizes, edges of the capacity ceiling included) in both
 // directions, the convex and concave curves, and every revert reachable from the price word.
 func TestQuoteMatchesChain(t *testing.T) {
