@@ -9,9 +9,9 @@ import (
 const (
 	DexType = valueobject.ExchangeLiquidFiProp
 
-	// defaultGas is the integer average of 4 Tenderly-simulated pool frames on the LiquidFi Entry
-	// (BSC pairs 1 and 2, Base pair), excluding the one-time approve of the entry.
-	defaultGas int64 = 149825
+	// defaultGas is the integer average of 6 Tenderly-simulated pool frames on the LiquidFi Entry
+	// (BSC pairs 1 and 2, Base pair, both directions), excluding the one-time approve of the entry.
+	defaultGas int64 = 155625
 
 	methodPricing           = "pricing"
 	methodVault             = "vault"
