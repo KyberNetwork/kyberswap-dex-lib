@@ -48,6 +48,12 @@ func bi(s string) *big.Int {
 // means unknown.
 func newBalanceTestSimulator(t testing.TB, tp balanceTestPool, reserves []*big.Int, balances []*big.Int) *PoolSimulator {
 	t.Helper()
+	return newBalanceTestSimulatorOn(t, "velodrome", tp, reserves, balances)
+}
+
+// newBalanceTestSimulatorOn is newBalanceTestSimulator for an exchange.
+func newBalanceTestSimulatorOn(t testing.TB, exchange string, tp balanceTestPool, reserves []*big.Int, balances []*big.Int) *PoolSimulator {
+	t.Helper()
 	extra := PoolExtra{Fee: tp.feeNum}
 	if balances != nil {
 		extra.Balance0, extra.Balance1 = balances[0], balances[1]
@@ -58,7 +64,7 @@ func newBalanceTestSimulator(t testing.TB, tp balanceTestPool, reserves []*big.I
 	require.NoError(t, err)
 	sim, err := NewPoolSimulator(entity.Pool{
 		Address:  "0xpair",
-		Exchange: "velodrome",
+		Exchange: exchange,
 		Type:     DexType,
 		Tokens: []*entity.PoolToken{
 			{Address: tokenA, Swappable: true, Decimals: tp.decimals[0]},
@@ -142,6 +148,24 @@ func referenceSwap(tp balanceTestPool, reserves, balances [2]*big.Int, in int, a
 	return bal, nil
 }
 
+// referenceExecute is ExecutorV3Helper1.executeVelodrome with math/big: the router has sent `sent` to the pair, the
+// executor takes amountIn = balanceOf(pair) - reserveIn (unchecked, so a result below zero wraps and the swap reverts),
+// amountOut = pair.getAmountOut(amountIn) and then calls pair.swap. getAmountOut is taken from quoteOf, the
+// quote of the pair from its reserves (the legacy simulator without balances, which the parity tests pin to the
+// chain). It returns the balances after the swap, the credited amount in and the amount out.
+func referenceExecute(tp balanceTestPool, reserves, balances [2]*big.Int, in int, sent *big.Int,
+	quoteOf func(amountIn *big.Int) (*big.Int, error)) (post [2]*big.Int, credited, amountOut *big.Int, err error) {
+	credited = new(big.Int).Sub(new(big.Int).Add(balances[in], sent), reserves[in])
+	if credited.Sign() <= 0 {
+		return post, credited, nil, ErrInsufficientInputAmount
+	}
+	if amountOut, err = quoteOf(credited); err != nil {
+		return post, credited, nil, err
+	}
+	post, err = referenceSwap(tp, reserves, balances, in, sent, amountOut)
+	return post, credited, amountOut, err
+}
+
 func TestPoolSimulator_Balances_HealthyPoolIsQuotedAsBefore(t *testing.T) {
 	t.Parallel()
 	rng := rand.New(rand.NewSource(1))
@@ -190,7 +214,7 @@ func TestPoolSimulator_Balances_HealthyPoolIsQuotedAsBefore(t *testing.T) {
 	}
 }
 
-// TestPoolSimulator_Balances_AgainstContractModel runs the simulator against referenceSwap on a grid of pool
+// TestPoolSimulator_Balances_AgainstContractModel runs the simulator against referenceExecute on a grid of pool
 // balances around the reserves (donations and deficits on either token) and swap sizes.
 func TestPoolSimulator_Balances_AgainstContractModel(t *testing.T) {
 	t.Parallel()
@@ -198,6 +222,15 @@ func TestPoolSimulator_Balances_AgainstContractModel(t *testing.T) {
 		t.Run(tp.name, func(t *testing.T) {
 			reserves := [2]*big.Int{bi(tp.reserves[0]), bi(tp.reserves[1])}
 			legacy := newBalanceTestSimulator(t, tp, reserves[:], nil)
+			quoteOf := func(in int) func(*big.Int) (*big.Int, error) {
+				return func(amountIn *big.Int) (*big.Int, error) {
+					res, err := quote(legacy, in, amountIn)
+					if err != nil {
+						return nil, err
+					}
+					return res.TokenAmountOut.Amount, nil
+				}
+			}
 			passed, failedByKind := 0, map[error]int{}
 			shifts := func(r *big.Int) []*big.Int {
 				d := func(div int64) *big.Int { return new(big.Int).Div(r, big.NewInt(div)) }
@@ -206,29 +239,28 @@ func TestPoolSimulator_Balances_AgainstContractModel(t *testing.T) {
 			}
 			for in := range 2 {
 				for _, div := range []int64{1000, 10, 3} {
-					amountIn := new(big.Int).Div(reserves[in], big.NewInt(div))
-					base, err := quote(legacy, in, amountIn)
-					require.NoError(t, err)
-					amountOut := base.TokenAmountOut.Amount
+					sent := new(big.Int).Div(reserves[in], big.NewInt(div))
 					for _, d0 := range shifts(reserves[0]) {
 						for _, d1 := range shifts(reserves[1]) {
 							balances := [2]*big.Int{new(big.Int).Add(reserves[0], d0), new(big.Int).Add(reserves[1], d1)}
 							if balances[0].Sign() < 0 || balances[1].Sign() < 0 {
 								continue
 							}
-							name := fmt.Sprintf("in=%d amountIn=%s d0=%s d1=%s", in, amountIn, d0, d1)
-							want, wantErr := referenceSwap(tp, reserves, balances, in, amountIn, amountOut)
+							name := fmt.Sprintf("in=%d sent=%s d0=%s d1=%s", in, sent, d0, d1)
+							want, credited, wantOut, wantErr := referenceExecute(tp, reserves, balances, in, sent, quoteOf(in))
 							sim := newBalanceTestSimulator(t, tp, reserves[:], balances[:])
-							got, gotErr := quote(sim, in, amountIn)
+							got, gotErr := quote(sim, in, sent)
 							if wantErr != nil {
 								assert.ErrorIs(t, gotErr, wantErr, name)
 								failedByKind[wantErr]++
 								continue
 							}
 							require.NoError(t, gotErr, name)
-							// the quote is from the reserves, whatever the balances are
-							assert.Equal(t, amountOut, got.TokenAmountOut.Amount, name)
-							updateBalance(sim, in, amountIn, got)
+							// the quote is from the credited amount in, the fee is taken on it
+							assert.Equal(t, wantOut, got.TokenAmountOut.Amount, name)
+							wantFee := new(big.Int).Div(new(big.Int).Mul(credited, big.NewInt(int64(tp.feeNum))), big.NewInt(int64(tp.feePrecise)))
+							assert.Equal(t, wantFee, got.Fee.Amount, name)
+							updateBalance(sim, in, sent, got)
 							// the pair syncs its reserves to the balances after the swap
 							assert.Equal(t, [2]*big.Int{want[0], want[1]}, simReserves(sim), name)
 							assert.Equal(t, []*big.Int{want[0], want[1]}, []*big.Int{sim.balances[0].ToBig(), sim.balances[1].ToBig()}, name)
@@ -239,7 +271,7 @@ func TestPoolSimulator_Balances_AgainstContractModel(t *testing.T) {
 			}
 			t.Logf("passed=%d rejected=%v", passed, failedByKind)
 			assert.Positive(t, passed)
-			for _, kind := range []error{ErrInsufficientBalance, ErrK} {
+			for _, kind := range []error{ErrInsufficientBalance, ErrK, ErrInsufficientInputAmount} {
 				assert.Positive(t, failedByKind[kind], kind)
 			}
 		})
@@ -255,8 +287,22 @@ func TestPoolSimulator_Balances(t *testing.T) {
 	require.NoError(t, err)
 	amountOut := legacyQuote.TokenAmountOut.Amount
 
-	t.Run("donation: the quote still comes from the reserves", func(t *testing.T) {
-		donated := []*big.Int{new(big.Int).Add(reserves[0], big.NewInt(5_000_000)), reserves[1]}
+	// the executor quotes from balanceIn + sent - reserveIn: a donation on the input side is credited to the swapper
+	t.Run("donation on the input side is quoted as part of the amount in", func(t *testing.T) {
+		donation := big.NewInt(5_000_000)
+		donated := []*big.Int{new(big.Int).Add(reserves[0], donation), reserves[1]}
+		res, err := quote(newBalanceTestSimulator(t, vol, reserves, donated), 0, amountIn)
+		require.NoError(t, err)
+		credited := new(big.Int).Add(amountIn, donation)
+		want, err := quote(newBalanceTestSimulator(t, vol, reserves, nil), 0, credited)
+		require.NoError(t, err)
+		assert.Equal(t, want.TokenAmountOut.Amount, res.TokenAmountOut.Amount)
+		assert.Equal(t, want.Fee.Amount, res.Fee.Amount) // the fee is on the credited amount
+		assert.Equal(t, 1, res.TokenAmountOut.Amount.Cmp(amountOut), "more than the quote from the amount sent")
+	})
+
+	t.Run("donation on the output side does not change the quote", func(t *testing.T) {
+		donated := []*big.Int{reserves[0], new(big.Int).Add(reserves[1], big.NewInt(5_000_000))}
 		res, err := quote(newBalanceTestSimulator(t, vol, reserves, donated), 0, amountIn)
 		require.NoError(t, err)
 		assert.Equal(t, amountOut, res.TokenAmountOut.Amount)
@@ -277,50 +323,40 @@ func TestPoolSimulator_Balances(t *testing.T) {
 		}
 	})
 
-	// the pair credits balance - reserve as input, so a token0 deficit eats into the amount in, and the curve
-	// check only accepts it while the quote's rounding slack covers it
-	t.Run("small deficit that still passes K, larger one fails", func(t *testing.T) {
-		tp := balanceTestPools[1] // volatile 18/6: 1 wei of token0 is worth little, the rounding slack covers some
+	// the executor credits balanceIn + sent - reserveIn, so an input-side deficit eats into the amount in and the
+	// swap succeeds with the smaller output, as long as something is left to credit
+	t.Run("input-side deficit is quoted from the amount in less the deficit", func(t *testing.T) {
+		tp := balanceTestPools[1] // volatile 18/6
 		res18 := []*big.Int{bi(tp.reserves[0]), bi(tp.reserves[1])}
 		in18 := bi("1000000000000000000000") // 1000 token0
-		base, err := quote(newBalanceTestSimulator(t, tp, res18, nil), 0, in18)
-		require.NoError(t, err)
-
+		legacy := newBalanceTestSimulator(t, tp, res18, nil)
 		quoteWithDeficit := func(d *big.Int) (*poolpkg.CalcAmountOutResult, error) {
 			bal := []*big.Int{new(big.Int).Sub(res18[0], d), res18[1]}
 			return quote(newBalanceTestSimulator(t, tp, res18, bal), 0, in18)
 		}
-		res, err := quoteWithDeficit(big.NewInt(1))
-		require.NoError(t, err)
-		assert.Equal(t, base.TokenAmountOut.Amount, res.TokenAmountOut.Amount)
-
-		// find the first deficit the curve rejects, and check the one before it passes
-		lo, hi := big.NewInt(1), bi("500000000000000000000") // a deficit of half the amount sent
-		_, err = quoteWithDeficit(hi)
-		require.ErrorIs(t, err, ErrK)
-		for new(big.Int).Sub(hi, lo).Cmp(big.NewInt(1)) > 0 {
-			mid := new(big.Int).Rsh(new(big.Int).Add(lo, hi), 1)
-			if _, err := quoteWithDeficit(mid); err == nil {
-				lo = mid
-			} else {
-				hi = mid
-			}
+		for _, d := range []*big.Int{big.NewInt(1), bi("1000000000000"), bi("500000000000000000000"), bi("999000000000000000000")} {
+			res, err := quoteWithDeficit(d)
+			require.NoError(t, err, d.String())
+			want, err := quote(legacy, 0, new(big.Int).Sub(in18, d))
+			require.NoError(t, err, d.String())
+			assert.Equal(t, want.TokenAmountOut.Amount, res.TokenAmountOut.Amount, d.String())
+			assert.Equal(t, want.Fee.Amount, res.Fee.Amount, d.String())
+			assert.NotNil(t, res.SwapInfo, d.String())
 		}
-		_, err = quoteWithDeficit(lo)
-		assert.NoError(t, err)
-		_, err = quoteWithDeficit(hi)
-		assert.ErrorIs(t, err, ErrK)
-		t.Logf("deficit of token0 accepted up to %s wei", lo)
+		// the deficit takes all of the amount in, or more: the executor's subtraction wraps and the swap reverts
+		for _, d := range []*big.Int{in18, new(big.Int).Add(in18, big.NewInt(1)), res18[0]} {
+			_, err := quoteWithDeficit(d)
+			assert.ErrorIs(t, err, ErrInsufficientInputAmount, d.String())
+		}
 	})
 
-	t.Run("deficit offset by a surplus of the other token", func(t *testing.T) {
-		// token1 is 1 wei short: alone the curve rejects it, a donation of token0 (credited as input) pays for it
+	t.Run("output-side deficit is rejected whatever the input side holds", func(t *testing.T) {
+		// token1 is 1 wei short: the curve rejects it, a donation of token0 is spent by the quote and does not pay for it
 		short := new(big.Int).Sub(reserves[1], big.NewInt(1))
-		_, err := quote(newBalanceTestSimulator(t, vol, reserves, []*big.Int{reserves[0], short}), 0, amountIn)
-		require.ErrorIs(t, err, ErrK)
-		_, err = quote(newBalanceTestSimulator(t, vol, reserves,
-			[]*big.Int{new(big.Int).Add(reserves[0], big.NewInt(1_000_000)), short}), 0, amountIn)
-		assert.NoError(t, err)
+		for _, bal0 := range []*big.Int{reserves[0], new(big.Int).Add(reserves[0], big.NewInt(1_000_000))} {
+			_, err := quote(newBalanceTestSimulator(t, vol, reserves, []*big.Int{bal0, short}), 0, amountIn)
+			assert.ErrorIs(t, err, ErrK, bal0.String())
+		}
 	})
 
 	// dystopia 0x421a018cc5839c4c0300afb21c725776dc389b1a on polygon: reserves report 999.5M USD+ but the pair
@@ -460,4 +496,133 @@ func mustJSON(t testing.TB, v any) []byte {
 	b, err := json.Marshal(v)
 	require.NoError(t, err)
 	return b
+}
+
+// TestPoolSimulator_Balances_CalcAmountIn: the router sends what the pair needs credited less its input-side surplus
+// (plus its deficit), and the amount it finds is quoted back to the same output by CalcAmountOut.
+func TestPoolSimulator_Balances_CalcAmountIn(t *testing.T) {
+	t.Parallel()
+	for _, tp := range balanceTestPools {
+		t.Run(tp.name, func(t *testing.T) {
+			reserves := [2]*big.Int{bi(tp.reserves[0]), bi(tp.reserves[1])}
+			legacy := newBalanceTestSimulator(t, tp, reserves[:], nil)
+			for in := range 2 {
+				out := 1 - in
+				amountOut := new(big.Int).Div(reserves[out], big.NewInt(50))
+				params := poolpkg.CalcAmountInParams{
+					TokenAmountOut: poolpkg.TokenAmount{Token: tokenOf(out), Amount: amountOut}, TokenIn: tokenOf(in)}
+				needed, err := legacy.CalcAmountIn(params) // what the pair has to credit
+				require.NoError(t, err)
+				credited := needed.TokenAmountIn.Amount
+				want, err := quote(legacy, in, credited)
+				require.NoError(t, err)
+
+				for name, delta := range map[string]*big.Int{ // balanceIn - reserveIn
+					"healthy":                   big.NewInt(0),
+					"input-side donation":       new(big.Int).Div(credited, big.NewInt(3)),
+					"input-side small deficit":  big.NewInt(-3),
+					"input-side larger deficit": new(big.Int).Neg(new(big.Int).Div(credited, big.NewInt(2))),
+				} {
+					balances := reserves
+					balances[in] = new(big.Int).Add(reserves[in], delta)
+					sim := newBalanceTestSimulator(t, tp, reserves[:], balances[:])
+					res, err := sim.CalcAmountIn(params)
+					require.NoError(t, err, name)
+					sent := new(big.Int).Sub(credited, delta)
+					assert.Equal(t, sent, res.TokenAmountIn.Amount, name)
+					_, ok := res.SwapInfo.(SwapInfo)
+					assert.True(t, ok, name)
+
+					// sending it, the executor credits what was needed and pays the same output
+					got, err := quote(sim, in, res.TokenAmountIn.Amount)
+					require.NoError(t, err, name)
+					assert.Equal(t, want.TokenAmountOut.Amount, got.TokenAmountOut.Amount, name)
+				}
+
+				// the pair already credits what is needed: nothing is left to send
+				balances := reserves
+				balances[in] = new(big.Int).Add(reserves[in], credited)
+				_, err = newBalanceTestSimulator(t, tp, reserves[:], balances[:]).CalcAmountIn(params)
+				assert.ErrorIs(t, err, ErrInsufficientInputAmount)
+			}
+		})
+	}
+}
+
+// TestPoolSimulator_Balances_ViaRouter: hyperpie-v2 and aeon-v2 swap through their own router, which quotes from
+// the amount sent: a donation is not credited and a deficit is not netted off the amount in.
+func TestPoolSimulator_Balances_ViaRouter(t *testing.T) {
+	t.Parallel()
+	tp := balanceTestPools[1] // volatile 18/6
+	reserves := []*big.Int{bi(tp.reserves[0]), bi(tp.reserves[1])}
+	sent := bi("1000000000000000000000") // 1000 token0
+	legacy := newBalanceTestSimulator(t, tp, reserves, nil)
+	want, err := quote(legacy, 0, sent)
+	require.NoError(t, err)
+	wantIn, err := legacy.CalcAmountIn(poolpkg.CalcAmountInParams{
+		TokenAmountOut: poolpkg.TokenAmount{Token: tokenB, Amount: want.TokenAmountOut.Amount}, TokenIn: tokenA})
+	require.NoError(t, err)
+
+	for _, exchange := range []string{"hyperpie-v2", "aeon-v2"} {
+		t.Run(exchange, func(t *testing.T) {
+			donated := []*big.Int{new(big.Int).Add(reserves[0], bi("5000000000000000000")), reserves[1]}
+			sim := newBalanceTestSimulatorOn(t, exchange, tp, reserves, donated)
+			res, err := quote(sim, 0, sent)
+			require.NoError(t, err)
+			assert.Equal(t, want.TokenAmountOut.Amount, res.TokenAmountOut.Amount)
+			assert.Equal(t, want.Fee.Amount, res.Fee.Amount)
+			resIn, err := sim.CalcAmountIn(poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{Token: tokenB, Amount: want.TokenAmountOut.Amount}, TokenIn: tokenA})
+			require.NoError(t, err)
+			assert.Equal(t, wantIn.TokenAmountIn.Amount, resIn.TokenAmountIn.Amount)
+
+			// half of the amount sent is missing from the input side: the quote from the amount sent fails K
+			short := []*big.Int{new(big.Int).Sub(reserves[0], new(big.Int).Div(sent, big.NewInt(2))), reserves[1]}
+			_, err = quote(newBalanceTestSimulatorOn(t, exchange, tp, reserves, short), 0, sent)
+			assert.ErrorIs(t, err, ErrK)
+			// while the exchanges that the executor swaps with directly quote the smaller credited amount
+			_, err = quote(newBalanceTestSimulator(t, tp, reserves, short), 0, sent)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+// TestPoolSimulator_Balances_DonationChain follows the pair through two swaps in a row, the second one after the
+// first donation was folded into the reserves, against the executor model.
+func TestPoolSimulator_Balances_DonationChain(t *testing.T) {
+	t.Parallel()
+	for _, tp := range balanceTestPools {
+		t.Run(tp.name, func(t *testing.T) {
+			reserves := [2]*big.Int{bi(tp.reserves[0]), bi(tp.reserves[1])}
+			balances := [2]*big.Int{
+				new(big.Int).Add(reserves[0], new(big.Int).Div(reserves[0], big.NewInt(1000))),
+				new(big.Int).Sub(reserves[1], big.NewInt(1)).Add(reserves[1], big.NewInt(5)), // reserve + 4
+			}
+			sim := newBalanceTestSimulator(t, tp, reserves[:], balances[:])
+			for _, hop := range []struct {
+				in   int
+				sent *big.Int
+			}{{0, new(big.Int).Div(reserves[0], big.NewInt(70))}, {1, new(big.Int).Div(reserves[1], big.NewInt(60))},
+				{0, new(big.Int).Div(reserves[0], big.NewInt(90))}} {
+				// the pair as the model has it: the reserves are the balances synced after each swap
+				legacy := newBalanceTestSimulator(t, tp, reserves[:], nil)
+				quoteOf := func(amountIn *big.Int) (*big.Int, error) {
+					res, err := quote(legacy, hop.in, amountIn)
+					if err != nil {
+						return nil, err
+					}
+					return res.TokenAmountOut.Amount, nil
+				}
+				want, _, wantOut, err := referenceExecute(tp, reserves, balances, hop.in, hop.sent, quoteOf)
+				require.NoError(t, err)
+				res, err := quote(sim, hop.in, hop.sent)
+				require.NoError(t, err)
+				assert.Equal(t, wantOut, res.TokenAmountOut.Amount)
+				updateBalance(sim, hop.in, hop.sent, res)
+				reserves, balances = want, want
+				assert.Equal(t, reserves, simReserves(sim))
+				assert.Equal(t, balances, [2]*big.Int{sim.balances[0].ToBig(), sim.balances[1].ToBig()})
+			}
+		})
+	}
 }

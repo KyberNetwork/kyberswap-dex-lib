@@ -101,12 +101,20 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidAmountIn
 	}
 
-	// The reported fee is taken on the amount sent, as getAmountOut does. When the pair holds more or less than its
-	// reserves, swap takes the fee on the credited amount instead; the reported fee is metadata only.
+	// The executor quotes from the amount the pair credits (balanceIn + sent - reserveIn), not from the amount sent;
+	// so does this when the balances are known. The reported fee is taken on that credited amount, as getAmountOut does.
+	credited := amountIn
+	if p.creditsBalanceDelta() {
+		var creditedAmount uint256.Int
+		if err := p.credit(&creditedAmount, indexIn, amountIn); err != nil {
+			return nil, err
+		}
+		credited = &creditedAmount
+	}
 	var feeAmount uint256.Int
-	feeAmount.MulDivOverflow(amountIn, p.fee, p.feePrecision)
+	feeAmount.MulDivOverflow(credited, p.fee, p.feePrecision)
 	var amountInAfterFee uint256.Int
-	amountInAfterFee.Sub(amountIn, &feeAmount)
+	amountInAfterFee.Sub(credited, &feeAmount)
 
 	amountOut, err := p.getAmountOut(&amountInAfterFee, indexIn, indexOut)
 	if err != nil {
@@ -147,11 +155,18 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, ErrInsufficientLiquidity
 	}
 
+	// getAmountIn finds the amount the pair has to credit; the router sends that amount less what the pair already
+	// credits (balanceIn - reserveIn), when the balances are known
 	amountIn, err := p.getAmountIn(amountOut, indexIn, indexOut)
 	if err != nil {
 		return nil, err
 	} else if amountIn.Sign() <= 0 {
 		return nil, ErrInsufficientInputAmount
+	}
+	if p.creditsBalanceDelta() {
+		if err = p.sendFor(amountIn, indexIn); err != nil {
+			return nil, err
+		}
 	}
 
 	swapInfo, err := p.checkSwap(indexIn, indexOut, amountIn, amountOut)
@@ -217,6 +232,51 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	}
 }
 
+// creditsBalanceDelta tells whether the executor credits the pair with balanceIn + sent - reserveIn: it does for every
+// exchange it swaps with directly (executeVelodrome, executeSolidlyV2, executeMetadex: amountIn =
+// balanceOf(pair) - reserveIn after the transfer). The exchanges that swap through their own router (the ones with a
+// router address) quote from the amount sent. Without the balances nothing is known to credit.
+func (p *PoolSimulator) creditsBalanceDelta() bool {
+	if p.balances == nil {
+		return false
+	}
+	_, viaRouter := routerAddressByExchange[p.Info.Exchange]
+	return !viaRouter
+}
+
+// credit sets credited to what the executor's pair is credited when the router sends sent:
+// balanceIn + sent - reserveIn. The executor subtracts without a check, so a result below zero would wrap and
+// the swap would revert; a zero is rejected by the pair. The caller checks that the balances are known.
+func (p *PoolSimulator) credit(credited *uint256.Int, indexIn int, sent *uint256.Int) error {
+	if _, overflow := credited.AddOverflow(p.balances[indexIn], sent); overflow {
+		return ErrInvalidAmountIn
+	} else if _, underflow := credited.SubOverflow(credited, p.reserves[indexIn]); underflow || credited.IsZero() {
+		return ErrInsufficientInputAmount
+	}
+	return nil
+}
+
+// sendFor turns the amount to be credited, in place, into the amount the router has to send: the credited amount
+// less the surplus of the pair on the input side (balanceIn - reserveIn), or plus its deficit. It is the inverse of
+// credit. The caller checks that the balances are known.
+func (p *PoolSimulator) sendFor(amount *uint256.Int, indexIn int) error {
+	balanceIn, reserveIn := p.balances[indexIn], p.reserves[indexIn]
+	if balanceIn.Lt(reserveIn) {
+		var deficit uint256.Int
+		if _, overflow := amount.AddOverflow(amount, deficit.Sub(reserveIn, balanceIn)); overflow {
+			return ErrInvalidAmountIn
+		}
+		return nil
+	}
+	var surplus uint256.Int
+	surplus.Sub(balanceIn, reserveIn)
+	if !amount.Gt(&surplus) { // the pair already credits that much: nothing is left to send
+		return ErrInsufficientInputAmount
+	}
+	amount.Sub(amount, &surplus)
+	return nil
+}
+
 // checkSwap runs swap when the balances are known and returns the SwapInfo UpdateBalance needs, or a nil interface
 // when the balances are unknown.
 func (p *PoolSimulator) checkSwap(indexIn, indexOut int, amountIn, amountOut *uint256.Int) (any, error) {
@@ -234,7 +294,8 @@ func (p *PoolSimulator) checkSwap(indexIn, indexOut int, amountIn, amountOut *ui
 // as input whatever its balances hold above the reserves (this is how a donation, or a deficit, changes what the
 // swapper is credited), moves the fee of the input out of the pair, and requires the curve not to decrease. It
 // returns the balances after the swap, which the pair stores as its new reserves. amountIn is the amount the router
-// sent to the pair; amountOut was quoted from the reserves. The caller checks that the balances are known.
+// sent to the pair (what the pair credits for it is derived here, from the balances); amountOut was quoted from the
+// reserves and the credited amount. The caller checks that the balances are known.
 // The results are values on the stack: this runs on every quote.
 func (p *PoolSimulator) swap(indexIn, indexOut int, amountIn, amountOut *uint256.Int) (post [2]uint256.Int, err error) {
 	reserveOut := p.reserves[indexOut]
