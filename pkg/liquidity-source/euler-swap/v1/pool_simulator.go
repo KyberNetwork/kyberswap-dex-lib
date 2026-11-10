@@ -161,6 +161,13 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	depositAmt, repayAmt, feeAmt, isSellVaultControlled := depositAssets(
 		amtIn, p.Fee, sellVault.Debt, p.ProtocolFee, p.ProtocolFeeRecipient, sellVault.IsControllerEnabled)
 
+	// The vault takes the whole input less the protocol fee, the LP fee included, so its supply cap applies to
+	// that deposit, not to the input less fee that computeQuote checks (as the pool's own computeQuote does): a
+	// larger deposit reverts with E_SupplyCapExceeded.
+	if sellVault.MaxDeposit != nil && new(uint256.Int).Sub(depositAmt, repayAmt).Gt(sellVault.MaxDeposit) {
+		return nil, shared.ErrSwapLimitExceeded
+	}
+
 	newCollat := uint256.NewInt(0) // new sell token collateral (tokenIn) after swap
 	if strings.EqualFold(debtVaultAddr, sellVaultAddr) {
 		if depositAmt.Lt(debt) { // partial repayment of controller vault
