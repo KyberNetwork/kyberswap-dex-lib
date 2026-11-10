@@ -106,9 +106,10 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	// reserves, swap takes the fee on the credited amount instead; the reported fee is metadata only.
 	var feeAmount uint256.Int
 	feeAmount.MulDivOverflow(amountIn, p.fee, p.feePrecision)
-	amountInAfterFee := new(uint256.Int).Sub(amountIn, &feeAmount)
+	var amountInAfterFee uint256.Int
+	amountInAfterFee.Sub(amountIn, &feeAmount)
 
-	amountOut, err := p.getAmountOut(amountInAfterFee, indexIn, indexOut)
+	amountOut, err := p.getAmountOut(&amountInAfterFee, indexIn, indexOut)
 	if err != nil {
 		return nil, err
 	} else if amountOut.Sign() <= 0 {
@@ -117,8 +118,10 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 
-	if _, err = p.swap(indexIn, indexOut, amountIn, amountOut); err != nil {
-		return nil, err
+	if p.balances != nil {
+		if _, err = p.swap(indexIn, indexOut, amountIn, amountOut); err != nil {
+			return nil, err
+		}
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -152,8 +155,10 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, ErrInsufficientInputAmount
 	}
 
-	if _, err = p.swap(indexIn, indexOut, amountIn, amountOut); err != nil {
-		return nil, err
+	if p.balances != nil {
+		if _, err = p.swap(indexIn, indexOut, amountIn, amountOut); err != nil {
+			return nil, err
+		}
 	}
 
 	return &pool.CalcAmountInResult{
@@ -181,7 +186,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if p.balances != nil {
 		// the pair syncs its reserves to the balances at the end of swap
 		if post, err := p.swap(indexIn, indexOut, amtIn, amtOut); err == nil {
-			p.reserves, p.balances = post, slices.Clone(post)
+			p.reserves = []*uint256.Int{post[0].Clone(), post[1].Clone()}
+			p.balances = []*uint256.Int{post[0].Clone(), post[1].Clone()}
 			return
 		}
 		p.balances = nil // not a swap the pair accepts: stop trusting the balances and update as without them
@@ -205,55 +211,50 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 // as input whatever its balances hold above the reserves (this is how a donation, or a deficit, changes what the
 // swapper is credited), moves the fee of the input out of the pair, and requires the curve not to decrease. It
 // returns the balances after the swap, which the pair stores as its new reserves. amountIn is the amount the router
-// sent to the pair; amountOut was quoted from the reserves.
-// Without balances (unknown) the quote is returned as it is.
-func (p *PoolSimulator) swap(indexIn, indexOut int, amountIn, amountOut *uint256.Int) ([]*uint256.Int, error) {
-	if p.balances == nil {
-		return nil, nil
-	}
+// sent to the pair; amountOut was quoted from the reserves. The caller checks that the balances are known.
+// The results are values on the stack: this runs on every quote.
+func (p *PoolSimulator) swap(indexIn, indexOut int, amountIn, amountOut *uint256.Int) (post [2]uint256.Int, err error) {
 	reserveOut := p.reserves[indexOut]
 	// require(amount0Out < _reserve0 && amount1Out < _reserve1)
 	if !amountOut.Lt(reserveOut) {
-		return nil, ErrInsufficientLiquidity
+		return post, ErrInsufficientLiquidity
 	}
 	// safeTransfer(to, amountOut)
 	if p.balances[indexOut].Lt(amountOut) {
-		return nil, ErrInsufficientBalance
+		return post, ErrInsufficientBalance
 	}
 
-	post := make([]*uint256.Int, 2)
 	// the router has sent amountIn before the swap
-	balanceIn, overflow := new(uint256.Int).AddOverflow(p.balances[indexIn], amountIn)
-	if overflow {
-		return nil, ErrInvalidAmountIn
+	if _, overflow := post[indexIn].AddOverflow(p.balances[indexIn], amountIn); overflow {
+		return post, ErrInvalidAmountIn
 	}
-	post[indexIn] = balanceIn
-	post[indexOut] = new(uint256.Int).Sub(p.balances[indexOut], amountOut)
+	post[indexOut].Sub(p.balances[indexOut], amountOut)
 
 	// amountXIn = balanceX > reserveX - amountXOut ? balanceX - (reserveX - amountXOut) : 0
-	var credited [2]uint256.Int
-	reservesAfterOut := [2]*uint256.Int{p.reserves[0], p.reserves[1]}
-	reservesAfterOut[indexOut] = new(uint256.Int).Sub(reserveOut, amountOut)
+	var reservesAfterOut, credited [2]uint256.Int
+	reservesAfterOut[0].Set(p.reserves[0])
+	reservesAfterOut[1].Set(p.reserves[1])
+	reservesAfterOut[indexOut].Sub(reserveOut, amountOut)
 	for i := range post {
-		if post[i].Gt(reservesAfterOut[i]) {
-			credited[i].Sub(post[i], reservesAfterOut[i])
+		if post[i].Gt(&reservesAfterOut[i]) {
+			credited[i].Sub(&post[i], &reservesAfterOut[i])
 		}
 	}
 	// require(amount0In > 0 || amount1In > 0)
 	if credited[0].IsZero() && credited[1].IsZero() {
-		return nil, ErrInsufficientInputAmount
+		return post, ErrInsufficientInputAmount
 	}
 
 	// _update0/_update1 move the fee of the input out of the pair (to the treasury and the fees contract)
 	for i := range post {
 		var fee uint256.Int
 		fee.MulDivOverflow(&credited[i], p.fee, p.feePrecision)
-		post[i] = new(uint256.Int).Sub(post[i], &fee)
+		post[i].Sub(&post[i], &fee)
 	}
 
 	// require(_k(balance0, balance1) >= _k(reserve0, reserve1))
-	if p._k(post[0], post[1]).Lt(p._k(p.reserves[0], p.reserves[1])) {
-		return nil, ErrK
+	if p._k(&post[0], &post[1]).Lt(p._k(p.reserves[0], p.reserves[1])) {
+		return post, ErrK
 	}
 	return post, nil
 }
