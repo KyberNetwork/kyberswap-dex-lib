@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/decode"
-	util "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo/helper/decode"
+	util "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo/helper/utils"
 )
 
 type FeeTakerExtension struct {

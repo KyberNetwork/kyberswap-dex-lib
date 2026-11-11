@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/msgpack/v5"
 
 	pkg_liquiditysource_1010prop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1010-prop"
+	pkg_liquiditysource_1inch_lo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo"
 	pkg_liquiditysource_aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	pkg_liquiditysource_algebra_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	pkg_liquiditysource_algebra_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
@@ -121,7 +122,6 @@ import (
 	pkg_liquiditysource_lista_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stable"
 	pkg_liquiditysource_lista_stake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stake"
 	pkg_liquiditysource_litepsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
-	pkg_liquiditysource_lo1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	pkg_liquiditysource_lunarbase "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
 	pkg_liquiditysource_lunya "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya"
 	pkg_liquiditysource_lunyafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya-fun"
@@ -315,6 +315,7 @@ import (
 
 func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_1010prop.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_1inch_lo.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_aavev3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_integral.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_v1.PoolSimulator{})
@@ -429,7 +430,6 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lista_stable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lista_stake.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_litepsm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lo1inch.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunarbase.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunya.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunyafun.PoolSimulator{})

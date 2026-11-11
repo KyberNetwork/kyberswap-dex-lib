@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
-	helper1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
+	lo1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo"
+	helper1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo/helper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpack"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )

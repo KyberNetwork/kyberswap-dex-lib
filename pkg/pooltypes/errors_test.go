@@ -11,7 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	fluiddext1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
+	lo1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo"
 	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )

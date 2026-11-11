@@ -5,9 +5,10 @@ import (
 	"math/big"
 	"testing"
 
-	util "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
+
+	util "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo/helper/utils"
 )
 
 func TestCalculateTakingAmount(t *testing.T) {

@@ -127,7 +127,7 @@ import (
 	liquidityparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidity-party"
 	listastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stake"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
+	lo1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya"
 	lunyafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya-fun"

@@ -4,7 +4,8 @@ import (
 	"slices"
 
 	"github.com/ethereum/go-ethereum/common"
-	util "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
+
+	util "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo/helper/utils"
 )
 
 type Whitelist struct {
