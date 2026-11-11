@@ -228,6 +228,7 @@ const (
 	ExchangeOmniBin                     = "omni-bin"
 	ExchangeOmniCL                      = "omni-cl"
 	ExchangeOndoUSDY                    = "ondo-usdy"
+	ExchangeOneInchAqua                 = "1inch-aqua"
 	ExchangeOneSwap                     = "oneswap"
 	ExchangeOvernightUsdp               = "overnight-usdp"
 	ExchangePancake                     = "pancake"

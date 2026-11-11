@@ -1,0 +1,255 @@
+package oneinchaqua
+
+import (
+	"net/url"
+	"strings"
+	"time"
+
+	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/pkg/errors"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+// Outcomes of the per-chain token transfer probe, the values of Config.ProbedTokens.
+const (
+	ProbeOK                  = "ok"
+	ProbeZeroTransferReverts = "zero_transfer_reverts"
+	ProbeExcluded            = "excluded"
+)
+
+// Config is the deployment properties of the source, one set per chain. Every field that differs by chain or by
+// operator choice comes from there; the constructors refuse a config that leaves one out.
+type Config struct {
+	DexId   string              `json:"dexID"`
+	ChainId valueobject.ChainID `json:"chainId"`
+
+	// AquaAddress and RouterAddress are required. LaunchRouterAddress is optional: it is set only on the
+	// chains where the launch router has code, and a strategy whose app is the launch address is refused
+	// everywhere else.
+	AquaAddress         string `json:"aquaAddress"`
+	RouterAddress       string `json:"routerAddress"`
+	LaunchRouterAddress string `json:"launchRouterAddress"`
+
+	// StartBlock is the first block the lister scans (required, above zero). LogWindow is the largest
+	// eth_getLogs range the chain's nodes serve and MaxWindowsPerRun bounds the windows one GetNewPools call
+	// scans (both required, above zero). Confirmations is how many blocks the cursor stays behind head
+	// (required; 0 on chains with instant finality).
+	StartBlock       uint64  `json:"startBlock"`
+	LogWindow        uint64  `json:"logWindow"`
+	MaxWindowsPerRun int     `json:"maxWindowsPerRun"`
+	Confirmations    *uint64 `json:"confirmations"`
+
+	// ProbedTokens maps a token address to its probe outcome. A token that is not listed is not admitted
+	// (fail closed), so an empty or missing map lists nothing.
+	ProbedTokens map[string]string `json:"probedTokens"`
+
+	// MaxUnprobedReportsPerRun bounds how many token_unprobed strategies one run reads the fillable amount
+	// of (optional: 0 means DefaultMaxUnprobedReports, negative is refused). The strategies past the bound
+	// are still counted, with a fillable of 0, so the reported fillable is a lower bound.
+	MaxUnprobedReportsPerRun int `json:"maxUnprobedReportsPerRun"`
+
+	// Portal discovery (lister only). PortalURL is the base URL of the 1inch Business Portal ("https://..."),
+	// empty means the Portal is not used and discovery is the on-chain log scan alone. When it is set, the
+	// other Portal fields are required: PortalPageLimit (items per request), PortalMaxPages (a sweep that
+	// needs more pages fails and falls back to logs), PortalTimeout (per request), PortalMaxRetries (how many
+	// times a 429 is retried; 0 retries none) and PortalRetryBackoff (the wait before retry n is n times
+	// this). PortalApiKey is a secret: keep it out of committed config and supply it at deploy time; with a
+	// URL and no key the lister warns once and uses logs only.
+	PortalURL          string                `json:"portalURL"`
+	PortalApiKey       string                `json:"portalApiKey"`
+	PortalPageLimit    int                   `json:"portalPageLimit"`
+	PortalMaxPages     int                   `json:"portalMaxPages"`
+	PortalTimeout      durationjson.Duration `json:"portalTimeout"`
+	PortalMaxRetries   *int                  `json:"portalMaxRetries"`
+	PortalRetryBackoff durationjson.Duration `json:"portalRetryBackoff"`
+}
+
+// DefaultMaxUnprobedReports is MaxUnprobedReportsPerRun when the config leaves it unset.
+const DefaultMaxUnprobedReports = 500
+
+// maxUnprobedReportsLimit is the largest MaxUnprobedReportsPerRun the config accepts.
+const maxUnprobedReportsLimit = 100_000
+
+// settings is Config validated, with addresses parsed and token keys lowercased.
+type settings struct {
+	dexId         string
+	aqua          common.Address
+	router        common.Address
+	launch        common.Address
+	hasLaunch     bool
+	startBlock    uint64
+	logWindow     uint64
+	maxWindows    int
+	confirmations uint64
+	probed        map[string]string
+	maxUnprobed   int
+	// portal is nil when Portal discovery is off: no URL, or a URL with no key.
+	portal *portalSettings
+	// portalNoKey is set when a URL is configured without a key: each run counts a portal_fallback of reason
+	// no_key, so the missing secret is visible.
+	portalNoKey bool
+}
+
+// portalSettings is the validated Portal configuration. The key is behind a pointer to a type that prints as
+// redacted, so a settings value that reaches a log line cannot show it.
+type portalSettings struct {
+	baseURL   string
+	key       *secret
+	chainId   uint64
+	pageLimit int
+	maxPages  int
+	timeout   time.Duration
+	retries   int
+	backoff   time.Duration
+}
+
+// secret is a string that never prints.
+type secret struct{ value string }
+
+func (*secret) String() string               { return "[redacted]" }
+func (*secret) GoString() string             { return "[redacted]" }
+func (*secret) MarshalJSON() ([]byte, error) { return []byte(`"[redacted]"`), nil }
+
+// scrub removes the key from a string that may carry it (an error from an HTTP client).
+func (p *portalSettings) scrub(s string) string {
+	if p.key.value == "" {
+		return s
+	}
+	return strings.ReplaceAll(s, p.key.value, "[redacted]")
+}
+
+func requiredAddress(field, value string) (common.Address, error) {
+	if value == "" {
+		return common.Address{}, errors.Errorf("1inch-aqua: config %s is required", field)
+	}
+	return parseAddress(field, value)
+}
+
+func parseAddress(field, value string) (common.Address, error) {
+	if !common.IsHexAddress(value) {
+		return common.Address{}, errors.Errorf("1inch-aqua: config %s %q is not an address", field, value)
+	}
+	addr := common.HexToAddress(value)
+	if addr == (common.Address{}) {
+		return common.Address{}, errors.Errorf("1inch-aqua: config %s is the zero address", field)
+	}
+	return addr, nil
+}
+
+// trackerSettings validates what the tracker and the simulator factory need: the registry, the router and
+// confirmations (how deep a docked read must be before the dock is final).
+func (c *Config) trackerSettings() (*settings, error) {
+	var err error
+	if c.Confirmations == nil {
+		return nil, errors.New("1inch-aqua: config confirmations is required (0 where finality is instant)")
+	}
+	s := &settings{dexId: c.DexId, confirmations: *c.Confirmations}
+	if s.aqua, err = requiredAddress("aquaAddress", c.AquaAddress); err != nil {
+		return nil, err
+	}
+	if s.router, err = requiredAddress("routerAddress", c.RouterAddress); err != nil {
+		return nil, err
+	}
+	if c.LaunchRouterAddress != "" {
+		if s.launch, err = parseAddress("launchRouterAddress", c.LaunchRouterAddress); err != nil {
+			return nil, err
+		}
+		switch s.launch {
+		case s.router:
+			return nil, errors.New("1inch-aqua: config launchRouterAddress equals routerAddress")
+		case s.aqua:
+			return nil, errors.New("1inch-aqua: config launchRouterAddress equals aquaAddress")
+		}
+		s.hasLaunch = true
+	}
+	return s, nil
+}
+
+// settings validates the whole config for the lister.
+func (c *Config) settings() (*settings, error) {
+	s, err := c.trackerSettings()
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case c.StartBlock == 0:
+		return nil, errors.New("1inch-aqua: config startBlock is required and must be above zero")
+	case c.LogWindow == 0:
+		return nil, errors.New("1inch-aqua: config logWindow is required and must be above zero")
+	case c.MaxWindowsPerRun <= 0:
+		return nil, errors.New("1inch-aqua: config maxWindowsPerRun is required and must be above zero")
+	}
+	s.startBlock, s.logWindow, s.maxWindows = c.StartBlock, c.LogWindow, c.MaxWindowsPerRun
+	switch {
+	case c.MaxUnprobedReportsPerRun < 0:
+		return nil, errors.New("1inch-aqua: config maxUnprobedReportsPerRun must not be negative")
+	case c.MaxUnprobedReportsPerRun > maxUnprobedReportsLimit:
+		return nil, errors.Errorf("1inch-aqua: config maxUnprobedReportsPerRun above %d", maxUnprobedReportsLimit)
+	}
+	s.maxUnprobed = lo.Ternary(c.MaxUnprobedReportsPerRun == 0, DefaultMaxUnprobedReports, c.MaxUnprobedReportsPerRun)
+	if s.portal, err = c.portalSettings(); err != nil {
+		return nil, err
+	}
+	s.portalNoKey = c.PortalURL != "" && s.portal == nil
+	s.probed = make(map[string]string, len(c.ProbedTokens))
+	for token, outcome := range c.ProbedTokens {
+		addr, err := parseAddress("probedTokens key", token)
+		if err != nil {
+			return nil, err
+		}
+		switch outcome {
+		case ProbeOK, ProbeZeroTransferReverts, ProbeExcluded:
+		default:
+			return nil, errors.Errorf("1inch-aqua: config probedTokens: unknown outcome %q for token %s", outcome, token)
+		}
+		key := hexutil.Encode(addr[:])
+		if prev, dup := s.probed[key]; dup && prev != outcome {
+			return nil, errors.Errorf("1inch-aqua: config probedTokens: token %s listed with outcomes %q and %q", key, prev, outcome)
+		}
+		s.probed[key] = outcome
+	}
+	return s, nil
+}
+
+// portalSettings validates the Portal fields. A nil result with no error means the Portal is not used: no URL,
+// or a URL with no key (a warning, not a failure: a deployment without the key must still run on logs).
+func (c *Config) portalSettings() (*portalSettings, error) {
+	if c.PortalURL == "" {
+		return nil, nil
+	}
+	u, err := url.Parse(c.PortalURL)
+	switch {
+	case err != nil || u.Host == "":
+		return nil, errors.Errorf("1inch-aqua: config portalURL is not a URL")
+	case u.Scheme != "https":
+		return nil, errors.New("1inch-aqua: config portalURL must be https")
+	case u.User != nil || u.RawQuery != "" || u.Fragment != "":
+		return nil, errors.New("1inch-aqua: config portalURL must be a base URL without credentials, query or fragment")
+	case c.ChainId == 0:
+		return nil, errors.New("1inch-aqua: config chainId is required with portalURL")
+	case c.PortalPageLimit <= 0:
+		return nil, errors.New("1inch-aqua: config portalPageLimit is required and must be above zero")
+	case c.PortalMaxPages <= 0:
+		return nil, errors.New("1inch-aqua: config portalMaxPages is required and must be above zero")
+	case c.PortalTimeout.Duration <= 0:
+		return nil, errors.New("1inch-aqua: config portalTimeout is required and must be above zero")
+	case c.PortalMaxRetries == nil || *c.PortalMaxRetries < 0:
+		return nil, errors.New("1inch-aqua: config portalMaxRetries is required and must not be negative")
+	case *c.PortalMaxRetries > 0 && c.PortalRetryBackoff.Duration <= 0:
+		return nil, errors.New("1inch-aqua: config portalRetryBackoff is required above zero when portalMaxRetries is above zero")
+	}
+	if strings.TrimSpace(c.PortalApiKey) == "" {
+		logger.Warnf("1inch-aqua: portalURL is set but portalApiKey is empty: discovery uses the on-chain logs only")
+		return nil, nil
+	}
+	return &portalSettings{
+		baseURL: strings.TrimRight(u.String(), "/"), key: &secret{value: strings.TrimSpace(c.PortalApiKey)},
+		chainId: uint64(c.ChainId), pageLimit: c.PortalPageLimit, maxPages: c.PortalMaxPages,
+		timeout: c.PortalTimeout.Duration, retries: *c.PortalMaxRetries, backoff: c.PortalRetryBackoff.Duration,
+	}, nil
+}
