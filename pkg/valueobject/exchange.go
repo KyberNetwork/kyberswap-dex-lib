@@ -180,6 +180,7 @@ const (
 	ExchangeLiquidCore                  = "liquidcore"
 	ExchangeUSCoreProp                  = "uscore-prop"
 	ExchangeLiquidityParty              = "liquidity-party"
+	ExchangeIguanaDexStable             = "iguanadex-stable"
 	ExchangeListaStable                 = "lista-stable"
 	ExchangeListaStake                  = "lista-stake"
 	ExchangeLitePSM                     = "lite-psm"
