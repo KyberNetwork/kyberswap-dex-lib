@@ -1,4 +1,4 @@
-package pancakeprop
+package liquidfiprop
 
 import (
 	"context"

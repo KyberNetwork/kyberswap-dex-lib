@@ -1,10 +1,10 @@
-package pancakeprop
+package liquidfiprop
 
 import (
 	"github.com/holiman/uint256"
 )
 
-// The pricing implementation behind PropAMMEntry.pricing() is unverified on both explorers and
+// The pricing implementation behind LiquidFiEntry.pricing() is unverified on both explorers and
 // Sourcify. This file ports its quoteExactInput from the deployed bytecode (traced opcode by
 // opcode on a fork), and was differentially fuzzed against eth_call.
 

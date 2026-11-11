@@ -1,4 +1,4 @@
-package pancakeprop
+package liquidfiprop
 
 import "github.com/holiman/uint256"
 

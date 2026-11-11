@@ -1,4 +1,4 @@
-package pancakeprop
+package liquidfiprop
 
 import (
 	"math/big"
@@ -14,7 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// PoolSimulator models one PropAMM pair. Token 0 is the lower address, as in the pricing module.
+// PoolSimulator models one LiquidFi pair. Token 0 is the lower address, as in the pricing module.
 // Not modelled: same-block opposing flow, which only tightens the on-chain price (the simulator
 // quotes conservatively), and exact-output swaps.
 type PoolSimulator struct {
@@ -26,7 +26,7 @@ type PoolSimulator struct {
 
 var (
 	_ = pool.RegisterFactory(DexType, NewPoolSimulator)
-	_ = pool.RegisterUseSwapLimit(valueobject.ExchangePancakeProp)
+	_ = pool.RegisterUseSwapLimit(valueobject.ExchangeLiquidFiProp)
 )
 
 func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
