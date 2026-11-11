@@ -21,8 +21,8 @@ import (
 
 func TestTrackPinnedSnapshotOverridesAndReset(t *testing.T) {
 	aggregate := mustABI(`[{"type":"function","name":"aggregate","inputs":[{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"returnData","type":"bytes[]"}],"stateMutability":"nonpayable"}]`)
-	address := common.HexToAddress("0x98C819a522b91f76bAEAf499F3801e76890F2080")
-	manager := uniswapv4.PoolManager[56]
+	address := common.HexToAddress("0x3722d2840bFA4E9610d265DA08078d178bF46080")
+	manager := uniswapv4.PoolManager[5042]
 	timestamp, auto, fee := int64(1000), int64(700), int64(700)
 	calls := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +82,7 @@ func TestTrackPinnedSnapshotOverridesAndReset(t *testing.T) {
 		require.NoError(t, json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": hexutil.Encode(b)}))
 	}))
 	defer server.Close()
-	param := &uniswapv4.HookParam{Cfg: &uniswapv4.Config{ChainID: 56}, HookAddress: address, Pool: &entity.Pool{Address: "0x1234"}, BlockNumber: big.NewInt(42), RpcClient: ethrpc.New(server.URL), Overrides: map[common.Address]gethclient.OverrideAccount{address: {Nonce: 1}}}
+	param := &uniswapv4.HookParam{Cfg: &uniswapv4.Config{ChainID: 5042}, HookAddress: address, Pool: &entity.Pool{Address: "0x1234"}, BlockNumber: big.NewInt(42), RpcClient: ethrpc.New(server.URL), Overrides: map[common.Address]gethclient.OverrideAccount{address: {Nonce: 1}}}
 	h := testHook()
 	h.Advanced = true
 	h.OpenPrice.SetUint64(123)

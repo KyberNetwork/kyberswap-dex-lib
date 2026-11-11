@@ -19,6 +19,8 @@ import (
 // References execute real source Hooks against the real v4 PoolManager. Only
 // fixture-local Hook addresses are admitted by this test's temporary factory;
 // production chain/address registration is tested separately, without msgpack.
+// The synthetic BSC/native-token setup and RampETH vectors validate shared math;
+// they do not enable BSC or native-token Peach deployments in production.
 func TestSoliditySequentialSwapParity(t *testing.T) {
 	data, err := os.ReadFile("testdata/sequence.json")
 	require.NoError(t, err)

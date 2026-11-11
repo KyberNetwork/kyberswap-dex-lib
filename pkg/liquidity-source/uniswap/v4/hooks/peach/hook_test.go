@@ -1,6 +1,7 @@
 package peach
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func testHook() *Hook {
@@ -110,21 +112,58 @@ func TestKeeperExpiryPauseAndScheduling(t *testing.T) {
 }
 
 func TestRegistrationChainScopeAndJSON(t *testing.T) {
-	for address, d := range deployments {
+	require.Len(t, deployments, 2)
+	for _, deployment := range []struct {
+		address string
+		rwa     bool
+	}{
+		{"0x8c960De62a26A688B72e6cbf644F46715642a080", false},
+		{"0x3722d2840bFA4E9610d265DA08078d178bF46080", true},
+	} {
+		address := common.HexToAddress(deployment.address)
 		extra, err := json.Marshal(testHook().Extra)
 		require.NoError(t, err)
-		params := &uniswapv4.HookParam{HookAddress: address, Cfg: &uniswapv4.Config{ChainID: d.ChainID}, HookExtra: extra, QuoteAt: 1000}
+		params := &uniswapv4.HookParam{HookAddress: address, Cfg: &uniswapv4.Config{ChainID: 5042}, HookExtra: extra, QuoteAt: 1000}
 		h, ok := uniswapv4.GetHook(address, params)
 		require.True(t, ok)
 		require.Equal(t, string(DexType), h.GetExchange())
+		require.Equal(t, deployment.rwa, h.(*Hook).RWA)
 		quote(t, h.(*Hook), "1000", true)
-		params.Cfg.ChainID = 1
-		wrong, _ := uniswapv4.GetHook(address, params)
-		_, err = wrong.BeforeSwap(&uniswapv4.BeforeSwapParams{})
-		require.ErrorIs(t, err, ErrDeployment)
+		for _, chainID := range []valueobject.ChainID{1, 56} {
+			params.Cfg.ChainID = chainID
+			wrong, ok := uniswapv4.GetHook(address, params)
+			require.True(t, ok)
+			_, err = wrong.BeforeSwap(&uniswapv4.BeforeSwapParams{})
+			require.ErrorIs(t, err, ErrDeployment)
+			_, err = wrong.Track(context.Background(), params)
+			require.ErrorIs(t, err, ErrDeployment)
+		}
 	}
 	_, ok := uniswapv4.GetHook(common.HexToAddress("0x1234"), &uniswapv4.HookParam{})
 	require.False(t, ok)
+}
+
+func TestRemovedBSCDeployments(t *testing.T) {
+	for _, raw := range []string{
+		"0x4D1546682BC8252E52c1c1820F0AaA7694C9e080",
+		"0x1e4605837970EeF394662B1a9e88e09292636080",
+		"0x98C819a522b91f76bAEAf499F3801e76890F2080",
+	} {
+		t.Run(raw, func(t *testing.T) {
+			address := common.HexToAddress(raw)
+			require.NotContains(t, uniswapv4.HookFactories, address)
+			for _, chainID := range []valueobject.ChainID{56, 5042} {
+				params := &uniswapv4.HookParam{HookAddress: address, Cfg: &uniswapv4.Config{ChainID: chainID}}
+				_, ok := uniswapv4.GetHook(address, params)
+				require.False(t, ok)
+				h := testHook()
+				before := *h
+				_, err := h.Track(context.Background(), params)
+				require.ErrorIs(t, err, ErrDeployment)
+				require.Equal(t, before, *h)
+			}
+		})
+	}
 }
 
 func TestOrdinaryFeeBounds(t *testing.T) {
@@ -142,9 +181,9 @@ func TestOrdinaryFeeBounds(t *testing.T) {
 }
 
 func TestMalformedAndForeignExtraRefuseQuotes(t *testing.T) {
-	address := common.HexToAddress("0x4D1546682BC8252E52c1c1820F0AaA7694C9e080")
+	address := common.HexToAddress("0x8c960De62a26A688B72e6cbf644F46715642a080")
 	for _, raw := range []string{`{"ok":true,"cap":"bad"}`, `{"f01":700,"f10":700}`, `{"ok":true,`, ``} {
-		h, _ := uniswapv4.GetHook(address, &uniswapv4.HookParam{Cfg: &uniswapv4.Config{ChainID: 56}, HookExtra: uniswapv4.HookExtra(raw)})
+		h, _ := uniswapv4.GetHook(address, &uniswapv4.HookParam{Cfg: &uniswapv4.Config{ChainID: 5042}, HookExtra: uniswapv4.HookExtra(raw)})
 		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{})
 		require.ErrorIs(t, err, ErrUntracked)
 	}

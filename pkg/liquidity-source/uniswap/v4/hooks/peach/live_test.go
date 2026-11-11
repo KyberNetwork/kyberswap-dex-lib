@@ -35,8 +35,9 @@ func loadLiveCases(t testing.TB) []liveCase {
 	require.NoError(t, err)
 	var fixture struct{ Cases []liveCase }
 	require.NoError(t, json.Unmarshal(data, &fixture))
-	require.Len(t, fixture.Cases, 5)
+	require.Len(t, fixture.Cases, 2)
 	for i := range fixture.Cases {
+		require.EqualValues(t, 5042, fixture.Cases[i].ChainID)
 		var extra uniswapv4.Extra
 		require.NoError(t, json.Unmarshal([]byte(fixture.Cases[i].Pool.Extra), &extra))
 		r0, r1 := uniswapv4.EstimateReservesFromTicks(extra.SqrtPriceX96, extra.Ticks)

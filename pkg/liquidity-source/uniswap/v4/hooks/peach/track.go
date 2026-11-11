@@ -66,7 +66,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	if _, err := req.Aggregate(); err != nil {
 		return nil, err
 	}
-	// Actual deployment observations: BSC and Arc each use their canonical Uniswap v4 manager.
+	// Actual deployment observations: Arc uses its canonical Uniswap v4 manager.
 	expectedManager, ok := uniswapv4.PoolManager[param.Cfg.ChainID]
 	if !ok || manager != expectedManager {
 		return nil, ErrDeployment

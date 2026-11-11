@@ -25,8 +25,9 @@ func TestPeachHooksRoundTrip(t *testing.T) {
 		}
 	}
 	require.NoError(t, json.Unmarshal(raw, &fixture))
-	require.Len(t, fixture.Cases, 5)
+	require.Len(t, fixture.Cases, 2)
 	for _, c := range fixture.Cases {
+		require.EqualValues(t, 5042, c.ChainID)
 		t.Run(c.Name, func(t *testing.T) {
 			var extra v4.Extra
 			require.NoError(t, json.Unmarshal([]byte(c.Pool.Extra), &extra))
@@ -34,7 +35,7 @@ func TestPeachHooksRoundTrip(t *testing.T) {
 			c.Pool.Reserves = []string{r0.String(), r1.String()}
 			sim, err := v4.NewPoolSimulator(c.Pool, c.ChainID)
 			require.NoError(t, err)
-			// Token1 -> token0 has executable liquidity on all five fixtures, including BNB.
+			// Token1 -> token0 has executable liquidity on both Arc fixtures.
 			amount := new(big.Int).Exp(big.NewInt(10), big.NewInt(max(int64(c.Pool.Tokens[1].Decimals)-6, 6)), nil)
 			params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: c.Pool.Tokens[1].Address, Amount: amount}, TokenOut: c.Pool.Tokens[0].Address}
 			for _, state := range []string{"fresh", "accepted"} {

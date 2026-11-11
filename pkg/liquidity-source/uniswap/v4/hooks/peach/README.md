@@ -1,7 +1,7 @@
-# Peach Adaptive Pools
+# Peach Adaptive Pools on Arc
 
-Shared handler for PeachAdaptivePoolDefaultHook (`Ramp`), PeachAdaptivePoolETHHook
-(`RampETH`) and PeachAdaptivePoolRWAHook (`RwaRamp`). These immutable Uniswap v4
+Arc-only handler for PeachAdaptivePoolDefaultHook (`Ramp`) and
+PeachAdaptivePoolRWAHook (`RwaRamp`). These immutable Uniswap v4
 hooks enable only `beforeInitialize` and `beforeSwap` (permission bits `0x2080`).
 Swaps use empty hook data, dynamic LP fees and no custom swap deltas. LP shares,
 claims and deposits are handled by the contracts and do not change v4 swap math.
@@ -14,29 +14,23 @@ normalizing constructor immutables; the immutable math helper was checked too.
 
 | Chain | Contract | Address |
 | --- | --- | --- |
-| BSC (56) | Default | `0x4D1546682BC8252E52c1c1820F0AaA7694C9e080` |
-| BSC (56) | ETH/native BNB | `0x1e4605837970EeF394662B1a9e88e09292636080` |
-| BSC (56) | RWA | `0x98C819a522b91f76bAEAf499F3801e76890F2080` |
 | Arc (5042) | Default | `0x8c960De62a26A688B72e6cbf644F46715642a080` |
 | Arc (5042) | RWA | `0x3722d2840bFA4E9610d265DA08078d178bF46080` |
 
 Use the existing v4 PoolManager discovery, tick tracker, native token wrapping,
-and swap simulation. The five supported snapshots have zero protocol fees;
+and swap simulation. The two supported Arc snapshots have zero protocol fees;
 this adapter targets that configuration. No Peach Registry is required. Arc's
 native USDC is not enabled by a Peach ETH Hook deployment in this handler.
+BSC Peach deployments are not registered or supported.
 Registration is scoped by both chain and Hook address; tracking also checks the
 canonical PoolManager for that chain.
 
-BSC PoolManager: [`0x28e2Ea090877bF75740558f6BFB36A5ffeE9e9dF`](https://bscscan.com/address/0x28e2Ea090877bF75740558f6BFB36A5ffeE9e9dF).
 Arc PoolManager: [`0x8366a39CC670B4001A1121B8F6A443A643e40951`](https://arc.etherscan.io/address/0x8366a39CC670B4001A1121B8F6A443A643e40951).
 
 Sample pools used by the fixed-block Quoter comparisons:
 
 | Chain / Hook | Pair | Pool ID |
 | --- | --- | --- |
-| BSC / Default | tPEACH / tUSD | `0xd94e3484c3d7b16c611a472f769e1f9b3f9883528e38db13a3fb6739f86f378e` |
-| BSC / ETH | native BNB / USDT | `0x0f42ccc5de784c395cbc2ef447f2b6d32207425a894daf29e607104db0a4f23a` |
-| BSC / RWA | tSTOCK / tUSD | `0x00719e5d898b5e880fafe22dbd9086d133c606db59d8f97c154fc747f2cbe0dc` |
 | Arc / Default | CirBTC / USDC | `0x2e6e7f11473f1534c44954c6ff96848bf950ec20078686bd2e5f894893fbe560` |
 | Arc / RWA | tSTOCK / tUSD | `0xc026ead7a7ba825083b0b88fe362c35cdfbb0095ac7ae702c84273822ca85618` |
 
@@ -102,6 +96,8 @@ Mid-block, threshold suppression, surcharge caps, full capture and crossing the
 opening price. Go compares every leg's actual Swap-event fee, output amount and
 post-swap sqrt-price exactly, including a legal RWA raw peak of 3,000,000 capped
 at a pool fee of 6,000. Repeated speculative quotes must agree before each update.
+These are shared-algorithm references: the synthetic BSC/native-token setup and
+`RampETH` cases do not indicate production support for those deployments.
 The source checkout is read-only; regeneration builds in a temporary project:
 
 ```sh
@@ -110,7 +106,8 @@ python3 pkg/liquidity-source/uniswap/v4/hooks/peach/testdata/generate_sequence.p
 ```
 
 A subprocess test imports only `pkg/pooltypes` to verify production registration
-of all five addresses without relying on msgpack's separate imports.
+of both Arc addresses and absence of all three former BSC addresses, without
+relying on msgpack's separate imports.
 
 
 `testdata/mid_block_vectors.json` contains the 384 reference vectors from the
@@ -130,20 +127,18 @@ go generate ./pkg/msgpack/...
 ```
 
 Merging the adapter does not enable production routes by itself. Kyber must
-configure BSC and Arc discovery, refresh scheduling and production activation,
+configure Arc discovery, refresh scheduling and production activation,
 then verify the resulting API routes.
 
-The fixed-block fixtures contain 40 canonical Quoter cases at BSC block
-129095585 and Arc block 27252638: 17 positive-output comparisons match exactly,
-11 tiny inputs round to zero (refused by the simulator), and 12 quotes exhaust
-liquidity. The Quoter requires a full fill; the parent v4 simulator can return a
-partial fill with nonzero remaining input. BSC's native BNB fixture is at its
-lower tick, so its zero-for-one direction has no meaningful executable liquidity
-at that snapshot. Source Solidity verification ran all 384 math vectors plus
-sequential observation/rollback tests (19 Mid-block tests, zero failures).
+The fixed-block fixtures contain 16 canonical Quoter cases at Arc block
+27252638: 7 positive-output comparisons match exactly, 5 tiny inputs round to
+zero (refused by the simulator), and 4 quotes exhaust liquidity. The Quoter
+requires a full fill; the parent v4 simulator can return a partial fill with
+nonzero remaining input. Source Solidity verification ran all 384 math vectors
+plus sequential observation/rollback tests (19 Mid-block tests, zero failures).
 
-Online `Track` calls also decoded all five deployments successfully. All v4 and
-msgpack tests pass with `CI=true`, the repository's switch for live-network tests.
+Previously recorded online `Track` calls decoded both Arc deployments
+successfully. All v4 and msgpack tests pass with `CI=true`, the repository's switch for live-network tests.
 Without that switch, the unrelated NAVJIT `TestLive_PluginVsV4Quoter` exceeds its
 5 bps tolerance; the same failure reproduces on unmodified upstream main
 `cce9e1035a288a3698fa4b8cb2f71490099eb8fc`. No NAVJIT code is changed here.
