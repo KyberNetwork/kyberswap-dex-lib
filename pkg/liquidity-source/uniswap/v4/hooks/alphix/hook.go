@@ -64,8 +64,10 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 }, HookAddresses...)
 
 // hasJit reports whether the hook mints a JIT position: a tick range, a price and some yield-source reserves.
+// Stored state without the reserves has none.
 func (h *Hook) hasJit() bool {
 	return h.TickLower < h.TickUpper && h.SqrtPriceX96 != nil && !h.SqrtPriceX96.IsZero() &&
+		h.Amount0Available != nil && h.Amount1Available != nil &&
 		(!h.Amount0Available.IsZero() || !h.Amount1Available.IsZero())
 }
 
@@ -81,7 +83,7 @@ func (h *Hook) jitRange() (lower, upper uint256.Int, err error) {
 // buildJitLiquidity is the JIT position's liquidity (getLiquidityForAmounts on-chain), or nil when the hook
 // has none or its range is invalid; BeforeSwap then computes it per quote or reports the error.
 func (h *Hook) buildJitLiquidity() *uint256.Int {
-	if h.Amount0Available == nil || h.Amount1Available == nil || !h.hasJit() {
+	if !h.hasJit() {
 		return nil
 	}
 	lower, upper, err := h.jitRange()
