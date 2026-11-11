@@ -121,6 +121,7 @@ func (r *VaultReader) readWhitelistedTokens(
 // - USDMAmounts
 // - MaxUSDMAmounts
 // - TokenWeights
+// - TokenBalances (vault accounting) and RealBalances (ERC20 balanceOf the vault)
 func (r *VaultReader) readTokensData(
 	ctx context.Context,
 	address string,
@@ -136,6 +137,9 @@ func (r *VaultReader) readTokensData(
 	usdmAmounts := make([]*big.Int, tokensLen)
 	maxUSDMAmounts := make([]*big.Int, tokensLen)
 	tokenWeights := make([]*big.Int, tokensLen)
+	tokenBalances := make([]*big.Int, tokensLen)
+	realBalances := make([]*big.Int, tokensLen)
+	vaultAddress := common.HexToAddress(address)
 
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, token := range vault.WhitelistedTokens {
@@ -149,6 +153,14 @@ func (r *VaultReader) readTokensData(
 		rpcRequest.AddCall(callParamsFactory(VaultMethodUSDMAmounts, []any{tokenAddress}), []any{&usdmAmounts[i]})
 		rpcRequest.AddCall(callParamsFactory(VaultMethodMaxUSDMAmounts, []any{tokenAddress}), []any{&maxUSDMAmounts[i]})
 		rpcRequest.AddCall(callParamsFactory(VaultMethodTokenWeights, []any{tokenAddress}), []any{&tokenWeights[i]})
+		rpcRequest.AddCall(callParamsFactory(VaultMethodTokenBalances, []any{tokenAddress}), []any{&tokenBalances[i]})
+		// the real ERC20 balance, to spot a vault whose tokens are gone while its accounting still shows funds
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    erc20ABI,
+			Target: token,
+			Method: ERC20MethodBalanceOf,
+			Params: []any{vaultAddress},
+		}, []any{&realBalances[i]})
 	}
 
 	response, err := rpcRequest.TryBlockAndAggregate()
@@ -166,6 +178,8 @@ func (r *VaultReader) readTokensData(
 		vault.USDMAmounts[token] = usdmAmounts[i]
 		vault.MaxUSDMAmounts[token] = maxUSDMAmounts[i]
 		vault.TokenWeights[token] = tokenWeights[i]
+		vault.TokenBalances[token] = tokenBalances[i]
+		vault.RealBalances[token] = realBalances[i]
 	}
 
 	return nil
