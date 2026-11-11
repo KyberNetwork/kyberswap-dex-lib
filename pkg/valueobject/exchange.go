@@ -400,6 +400,7 @@ const (
 	ExchangeWooFiV3                     = "woofi-v3"
 	ExchangeWrappedNative               = "wrapped-native"
 	ExchangeWRSETH                      = "wrseth"
+	ExchangeZkSwapStable                = "zkswap-stable"
 	ExchangeCustomWrappedNative         = "custom-wrapped-native"
 	ExchangeXSolvBTC                    = "xsolvbtc"
 	ExchangePrintr                      = "printr"
