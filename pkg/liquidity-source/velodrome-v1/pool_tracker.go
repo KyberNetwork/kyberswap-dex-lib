@@ -7,12 +7,14 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 type PoolTracker struct {
@@ -69,6 +71,10 @@ func (d *PoolTracker) GetNewPoolState(
 
 	reserveData := d.getReserves(req, p.Address, &params)
 
+	// balanceOf(pair) of both tokens, in the same multicall (same block) as the reserves
+	var balances [2]*big.Int
+	d.addBalanceCalls(req, p, balances[:])
+
 	fee := d.config.Fee
 	if d.feeTracker != nil {
 		req = d.feeTracker.AddGetFeeCall(req, d.config.FactoryAddress, p.Address, staticExtra.Stable, &fee)
@@ -79,7 +85,30 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	return d.updatePool(p, *reserveData, isPaused, fee, resp.BlockNumber)
+	if balances[0] == nil || balances[1] == nil {
+		// the multicall succeeded but a balanceOf did not: the pool is stored without balances, so it is not
+		// checked against them
+		logger.WithFields(logger.Fields{"pool_id": p.Address}).Debug("pool token balances could not be read")
+		balances = [2]*big.Int{}
+	}
+
+	return d.updatePool(p, *reserveData, isPaused, fee, resp.BlockNumber, balances)
+}
+
+// addBalanceCalls appends a balanceOf(pair) call per pool token to req, filling bals after the aggregate.
+func (d *PoolTracker) addBalanceCalls(req *ethrpc.Request, p entity.Pool, bals []*big.Int) {
+	if len(p.Tokens) != len(bals) {
+		return
+	}
+	poolAddr := common.HexToAddress(p.Address)
+	for i, token := range p.Tokens {
+		req.AddCall(&ethrpc.Call{
+			ABI:    abi.Erc20ABI,
+			Target: token.Address,
+			Method: abi.Erc20BalanceOfMethod,
+			Params: []any{poolAddr},
+		}, []any{&bals[i]})
+	}
 }
 
 func (d *PoolTracker) getReserves(req *ethrpc.Request, poolAddress string, params *pool.GetNewPoolStateParams) *ReserveData {
@@ -97,7 +126,9 @@ func (d *PoolTracker) updatePool(
 	reserveData ReserveData,
 	isPaused bool,
 	fee uint64,
-	blockNumber *big.Int) (entity.Pool, error) {
+	blockNumber *big.Int,
+	balances [2]*big.Int,
+) (entity.Pool, error) {
 	if p.BlockNumber > blockNumber.Uint64() {
 		return p, nil
 	}
@@ -105,6 +136,8 @@ func (d *PoolTracker) updatePool(
 	poolExtra := PoolExtra{
 		IsPaused: isPaused,
 		Fee:      fee,
+		Balance0: balances[0],
+		Balance1: balances[1],
 	}
 	poolExtraBytes, err := json.Marshal(poolExtra)
 	if err != nil {

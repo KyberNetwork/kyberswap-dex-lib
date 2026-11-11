@@ -29,6 +29,12 @@ type Vault struct {
 	MaxUSDMAmounts    map[string]*big.Int `json:"maxUsdmAmounts"`
 	TokenWeights      map[string]*big.Int `json:"tokenWeights"`
 
+	// TokenBalances is the vault accounting of each token's balance (Vault.tokenBalances) and RealBalances is
+	// the ERC20 balanceOf(vault), both read at the same block. A nil entry (or an extra saved before these
+	// fields existed) means unknown and is never treated as drained.
+	TokenBalances map[string]*big.Int `json:"tokenBalances,omitempty"`
+	RealBalances  map[string]*big.Int `json:"realBalances,omitempty"`
+
 	PriceFeedAddress common.Address  `json:"-"`
 	PriceFeed        *VaultPriceFeed `json:"priceFeed"`
 
@@ -50,6 +56,8 @@ func NewVault() *Vault {
 		USDMAmounts:     make(map[string]*big.Int),
 		MaxUSDMAmounts:  make(map[string]*big.Int),
 		TokenWeights:    make(map[string]*big.Int),
+		TokenBalances:   make(map[string]*big.Int),
+		RealBalances:    make(map[string]*big.Int),
 	}
 }
 
@@ -75,6 +83,9 @@ const (
 	VaultMethodUSDMAmounts     = "usdmAmounts"
 	VaultMethodMaxUSDMAmounts  = "maxUsdmAmounts"
 	VaultMethodTokenWeights    = "tokenWeights"
+	VaultMethodTokenBalances   = "tokenBalances"
+
+	ERC20MethodBalanceOf = "balanceOf"
 )
 
 func (v *Vault) GetMinPrice(token string) (*big.Int, error) {
@@ -142,4 +153,48 @@ func (v *Vault) IncreasePoolAmount(token string, amount *big.Int) {
 
 func (v *Vault) DecreasePoolAmount(token string, amount *big.Int) {
 	v.PoolAmounts[token] = new(big.Int).Sub(v.PoolAmounts[token], amount)
+}
+
+// CreditedAmountIn mirrors Vault._transferIn (called by swap with the amount the router sent to the vault already
+// in its balance):
+//
+//	nextBalance = balanceOf(vault); amountIn = nextBalance.sub(tokenBalances[token]); tokenBalances[token] = nextBalance
+//
+// so the vault credits the user with the sent amount plus the surplus of the real balance over its accounting
+// (a donation), or minus the deficit. A deficit above the sent amount underflows (SafeMath) and a credit of 0 fails
+// swap's `amountIn > 0` check (code 27). A real balance or an accounting that is unknown (nil, e.g. an extra saved
+// before these fields existed) is not modelled: the sent amount is credited.
+func (v *Vault) CreditedAmountIn(token string, sent *big.Int) (*big.Int, error) {
+	realBalance, tokenBalance := v.RealBalances[token], v.TokenBalances[token]
+	if realBalance == nil || tokenBalance == nil {
+		return sent, nil
+	}
+	credited := new(big.Int).Sub(new(big.Int).Add(realBalance, sent), tokenBalance)
+	if credited.Sign() < 0 {
+		return nil, ErrVaultSubOverflow
+	}
+	if credited.Sign() == 0 {
+		return nil, ErrVaultInvalidAmountIn
+	}
+	return credited, nil
+}
+
+// SyncBalancesAfterSwap mirrors the balance part of swap on the real balances: _transferIn leaves
+// tokenBalances[in] = balanceOf(in) = realIn + sent and _transferOut leaves tokenBalances[out] = balanceOf(out) =
+// realOut - amountOutAfterFees. A real balance that is unknown (nil) stays unknown, and so does an unknown accounting.
+func (v *Vault) SyncBalancesAfterSwap(tokenIn string, sent *big.Int, tokenOut string, amountOutAfterFees *big.Int) {
+	v.moveRealBalance(tokenIn, sent)
+	v.moveRealBalance(tokenOut, new(big.Int).Neg(amountOutAfterFees))
+}
+
+func (v *Vault) moveRealBalance(token string, delta *big.Int) {
+	realBalance := v.RealBalances[token]
+	if realBalance == nil {
+		return
+	}
+	newBalance := new(big.Int).Add(realBalance, delta)
+	v.RealBalances[token] = newBalance
+	if v.TokenBalances[token] != nil {
+		v.TokenBalances[token] = newBalance
+	}
 }

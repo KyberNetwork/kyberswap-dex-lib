@@ -54,8 +54,13 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 		Params: nil,
 	}, []any{&latestRoundData})
 
-	if _, err := rpcRequest.Call(); err != nil {
+	// TryAggregate so a feed that reverts is told apart from a transport error
+	resp, err := rpcRequest.TryAggregate()
+	if err != nil {
 		return err
+	}
+	if len(resp.Result) == 0 || !resp.Result[0] {
+		return ErrVaultPriceFeedLatestRoundDataReverted
 	}
 
 	priceFeed.RoundID = latestRoundData.RoundId
