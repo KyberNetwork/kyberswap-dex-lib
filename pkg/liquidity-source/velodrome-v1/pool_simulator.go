@@ -24,6 +24,9 @@ type PoolSimulator struct {
 	reserves     []*uint256.Int
 	decimals     []*uint256.Int
 	gas          int64
+
+	// balances is balanceOf(pair) of each token (nil when unknown), see PoolExtra.Balance0.
+	balances []*uint256.Int
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -54,6 +57,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		decimals[i] = big256.TenPow(token.Decimals)
 	}
 
+	var balances []*uint256.Int
+	if extra.Balance0 != nil && extra.Balance1 != nil && len(reserves) == 2 {
+		balance0, overflow0 := uint256.FromBig(extra.Balance0)
+		balance1, overflow1 := uint256.FromBig(extra.Balance1)
+		if !overflow0 && !overflow1 { // a balance that does not fit 256 bits is treated as unknown
+			balances = []*uint256.Int{balance0, balance1}
+		}
+	}
+
 	return &PoolSimulator{
 		Info: pool.PoolInfo{
 			Address:     entityPool.Address,
@@ -70,6 +82,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves:     reserves,
 		decimals:     decimals,
 		gas:          lo.CoalesceOrEmpty(staticExtra.Gas, defaultGas+extraGasByExchange[entityPool.Exchange]),
+		balances:     balances,
 	}, nil
 }
 
@@ -88,11 +101,22 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidAmountIn
 	}
 
+	// The executor quotes from the amount the pair credits (balanceIn + sent - reserveIn), not from the amount sent;
+	// so does this when the balances are known. The reported fee is taken on that credited amount, as getAmountOut does.
+	credited := amountIn
+	if p.creditsBalanceDelta() {
+		var creditedAmount uint256.Int
+		if err := p.credit(&creditedAmount, indexIn, amountIn); err != nil {
+			return nil, err
+		}
+		credited = &creditedAmount
+	}
 	var feeAmount uint256.Int
-	feeAmount.MulDivOverflow(amountIn, p.fee, p.feePrecision)
-	amountInAfterFee := amountIn.Sub(amountIn, &feeAmount)
+	feeAmount.MulDivOverflow(credited, p.fee, p.feePrecision)
+	var amountInAfterFee uint256.Int
+	amountInAfterFee.Sub(credited, &feeAmount)
 
-	amountOut, err := p.getAmountOut(amountInAfterFee, indexIn, indexOut)
+	amountOut, err := p.getAmountOut(&amountInAfterFee, indexIn, indexOut)
 	if err != nil {
 		return nil, err
 	} else if amountOut.Sign() <= 0 {
@@ -101,10 +125,16 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 
+	swapInfo, err := p.checkSwap(indexIn, indexOut, amountIn, amountOut)
+	if err != nil {
+		return nil, err
+	}
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: feeAmount.ToBig()},
 		Gas:            p.gas,
+		SwapInfo:       swapInfo,
 	}, nil
 }
 
@@ -125,24 +155,38 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, ErrInsufficientLiquidity
 	}
 
+	// getAmountIn finds the amount the pair has to credit; the router sends that amount less what the pair already
+	// credits (balanceIn - reserveIn), when the balances are known
 	amountIn, err := p.getAmountIn(amountOut, indexIn, indexOut)
 	if err != nil {
 		return nil, err
 	} else if amountIn.Sign() <= 0 {
 		return nil, ErrInsufficientInputAmount
 	}
+	if p.creditsBalanceDelta() {
+		if err = p.sendFor(amountIn, indexIn); err != nil {
+			return nil, err
+		}
+	}
+
+	swapInfo, err := p.checkSwap(indexIn, indexOut, amountIn, amountOut)
+	if err != nil {
+		return nil, err
+	}
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: bignumber.ZeroBI},
-		Gas: p.gas,
+		Fee:      &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: bignumber.ZeroBI},
+		Gas:      p.gas,
+		SwapInfo: swapInfo,
 	}, nil
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.reserves = slices.Clone(p.reserves)
+	cloned.balances = slices.Clone(p.balances)
 	return &cloned
 }
 
@@ -153,8 +197,28 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	amtIn, amtOut := uint256.MustFromBig(params.TokenAmountIn.Amount), uint256.MustFromBig(params.TokenAmountOut.Amount)
+	if p.balances != nil {
+		// the pair syncs its reserves to the balances at the end of swap
+		if info, ok := params.SwapInfo.(SwapInfo); ok {
+			p.setBalances(&info.NewBalance0, &info.NewBalance1)
+			return
+		}
+		// no usable SwapInfo (a result that did not come from this pool's CalcAmountOut/CalcAmountIn): swap again
+		if post, err := p.swap(indexIn, indexOut, amtIn, amtOut); err == nil {
+			p.setBalances(&post[0], &post[1])
+			return
+		}
+		p.balances = nil // not a swap the pair accepts: stop trusting the balances and update as without them
+	}
 	p.reserves[indexIn] = amtIn.Add(p.reserves[indexIn], amtIn.Sub(amtIn, uint256.MustFromBig(params.Fee.Amount)))
 	p.reserves[indexOut] = amtOut.Sub(p.reserves[indexOut], amtOut)
+}
+
+// setBalances stores the balances after a swap as both the balances and the reserves (the pair syncs them), as copies
+// so that the caller's values are not shared with the state.
+func (p *PoolSimulator) setBalances(balance0, balance1 *uint256.Int) {
+	p.reserves = []*uint256.Int{balance0.Clone(), balance1.Clone()}
+	p.balances = []*uint256.Int{balance0.Clone(), balance1.Clone()}
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
@@ -166,6 +230,117 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 		ApprovalAddress: routerAddressByExchange[exchange],
 		BlockNumber:     p.Info.BlockNumber,
 	}
+}
+
+// creditsBalanceDelta tells whether the executor credits the pair with balanceIn + sent - reserveIn: it does for every
+// exchange it swaps with directly (executeVelodrome, executeSolidlyV2, executeMetadex: amountIn =
+// balanceOf(pair) - reserveIn after the transfer). The exchanges that swap through their own router (the ones with a
+// router address) quote from the amount sent. Without the balances nothing is known to credit.
+func (p *PoolSimulator) creditsBalanceDelta() bool {
+	if p.balances == nil {
+		return false
+	}
+	_, viaRouter := routerAddressByExchange[p.Info.Exchange]
+	return !viaRouter
+}
+
+// credit sets credited to what the executor's pair is credited when the router sends sent:
+// balanceIn + sent - reserveIn. The executor subtracts without a check, so a result below zero would wrap and
+// the swap would revert; a zero is rejected by the pair. The caller checks that the balances are known.
+func (p *PoolSimulator) credit(credited *uint256.Int, indexIn int, sent *uint256.Int) error {
+	if _, overflow := credited.AddOverflow(p.balances[indexIn], sent); overflow {
+		return ErrInvalidAmountIn
+	} else if _, underflow := credited.SubOverflow(credited, p.reserves[indexIn]); underflow || credited.IsZero() {
+		return ErrInsufficientInputAmount
+	}
+	return nil
+}
+
+// sendFor turns the amount to be credited, in place, into the amount the router has to send: the credited amount
+// less the surplus of the pair on the input side (balanceIn - reserveIn), or plus its deficit. It is the inverse of
+// credit. The caller checks that the balances are known.
+func (p *PoolSimulator) sendFor(amount *uint256.Int, indexIn int) error {
+	balanceIn, reserveIn := p.balances[indexIn], p.reserves[indexIn]
+	if balanceIn.Lt(reserveIn) {
+		var deficit uint256.Int
+		if _, overflow := amount.AddOverflow(amount, deficit.Sub(reserveIn, balanceIn)); overflow {
+			return ErrInvalidAmountIn
+		}
+		return nil
+	}
+	var surplus uint256.Int
+	surplus.Sub(balanceIn, reserveIn)
+	if !amount.Gt(&surplus) { // the pair already credits that much: nothing is left to send
+		return ErrInsufficientInputAmount
+	}
+	amount.Sub(amount, &surplus)
+	return nil
+}
+
+// checkSwap runs swap when the balances are known and returns the SwapInfo UpdateBalance needs, or a nil interface
+// when the balances are unknown.
+func (p *PoolSimulator) checkSwap(indexIn, indexOut int, amountIn, amountOut *uint256.Int) (any, error) {
+	if p.balances == nil {
+		return nil, nil
+	}
+	post, err := p.swap(indexIn, indexOut, amountIn, amountOut)
+	if err != nil {
+		return nil, err
+	}
+	return SwapInfo{NewBalance0: post[0], NewBalance1: post[1]}, nil
+}
+
+// swap mirrors the checks of DystPair.swap after the quote: the pair pays amountOut out of its balance, then takes
+// as input whatever its balances hold above the reserves (this is how a donation, or a deficit, changes what the
+// swapper is credited), moves the fee of the input out of the pair, and requires the curve not to decrease. It
+// returns the balances after the swap, which the pair stores as its new reserves. amountIn is the amount the router
+// sent to the pair (what the pair credits for it is derived here, from the balances); amountOut was quoted from the
+// reserves and the credited amount. The caller checks that the balances are known.
+// The results are values on the stack: this runs on every quote.
+func (p *PoolSimulator) swap(indexIn, indexOut int, amountIn, amountOut *uint256.Int) (post [2]uint256.Int, err error) {
+	reserveOut := p.reserves[indexOut]
+	// require(amount0Out < _reserve0 && amount1Out < _reserve1)
+	if !amountOut.Lt(reserveOut) {
+		return post, ErrInsufficientLiquidity
+	}
+	// safeTransfer(to, amountOut)
+	if p.balances[indexOut].Lt(amountOut) {
+		return post, ErrInsufficientBalance
+	}
+
+	// the router has sent amountIn before the swap
+	if _, overflow := post[indexIn].AddOverflow(p.balances[indexIn], amountIn); overflow {
+		return post, ErrInvalidAmountIn
+	}
+	post[indexOut].Sub(p.balances[indexOut], amountOut)
+
+	// amountXIn = balanceX > reserveX - amountXOut ? balanceX - (reserveX - amountXOut) : 0
+	var reservesAfterOut, credited [2]uint256.Int
+	reservesAfterOut[0].Set(p.reserves[0])
+	reservesAfterOut[1].Set(p.reserves[1])
+	reservesAfterOut[indexOut].Sub(reserveOut, amountOut)
+	for i := range post {
+		if post[i].Gt(&reservesAfterOut[i]) {
+			credited[i].Sub(&post[i], &reservesAfterOut[i])
+		}
+	}
+	// require(amount0In > 0 || amount1In > 0)
+	if credited[0].IsZero() && credited[1].IsZero() {
+		return post, ErrInsufficientInputAmount
+	}
+
+	// _update0/_update1 move the fee of the input out of the pair (to the treasury and the fees contract)
+	for i := range post {
+		var fee uint256.Int
+		fee.MulDivOverflow(&credited[i], p.fee, p.feePrecision)
+		post[i].Sub(&post[i], &fee)
+	}
+
+	// require(_k(balance0, balance1) >= _k(reserve0, reserve1))
+	if p._k(&post[0], &post[1]).Lt(p._k(p.reserves[0], p.reserves[1])) {
+		return post, ErrK
+	}
+	return post, nil
 }
 
 func (p *PoolSimulator) getAmountOut(amountIn *uint256.Int, indexIn, indexOut int) (*uint256.Int, error) {
@@ -212,7 +387,19 @@ func (p *PoolSimulator) getAmountIn(amountOut *uint256.Int, indexIn, indexOut in
 
 		result := x.Div(x.Mul(x, decimalsA), big256.BONE)
 
-		return big256.MulDivUp(result, result, p.feePrecision, tmp.Sub(p.feePrecision, p.fee)), nil
+		amountIn := big256.MulDivUp(result, result, p.feePrecision, tmp.Sub(p.feePrecision, p.fee))
+		// the inverse works on scaled amounts and rounds down when it scales back to the decimals of the tokens, so the
+		// amount can be short of the amount out by a unit of the token with fewer decimals: add units until it covers
+		for range maxAmountInRoundingUnits {
+			var amountInAfterFee, fee uint256.Int
+			fee.MulDivOverflow(amountIn, p.fee, p.feePrecision)
+			amountInAfterFee.Sub(amountIn, &fee)
+			if out, err := p.getAmountOut(&amountInAfterFee, indexIn, indexOut); err != nil || !out.Lt(amountOut) {
+				break
+			}
+			amountIn.AddUint64(amountIn, 1)
+		}
+		return amountIn, nil
 	}
 
 	var tmp1, tmp2 uint256.Int
@@ -246,7 +433,7 @@ func (p *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int)
 	var dy uint256.Int
 	y = y.Clone()
 	for range 255 {
-		k := _f(x0, y)
+		k := p._f(x0, y)
 
 		if k.Lt(xy) {
 			dy.Div(
@@ -270,7 +457,22 @@ func (p *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int)
 	return y, nil
 }
 
-func _f(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
+// _fSolidly is the f(x0, y) = x0*y^3 + x0^3*y of the Solidly pair (velodrome v1, dystopia) with its roundings:
+// x0*(y*y/1e18*y/1e18)/1e18 + (x0*x0/1e18*x0/1e18)*y/1e18. It is not the form _k uses, ((x*y)*(x*x+y*y)); the two
+// round differently, which is a few wei apart for a stable pair that is far from balanced.
+func _fSolidly(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
+	var a, b, c uint256.Int
+	a.Div(a.Mul(y, y), big256.BONE)
+	a.Div(a.Mul(&a, y), big256.BONE)
+	a.Div(a.Mul(&a, x0), big256.BONE)
+	b.Div(b.Mul(x0, x0), big256.BONE)
+	b.Div(b.Mul(&b, x0), big256.BONE)
+	c.Div(c.Mul(&b, y), big256.BONE)
+	return a.Add(&a, &c)
+}
+
+// _fK is f written like _k: (x0*y)*(x0*x0+y*y). The Velodrome v2 / Aerodrome pair iterates on it.
+func _fK(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
 	var _a, _b uint256.Int
 	_b.Add(
 		_a.Div(
@@ -284,6 +486,15 @@ func _f(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
 	)
 	_a.Div(_a.Mul(x0, y), big256.BONE)
 	return _a.Div(_a.Mul(&_a, &_b), big256.BONE)
+}
+
+// _f is the f of the exchange's pair: the Solidly form for the exchanges checked against the pair on-chain
+// (solidlyCurveExchanges), _k's form for every other one.
+func (p *PoolSimulator) _f(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
+	if _, ok := solidlyCurveExchanges[p.Info.Exchange]; ok {
+		return _fSolidly(x0, y)
+	}
+	return _fK(x0, y)
 }
 
 func _d(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
