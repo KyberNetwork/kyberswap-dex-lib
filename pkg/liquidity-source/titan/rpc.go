@@ -13,7 +13,6 @@ import (
 
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
@@ -38,11 +37,6 @@ type Config struct {
 	URLs    []string      `json:"urls"`
 	Timeout time.Duration `json:"timeout,omitempty"`
 }
-
-// StateOverrides is the persisted, JSON-friendly {address: {slot: value}}
-// shape downstream Tenderly/gas-estimation tooling (~/bin/swap.zsh's
-// poolExtra.so reader) replays a quote's state against.
-type StateOverrides map[string]map[string]string
 
 type State struct {
 	Overrides      map[common.Address]gethclient.OverrideAccount
@@ -274,28 +268,4 @@ func ExtractMaxOracleTimestamp(overrides map[common.Address]gethclient.OverrideA
 		}
 	}
 	return uint64(maxFound)
-}
-
-// ToStateOverrides flattens the override set into the persisted, JSON-friendly
-// {address: {slot: value}} shape (storage diffs only — balance/nonce aren't
-// persisted, matching what every current consumer/reader of "so" expects).
-func (s State) ToStateOverrides() StateOverrides {
-	if len(s.Overrides) == 0 {
-		return nil
-	}
-	out := make(StateOverrides, len(s.Overrides))
-	for addr, acct := range s.Overrides {
-		if len(acct.StateDiff) == 0 {
-			continue
-		}
-		diff := make(map[string]string, len(acct.StateDiff))
-		for slot, val := range acct.StateDiff {
-			diff[slot.Hex()] = val.Hex()
-		}
-		out[hexutil.Encode(addr[:])] = diff
-	}
-	if len(out) == 0 {
-		return nil
-	}
-	return out
 }
