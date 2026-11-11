@@ -75,6 +75,7 @@ const (
 	ExchangeCapricornPamm               = "capricorn-pamm"
 	ExchangeCarbon                      = "carbon"
 	ExchangeClear                       = "clear"
+	ExchangeClearRFQ                    = "clear-rfq"
 	ExchangeClipper                     = "clipper"
 	ExchangeCloberOB                    = "clober-ob"
 	ExchangeCoinhaneV3ECLP              = "coinhane-v3-eclp"
@@ -418,6 +419,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeLO1inch:               {},
 
 	ExchangeBebop:      {},
+	ExchangeClearRFQ:   {},
 	ExchangeClipper:    {},
 	ExchangeDexalot:    {},
 	ExchangeHashflowV3: {},
