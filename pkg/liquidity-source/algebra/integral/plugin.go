@@ -15,8 +15,9 @@ import (
 )
 
 type TimepointStorage struct {
-	mu   sync.RWMutex
-	data map[uint16]Timepoint
+	mu     sync.RWMutex
+	data   map[uint16]Timepoint
+	parent *TimepointStorage
 }
 
 func NewTimepointStorage(data map[uint16]Timepoint) *TimepointStorage {
@@ -25,23 +26,29 @@ func NewTimepointStorage(data map[uint16]Timepoint) *TimepointStorage {
 	}
 }
 
-func (s *TimepointStorage) Get(index uint16) Timepoint {
+func (s *TimepointStorage) lookup(index uint16) (Timepoint, bool) {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
+	v, ok := s.data[index]
+	parent := s.parent
+	s.mu.RUnlock()
+	if ok {
+		return v, true
+	}
+	if parent != nil {
+		return parent.lookup(index)
+	}
+	return Timepoint{}, false
+}
 
-	if v, ok := s.data[index]; ok {
+func (s *TimepointStorage) Get(index uint16) Timepoint {
+	if v, ok := s.lookup(index); ok {
+		// A fork is copy-on-write. Some oracle calculations mutate their returned integers.
+		if s.parent != nil && v.VolatilityCumulative != nil {
+			v.VolatilityCumulative = v.VolatilityCumulative.Clone()
+		}
 		return v
 	}
-
-	return Timepoint{
-		Initialized:          false,
-		BlockTimestamp:       0,
-		TickCumulative:       0,
-		VolatilityCumulative: uint256.NewInt(0),
-		Tick:                 0,
-		AverageTick:          0,
-		WindowStartIndex:     0,
-	}
+	return Timepoint{VolatilityCumulative: uint256.NewInt(0)}
 }
 func (s *TimepointStorage) set(index uint16, v Timepoint) {
 	s.mu.Lock()
@@ -438,7 +445,9 @@ func (s *TimepointStorage) binarySearchInternal(currentTime, target, left, right
 	return beforeOrAt, beforeOrAt, indexBeforeOrAt
 }
 
-func (p *PoolSimulator) calculateFeeFactors(currentTick, lastTick int32, priceChangeFactor uint16) (*SlidingFeeConfig, error) {
+// calculateFeeFactors is the plugin's _calculateFeeFactors: factors moved by the price change from
+// lastTick to currentTick. It returns new factors and leaves factors as they are.
+func calculateFeeFactors(factors *SlidingFeeConfig, currentTick, lastTick int32) (*SlidingFeeConfig, error) {
 	tickDelta := lo.Clamp(currentTick-lastTick, utils.MinTick, utils.MaxTick)
 
 	var sqrtPriceDelta v3Utils.Uint160
@@ -454,22 +463,22 @@ func (p *PoolSimulator) calculateFeeFactors(currentTick, lastTick int32, priceCh
 	priceChangeRatio := priceRatioSquared.Sub(priceRatioSquared, FEE_FACTOR_MULTIPLIER)
 
 	var factor uint256.Int
-	factor.SetUint64(uint64(priceChangeFactor))
-	feeFactorImpact := priceChangeRatio.Mul(priceChangeRatio, &factor).Div(priceChangeRatio, FACTOR_DENOMINATOR)
+	factor.SetUint64(uint64(factors.PriceChangeFactor))
+	// The ratio is negative when the price fell; the plugin divides it as an int256, which SDiv does.
+	feeFactorImpact := priceChangeRatio.Mul(priceChangeRatio, &factor).SDiv(priceChangeRatio, FACTOR_DENOMINATOR)
 
-	feeFactors := p.slidingFee
-	newZeroToOneFeeFactor := feeFactors.ZeroToOneFeeFactor.Sub(feeFactors.ZeroToOneFeeFactor, feeFactorImpact)
-	if 0 < newZeroToOneFeeFactor.Sign() && newZeroToOneFeeFactor.Cmp(DOUBLE_FEE_MULTIPLIER) < 0 {
-		feeFactors.ZeroToOneFeeFactor = newZeroToOneFeeFactor
-		feeFactors.OneToZeroFeeFactor.Add(feeFactors.OneToZeroFeeFactor, feeFactorImpact)
-	} else if newZeroToOneFeeFactor.Sign() <= 0 {
-		feeFactors.ZeroToOneFeeFactor.Clear()
-		feeFactors.OneToZeroFeeFactor.Set(DOUBLE_FEE_MULTIPLIER)
+	next := *factors
+	next.ZeroToOneFeeFactor = new(uint256.Int).Sub(factors.ZeroToOneFeeFactor, feeFactorImpact)
+	if 0 < next.ZeroToOneFeeFactor.Sign() && next.ZeroToOneFeeFactor.Cmp(DOUBLE_FEE_MULTIPLIER) < 0 {
+		next.OneToZeroFeeFactor = new(uint256.Int).Add(factors.OneToZeroFeeFactor, feeFactorImpact)
+	} else if next.ZeroToOneFeeFactor.Sign() <= 0 {
+		next.ZeroToOneFeeFactor.Clear()
+		next.OneToZeroFeeFactor = DOUBLE_FEE_MULTIPLIER.Clone()
 	} else {
-		feeFactors.ZeroToOneFeeFactor.Set(DOUBLE_FEE_MULTIPLIER)
-		feeFactors.OneToZeroFeeFactor.Clear()
+		next.ZeroToOneFeeFactor.Set(DOUBLE_FEE_MULTIPLIER)
+		next.OneToZeroFeeFactor = new(uint256.Int)
 	}
-	return feeFactors, nil
+	return &next, nil
 }
 
 func getInputTokenDelta01(res, to, from, liquidity *uint256.Int) error {
@@ -616,4 +625,9 @@ func getNewPrice(res, price, liquidity, amount *uint256.Int, zeroToOne, fromInpu
 // c <  b <  a | false
 func lteConsideringOverflow[T cmp.Ordered](a, b, currentTime T) bool {
 	return algebra.LteConsideringOverflow(a, b, currentTime)
+}
+
+// clone creates a copy-on-write overlay; quotes only write one timepoint.
+func (s *TimepointStorage) clone() *TimepointStorage {
+	return &TimepointStorage{data: make(map[uint16]Timepoint, 1), parent: s}
 }

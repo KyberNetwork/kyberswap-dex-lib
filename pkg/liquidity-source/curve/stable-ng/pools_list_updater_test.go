@@ -47,7 +47,7 @@ func getNewPools(t *testing.T, metadata []byte, minDuration time.Duration, apiPo
 		_ = json.NewEncoder(w).Encode(res)
 	}))
 	defer api.Close()
-	rpc := testutil.NewTryAggregateStub(t, func(target common.Address, callData []byte) (bool, []byte) {
+	rpc := testutil.NewMulticallStub(t, func(target common.Address, callData []byte) (bool, []byte) {
 		if lo.ContainsBy(reverting, func(p shared.CurvePool) bool { return poolAddr(p) == strings.ToLower(target.Hex()) }) {
 			return false, nil
 		}

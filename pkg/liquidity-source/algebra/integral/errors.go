@@ -25,8 +25,9 @@ var (
 	ErrInvalidPriceUpperLower = errors.New("price upper must not be less than price lower")
 	ErrInvalidPriceLower      = errors.New("price lower must be positive")
 
-	ErrLiquiditySub = errors.New("liquidity sub error")
-	ErrLiquidityAdd = errors.New("liquidity add error")
-	ErrOverflow     = errors.New("overflow")
-	ErrUnderflow    = errors.New("underflow")
+	ErrLiquiditySub      = errors.New("liquidity sub error")
+	ErrLiquidityAdd      = errors.New("liquidity add error")
+	ErrOverflow          = errors.New("overflow")
+	ErrUnderflow         = errors.New("underflow")
+	ErrNamiStaleSnapshot = errors.New("stale Nami plugin snapshot")
 )

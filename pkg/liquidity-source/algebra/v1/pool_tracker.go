@@ -9,7 +9,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
@@ -167,10 +166,10 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	rpcRequest := t.EthrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
+	var block *big.Int
 	if blockNumber > 0 {
-		var blockNumberBI big.Int
-		blockNumberBI.SetUint64(blockNumber)
-		rpcRequest.SetBlockNumber(&blockNumberBI)
+		block = new(big.Int).SetUint64(blockNumber)
+		rpcRequest.SetBlockNumber(block)
 	}
 
 	rpcRequest.AddCall(&ethrpc.Call{
@@ -262,7 +261,9 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	}
 
 	if !t.config.SkipFeeCalculating {
-		err = t.approximateFee(ctx, p.Address, dataStorageOperator.Hex(), &res.State, res.Liquidity)
+		// at the block asked for, which pins the state read above; res.BlockNumber is the multicall contract's view of
+		// block.number, the L1 block through Multicall3 on Arbitrum
+		err = t.approximateFee(ctx, p.Address, dataStorageOperator.Hex(), &res.State, res.Liquidity, block)
 		if err != nil {
 			return res, err
 		}
@@ -275,17 +276,25 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	return res, err
 }
 
+// approximateFee sets the fee a swap pays at block (nil for the latest block), which the pool computes again at the
+// first swap of a block from the timepoints it writes then. The fee in globalState is the one the last swap paid.
 func (t *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStorageOperator string,
-	state *GlobalState, currentLiquidity *big.Int) error {
+	state *GlobalState, currentLiquidity, block *big.Int) error {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": poolAddress,
 		"dexID":       t.config.DexID,
 	})
 
-	// fee approximation: assume that the swap will be soon after this
-	blockTimestamp := uint32(time.Now().Unix())
+	timestamp, err := t.EthrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(block).GetCurrentBlockTimestamp()
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch block timestamp")
+		return err
+	}
+	blockTimestamp := uint32(timestamp)
 	yesterday := blockTimestamp - WINDOW
-	timepoints, err := t.getPoolTimepoints(ctx, state.TimepointIndex, poolAddress, yesterday)
+	timepoints, err := t.getPoolTimepoints(ctx, state.TimepointIndex, poolAddress, yesterday, block)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -311,8 +320,11 @@ func (t *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStora
 		return err
 	}
 
-	volumePerLiquidityInBlock, err := t.getPoolVolumePerLiquidityInBlock(ctx, common.HexToAddress(poolAddress))
+	volumePerLiquidityInBlock, err := t.getPoolVolumePerLiquidityInBlock(ctx, common.HexToAddress(poolAddress), block)
 	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch pool volumePerLiquidityInBlock")
 		return err
 	}
 
@@ -401,48 +413,26 @@ func (t *PoolTracker) getPoolDirectionalFeeConfig(ctx context.Context, dataStora
 }
 
 func (t *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16, poolAddress string,
-	yesterday uint32) (map[uint16]Timepoint, error) {
+	yesterday uint32, block *big.Int) (map[uint16]Timepoint, error) {
 	return t.GetTimepoints(ctx, &ethrpc.Call{
 		ABI:    algebraV1PoolABI,
 		Target: poolAddress,
 		Method: methodGetTimepoints,
-	}, nil, yesterday, currentIndex, 0, nil, nil)
+	}, block, yesterday, currentIndex, 0, nil, nil)
 }
 
-func (t *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, poolAddress common.Address) (*big.Int,
-	error) {
-	l := logger.WithFields(logger.Fields{
-		"poolAddress": poolAddress,
-		"dexID":       t.config.DexID,
-	})
-
-	abiUint256, _ := abi.NewType("uint256", "", nil)
-	abi := abi.Arguments{
-		// 2 variables are stored in 1 slot, need to read the whole and shift out later
-		{Name: "liquidity_volumePerLiquidityInBlock", Type: abiUint256},
-	}
-
-	resp, err := t.EthrpcClient.NewRequest().SetContext(ctx).GetStorageAt(
-		poolAddress,
-		slot3,
-		abi,
-	)
+func (t *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, poolAddress common.Address,
+	block *big.Int) (*big.Int, error) {
+	// liquidity and volumePerLiquidityInBlock share slot 3, the volume in its upper 128 bits; read at the
+	// state's block (ethrpc's GetStorageAt reads the latest)
+	slot, err := t.EthrpcClient.GetETHClient().StorageAt(ctx, poolAddress, slot3, block)
 	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to fetch pool volumePerLiquidityInBlock")
 		return nil, err
 	}
-
-	if len(resp) == 1 {
-		if bi, ok := resp[0].(*big.Int); ok {
-			return new(big.Int).Rsh(bi, 128), nil
-		}
+	if len(slot) != common.HashLength {
+		return nil, ErrUnmarshalVolLiq
 	}
-	l.WithFields(logger.Fields{
-		"resp": resp,
-	}).Error("failed to unmarshal volumePerLiquidityInBlock")
-	return nil, ErrUnmarshalVolLiq
+	return new(big.Int).SetBytes(slot[:16]), nil
 }
 
 func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {

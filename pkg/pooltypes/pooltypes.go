@@ -8,6 +8,7 @@ import (
 	algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
 	altfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/alt-fun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ammalgam"
 	angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
@@ -31,6 +32,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unibtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
+	biconomyprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/biconomy-prop"
 	bouncetech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bounce-tech"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	btrprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/btr-prop"
@@ -58,6 +60,7 @@ import (
 	curvetwocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng/lazy"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
+	daikonprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/daikon-prop"
 	deepstateob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deepstate-ob"
 	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
@@ -115,9 +118,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	rsethl2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth-l2"
 	kipseliprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kipseli/prop"
+	kuruob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kuru-ob"
+	kuruobv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kuru-ob/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lfj/poe"
 	limitorder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/limit-order"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidcore"
+	liquidfiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidfi-prop"
 	liquidityparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidity-party"
 	listastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stake"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
@@ -151,7 +157,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
-	pancakeprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-prop"
 	pancakeinfinitybin "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin"
 	pancakeinfinitycl "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
 	pancakestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/stable"
@@ -199,6 +204,7 @@ import (
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/evplusai"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/inverse"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/peach"
+	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/reafund"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/ticker-dualpool"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/ticker-meme-v4"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/volatile"
@@ -318,7 +324,7 @@ type Types struct {
 	PancakeInfinityCL          string
 	PancakeInfinityBin         string
 	PancakeStable              string
-	PancakeProp                string
+	LiquidFiProp               string
 	MaverickV1                 string
 	AlgebraV1                  string
 	IZiSwap                    string
@@ -419,6 +425,7 @@ type Types struct {
 	Clear                      string
 	Clipper                    string
 	DeltaSwapV1                string
+	Ammalgam                   string
 	SfrxETH                    string
 	SfrxETHConvertor           string
 	EtherfiVampire             string
@@ -514,6 +521,8 @@ type Types struct {
 	AltFun                     string
 	FlywheelFun                string
 	Prop1010                   string
+	BiconomyProp               string
+	DaikonProp                 string
 	FermiProp                  string
 	Machima                    string
 	MetronomeSwap              string
@@ -527,6 +536,8 @@ type Types struct {
 	Gblin                      string
 	EverlongFlamm              string
 	BTRProp                    string
+	KuruOB                     string
+	KuruOBV2                   string
 }
 
 var (
@@ -585,7 +596,7 @@ var (
 		PancakeInfinityCL:          pancakeinfinitycl.DexType,
 		PancakeInfinityBin:         pancakeinfinitybin.DexType,
 		PancakeStable:              pancakestable.DexType,
-		PancakeProp:                pancakeprop.DexType,
+		LiquidFiProp:               liquidfiprop.DexType,
 		MaverickV1:                 maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                  algebrav1.DexTypeAlgebraV1,
 		IZiSwap:                    iziswap.DexTypeiZiSwap,
@@ -682,6 +693,7 @@ var (
 		Clear:                      clear.DexType,
 		Clipper:                    clipper.DexType,
 		DeltaSwapV1:                deltaswapv1.DexType,
+		Ammalgam:                   ammalgam.DexType,
 		SfrxETH:                    sfrxeth.DexType,
 		SfrxETHConvertor:           sfrxethconvertor.DexType,
 		EtherfiVampire:             etherfivampire.DexType,
@@ -781,6 +793,8 @@ var (
 		AltFun:                     altfun.DexType,
 		FlywheelFun:                flywheelfun.DexType,
 		Prop1010:                   prop1010.DexType,
+		BiconomyProp:               biconomyprop.DexType,
+		DaikonProp:                 daikonprop.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
 		MetronomeSwap:              metronomeswap.DexType,
@@ -795,5 +809,7 @@ var (
 		Gblin:                      gblin.DexType,
 		EverlongFlamm:              everlongflamm.DexType,
 		BTRProp:                    btrprop.DexType,
+		KuruOB:                     kuruob.DexType,
+		KuruOBV2:                   kuruobv2.DexType,
 	}
 )

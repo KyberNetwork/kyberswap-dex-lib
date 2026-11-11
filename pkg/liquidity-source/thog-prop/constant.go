@@ -2,64 +2,40 @@ package thogprop
 
 import (
 	"errors"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const (
-	DexType = valueobject.ExchangeThogProp
-
-	methodMakerSnapshot        = "makerSnapshot"
-	methodMakerQuoteExactInput = "makerQuoteExactInput"
-
-	// defaultGas is an estimate for makerSwapExactInput(); no verified source
-	// exists to measure it precisely, so this mirrors the order of magnitude
-	// of other single-call RFQ executors (parity-prop's defaultGas) until a
-	// real Tenderly trace is available.
-	defaultGas = 150000
-
-	// spreadDenominator is exactQuote's SPREAD_DENOMINATOR -- 0.1 bps units,
-	// 400000 == 100%.
-	spreadDenominator = 400000
-
-	// fastLaneFrictionBps is the AuctionHandler's documented worst-case
-	// haircut applied when it's already warm: 9990/10000.
-	fastLaneFrictionBps = 10
-
-	exposureScale   = 1_000_000
-	covarianceScale = 1_000_000_000
-	lambdaScale     = 1_000_000
-
-	// executionAgeLookahead is a deliberately small, fixed number of blocks
-	// assumed to elapse between the tracker's snapshot and actual on-chain
-	// execution. exactQuote's spread widens by perBlockWidening*age every
-	// block, and maxAge (read live, never hardcoded) hard-reverts once
-	// exceeded -- quoting age=0 would be optimistic and could promise output
-	// the chain won't deliver by the time the tx lands.
-	executionAgeLookahead = 2
+	DexType           = valueobject.ExchangeThogProp
+	methodGetPoolData = "getPoolData"
+	maxTokens         = 28
+	// Multicall3 at its canonical address (deployed on Monad); the lens fallback reads through it.
+	multicall3                       = "0xcA11bde05977b3631167028862bE2a173976CA11"
+	selectorGetCurrentBlockTimestamp = "0x0f28c97d"
+	// Quote one block after the snapshot: 0.50 bp extra spread at the live policy.
+	executionAgeLookahead uint64 = 1
+	wmon                         = "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"
+	// Integer averages of Tenderly swapWithExtraFees frame gas through the
+	// router on Monad (3 same-category, 14 cross-category swaps); see README.md.
+	sameCategoryGas               = 273846
+	crossCategoryGas              = 564978
+	defaultBlockTimeMs      int64 = 300
+	defaultMaxSnapshotAgeMs int64 = 15_000
+	clockSkewAllowanceMs    int64 = 1_000
+	defaultRequestTimeoutMs int64 = 2_000
+	refreshRetryDelay             = 300 * time.Millisecond
+	// lensRetryAfter is how long a provider's lens refusal is trusted before probing again.
+	lensRetryAfter         = 10 * time.Minute
+	snapshotLensGas uint64 = 3_000_000
 )
 
 var (
-	ErrGloballyPaused     = errors.New("thog-prop: globally paused")
-	ErrPriceSurfacePaused = errors.New("thog-prop: price surface paused")
-	ErrPairRiskNotReady   = errors.New("thog-prop: pair risk state not ready")
-	ErrRiskV3NotReady     = errors.New("thog-prop: XAUt0 risk v3 state not ready")
-	ErrSideDisabled       = errors.New("thog-prop: sell or buy side disabled for token")
-	ErrStalePrice         = errors.New("thog-prop: posted price stale or missing")
-	ErrZeroMaxAge         = errors.New("thog-prop: maxAge is zero")
-	ErrAmountTooLarge     = errors.New("thog-prop: amountIn exceeds input limit")
-	ErrZeroNotional       = errors.New("thog-prop: zero notional")
-	ErrSpreadTooWide      = errors.New("thog-prop: spread at/above denominator")
-	ErrPenaltyExceedsOut  = errors.New("thog-prop: risk penalty exceeds gross output")
-	ErrZeroAmountOut      = errors.New("thog-prop: zero amount out")
-	ErrInsufficientBal    = errors.New("thog-prop: amount out exceeds pool balance")
-	ErrSameToken          = errors.New("thog-prop: tokenIn equals tokenOut")
-	ErrInvalidToken       = errors.New("thog-prop: unknown token")
-
-	// ErrOverflow guards every multiplication/addition exactQuote() performs. On-chain,
-	// Solidity 0.8's checked arithmetic reverts (panic 0x11) the instant any individual
-	// product/sum exceeds 2**256-1, so the simulator must fail the same way rather than
-	// silently wrapping or computing a wider-precision answer the real contract would
-	// never reach.
-	ErrOverflow = errors.New("thog-prop: uint256 overflow")
+	ErrInvalidState  = errors.New("thog-prop: invalid schema-8/model-3 snapshot")
+	ErrInvalidToken  = errors.New("thog-prop: unknown or identical token")
+	ErrUnavailable   = errors.New("thog-prop: quote unavailable")
+	ErrOverflow      = errors.New("thog-prop: arithmetic overflow or division by zero")
+	ErrBalance       = errors.New("thog-prop: inventory capacity exceeded")
+	ErrStaleSnapshot = errors.New("thog-prop: stale snapshot")
 )

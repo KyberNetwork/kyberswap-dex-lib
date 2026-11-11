@@ -22,6 +22,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -137,6 +138,7 @@ func (d *PoolTracker) BootstrapPoolState(
 		VolatilityOracle: rpcData.VolatilityOracle,
 		SlidingFee:       rpcData.SlidingFee,
 		DynamicFee:       rpcData.DynamicFee,
+		NamiFee:          rpcData.NamiFee,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -151,7 +153,15 @@ func (d *PoolTracker) BootstrapPoolState(
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+	if rpcData.NamiFee != nil {
+		block, err := namiSnapshotBlock(rpcData.BlockNumber, p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+		if err != nil {
+			return entity.Pool{}, err
+		}
+		p.BlockNumber = block
+	} else {
+		p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+	}
 
 	l.WithFields(logger.Fields{
 		"lastFee": rpcData.State.LastFee,
@@ -246,6 +256,24 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	res.VolatilityOracle = volatilityOracleData
 	res.DynamicFee = dynamicFeeData
 	res.SlidingFee = slidingFeeData
+	if d.config.UseNamiPlugin || d.config.DexID == "nami-v4" {
+		if result.BlockNumber == nil || result.BlockNumber.Sign() <= 0 {
+			return res, errors.New("invalid Nami snapshot block")
+		}
+		// Use the actual snapshot block time, not activity time or fetch time.
+		header, headerErr := d.EthrpcClient.GetETHClient().HeaderByNumber(ctx, result.BlockNumber)
+		if headerErr != nil {
+			return res, headerErr
+		}
+		res.NamiFee, err = nami.Fetch(ctx, d.EthrpcClient, plugin, result.BlockNumber, overrides, uint32(header.Time))
+		if err != nil {
+			return res, err
+		}
+		res.NamiFee.SnapshotTimestamp = header.Time
+		if res.DynamicFee == nil || res.VolatilityOracle == nil {
+			return res, errors.New("nami plugin missing dynamic fee or volatility oracle")
+		}
+	}
 	res.BlockNumber = result.BlockNumber
 
 	return res, nil
@@ -389,21 +417,40 @@ func (d *PoolTracker) getSlidingFeeData(req *ethrpc.Request, pluginAddress strin
 		Target: pluginAddress,
 		Method: slidingFeePluginBaseFeeMethod,
 	}, []any{&cfg.BaseFee})
+	// The calls above must succeed. The plugins have one of the calls below: feeType (Thena) or the two switches
+	// (Camelot, Cypher, Sheriff).
+	feeTypeCall := len(req.Calls)
 	req.AddCall(&ethrpc.Call{
 		ABI:    basePluginV2ABI,
 		Target: pluginAddress,
 		Method: slidingFeePluginFeeTypeMethod,
 	}, []any{&cfg.FeeType})
+	req.AddCall(&ethrpc.Call{
+		ABI:    basePluginV2ABI,
+		Target: pluginAddress,
+		Method: slidingFeePluginDynamicFeeEnabledMethod,
+	}, []any{&cfg.DynamicFeeEnabled})
+	req.AddCall(&ethrpc.Call{
+		ABI:    basePluginV2ABI,
+		Target: pluginAddress,
+		Method: slidingFeePluginSlidingFeeEnabledMethod,
+	}, []any{&cfg.SlidingFeeEnabled})
 
-	callsTo := len(req.Calls)
 	return &cfg, func(resp *ethrpc.Response) error {
-		for i := callsFrom; i < callsTo; i++ {
+		for i := callsFrom; i < feeTypeCall; i++ {
 			if !resp.Result[i] {
 				return errors.New("failed to fetch SlidingFeeConfig." + req.Calls[i].Method)
 			}
 		}
-		cfg.ZeroToOneFeeFactor = uint256.MustFromBig(result.OneToZeroFeeFactor)
-		cfg.OneToZeroFeeFactor = uint256.MustFromBig(result.ZeroToOneFeeFactor)
+		// s_feeFactors is (zeroToOneFeeFactor, oneToZeroFeeFactor), as the pool's own swaps confirm.
+		zeroToOne, oneToZero := result.ZeroToOneFeeFactor, result.OneToZeroFeeFactor
+		if resp.Result[feeTypeCall] {
+			// Thena's plugin, read the other way round since it was added; no Thena pool runs the sliding fee
+			// to check it against.
+			zeroToOne, oneToZero = oneToZero, zeroToOne
+		}
+		cfg.ZeroToOneFeeFactor = uint256.MustFromBig(zeroToOne)
+		cfg.OneToZeroFeeFactor = uint256.MustFromBig(oneToZero)
 		return nil
 	}
 }
@@ -686,6 +733,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		VolatilityOracle: rpcState.VolatilityOracle,
 		DynamicFee:       rpcState.DynamicFee,
 		SlidingFee:       rpcState.SlidingFee,
+		NamiFee:          rpcState.NamiFee,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -701,7 +749,15 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		rpcState.Reserve0.String(),
 		rpcState.Reserve1.String(),
 	}
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+	if rpcState.NamiFee != nil {
+		block, err := namiSnapshotBlock(rpcState.BlockNumber, p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+		if err != nil {
+			return p, err
+		}
+		p.BlockNumber = block
+	} else {
+		p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+	}
 
 	return p, nil
 }
@@ -924,4 +980,12 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 	}
 
 	return result, nil
+}
+
+// namiSnapshotBlock rejects stale RPC snapshots rather than assigning them a newer log block.
+func namiSnapshotBlock(snapshot *big.Int, previous, lastLog uint64) (uint64, error) {
+	if snapshot == nil || !snapshot.IsUint64() || snapshot.Sign() <= 0 || snapshot.Uint64() < max(previous, lastLog) {
+		return 0, errors.New("invalid or stale Nami snapshot block")
+	}
+	return snapshot.Uint64(), nil
 }

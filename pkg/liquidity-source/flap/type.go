@@ -37,6 +37,10 @@ type Extra struct {
 	BuyTaxBps                uint64 `json:"btb"`
 	SellTaxBps               uint64 `json:"stb"`
 	TaxOnBondingCurveEnabled bool   `json:"tobc"`
+
+	// NFTGate is Portal.nftGate(token): non-zero means only tx.origin holders of that NFT can trade on
+	// the curve, so the pool is not quoted. Re-read every cycle (admin can remove the gate).
+	NFTGated bool `json:"ng,omitempty"`
 }
 
 // SwapInfo is produced by CalcAmountOut and consumed by UpdateBalance.

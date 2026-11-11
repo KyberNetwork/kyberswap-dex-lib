@@ -22,6 +22,9 @@ type VaultCfg struct {
 	// MaxAge (seconds, 0 = off) makes the simulator reject deposits once the pool is older than this, so a
 	// failed pause/cap read (nothing saved) stops quoting. Needs a pool-service heartbeat below it.
 	MaxAge int64 `json:"maxAge,omitempty"`
+	// IgnoreZeroMaxDeposit marks a vault that reports maxDeposit 0 while it accepts deposits, so a 0 falls back to
+	// totalAssets instead of closing deposits.
+	IgnoreZeroMaxDeposit bool `json:"ignoreZeroMaxDeposit,omitempty"`
 }
 
 type GasCfg struct {

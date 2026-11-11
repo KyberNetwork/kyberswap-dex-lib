@@ -3,6 +3,7 @@ package uniswapv4
 import (
 	"math"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -26,7 +27,7 @@ func GetHookExchange(p *entity.Pool) valueobject.Exchange {
 	}
 
 	hook, _ := GetHook(hookAddress, nil)
-	return valueobject.Exchange(hook.GetExchange())
+	return valueobject.Exchange(ExchangeOf(hook, "", p.Exchange))
 }
 
 const TickBase = 1.0001
@@ -104,4 +105,32 @@ func EstimateReservesFromTicksU256(sqrtPriceX96 *uint256.Int, ticks []v3.TickU25
 		amt1 = new(uint256.Int)
 	}
 	return amt0, amt1
+}
+
+// ForkExchange swaps the "uniswap-v4" prefix of a hook exchange for dexID ("uniswap-v4-fee" ->
+// "elyspump-v4-fee"). Empty or official dexID, and hook exchanges without the prefix (kem), stay as is.
+func ForkExchange(hookExchange, dexID string) string {
+	if dexID == "" || dexID == DexType || !strings.HasPrefix(hookExchange, DexType) {
+		return hookExchange
+	}
+	return dexID + hookExchange[len(DexType):]
+}
+
+// ExchangeOf is the exchange of a pool with this hook. The dexID is cfgDexID, else recovered from
+// the stored exchange by stripping the hook suffix; a stored "uniswap-v4*" value means the official dex.
+func ExchangeOf(hook Hook, cfgDexID, stored string) string {
+	h := hook.GetExchange()
+	if cfgDexID == "" && strings.HasPrefix(h, DexType) {
+		cfgDexID, _ = strings.CutSuffix(stored, h[len(DexType):])
+	}
+	return ForkExchange(h, cfgDexID)
+}
+
+// PoolManagerOf is the pool's own PoolManager from StaticExtra, else the official one for the chain.
+func PoolManagerOf(p *entity.Pool, chainID valueobject.ChainID) common.Address {
+	var se StaticExtra
+	if p != nil && json.Unmarshal([]byte(p.StaticExtra), &se) == nil && se.PoolManager != nil {
+		return *se.PoolManager
+	}
+	return PoolManager[chainID]
 }

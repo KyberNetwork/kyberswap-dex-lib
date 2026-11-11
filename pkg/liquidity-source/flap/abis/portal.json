@@ -82,5 +82,12 @@
 		],
 		"name": "FlapTokenCirculatingSupplyChanged",
 		"type": "event"
+	},
+	{
+		"inputs": [{ "internalType": "address", "name": "token", "type": "address" }],
+		"name": "nftGate",
+		"outputs": [{ "internalType": "address", "name": "nft", "type": "address" }],
+		"stateMutability": "view",
+		"type": "function"
 	}
 ]

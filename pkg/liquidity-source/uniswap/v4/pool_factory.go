@@ -90,6 +90,7 @@ func (f *PoolFactory) newPool(p *abis.UniswapV4PoolManagerInitialize, blockNbr u
 		UniversalRouterAddress: common.HexToAddress(f.cfg.UniversalRouterAddress),
 		Permit2Address:         common.HexToAddress(f.cfg.Permit2Address),
 		Multicall3Address:      common.HexToAddress(f.cfg.Multicall3Address),
+		PoolManager:            f.cfg.poolManager(),
 	}
 	staticExtraBytes, _ := json.Marshal(staticExtra)
 
@@ -97,7 +98,7 @@ func (f *PoolFactory) newPool(p *abis.UniswapV4PoolManagerInitialize, blockNbr u
 		Address:   poolAddress,
 		SwapFee:   swapFee,
 		Type:      DexType,
-		Exchange:  hook.GetExchange(),
+		Exchange:  ForkExchange(hook.GetExchange(), f.cfg.DexID),
 		Timestamp: time.Now().Unix(),
 		Reserves:  entity.PoolReserves{"0", "0"},
 		Tokens: []*entity.PoolToken{

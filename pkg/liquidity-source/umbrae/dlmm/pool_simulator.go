@@ -35,6 +35,7 @@ type PoolSimulator struct {
 	lastVolUpd uint64
 	trackedAt  uint64
 	router     string // DLMM Router: the token spender / approval target
+	revision   uint8  // pair build mirrored (SwapRevisionV2, SwapRevisionV2Oct2026)
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -80,6 +81,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		lastVolUpd:       extra.LastVolatilityUpdate,
 		trackedAt:        extra.Timestamp,
 		router:           static.Router,
+		revision:         static.SwapRevision,
 	}
 	return s, nil
 }
@@ -122,7 +124,9 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 //     uncharged;
 //   - it errors with ErrInsufficientLiquidity when the book runs dry and with
 //     ErrSwapMovementExceeded when the walk would leave the movement bound — both are execution
-//     reverts on-chain (the view-quote's partial fill would over-promise a reverting route).
+//     reverts on-chain (the view-quote's partial fill would over-promise a reverting route);
+//   - SwapRevisionV2Oct2026 adds the new-window volatility carry, dust absorption in a depleted bin
+//     (calculateSwapWithinBin) and ErrSwapTraversalLimit past 100 moves.
 func (s *PoolSimulator) traverse(amountIn *uint256.Int, swapForY bool) (*uint256.Int, *uint256.Int, SwapInfo, error) {
 	scaleIn, scaleOut := s.scaleX, s.scaleY
 	if !swapForY {
@@ -132,7 +136,13 @@ func (s *PoolSimulator) traverse(amountIn *uint256.Int, swapForY bool) (*uint256
 	entryBinID := s.activeID
 
 	// Derive the working volatility and window anchor (PairSwapLib.performSwap lines 81–147).
-	vol := getDecayedVolatility(s.volAcc, s.lastVolUpd, uint64(s.fp.FilterPeriod), uint64(s.fp.DecayPeriod), s.trackedAt)
+	oct2026 := s.revision >= SwapRevisionV2Oct2026
+	var vol uint64
+	if oct2026 {
+		vol = getCarriedVolatility(s.volAcc, s.lastVolUpd, s.fp, s.trackedAt)
+	} else {
+		vol = getDecayedVolatility(s.volAcc, s.lastVolUpd, uint64(s.fp.FilterPeriod), uint64(s.fp.DecayPeriod), s.trackedAt)
+	}
 	var anchor uint32
 	var volBase uint64
 	var sinceVolUpd uint64
@@ -155,6 +165,7 @@ func (s *PoolSimulator) traverse(amountIn *uint256.Int, swapForY bool) (*uint256
 	amountOutNormalized := uint256.NewInt(0)
 	totalFee := uint256.NewInt(0)
 	crossed := false
+	binsTraversed := 0
 
 	updates := make(map[int]binUpdate)
 
@@ -183,7 +194,8 @@ func (s *PoolSimulator) traverse(amountIn *uint256.Int, swapForY bool) (*uint256
 				}
 
 				binAmountOut, consumedNorm, err := calculateSwapWithinBin(
-					binReserveOut, amountInAfterFeeNormalized, price, s.priceDenominator, scaleIn, scaleOut, swapForY)
+					binReserveOut, amountInAfterFeeNormalized, price, s.priceDenominator, scaleIn, scaleOut, swapForY,
+					currentBinID, s.binStep, oct2026)
 				if err != nil {
 					return nil, nil, SwapInfo{}, err
 				}
@@ -214,6 +226,11 @@ func (s *PoolSimulator) traverse(amountIn *uint256.Int, swapForY bool) (*uint256
 			break
 		}
 
+		// Revision 1: PairSwapLib.performSwap reverts LBPair__SwapTraversalLimitExceeded before the
+		// 101st move.
+		if oct2026 && binsTraversed >= maxSwapBinsTraversed {
+			return nil, nil, SwapInfo{}, ErrSwapTraversalLimit
+		}
 		nextBin, found := s.findNextActiveBin(currentBinID, swapForY)
 		if !found {
 			return nil, nil, SwapInfo{}, ErrInsufficientLiquidity
@@ -226,6 +243,7 @@ func (s *PoolSimulator) traverse(amountIn *uint256.Int, swapForY bool) (*uint256
 		}
 		currentBinID = nextBin
 		crossed = true
+		binsTraversed++
 		vol = min(volBase+distanceFrom(nextBin, anchor), uint64(s.fp.MaxVolatilityAccumulator))
 	}
 

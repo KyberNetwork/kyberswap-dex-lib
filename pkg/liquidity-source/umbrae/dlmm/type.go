@@ -13,12 +13,16 @@ type StaticExtra struct {
 	// calls. Persisted by the lister from Config.RouterAddress so GetApprovalAddress is deployment-
 	// driven rather than hardcoded.
 	Router string `json:"router"`
+	// SwapRevision is the deployment's pair build (Config.SwapRevision), persisted by the lister.
+	// Absent on pools listed before it existed, which reads as SwapRevisionV2.
+	SwapRevision uint8 `json:"swapRevision,omitempty"`
 }
 
 // FeeParameters mirrors the DEPLOYED FeeHelper.FeeParameters (7 fields; no protocolShare —
 // protocol share is global on the factory). maxVolatilityAccumulator is uint24 on-chain.
-// reductionFactor and minSwapBps are carried for ABI fidelity but are DEAD in the V2 swap path:
-// nothing reads reductionFactor, and the V1 min-swap volatility gate was removed.
+// minSwapBps is carried for ABI fidelity but is DEAD (the V1 min-swap volatility gate was removed;
+// revision 1 renames the slot reservedFormerMinSwapBps). reductionFactor is dead in
+// SwapRevisionV2 and drives the new-window volatility carry in SwapRevisionV2Oct2026.
 type FeeParameters struct {
 	BaseFactor               uint16 `json:"baseFactor"`
 	FilterPeriod             uint16 `json:"filterPeriod"`

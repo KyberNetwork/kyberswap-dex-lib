@@ -1,0 +1,791 @@
+{
+ "note": "Swaps on the pool of testdata/onchain/arbitrum-0x7529fe052324e377c83e49af304258cf524460bb.json, run in an eth_call at each block by a probe contract (state-overridden code and token balances) that swaps in order and pays in its callback. Each entry is one swap or swaps in a row; amount is the amount in (exactIn) or out, and in and out are what the pool took and paid. Only swaps that filled in full are kept.",
+ "blocks": [
+  {
+   "block": 518746249,
+   "blockTimestamp": 1793105931,
+   "note": "the fixture block, a later second than the plugin's last timepoint",
+   "swaps": [
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100",
+      "in": "100",
+      "out": "33959718058924"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "100",
+      "in": "2",
+      "out": "100"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000",
+      "in": "100000000",
+      "out": "2095459395798981199"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "1000000",
+      "in": "2",
+      "out": "1000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095474387916604402"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "10000000000",
+      "in": "2",
+      "out": "10000000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000000000",
+      "in": "100000000000000000000",
+      "out": "2095474387930650016"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "100000000000000",
+      "in": "293",
+      "out": "100000000000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000000000000000",
+      "in": "100000000000000000000000000",
+      "out": "2095474387930650030"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "1000000000000000000",
+      "in": "2985719",
+      "out": "1000000000000000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000",
+      "in": "1000000000000",
+      "out": "2"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "100",
+      "in": "34306369514822",
+      "out": "100"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "291"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "100",
+      "in": "34306369514822",
+      "out": "100"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312567"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "10000",
+      "in": "3430916284846793",
+      "out": "10000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "10000000000000000000000",
+      "in": "10000000000000000000000",
+      "out": "2318792"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "10000",
+      "in": "3430916284846793",
+      "out": "10000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "100000000000000000000000000",
+      "in": "100000000000000000000000000",
+      "out": "2318792"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "1000000",
+      "in": "345966589522606882",
+      "out": "1000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000",
+      "in": "100000000",
+      "out": "2095459395798981199"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "14992117621812"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095474387916604402"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "7022463"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000",
+      "in": "100000000",
+      "out": "2095459395798981199"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "96712979"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095474387916604402"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "99990496722433"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095474387916604402"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "10000",
+      "in": "2",
+      "out": "10000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095474387916604402"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "7022463"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2340969"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "291"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095574377516604402"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312567"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "3095370387916605708"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312567"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "10000000000",
+      "in": "2",
+      "out": "10000000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "291"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312279"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312567"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "5079"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312567"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "5079"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "514"
+     }
+    ]
+   ]
+  },
+  {
+   "block": 518744044,
+   "blockTimestamp": 1793105325,
+   "note": "the last block in the second of the plugin's last timepoint, where a swap writes no timepoint; the pool and plugin state equal the fixture's",
+   "swaps": [
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100",
+      "in": "100",
+      "out": "33959718058924"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "100",
+      "in": "2",
+      "out": "100"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000",
+      "in": "100000000",
+      "out": "2095459395798981199"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "1000000",
+      "in": "2",
+      "out": "1000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095474387916604402"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "10000000000",
+      "in": "2",
+      "out": "10000000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000000000",
+      "in": "100000000000000000000",
+      "out": "2095474387930650016"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "100000000000000",
+      "in": "293",
+      "out": "100000000000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000000000000000",
+      "in": "100000000000000000000000000",
+      "out": "2095474387930650030"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "1000000000000000000",
+      "in": "2985719",
+      "out": "1000000000000000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000",
+      "in": "1000000000000",
+      "out": "2"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "100",
+      "in": "34306369514822",
+      "out": "100"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "291"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "100",
+      "in": "34306369514822",
+      "out": "100"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312567"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "10000",
+      "in": "3430916284846793",
+      "out": "10000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "10000000000000000000000",
+      "in": "10000000000000000000000",
+      "out": "2318792"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "10000",
+      "in": "3430916284846793",
+      "out": "10000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "100000000000000000000000000",
+      "in": "100000000000000000000000000",
+      "out": "2318792"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "1000000",
+      "in": "345966589522606882",
+      "out": "1000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000",
+      "in": "100000000",
+      "out": "2095459395798981199"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "14992117621812"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095474387916604402"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "7022463"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000",
+      "in": "100000000",
+      "out": "2095459395798981199"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "96712979"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095474387916604402"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "99990496722433"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095474387916604402"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": false,
+      "amount": "10000",
+      "in": "2",
+      "out": "10000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095474387916604402"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "7022463"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2340969"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "291"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "2095574377516604402"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312567"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "3095370387916605708"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312567"
+     },
+     {
+      "zeroToOne": true,
+      "exactIn": false,
+      "amount": "10000000000",
+      "in": "2",
+      "out": "10000000000"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "100000000000000",
+      "in": "100000000000000",
+      "out": "291"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312279"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312567"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "5079"
+     }
+    ],
+    [
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "2312567"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "5079"
+     },
+     {
+      "zeroToOne": false,
+      "exactIn": true,
+      "amount": "1000000000000000000",
+      "in": "1000000000000000000",
+      "out": "514"
+     }
+    ]
+   ]
+  }
+ ]
+}

@@ -35,8 +35,11 @@ const (
 	slidingFeePluginPriceChangeFactorMethod = "s_priceChangeFactor"
 	slidingFeePluginBaseFeeMethod           = "s_baseFee"
 	slidingFeePluginFeeTypeMethod           = "feeType"
+	slidingFeePluginDynamicFeeEnabledMethod = "dynamicFeeEnabled"
+	slidingFeePluginSlidingFeeEnabledMethod = "slidingFeeEnabled"
 
 	BEFORE_SWAP_FLAG = 1
+	AFTER_SWAP_FLAG  = 2
 	RESOLUTION       = 96
 
 	FEE_FACTOR_SHIFT = 96

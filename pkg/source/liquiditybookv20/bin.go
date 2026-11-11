@@ -66,7 +66,7 @@ func (b *Bin) getAmounts(
 		amountInToBin = maxAmountInToBin
 		amountOutOfBin = binReserveOut
 	} else {
-		totalFee, protocolFee = fp.getFeeAmountDistribution(fp.getFeeAmount(amountIn))
+		totalFee, protocolFee = fp.getFeeAmountDistribution(fp.getFeeAmountFrom(amountIn))
 		amountInToBin = new(big.Int).Sub(amountIn, totalFee)
 
 		if swapForY {

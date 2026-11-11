@@ -1,8 +1,11 @@
 package erc4626
 
 import (
+	"math/big"
+
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
@@ -64,4 +67,53 @@ func interpolateAmountIn(xLo, yLo, xHi, yHi, y *uint256.Int) *uint256.Int {
 	}
 	u256.MulDivUp(&result, result.Sub(y, yLo), dx.Sub(xHi, xLo), dy.Sub(yHi, yLo))
 	return result.Add(xLo, &result)
+}
+
+// Reserves returns the pool reserves [shares, assets]. Each slot is the most of that token you can receive,
+// in its own units: a deposit limit (assets) converts to shares and a redeem limit (shares) to assets with the
+// totalSupply/totalAssets ratio. A nil limit means unbounded (totalSupply / totalAssets). A non-nil zero
+// maxRedeem stays "0", and so does the redeem side of a vault with no redeem gas (redeem unsupported).
+// Without a usable ratio, a limit is kept as is.
+func Reserves(cfg VaultCfg, s *PoolState) entity.PoolReserves {
+	var supply, assets, lim, out uint256.Int
+	if s.TotalSupply != nil {
+		supply.SetFromBig(s.TotalSupply)
+	}
+	if s.TotalAssets != nil {
+		assets.SetFromBig(s.TotalAssets)
+	}
+	canConvert := s.TotalSupply != nil && !assets.IsZero()
+	// convert returns limit * num / denom (512-bit product), saturating at 2^256-1 on overflow.
+	convert := func(limit *big.Int, num, denom *uint256.Int) string {
+		lim.SetFromBig(limit)
+		if _, overflow := out.MulDivOverflow(&lim, num, denom); overflow {
+			out.SetAllOne()
+		}
+		return out.Dec()
+	}
+
+	var shares, assetOut string
+	switch {
+	case s.MaxDeposit != nil && canConvert:
+		shares = convert(s.MaxDeposit, &supply, &assets)
+	case s.MaxDeposit != nil:
+		shares = s.MaxDeposit.String()
+	case s.TotalSupply != nil:
+		shares = supply.Dec()
+	default: // totalSupply read failed: fall back to totalAssets
+		shares = assets.Dec()
+	}
+	switch {
+	case cfg.Gas.Redeem == 0: // redeem unsupported
+		assetOut = "0"
+	case s.MaxRedeem != nil && canConvert && !supply.IsZero():
+		assetOut = convert(s.MaxRedeem, &assets, &supply)
+	case s.MaxRedeem != nil:
+		assetOut = s.MaxRedeem.String()
+	case s.TotalSupply != nil:
+		assetOut = assets.Dec()
+	default:
+		assetOut = "0"
+	}
+	return entity.PoolReserves{shares, assetOut}
 }

@@ -31,6 +31,10 @@ const (
 	maxBinIDDistance     uint64 = 2048
 	maxCumulativeStepBps uint64 = 10000
 
+	// maxSwapBinsTraversed is SwapMovement.MAX_SWAP_BINS_TRAVERSED (revision 1 only): a swap may
+	// move to a new bin at most 100 times; execution reverts on the 101st move.
+	maxSwapBinsTraversed = 100
+
 	factoryMethodAllPairs          = "allPairs"
 	factoryMethodAllPairsLength    = "allPairsLength"
 	factoryMethodGetVariableFeeCap = "getVariableFeeCap"
@@ -47,12 +51,28 @@ const (
 	viewerMethodQuoteSwap  = "quoteSwap"
 )
 
+// Swap revisions: which deployed pair build the simulator mirrors. A deployment sets it in
+// Config.SwapRevision; the lister persists it per pool in StaticExtra.
+const (
+	// SwapRevisionV2 is the V2 stack deployed on Base on 2026-08-24.
+	SwapRevisionV2 uint8 = 0
+	// SwapRevisionV2Oct2026 is the 2026-10 audit build (Robinhood Chain, deployed 2026-10-15). It
+	// adds, over SwapRevisionV2:
+	//   - #1212 volatility carry: once a new filter window opens, a swap starts from
+	//     reductionFactor/10000 of the decayed volatility (FeeHelper.getCarriedVolatility);
+	//   - #1211 dust: when the input left after emptying a bin buys nothing (0 out at that bin, or
+	//     1 there and 0 at the adjacent bin), that bin takes the whole remaining input;
+	//   - the 100-move traversal limit (maxSwapBinsTraversed).
+	SwapRevisionV2Oct2026 uint8 = 1
+)
+
 var (
 	ErrInvalidToken          = errors.New("invalid token")
 	ErrInvalidAmountIn       = errors.New("invalid amount in")
 	ErrInsufficientOutput    = errors.New("insufficient output amount")
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity for full swap")
 	ErrSwapMovementExceeded  = errors.New("swap exceeds movement bound from entry bin")
+	ErrSwapTraversalLimit    = errors.New("swap exceeds the bin traversal limit")
 	ErrPriceNotRepresentable = errors.New("bin price not representable")
 	ErrMathOverflow          = errors.New("math overflow")
 )

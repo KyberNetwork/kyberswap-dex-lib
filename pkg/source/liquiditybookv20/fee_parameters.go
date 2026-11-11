@@ -59,6 +59,12 @@ func (fp *feeParameters) getFeeAmount(amount *big.Int) *big.Int {
 	return result
 }
 
+// getFeeAmountFrom is the fee within amountWithFees, rounded up, as the pair's FeeHelper takes it when
+// a swap ends inside a bin: the fee rate times the whole amount, not the amount net of the fee.
+func (fp *feeParameters) getFeeAmountFrom(amountWithFees *big.Int) *big.Int {
+	return bignumber.MulDivUp(new(big.Int), amountWithFees, fp.getTotalFee(), precison)
+}
+
 func (fp *feeParameters) getTotalFee() *big.Int {
 	var baseFee, variableFee big.Int
 	baseFee = *fp.getBaseFee(&baseFee)

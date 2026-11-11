@@ -29,72 +29,67 @@ func (b *BinU256) isEmpty() bool {
 	return b.ReserveX.IsZero() && b.ReserveY.IsZero()
 }
 
+// getAmounts writes into amountIn, amountOut and fee what a swap of amountsInLeft takes into the
+// bin at activeID, fee included, what it gets out of it, and the fee.
 func (b *BinU256) getAmounts(
 	parameters *parameters,
 	binStep uint16,
 	swapForY bool,
 	activeID uint32,
-	amountsInLeft *uint256.Int,
-) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
-	price, err := getPriceFromID(activeID, binStep)
-	if err != nil {
-		return nil, nil, nil, err
+	amountsInLeft, amountIn, amountOut, fee *uint256.Int,
+) error {
+	var price, maxAmountIn, maxFee, totalFee uint256.Int
+	if err := getPriceFromID(&price, activeID, binStep); err != nil {
+		return err
 	}
 
 	binReserveOut := b.getReserveOut(!swapForY)
 
-	var maxAmountIn *uint256.Int
+	var err error
 	if swapForY {
-		if maxAmountIn, err = shiftDivRoundUp(binReserveOut, scaleOffset, price); err != nil {
-			return nil, nil, nil, err
-		}
+		err = shiftDivRoundUp(&maxAmountIn, binReserveOut, scaleOffset, &price)
 	} else {
-		if maxAmountIn, err = mulShiftRoundUp(binReserveOut, price, scaleOffset); err != nil {
-			return nil, nil, nil, err
-		}
+		err = mulShiftRoundUp(&maxAmountIn, binReserveOut, &price, scaleOffset)
 	}
-
-	totalFee := parameters.getTotalFee(binStep)
-	maxFee, err := getFeeAmount(maxAmountIn, totalFee)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
 
-	maxAmountIn.Add(maxAmountIn, maxFee)
+	parameters.getTotalFee(binStep, &totalFee)
+	if err := getFeeAmount(&maxFee, &maxAmountIn, &totalFee); err != nil {
+		return err
+	}
 
-	amountIn128 := new(uint256.Int).Set(amountsInLeft)
-	var fee128, amountOut128 *uint256.Int
+	maxAmountIn.Add(&maxAmountIn, &maxFee)
 
-	if amountIn128.Cmp(maxAmountIn) >= 0 {
-		fee128 = maxFee
-		amountIn128 = maxAmountIn
-		amountOut128 = binReserveOut
+	if amountsInLeft.Cmp(&maxAmountIn) >= 0 {
+		fee.Set(&maxFee)
+		amountIn.Set(&maxAmountIn)
+		amountOut.Set(binReserveOut)
+		return nil
+	}
+
+	if err := getFeeAmountFrom(fee, amountsInLeft, &totalFee); err != nil {
+		return err
+	}
+	var amountInLessFee uint256.Int
+	amountInLessFee.Sub(amountsInLeft, fee)
+
+	if swapForY {
+		err = mulShiftRoundDown(amountOut, &amountInLessFee, &price, scaleOffset)
 	} else {
-		var err error
-		fee128, err = getFeeAmountFrom(amountIn128, totalFee)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		amountIn := new(uint256.Int).Sub(amountIn128, fee128)
-
-		if swapForY {
-			amountOut128, err = mulShiftRoundDown(amountIn, price, scaleOffset)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-		} else {
-			amountOut128, err = shiftDivRoundDown(amountIn, scaleOffset, price)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-		}
-
-		if amountOut128.Cmp(binReserveOut) > 0 {
-			amountOut128 = binReserveOut
-		}
+		err = shiftDivRoundDown(amountOut, &amountInLessFee, scaleOffset, &price)
+	}
+	if err != nil {
+		return err
 	}
 
-	return amountIn128, amountOut128, fee128, nil
+	if amountOut.Cmp(binReserveOut) > 0 {
+		amountOut.Set(binReserveOut)
+	}
+	amountIn.Set(amountsInLeft)
+
+	return nil
 }
 
 func (b *BinU256) getReserveOut(swapForX bool) *uint256.Int {
@@ -125,34 +120,36 @@ func (b *BinU256) decode(first bool) *uint256.Int {
 
 }
 
+// binReserveChanges is what a swap put into one bin and took out of it: token Y in and X out when
+// SwapForX, token X in and Y out otherwise.
 type binReserveChanges struct {
-	BinID      uint32       `json:"binId"`
-	AmountXIn  *uint256.Int `json:"amountInX"`
-	AmountXOut *uint256.Int `json:"amountOutX"`
-	AmountYIn  *uint256.Int `json:"amountInY"`
-	AmountYOut *uint256.Int `json:"amountOutY"`
+	BinID     uint32
+	SwapForX  bool
+	AmountIn  uint256.Int
+	AmountOut uint256.Int
 }
 
+// newBinReserveChanges copies amountIn and amountOut, which the swap goes on to reuse.
 func newBinReserveChanges(
 	binID uint32,
 	swapForX bool,
 	amountIn *uint256.Int,
 	amountOut *uint256.Int,
 ) binReserveChanges {
-	if swapForX {
-		return binReserveChanges{
-			BinID:      binID,
-			AmountXIn:  new(uint256.Int),
-			AmountXOut: amountOut,
-			AmountYIn:  amountIn,
-			AmountYOut: new(uint256.Int),
-		}
+	return binReserveChanges{BinID: binID, SwapForX: swapForX, AmountIn: *amountIn, AmountOut: *amountOut}
+}
+
+// changeX and changeY are what the swap did to the bin's reserves of X and of Y, modulo 2^256.
+func (c *binReserveChanges) changeX(z *uint256.Int) *uint256.Int {
+	if c.SwapForX {
+		return z.Neg(&c.AmountOut)
 	}
-	return binReserveChanges{
-		BinID:      binID,
-		AmountXIn:  amountIn,
-		AmountXOut: new(uint256.Int),
-		AmountYIn:  new(uint256.Int),
-		AmountYOut: amountOut,
+	return z.Set(&c.AmountIn)
+}
+
+func (c *binReserveChanges) changeY(z *uint256.Int) *uint256.Int {
+	if c.SwapForX {
+		return z.Set(&c.AmountIn)
 	}
+	return z.Neg(&c.AmountOut)
 }

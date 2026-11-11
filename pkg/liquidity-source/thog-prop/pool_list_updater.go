@@ -15,12 +15,6 @@ import (
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
-// ErrTokenOrderMismatch signals that getTokens(poolId) returned an address
-// order different from tokenTable -- every priceWord/priceShift/categoryShift
-// in math.go is keyed by that fixed index, so a mismatch here would silently
-// corrupt every quote. Stop rather than guess.
-var ErrTokenOrderMismatch = errors.New("thog-prop: getTokens() order does not match the documented token table")
-
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
@@ -32,11 +26,7 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpd
 	return &PoolsListUpdater{config: cfg, ethrpcClient: ethrpcClient}
 }
 
-// GetNewPools registers the single fixed 8-token pool ThogAMM's proxy
-// serves. getPoolIds()/getTokens() are read live and cross-checked against
-// the configured pool ID and the hardcoded tokenTable order -- this is a
-// one-time discovery gate, not a per-refresh check (pool_tracker.go handles
-// ongoing state).
+// GetNewPools discovers the current registry; balances are loaded by the tracker.
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	if len(metadataBytes) != 0 {
 		// Already discovered in a prior run; this is a single fixed pool.
@@ -69,13 +59,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	want := tokenAddresses()
-	if len(liveTokens) != len(want) {
-		return nil, metadataBytes, ErrTokenOrderMismatch
+	if len(liveTokens) < 1 || len(liveTokens) > maxTokens {
+		return nil, metadataBytes, ErrInvalidState
 	}
-	for i, addr := range liveTokens {
-		if !strings.EqualFold(hexutil.Encode(addr[:]), want[i]) {
-			return nil, metadataBytes, ErrTokenOrderMismatch
+	for i, address := range liveTokens {
+		if address == (common.Address{}) {
+			return nil, metadataBytes, ErrInvalidState
+		}
+		for j := 0; j < i; j++ {
+			if address == liveTokens[j] {
+				return nil, metadataBytes, ErrInvalidState
+			}
 		}
 	}
 
@@ -84,15 +78,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	poolTokens := make([]*entity.PoolToken, len(tokenTable))
-	reserves := make(entity.PoolReserves, len(tokenTable))
-	for i, t := range tokenTable {
-		poolTokens[i] = &entity.PoolToken{Address: t.Address, Swappable: true}
+	poolTokens := make([]*entity.PoolToken, len(liveTokens))
+	reserves := make(entity.PoolReserves, len(liveTokens))
+	for i, t := range liveTokens {
+		poolTokens[i] = &entity.PoolToken{Address: hexutil.Encode(t[:]), Swappable: true}
 		reserves[i] = "0"
 	}
 
 	pool := entity.Pool{
-		Address:     strings.ToLower(u.config.Proxy),
+		Address:     hexutil.Encode(common.FromHex(u.config.Proxy)),
 		Exchange:    u.config.DexID,
 		Type:        DexType,
 		Timestamp:   time.Now().Unix(),

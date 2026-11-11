@@ -60,6 +60,7 @@ func (p *Pool) walkWordsFloat(zeroForOne, exactInput bool, tick, listTick int,
 	// Word edges come from the exact tables, split into hi+lo floats: a float price model drifts over
 	// thousands of words, and the price difference across one word amplifies that drift ~80x.
 	var sumIn, sumOut float64
+	var lastIn, lastOut float64 // the last word's amounts, to step back one word
 	j := 0
 	for ; j < n; j++ {
 		var next edgeF
@@ -93,6 +94,7 @@ func (p *Pool) walkWordsFloat(zeroForOne, exactInput bool, tick, listTick int,
 			rem -= out
 		}
 		sumIn, sumOut = sumIn+in, sumOut+out
+		lastIn, lastOut = in, out
 		cur = next
 	}
 	if j == 0 {
@@ -102,21 +104,36 @@ func (p *Pool) walkWordsFloat(zeroForOne, exactInput bool, tick, listTick int,
 	var in, out uint256.Int
 	setFloat(&in, sumIn)
 	setFloat(&out, sumOut)
-	if exactInput {
-		if in.Gt(amountSpecifiedRemaining) {
+	// The float remainder can round past the exact one, so the run's sum can overshoot it by a few
+	// units. Walking one word fewer then fits: giving up here sent the exact loop one word on, only
+	// to walk the whole run again from there, word after word.
+	if overshoots(exactInput, &in, &out, amountSpecifiedRemaining, &tmp) {
+		if j--; j == 0 {
 			return tick, 0, nil
 		}
+		setFloat(&in, sumIn-lastIn)
+		setFloat(&out, sumOut-lastOut)
+		if overshoots(exactInput, &in, &out, amountSpecifiedRemaining, &tmp) {
+			return tick, 0, nil
+		}
+	}
+	if exactInput {
 		amountSpecifiedRemaining.Sub(amountSpecifiedRemaining, &in)
 		amountCalculated.Sub(amountCalculated, &out)
 	} else {
-		if out.Gt(tmp.Neg(amountSpecifiedRemaining)) {
-			return tick, 0, nil
-		}
 		amountSpecifiedRemaining.Add(amountSpecifiedRemaining, &out)
 		amountCalculated.Add(amountCalculated, &in)
 	}
 
 	return p.landOnWordEdge(zeroForOne, edge, j, wordTicks, upEdges, sqrtPriceX96)
+}
+
+// overshoots reports whether the run's amounts spend more than the swap has left.
+func overshoots(exactInput bool, in, out, remaining, tmp *uint256.Int) bool {
+	if exactInput {
+		return in.Gt(remaining)
+	}
+	return out.Gt(tmp.Neg(remaining))
 }
 
 // landOnWordEdge moves the price exactly onto the edge j words past edge, so the exact loop resumes

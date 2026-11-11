@@ -16,6 +16,10 @@ type PoolSwapInfo = uniswapv3.SwapInfo
 type SwapInfo struct {
 	PoolSwapInfo
 	HookSwapInfo any
+	// FewReserve is the underlying balance left in the unwrapped Few token's contract after this
+	// swap, nil when the swap unwraps nothing; FewIdx is that Few token's pool index.
+	FewReserve *uint256.Int `json:"-"`
+	FewIdx     int          `json:"-"`
 }
 
 type SubgraphToken struct {
@@ -41,6 +45,8 @@ type StaticExtra struct {
 	UniversalRouterAddress common.Address `json:"uR"`
 	Permit2Address         common.Address `json:"pm2"`
 	Multicall3Address      common.Address `json:"mc3"`
+	// PoolManager is set only for forks with their own PoolManager; nil means PoolManager[chainID].
+	PoolManager *common.Address `json:"pM,omitempty"`
 }
 
 type Extra struct {
@@ -49,12 +55,17 @@ type Extra struct {
 	// TrackedAt (lv) is the unix time the tracker last confirmed the pool's state, kept outside hX
 	// so hX stays pure chain state. Only HookWithLiveness hooks carry it.
 	TrackedAt int64 `json:"lv,omitempty"`
+	// FewReserves (fwR), aligned with token order, is the underlying balance held by each
+	// Few-wrapped pool token's contract: FewWrappedToken.unwrapTo pays out of that balance alone,
+	// so it caps how much of the token can be unwrapped. Set only for pools holding a Few token.
+	FewReserves []*big.Int `json:"fwR,omitempty"`
 }
 
 type ExtraU256 struct {
 	*uniswapv3.ExtraTickU256
-	HookExtra json.RawMessage `json:"hX,omitempty"`
-	TrackedAt int64           `json:"lv,omitempty"`
+	HookExtra   json.RawMessage `json:"hX,omitempty"`
+	TrackedAt   int64           `json:"lv,omitempty"`
+	FewReserves []*uint256.Int  `json:"fwR,omitempty"`
 }
 
 type Slot0Data struct {
@@ -72,6 +83,7 @@ type FetchRPCResult struct {
 	SwapFee     uint32              `json:"swapFee"`
 	HookExtra   json.RawMessage     `json:"hX,omitempty"`
 	TrackedAt   int64               `json:"lv,omitempty"`
+	FewReserves []*big.Int          `json:"fwR,omitempty"`
 }
 
 // ToExtra builds the pool's Extra from this fetch and the given ticks. Every
@@ -86,8 +98,9 @@ func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
 			Tick:         r.Slot0.Tick,
 			Ticks:        ticks,
 		},
-		HookExtra: r.HookExtra,
-		TrackedAt: r.TrackedAt,
+		HookExtra:   r.HookExtra,
+		TrackedAt:   r.TrackedAt,
+		FewReserves: r.FewReserves,
 	}
 }
 
@@ -109,6 +122,8 @@ type PoolMetaInfo struct {
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
 	PriceLimit  *uint256.Int   `json:"priceLimit"`
+	// PoolManager is the pool's manager (own, else PoolManager[chainID]); omitted when unknown.
+	PoolManager *common.Address `json:"manager,omitempty"`
 
 	TokenWrapMetadata *TokenWrapMetadata `json:"tokenWrapMetadata,omitempty"`
 }

@@ -39,3 +39,32 @@ func TestResolveLimitsFailsOnMissingRead(t *testing.T) {
 	assert.False(t, s.Paused)
 	assert.Nil(t, s.MintHeadroom)
 }
+
+func TestResolveMaxDeposit(t *testing.T) {
+	t.Parallel()
+	no, yes, total := big.NewInt(0), big.NewInt(1), big.NewInt(561)
+	vaultV2 := func(recvShares, sendShares, sendAssets *big.Int) PoolState {
+		return PoolState{MaxDeposit: no, CanReceiveShares: recvShares, CanSendShares: sendShares, CanSendAssets: sendAssets}
+	}
+	ignoreZero := VaultCfg{IgnoreZeroMaxDeposit: true}
+	for name, tc := range map[string]struct {
+		s    PoolState
+		cfg  VaultCfg
+		want *big.Int
+	}{
+		"read failed":         {PoolState{}, VaultCfg{}, total},
+		"closed":              {PoolState{MaxDeposit: no}, VaultCfg{}, no}, // e.g. Aave stata over its supply cap
+		"open vaultV2":        {vaultV2(yes, yes, yes), VaultCfg{}, total},
+		"gated assets":        {vaultV2(yes, yes, no), VaultCfg{}, no}, // sendAssetsGate refuses any account
+		"gated share receive": {vaultV2(no, yes, yes), VaultCfg{}, no},
+		"gated share send":    {vaultV2(yes, no, yes), VaultCfg{}, no},
+		"half read":           {vaultV2(yes, yes, nil), VaultCfg{}, no},
+		"ignore zero":         {PoolState{MaxDeposit: no}, ignoreZero, total},
+		"bounded":             {PoolState{MaxDeposit: big.NewInt(7)}, ignoreZero, big.NewInt(7)},
+		"no limit":            {PoolState{MaxDeposit: new(big.Int).Lsh(big.NewInt(1), 200)}, VaultCfg{}, nil},
+	} {
+		tc.s.TotalAssets = total
+		tc.s.ResolveMaxDeposit(tc.cfg)
+		assert.Equal(t, tc.want, tc.s.MaxDeposit, name)
+	}
+}

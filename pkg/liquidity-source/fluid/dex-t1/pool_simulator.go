@@ -556,11 +556,11 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	}
 
 	if triggerUpdateColReserves {
-		updateCollateralReservesAndLimits(swap0To1, amountToSwap, amountOutCollateral, colReserves, currentLimits, outDecimals)
+		updateCollateralReservesAndLimits(swap0To1, amountInCollateral, amountOutCollateral, colReserves, currentLimits, outDecimals)
 	}
 
 	if triggerUpdateDebtReserves {
-		updateDebtReservesAndLimits(swap0To1, amountToSwap, amountOutDebt, debtReserves, currentLimits, outDecimals)
+		updateDebtReservesAndLimits(swap0To1, amountInDebt, amountOutDebt, debtReserves, currentLimits, outDecimals)
 	}
 
 	return fromAdjustedAmount(amountOutCollateral.Add(amountOutCollateral, amountOutDebt), outDecimals), nil

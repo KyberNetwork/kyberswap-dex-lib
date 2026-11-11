@@ -8,15 +8,31 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	few_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/v1"
 	few_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/v2"
+	sharedv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
+
+// tokenWrappers lists few_v2 before few_v1 so, for a token pair with pools in both
+// generations (e.g. WBTC/fwWBTC), the current/active generation wins.
+var tokenWrappers = []ITokenWrapper{few_v2.NewTokenWrapper(), few_v1.NewTokenWrapper()}
+
+// fewWrapped returns the wrap metadata of token if it is a Few-wrapped token.
+func fewWrapped(chainID valueobject.ChainID, token string) (sharedv4.IWrapMetadata, bool) {
+	for _, wrapper := range tokenWrappers {
+		if metadata, ok := wrapper.IsWrapped(chainID, token); ok {
+			return metadata, true
+		}
+	}
+	return nil, false
+}
 
 type PoolSimulator struct {
 	*uniswapv3.PoolSimulator
@@ -24,10 +40,17 @@ type PoolSimulator struct {
 	hook          Hook
 	chainID       valueobject.ChainID
 	tokenWrappers []ITokenWrapper
+	// fewReserves caps how much of each Few-wrapped pool token can be unwrapped (see
+	// Extra.FewReserves); nil for a non-Few token or a pool not yet re-tracked.
+	fewReserves [2]*uint256.Int
+	// fewWrapperIdx is the Few token's index when this pool is that token's own wrap/unwrap
+	// pool (so swapping out of it unwraps it), else -1.
+	fewWrapperIdx int
 
 	// tokens and canSwapTo cache GetTokens and CanSwapTo (keyed by each token of GetTokens): both
 	// depend only on the pool's tokens and the token wrappers, and the route finder calls them far
 	// more often than CalcAmountOut. Not serialized; a decoded simulator computes them per call.
+	exchange  string              `msgpack:"-"` // hook exchange with the fork dexID
 	tokens    []string            `msgpack:"-"`
 	canSwapTo map[string][]string `msgpack:"-"`
 }
@@ -38,6 +61,14 @@ var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimu
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	return newPoolSimulator(entityPool, chainID, false)
+}
+
+func gasForChain(chainID valueobject.ChainID) uniswapv3.Gas {
+	gas := DefaultGas
+	if chainID == valueobject.ChainIDPolygon {
+		gas.CrossEmptyWordGas = polygonCrossEmptyWordGas
+	}
+	return gas
 }
 
 func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, staleCheck bool) (*PoolSimulator, error) {
@@ -89,16 +120,32 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 	if err != nil {
 		return nil, err
 	}
-	v3PoolSimulator.Gas = DefaultGas
+	v3PoolSimulator.Gas = gasForChain(chainID)
+
+	var fewReserves [2]*uint256.Int
+	copy(fewReserves[:], extra.FewReserves)
+	fewWrapperIdx := -1
+	for i, reserve := range fewReserves {
+		if reserve == nil {
+			continue
+		}
+		for _, wrapper := range tokenWrappers {
+			if metadata, ok := wrapper.IsWrapped(chainID, entityPool.Tokens[i].Address); ok &&
+				metadata.GetPool() == entityPool.Address {
+				fewWrapperIdx = i
+			}
+		}
+	}
 
 	p := &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
 		hook:          hook,
+		exchange:      ExchangeOf(hook, "", entityPool.Exchange),
 		chainID:       chainID,
-		// few_v2 is listed before few_v1 so, for a token pair with pools in both
-		// generations (e.g. WBTC/fwWBTC), the current/active generation wins.
-		tokenWrappers: []ITokenWrapper{few_v2.NewTokenWrapper(), few_v1.NewTokenWrapper()},
+		tokenWrappers: tokenWrappers,
+		fewReserves:   fewReserves,
+		fewWrapperIdx: fewWrapperIdx,
 	}
 	p.tokens = p.computeTokens()
 	p.canSwapTo = make(map[string][]string, len(p.tokens))
@@ -108,11 +155,26 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 	return p, nil
 }
 
+// unwrapFew returns the underlying balance left in the contract of the Few token at pool index
+// idx after unwrapping amount of it, or ErrFewUnwrapExceeded when the balance can't cover it
+// (FewWrappedToken.unwrapTo would revert). nil, nil when idx is not a tracked Few token.
+func (p *PoolSimulator) unwrapFew(idx int, amount *big.Int) (*uint256.Int, error) {
+	if idx < 0 || p.fewReserves[idx] == nil {
+		return nil, nil
+	}
+	amt, overflow := uint256.FromBig(amount)
+	if overflow || amt.Gt(p.fewReserves[idx]) {
+		return nil, ErrFewUnwrapExceeded
+	}
+	return amt.Sub(p.fewReserves[idx], amt), nil
+}
+
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult, err error) {
 	originalTokenIn, originalTokenOut := param.TokenAmountIn.Token, param.TokenOut
 	var wrapAdditionalGas int64
 	var beforeSwapResult *BeforeSwapResult
 	var afterSwapResult *AfterSwapResult
+	unwrapIdx := -1 // pool index of the Few token this swap unwraps
 
 	// A native-flagged side trades at native's own decimals on-chain, not the wrapped-native
 	// address's used in p.Tokens; only Arc's differ (18 vs 6). Rescale around the v3 math below.
@@ -157,6 +219,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 		if swapResult.TokenAmountOut.Amount.Sign() < 0 {
 			swapResult = nil
 			err = ErrInvalidAmountOut
+		} else if v4SwapInfo.FewReserve, err = p.unwrapFew(unwrapIdx,
+			swapResult.TokenAmountOut.Amount); err != nil {
+			swapResult = nil
+		} else if v4SwapInfo.FewReserve != nil {
+			v4SwapInfo.FewIdx = unwrapIdx
+			swapResult.SwapInfo = v4SwapInfo
 		}
 	}()
 
@@ -176,10 +244,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			metadata, canUnwrap := wrapper.CanWrap(p.chainID, param.TokenOut)
 			if canUnwrap {
 				param.TokenOut = metadata.GetWrapToken()
+				unwrapIdx = p.GetTokenIndex(param.TokenOut)
 				wrapAdditionalGas += p.Gas.BaseGas
 				break
 			}
 		}
+	} else if p.fewWrapperIdx >= 0 && p.GetTokenIndex(param.TokenAmountIn.Token) == p.fewWrapperIdx {
+		unwrapIdx = p.fewWrapperIdx
 	}
 
 	// If no hooks, just do swap
@@ -259,6 +330,8 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 	var wrapAdditionalGas int64
 	var beforeSwapResult *BeforeSwapResult
 	var afterSwapResult *AfterSwapResult
+	unwrapIdx := -1 // pool index of the Few token this swap unwraps
+	var fewReserve *uint256.Int
 
 	// A native-flagged side trades at native's own decimals on-chain, not the wrapped-native
 	// address's used in p.Tokens; only Arc's differ (18 vs 6). Rescale around the v3 math below.
@@ -272,6 +345,8 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 		}
 		v4SwapInfo := SwapInfo{
 			PoolSwapInfo: swapResult.SwapInfo.(PoolSwapInfo),
+			FewReserve:   fewReserve,
+			FewIdx:       unwrapIdx,
 		}
 
 		if swapResult.TokenAmountIn != nil {
@@ -312,10 +387,16 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			metadata, canWrap := wrapper.CanWrap(p.chainID, param.TokenAmountOut.Token)
 			if canWrap {
 				param.TokenAmountOut.Token = metadata.GetWrapToken()
+				unwrapIdx = p.GetTokenIndex(param.TokenAmountOut.Token)
 				wrapAdditionalGas += p.Gas.BaseGas
 				break
 			}
 		}
+	} else if p.fewWrapperIdx >= 0 && p.GetTokenIndex(param.TokenIn) == p.fewWrapperIdx {
+		unwrapIdx = p.fewWrapperIdx
+	}
+	if fewReserve, err = p.unwrapFew(unwrapIdx, param.TokenAmountOut.Amount); err != nil {
+		return nil, err
 	}
 	if p.GetTokenIndex(param.TokenIn) == -1 {
 		for _, wrapper := range p.tokenWrappers {
@@ -449,7 +530,11 @@ func (p *PoolSimulator) computeCanSwapTo(address string) []string {
 }
 
 func (p *PoolSimulator) GetExchange() string {
-	return p.hook.GetExchange()
+	if p.exchange != "" {
+		return p.exchange
+	}
+	// Unexported fields are empty after a msgpack decode; Info.Exchange keeps the fork name.
+	return ExchangeOf(p.hook, "", p.Info.Exchange)
 }
 
 // GetTokens returns a slice shared with the simulator and its clones: callers must not modify it.
@@ -508,6 +593,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	if p.hook != nil {
 		p.hook.UpdateBalance(v4SwapInfo.HookSwapInfo)
+	}
+	if v4SwapInfo.FewReserve != nil {
+		p.fewReserves[v4SwapInfo.FewIdx] = new(uint256.Int).Set(v4SwapInfo.FewReserve)
 	}
 	params.SwapInfo = v4SwapInfo.PoolSwapInfo
 
@@ -611,6 +699,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		HookAddress:       p.staticExtra.HooksAddress,
 		HookData:          p.hook.GetHookData(),
 		PriceLimit:        priceLimit,
+		PoolManager:       p.poolManager(),
 		TokenWrapMetadata: wrapMetadata,
 	}
 }
@@ -623,4 +712,15 @@ func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, tokenOut string, _ valueobj
 func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, _ valueobject.ChainID) bool {
 	meta := s.GetMetaInfo(tokenIn, tokenOut).(PoolMetaInfo)
 	return meta.TokenOut == NativeTokenAddress
+}
+
+// poolManager is the pool's own manager, else the official one for the chain, else nil.
+func (p *PoolSimulator) poolManager() *common.Address {
+	if p.staticExtra.PoolManager != nil {
+		return p.staticExtra.PoolManager
+	}
+	if pm, ok := PoolManager[p.chainID]; ok {
+		return &pm
+	}
+	return nil
 }

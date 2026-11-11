@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
@@ -69,14 +70,15 @@ func (f *PoolFactory) newPool(p *abis.FluidDexV2LogInitialize, blockNumber uint6
 	}
 
 	staticExtra := StaticExtra{
-		Dex:         f.config.Dex,
-		DexType:     uint32(p.DexType.Uint64()),
-		Fee:         uint32(p.DexKey.Fee.Uint64()),
-		TickSpacing: uint32(p.DexKey.TickSpacing.Uint64()),
-		IsNative:    isNative,
+		TrackLiquidityLimits: f.config.TrackLiquidityLimits,
+		Dex:                  f.config.Dex,
+		DexType:              uint32(p.DexType.Uint64()),
+		Fee:                  uint32(p.DexKey.Fee.Uint64()),
+		TickSpacing:          uint32(p.DexKey.TickSpacing.Uint64()),
+		IsNative:             isNative,
 	}
 	if p.DexKey.Controller != valueobject.AddrZero {
-		staticExtra.Controller = p.DexKey.Controller.String()
+		staticExtra.Controller = hexutil.Encode(p.DexKey.Controller[:])
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {
@@ -142,6 +144,18 @@ func (f *PoolFactory) DecodePoolAddressesFromFactoryLog(_ context.Context, log e
 			}
 
 			return p.DexId, p.DexType, nil
+
+		case abis.DexV2ABI.Events["LogSwapIn"].ID, abis.DexV2ABI.Events["LogSwapOut"].ID:
+			// A swap moves the pool's price and reserves, which the tracker reads whole on any
+			// log of the pool. Every field is in the data. LogSwapOut has the same layout.
+			name := lo.Ternary(log.Topics[0] == abis.DexV2ABI.Events["LogSwapIn"].ID, "LogSwapIn", "LogSwapOut")
+			values, err := abis.DexV2ABI.Unpack(name, log.Data)
+			if err != nil {
+				return [32]byte{}, nil, err
+			}
+			dexType, _ := values[0].(*big.Int)
+			dexId, _ := values[1].([32]byte)
+			return dexId, dexType, nil
 
 		default:
 			return [32]byte{}, nil, nil

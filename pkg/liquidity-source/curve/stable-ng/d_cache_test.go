@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"math/rand/v2"
 	"testing"
-	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -175,7 +174,7 @@ func TestDCacheIgnoredAfterDirectReserveWrite(t *testing.T) {
 // While A ramps it changes with time, so a D cached at one A must not be used: quotes must follow A.
 func TestDCacheNotUsedWhileARamps(t *testing.T) {
 	t.Parallel()
-	now := time.Now().Unix()
+	const now = 1_800_000_000
 	s := newDCacheTestPool(t, dCacheTestPools[0], func(p *entity.Pool) {
 		var extra Extra
 		require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
@@ -186,6 +185,7 @@ func TestDCacheNotUsedWhileARamps(t *testing.T) {
 		require.NoError(t, err)
 		p.Extra = string(b)
 	})
+	s.now = func() int64 { return now }
 	requireCacheMiss(t, s)
 	requireSameQuotes(t, s, rand.New(rand.NewPCG(5, 6)))
 }

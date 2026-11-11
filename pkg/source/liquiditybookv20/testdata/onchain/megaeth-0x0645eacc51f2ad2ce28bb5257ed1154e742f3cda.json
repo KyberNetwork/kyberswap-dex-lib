@@ -1,0 +1,182 @@
+{
+ "chain": "megaeth",
+ "block": 30302137,
+ "pool": {
+  "address": "0x0645eacc51f2ad2ce28bb5257ed1154e742f3cda",
+  "exchange": "sectorone-v20",
+  "type": "liquiditybook-v20",
+  "reserves": [
+   "23142580733365888955",
+   "0"
+  ],
+  "tokens": [
+   {
+    "address": "0x28b7e77f82b25b95953825f1e3ea0e36c1c29861",
+    "swappable": true
+   },
+   {
+    "address": "0x4200000000000000000000000000000000000006",
+    "swappable": true
+   }
+  ],
+  "extra": "{\"rpcBlockTimestamp\":1793099148,\"feeParameters\":{\"binStep\":50,\"baseFactor\":8000,\"filterPeriod\":120,\"decayPeriod\":1200,\"reductionFactor\":5000,\"variableFeeControl\":10000,\"protocolShare\":500,\"maxVolatilityAccumulated\":250000,\"volatilityAccumulated\":0,\"volatilityReference\":0,\"indexRef\":8386498,\"time\":1784357698},\"activeBinId\":8386498,\"bins\":[{\"id\":8386498,\"reserveX\":0,\"reserveY\":0},{\"id\":8386510,\"reserveX\":17426152395808152,\"reserveY\":0},{\"id\":8386511,\"reserveX\":17339455120207289,\"reserveY\":0},{\"id\":8386512,\"reserveX\":17253189174335556,\"reserveY\":0},{\"id\":8386513,\"reserveX\":17167352412274450,\"reserveY\":0},{\"id\":8386514,\"reserveX\":17081942698780168,\"reserveY\":0},{\"id\":8386515,\"reserveX\":16996957909234343,\"reserveY\":0},{\"id\":8386516,\"reserveX\":16912395929586272,\"reserveY\":0},{\"id\":8386517,\"reserveX\":16828254656304886,\"reserveY\":0},{\"id\":8386518,\"reserveX\":16744531996323449,\"reserveY\":0},{\"id\":8386519,\"reserveX\":16661225866987984,\"reserveY\":0},{\"id\":8386520,\"reserveX\":16578334196007726,\"reserveY\":0},{\"id\":8386521,\"reserveX\":16495854921400499,\"reserveY\":0},{\"id\":8386522,\"reserveX\":16413785991443505,\"reserveY\":0},{\"id\":8386523,\"reserveX\":16332125364620575,\"reserveY\":0},{\"id\":8386524,\"reserveX\":16250871009572540,\"reserveY\":0},{\"id\":8386525,\"reserveX\":16170020905047921,\"reserveY\":0},{\"id\":8386526,\"reserveX\":16089573039848759,\"reserveY\":0},{\"id\":8386527,\"reserveX\":16009525412784684,\"reserveY\":0},{\"id\":8386528,\"reserveX\":15929876032621457,\"reserveY\":0},{\"id\":8386529,\"reserveX\":15850622918030990,\"reserveY\":0},{\"id\":8386530,\"reserveX\":15771764097543488,\"reserveY\":0},{\"id\":8386531,\"reserveX\":15693297609496220,\"reserveY\":0},{\"id\":8386532,\"reserveX\":15615221501986138,\"reserveY\":0},{\"id\":8386533,\"reserveX\":15537533832822043,\"reserveY\":0},{\"id\":8386534,\"reserveX\":15460232669474385,\"reserveY\":0},{\"id\":8386535,\"reserveX\":15383316089029239,\"reserveY\":0},{\"id\":8386536,\"reserveX\":15306782178138753,\"reserveY\":0},{\"id\":8386537,\"reserveX\":15230629032973884,\"reserveY\":0},{\"id\":8386538,\"reserveX\":15154854759177994,\"reserveY\":0},{\"id\":8386539,\"reserveX\":15079457471818695,\"reserveY\":0},{\"id\":8386540,\"reserveX\":15004435295341681,\"reserveY\":0},{\"id\":8386541,\"reserveX\":14929786363524061,\"reserveY\":0},{\"id\":8386542,\"reserveX\":14855508819426775,\"reserveY\":0},{\"id\":8386543,\"reserveX\":14781600815349975,\"reserveY\":0},{\"id\":8386544,\"reserveX\":14708060512785902,\"reserveY\":0},{\"id\":8386545,\"reserveX\":14634886082373877,\"reserveY\":0},{\"id\":8386546,\"reserveX\":14562075703854505,\"reserveY\":0},{\"id\":8386547,\"reserveX\":14489627566024492,\"reserveY\":0},{\"id\":8386548,\"reserveX\":14417539866691026,\"reserveY\":0},{\"id\":8386549,\"reserveX\":14345810812627793,\"reserveY\":0},{\"id\":8386550,\"reserveX\":14274438619530139,\"reserveY\":0},{\"id\":8386551,\"reserveX\":14203421511970298,\"reserveY\":0},{\"id\":8386552,\"reserveX\":14132757723353711,\"reserveY\":0},{\"id\":8386553,\"reserveX\":14062445495874410,\"reserveY\":0},{\"id\":8386554,\"reserveX\":13992483080472075,\"reserveY\":0},{\"id\":8386555,\"reserveX\":13922868736788233,\"reserveY\":0},{\"id\":8386556,\"reserveX\":13853600733122802,\"reserveY\":0},{\"id\":8386557,\"reserveX\":13784677346391102,\"reserveY\":0},{\"id\":8386558,\"reserveX\":13716096862080446,\"reserveY\":0},{\"id\":8386559,\"reserveX\":13647857574209584,\"reserveY\":0},{\"id\":8386560,\"reserveX\":13579957785283535,\"reserveY\":0},{\"id\":8386561,\"reserveX\":13512395806252091,\"reserveY\":0},{\"id\":8386562,\"reserveX\":13445169956469810,\"reserveY\":0},{\"id\":8386563,\"reserveX\":13378278563651575,\"reserveY\":0},{\"id\":8386564,\"reserveX\":13311719963832503,\"reserveY\":0},{\"id\":8386565,\"reserveX\":13245492501325605,\"reserveY\":0},{\"id\":8386566,\"reserveX\":13179594528682134,\"reserveY\":0},{\"id\":8386567,\"reserveX\":13114024406648950,\"reserveY\":0},{\"id\":8386568,\"reserveX\":13048780504128485,\"reserveY\":0},{\"id\":8386569,\"reserveX\":12983861198137532,\"reserveY\":0},{\"id\":8386570,\"reserveX\":12919264873768514,\"reserveY\":0},{\"id\":8386571,\"reserveX\":12854989924147862,\"reserveY\":0},{\"id\":8386572,\"reserveX\":12791034750395796,\"reserveY\":0},{\"id\":8386573,\"reserveX\":12727397761587800,\"reserveY\":0},{\"id\":8386574,\"reserveX\":12664077374714114,\"reserveY\":0},{\"id\":8386575,\"reserveX\":12601072014640824,\"reserveY\":0},{\"id\":8386576,\"reserveX\":12538380114070375,\"reserveY\":0},{\"id\":8386577,\"reserveX\":12476000113502619,\"reserveY\":0},{\"id\":8386578,\"reserveX\":12413930461196636,\"reserveY\":0},{\"id\":8386579,\"reserveX\":12352169613130981,\"reserveY\":0},{\"id\":8386580,\"reserveX\":12290716032966073,\"reserveY\":0},{\"id\":8386581,\"reserveX\":12229568192006048,\"reserveY\":0},{\"id\":8386582,\"reserveX\":12168724569160242,\"reserveY\":0},{\"id\":8386583,\"reserveX\":12108183650905720,\"reserveY\":0},{\"id\":8386584,\"reserveX\":12047943931249464,\"reserveY\":0},{\"id\":8386585,\"reserveX\":11988003911691008,\"reserveY\":0},{\"id\":8386586,\"reserveX\":11928362101185084,\"reserveY\":0},{\"id\":8386587,\"reserveX\":11869017016104562,\"reserveY\":0},{\"id\":8386588,\"reserveX\":11809967180203566,\"reserveY\":0},{\"id\":8386589,\"reserveX\":11751211124580661,\"reserveY\":0},{\"id\":8386590,\"reserveX\":45629894351666083,\"reserveY\":0},{\"id\":8386591,\"reserveX\":45402879952023771,\"reserveY\":0},{\"id\":8386592,\"reserveX\":45176994977137938,\"reserveY\":0},{\"id\":8386593,\"reserveX\":44952233808097750,\"reserveY\":0},{\"id\":8386594,\"reserveX\":44728590853828468,\"reserveY\":0},{\"id\":8386595,\"reserveX\":44506060551073087,\"reserveY\":0},{\"id\":8386596,\"reserveX\":44284637364251956,\"reserveY\":0},{\"id\":8386597,\"reserveX\":44064315785325050,\"reserveY\":0},{\"id\":8386598,\"reserveX\":43845090333656768,\"reserveY\":0},{\"id\":8386599,\"reserveX\":43626955555877344,\"reserveY\":0},{\"id\":8386600,\"reserveX\":36732020933271678,\"reserveY\":0},{\"id\":8386601,\"reserveX\":30116147553369039,\"reserveY\":0},{\"id\":8386602,\"reserveX\":30061080247378669,\"reserveY\":0},{\"id\":8386603,\"reserveX\":30006286908062479,\"reserveY\":0},{\"id\":8386604,\"reserveX\":29951766172447048,\"reserveY\":0},{\"id\":8386605,\"reserveX\":29897516684271983,\"reserveY\":0},{\"id\":8386606,\"reserveX\":29843537094029463,\"reserveY\":0},{\"id\":8386607,\"reserveX\":29789826058980598,\"reserveY\":0},{\"id\":8386608,\"reserveX\":29736382242998584,\"reserveY\":0},{\"id\":8386609,\"reserveX\":29683204316649469,\"reserveY\":0},{\"id\":8386610,\"reserveX\":29303672768402503,\"reserveY\":0},{\"id\":8386611,\"reserveX\":9950248755999562,\"reserveY\":0},{\"id\":8386612,\"reserveX\":303476667888657972,\"reserveY\":0},{\"id\":8386613,\"reserveX\":302016337445240908,\"reserveY\":0},{\"id\":8386614,\"reserveX\":300563272327375213,\"reserveY\":0},{\"id\":8386615,\"reserveX\":299117436389208225,\"reserveY\":0},{\"id\":8386616,\"reserveX\":297678793664669122,\"reserveY\":0},{\"id\":8386617,\"reserveX\":296247308366628115,\"reserveY\":0},{\"id\":8386618,\"reserveX\":294822944885975607,\"reserveY\":0},{\"id\":8386619,\"reserveX\":293405667790786707,\"reserveY\":0},{\"id\":8386620,\"reserveX\":291995441825449854,\"reserveY\":0},{\"id\":8386621,\"reserveX\":290592231909681027,\"reserveY\":0},{\"id\":8386622,\"reserveX\":289196003137776047,\"reserveY\":0},{\"id\":8386623,\"reserveX\":287806720777659671,\"reserveY\":0},{\"id\":8386624,\"reserveX\":286424350270083550,\"reserveY\":0},{\"id\":8386625,\"reserveX\":285048857227739440,\"reserveY\":0},{\"id\":8386626,\"reserveX\":283680207434334462,\"reserveY\":0},{\"id\":8386627,\"reserveX\":282318366843903072,\"reserveY\":0},{\"id\":8386628,\"reserveX\":280963301579777246,\"reserveY\":0},{\"id\":8386629,\"reserveX\":279614977933902715,\"reserveY\":0},{\"id\":8386630,\"reserveX\":278273362365841375,\"reserveY\":0},{\"id\":8386631,\"reserveX\":276938421502110065,\"reserveY\":0},{\"id\":8386632,\"reserveX\":275610122135214728,\"reserveY\":0},{\"id\":8386633,\"reserveX\":274288431222892260,\"reserveY\":0},{\"id\":8386634,\"reserveX\":272973315887222238,\"reserveY\":0},{\"id\":8386635,\"reserveX\":271664743413935452,\"reserveY\":0},{\"id\":8386636,\"reserveX\":270362681251470805,\"reserveY\":0},{\"id\":8386637,\"reserveX\":397118436383333875,\"reserveY\":0},{\"id\":8386638,\"reserveX\":526362665652291301,\"reserveY\":0},{\"id\":8386639,\"reserveX\":526362665652295933,\"reserveY\":0},{\"id\":8386640,\"reserveX\":526362665652289871,\"reserveY\":0},{\"id\":8386641,\"reserveX\":526362665652291508,\"reserveY\":0},{\"id\":8386642,\"reserveX\":526362665652296638,\"reserveY\":0},{\"id\":8386643,\"reserveX\":526362665652285609,\"reserveY\":0},{\"id\":8386644,\"reserveX\":526362665652301703,\"reserveY\":0},{\"id\":8386645,\"reserveX\":526362665652295646,\"reserveY\":0},{\"id\":8386646,\"reserveX\":526362665652299147,\"reserveY\":0},{\"id\":8386647,\"reserveX\":526362665652294727,\"reserveY\":0},{\"id\":8386648,\"reserveX\":526362665652283583,\"reserveY\":0},{\"id\":8386649,\"reserveX\":526362665652310671,\"reserveY\":0},{\"id\":8386650,\"reserveX\":526362665652297941,\"reserveY\":0},{\"id\":8386651,\"reserveX\":526362665652290986,\"reserveY\":0},{\"id\":8386652,\"reserveX\":526362665652303135,\"reserveY\":0},{\"id\":8386653,\"reserveX\":526362665652300852,\"reserveY\":0},{\"id\":8386654,\"reserveX\":526362665652304900,\"reserveY\":0},{\"id\":8386655,\"reserveX\":526362665652303617,\"reserveY\":0},{\"id\":8386656,\"reserveX\":526362665652292987,\"reserveY\":0},{\"id\":8386657,\"reserveX\":526362665652308024,\"reserveY\":0},{\"id\":8386658,\"reserveX\":526362665652295871,\"reserveY\":0},{\"id\":8386659,\"reserveX\":526362665652294115,\"reserveY\":0},{\"id\":8386660,\"reserveX\":526362665652294100,\"reserveY\":0},{\"id\":8386661,\"reserveX\":526362665652294800,\"reserveY\":0},{\"id\":8386662,\"reserveX\":526362665652299389,\"reserveY\":0},{\"id\":8386663,\"reserveX\":9950248755985841,\"reserveY\":0},{\"id\":8386664,\"reserveX\":9950248755991500,\"reserveY\":0},{\"id\":8386665,\"reserveX\":9950248755989494,\"reserveY\":0},{\"id\":8386666,\"reserveX\":9950248755984391,\"reserveY\":0},{\"id\":8386667,\"reserveX\":9950248755999635,\"reserveY\":0},{\"id\":8386668,\"reserveX\":9950248755998820,\"reserveY\":0},{\"id\":8386669,\"reserveX\":9950248755999446,\"reserveY\":0},{\"id\":8386670,\"reserveX\":9950248755994053,\"reserveY\":0},{\"id\":8386671,\"reserveX\":9950248755998694,\"reserveY\":0},{\"id\":8386672,\"reserveX\":9950248755991467,\"reserveY\":0},{\"id\":8386673,\"reserveX\":9950248755990839,\"reserveY\":0},{\"id\":8386674,\"reserveX\":9950248755994321,\"reserveY\":0},{\"id\":8386675,\"reserveX\":9950248755994598,\"reserveY\":0},{\"id\":8386676,\"reserveX\":9950248755994766,\"reserveY\":0},{\"id\":8386677,\"reserveX\":9950248755993445,\"reserveY\":0},{\"id\":8386678,\"reserveX\":9950248755999958,\"reserveY\":0},{\"id\":8386679,\"reserveX\":9950248755988545,\"reserveY\":0},{\"id\":8386680,\"reserveX\":9950248755988860,\"reserveY\":0},{\"id\":8386681,\"reserveX\":9950248755994693,\"reserveY\":0},{\"id\":8386682,\"reserveX\":9950248755994127,\"reserveY\":0},{\"id\":8386683,\"reserveX\":9950248755997945,\"reserveY\":0},{\"id\":8386684,\"reserveX\":9950248755994564,\"reserveY\":0},{\"id\":8386685,\"reserveX\":9950248755993111,\"reserveY\":0},{\"id\":8386686,\"reserveX\":9950248755992656,\"reserveY\":0},{\"id\":8386687,\"reserveX\":9950248755995684,\"reserveY\":0},{\"id\":8386688,\"reserveX\":9950248755992080,\"reserveY\":0},{\"id\":8386689,\"reserveX\":9950248755986182,\"reserveY\":0},{\"id\":8386690,\"reserveX\":9950248755995127,\"reserveY\":0},{\"id\":8386691,\"reserveX\":9950248755989604,\"reserveY\":0},{\"id\":8386692,\"reserveX\":9950248755991662,\"reserveY\":0},{\"id\":8386693,\"reserveX\":9950248755987073,\"reserveY\":0},{\"id\":8386694,\"reserveX\":9950248755993854,\"reserveY\":0},{\"id\":8386695,\"reserveX\":9950248755989257,\"reserveY\":0},{\"id\":8386696,\"reserveX\":9950248755991347,\"reserveY\":0},{\"id\":8386697,\"reserveX\":9950248755999997,\"reserveY\":0},{\"id\":8386698,\"reserveX\":9950248755994675,\"reserveY\":0},{\"id\":8386699,\"reserveX\":9950248755999732,\"reserveY\":0},{\"id\":8386700,\"reserveX\":9950248755999209,\"reserveY\":0},{\"id\":8386701,\"reserveX\":9950248755988043,\"reserveY\":0},{\"id\":8386702,\"reserveX\":9950248755995446,\"reserveY\":0},{\"id\":8386703,\"reserveX\":9950248755986940,\"reserveY\":0},{\"id\":8386704,\"reserveX\":9950248755995217,\"reserveY\":0},{\"id\":8386705,\"reserveX\":9950248755995548,\"reserveY\":0},{\"id\":8386706,\"reserveX\":9950248755995318,\"reserveY\":0},{\"id\":8386707,\"reserveX\":9950248755999999,\"reserveY\":0},{\"id\":8386708,\"reserveX\":9950248755999999,\"reserveY\":0},{\"id\":8386709,\"reserveX\":9950248755999999,\"reserveY\":0},{\"id\":8386710,\"reserveX\":9950248755999999,\"reserveY\":0}]}",
+  "blockNumber": 30302137
+ },
+ "quotes": [
+  {
+   "amountIn": "1",
+   "swapForY": false,
+   "amountOut": "0"
+  },
+  {
+   "amountIn": "3",
+   "swapForY": false,
+   "amountOut": "70053"
+  },
+  {
+   "amountIn": "10",
+   "swapForY": false,
+   "amountOut": "315239"
+  },
+  {
+   "amountIn": "30",
+   "swapForY": false,
+   "amountOut": "1015770"
+  },
+  {
+   "amountIn": "100",
+   "swapForY": false,
+   "amountOut": "3467630"
+  },
+  {
+   "amountIn": "300",
+   "swapForY": false,
+   "amountOut": "10402890"
+  },
+  {
+   "amountIn": "1000",
+   "swapForY": false,
+   "amountOut": "34746353"
+  },
+  {
+   "amountIn": "3000",
+   "swapForY": false,
+   "amountOut": "104274087"
+  },
+  {
+   "amountIn": "10000",
+   "swapForY": false,
+   "amountOut": "347603644"
+  },
+  {
+   "amountIn": "30000",
+   "swapForY": false,
+   "amountOut": "1042810932"
+  },
+  {
+   "amountIn": "100000",
+   "swapForY": false,
+   "amountOut": "3476036441"
+  },
+  {
+   "amountIn": "300000",
+   "swapForY": false,
+   "amountOut": "10428109323"
+  },
+  {
+   "amountIn": "1000000",
+   "swapForY": false,
+   "amountOut": "34760364412"
+  },
+  {
+   "amountIn": "3000000",
+   "swapForY": false,
+   "amountOut": "104281093237"
+  },
+  {
+   "amountIn": "10000000",
+   "swapForY": false,
+   "amountOut": "347603644124"
+  },
+  {
+   "amountIn": "30000000",
+   "swapForY": false,
+   "amountOut": "1042810932372"
+  },
+  {
+   "amountIn": "100000000",
+   "swapForY": false,
+   "amountOut": "3476036441240"
+  },
+  {
+   "amountIn": "300000000",
+   "swapForY": false,
+   "amountOut": "10428109323722"
+  },
+  {
+   "amountIn": "1000000000",
+   "swapForY": false,
+   "amountOut": "34760364412407"
+  },
+  {
+   "amountIn": "3000000000",
+   "swapForY": false,
+   "amountOut": "104281093237223"
+  },
+  {
+   "amountIn": "10000000000",
+   "swapForY": false,
+   "amountOut": "347603644124077"
+  },
+  {
+   "amountIn": "30000000000",
+   "swapForY": false,
+   "amountOut": "1042810932372233"
+  },
+  {
+   "amountIn": "100000000000",
+   "swapForY": false,
+   "amountOut": "3476036441240779"
+  },
+  {
+   "amountIn": "300000000000",
+   "swapForY": false,
+   "amountOut": "10428109323722338"
+  },
+  {
+   "amountIn": "1000000000000",
+   "swapForY": false,
+   "amountOut": "34663262013659541"
+  },
+  {
+   "amountIn": "3000000000000",
+   "swapForY": false,
+   "amountOut": "102819491267300123"
+  },
+  {
+   "amountIn": "10000000000000",
+   "swapForY": false,
+   "amountOut": "329359338916340065"
+  },
+  {
+   "amountIn": "30000000000000",
+   "swapForY": false,
+   "amountOut": "895638982220342306"
+  },
+  {
+   "amountIn": "100000000000000",
+   "swapForY": false,
+   "amountOut": "2427999924098389650"
+  },
+  {
+   "amountIn": "300000000000000",
+   "swapForY": false,
+   "amountOut": "6398722484036022668"
+  },
+  {
+   "amountIn": "1000000000000000",
+   "swapForY": false,
+   "amountOut": "18784930860701636141"
+  }
+ ]
+}

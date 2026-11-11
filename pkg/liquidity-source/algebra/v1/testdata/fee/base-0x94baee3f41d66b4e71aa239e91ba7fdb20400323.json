@@ -1,0 +1,70 @@
+{
+ "block": 53160575,
+ "blockTimestamp": 1793110497,
+ "chain": "base",
+ "feeConfig": {
+  "alpha1": 2900,
+  "alpha2": 12000,
+  "beta1": 360,
+  "beta2": 60000,
+  "gamma1": 59,
+  "gamma2": 8500,
+  "volumeBeta": 0,
+  "volumeGamma": 10,
+  "baseFee": 100
+ },
+ "liquidity": 3892477782714,
+ "pool": "0x94baee3f41d66b4e71aa239e91ba7fdb20400323",
+ "storedFee": 1622,
+ "swapFee": 849,
+ "tick": -198855,
+ "timepointIndex": 62537,
+ "timepoints": {
+  "0": {
+   "initialized": true,
+   "blockTimestamp": 1717574119,
+   "tickCumulative": -5039397194900,
+   "secondsPerLiquidityCumulative": 34775028066467474469883751366750,
+   "volatilityCumulative": 726079821800,
+   "averageTick": -193900,
+   "volumePerLiquidityCumulative": 464706197946156625251
+  },
+  "62536": {
+   "initialized": true,
+   "blockTimestamp": 1792868309,
+   "tickCumulative": -19904134350656,
+   "secondsPerLiquidityCumulative": 20520609415555039696949488052715988,
+   "volatilityCumulative": 4447790101022,
+   "averageTick": -198628,
+   "volumePerLiquidityCumulative": 4448854934439984182566
+  },
+  "62537": {
+   "initialized": true,
+   "blockTimestamp": 1792979053,
+   "tickCumulative": -19926142948752,
+   "secondsPerLiquidityCumulative": 20539688606400351403813207146632314,
+   "volatilityCumulative": 4449392030074,
+   "averageTick": -198868,
+   "volumePerLiquidityCumulative": 4449057576699542679423
+  },
+  "62538": {
+   "initialized": true,
+   "blockTimestamp": 1716946683,
+   "tickCumulative": -4917717610120,
+   "secondsPerLiquidityCumulative": 34307744281122126213076868088777,
+   "volatilityCumulative": 722824310543,
+   "averageTick": -193757,
+   "volumePerLiquidityCumulative": 446379899565622404199
+  },
+  "62539": {
+   "initialized": true,
+   "blockTimestamp": 1716949793,
+   "tickCumulative": -4918320269030,
+   "secondsPerLiquidityCumulative": 34310150220695138090515250123086,
+   "volatilityCumulative": 722825816863,
+   "averageTick": -193758,
+   "volumePerLiquidityCumulative": 446382496238747862148
+  }
+ },
+ "volumePerLiquidityInBlock": 90353605882243489
+}

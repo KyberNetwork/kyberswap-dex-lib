@@ -13,6 +13,7 @@ const (
 	ExchangeAltFun                      = "alt-fun"
 	ExchangeFlywheelFun                 = "flywheel-fun"
 	ExchangeAmbient                     = "ambient"
+	ExchangeAmmalgamDLEX                = "ammalgam-dlex"
 	ExchangeApeSwap                     = "apeswap"
 	ExchangeArberaDen                   = "arbera-den"
 	ExchangeArberaDenAmm                = "arbera-den-amm"
@@ -49,6 +50,8 @@ const (
 	ExchangeBeethovenXV3Stable          = "beethovenx-v3-stable"
 	ExchangeBeethovenXV3Weighted        = "beethovenx-v3-weighted"
 	ExchangeBeethovenXWeighted          = "beethovenx-weighted"
+	ExchangeBiconomyProp                = "biconomy-prop"
+	ExchangeDaikonProp                  = "daikon-prop"
 	ExchangeBeetsSS                     = "beets-ss"
 	ExchangeBeracaine                   = "beracaine"
 	ExchangeBeraSwapComposableStable    = "beraswap-composable-stable"
@@ -72,6 +75,7 @@ const (
 	ExchangeCapricornPamm               = "capricorn-pamm"
 	ExchangeCarbon                      = "carbon"
 	ExchangeClear                       = "clear"
+	ExchangeClearRFQ                    = "clear-rfq"
 	ExchangeClipper                     = "clipper"
 	ExchangeCloberOB                    = "clober-ob"
 	ExchangeCoinhaneV3ECLP              = "coinhane-v3-eclp"
@@ -166,6 +170,7 @@ const (
 	ExchangeKrptoDex                    = "kryptodex"
 	ExchangeKTX                         = "ktx"
 	ExchangeKuruOB                      = "kuru-ob"
+	ExchangeKuruOBV2                    = "kuru-ob-v2"
 	ExchangeKyberPMM                    = "kyber-pmm"
 	ExchangeKipseliProp                 = "kipseli-prop"
 	ExchangeKipseliPamm                 = "kipseli-pamm"
@@ -176,6 +181,7 @@ const (
 	ExchangeLiquidCore                  = "liquidcore"
 	ExchangeUSCoreProp                  = "uscore-prop"
 	ExchangeLiquidityParty              = "liquidity-party"
+	ExchangeIguanaDexStable             = "iguanadex-stable"
 	ExchangeListaStable                 = "lista-stable"
 	ExchangeListaStake                  = "lista-stake"
 	ExchangeLitePSM                     = "lite-psm"
@@ -239,7 +245,7 @@ const (
 	ExchangePancakeInfinityCLStable     = "pancake-infinity-cl-stable"
 	ExchangePancakeInfinityCLTax        = "pancake-infinity-cl-tax"
 	ExchangePancakeLegacy               = "pancake-legacy"
-	ExchangePancakeProp                 = "pancake-prop"
+	ExchangeLiquidFiProp                = "liquidfi-prop"
 	ExchangePancakeStable               = "pancake-stable"
 	ExchangePandaFun                    = "panda-fun"
 	ExchangePantherSwap                 = "pantherswap"
@@ -363,6 +369,7 @@ const (
 	ExchangeUniswapV4Peach              = "uniswap-v4-peach"
 	ExchangeUniswapV4PonsV2             = "uniswap-v4-pons-v2"
 	ExchangeUniswapV4Prm                = "uniswap-v4-prm"
+	ExchangeUniswapV4Reafund            = "uniswap-v4-reafund"
 	ExchangeUniswapV4Renzo              = "uniswap-v4-renzo"
 	ExchangeUniswapV4ST0x               = "uniswap-v4-st0x"
 	ExchangeUniswapV4StableStable       = "uniswap-v4-stable-stable"
@@ -395,6 +402,8 @@ const (
 	ExchangeWooFiV3                     = "woofi-v3"
 	ExchangeWrappedNative               = "wrapped-native"
 	ExchangeWRSETH                      = "wrseth"
+	ExchangeZkSwapStable                = "zkswap-stable"
+	ExchangeCustomWrappedNative         = "custom-wrapped-native"
 	ExchangeXSolvBTC                    = "xsolvbtc"
 	ExchangePrintr                      = "printr"
 	ExchangeBaseline                    = "baseline"
@@ -405,6 +414,7 @@ const (
 	ExchangePrmFun                      = "prm-fun"
 	ExchangeTitanProp                   = "titan-prop"
 	ExchangeOdysFun                     = "odys-fun"
+	ExchangeStelaxisProp                = "stelaxis-prop"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
@@ -412,6 +422,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeLO1inch:               {},
 
 	ExchangeBebop:      {},
+	ExchangeClearRFQ:   {},
 	ExchangeClipper:    {},
 	ExchangeDexalot:    {},
 	ExchangeHashflowV3: {},
@@ -498,7 +509,10 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeNemoProp:           {},
 	ExchangeBTRProp:            {},
 	ExchangeUniswapV4HyFiProp:  {},
-	ExchangePancakeProp:        {},
+	ExchangeLiquidFiProp:       {},
+	ExchangeBiconomyProp:       {},
+	ExchangeDaikonProp:         {},
+	ExchangeStelaxisProp:       {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {

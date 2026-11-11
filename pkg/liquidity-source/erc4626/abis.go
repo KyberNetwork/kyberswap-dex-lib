@@ -10,6 +10,7 @@ var (
 	ABI abi.ABI
 
 	uint256Type, _ = abi.NewType("uint256", "", nil)
+	addressType, _ = abi.NewType("address", "", nil)
 )
 
 // Uint256GetterABI builds an ABI holding a single no-arg view method returning uint256.
@@ -17,6 +18,14 @@ func Uint256GetterABI(method string) abi.ABI {
 	return abi.ABI{Methods: map[string]abi.Method{
 		method: abi.NewMethod(method, method, abi.Function, "view", false, false, nil,
 			abi.Arguments{{Type: uint256Type}}),
+	}}
+}
+
+// uint256OfAddressABI builds an ABI holding a single view method taking an address and returning uint256.
+func uint256OfAddressABI(method string) abi.ABI {
+	return abi.ABI{Methods: map[string]abi.Method{
+		method: abi.NewMethod(method, method, abi.Function, "view", false, false,
+			abi.Arguments{{Type: addressType}}, abi.Arguments{{Type: uint256Type}}),
 	}}
 }
 

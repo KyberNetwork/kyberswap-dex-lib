@@ -33,7 +33,8 @@ type PoolSimulator struct {
 	Extra       Extra
 	StaticExtra StaticExtra
 
-	dCache dCache `msgpack:"-"`
+	dCache dCache       `msgpack:"-"`
+	now    func() int64 `msgpack:"-"` // test clock; nil means time.Now
 }
 
 type Gas struct {

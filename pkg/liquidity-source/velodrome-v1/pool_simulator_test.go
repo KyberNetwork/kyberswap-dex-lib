@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
@@ -558,12 +559,23 @@ func TestPoolSimulator_AeroV2OnChain(t *testing.T) {
 		{volatile, tkB, usd6, "400000000000000000000000", "754294615042"},
 	}
 	for _, tc := range cases {
-		sim, err := NewPoolSimulator(tc.pool)
+		// the same pool with balanceOf(pair) equal to the reserves must quote the on-chain getAmountOut too
+		withBalances := tc.pool
+		var extra PoolExtra
+		assert.NoError(t, json.Unmarshal([]byte(tc.pool.Extra), &extra))
+		extra.Balance0, extra.Balance1 = bignumber.NewBig10(tc.pool.Reserves[0]), bignumber.NewBig10(tc.pool.Reserves[1])
+		extraBytes, err := json.Marshal(extra)
 		assert.NoError(t, err)
-		res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.amountIn)}, TokenOut: tc.out})
-		if assert.NoError(t, err, tc.pool.Exchange+" "+tc.amountIn) {
-			assert.Equal(t, tc.expectOut, res.TokenAmountOut.Amount.String(), tc.pool.Exchange+" "+tc.amountIn)
+		withBalances.Extra = string(extraBytes)
+
+		for _, p := range []entity.Pool{tc.pool, withBalances} {
+			sim, err := NewPoolSimulator(p)
+			assert.NoError(t, err)
+			res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.amountIn)}, TokenOut: tc.out})
+			if assert.NoError(t, err, tc.pool.Exchange+" "+tc.amountIn) {
+				assert.Equal(t, tc.expectOut, res.TokenAmountOut.Amount.String(), tc.pool.Exchange+" "+tc.amountIn)
+			}
 		}
 	}
 }

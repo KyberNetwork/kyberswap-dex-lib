@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/titan"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 )
@@ -126,4 +127,23 @@ func TestPoolSimulator_CloneStateIsolatesReserves(t *testing.T) {
 	})
 
 	require.NotEqual(t, sim.GetReserves()[0].String(), cloned.GetReserves()[0].String())
+}
+
+func TestPoolSimulator_MetaInfoOmitsStateOverrides(t *testing.T) {
+	extraBytes, err := json.Marshal(Extra{SO: titan.StateOverrides{"0x01": {"0x02": "0x03"}}})
+	require.NoError(t, err)
+	require.Contains(t, string(extraBytes), `"so"`)
+
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Address: "kipseli-prop_" + testWETH + "_" + testUSDC, Exchange: DexType, Type: DexType,
+		Tokens:      []*entity.PoolToken{{Address: testWETH, Swappable: true}, {Address: testUSDC, Swappable: true}},
+		Reserves:    entity.PoolReserves{"1", "1"},
+		Extra:       string(extraBytes),
+		StaticExtra: `{"routerAddress":"0x5cdbe59400cc2efdcc2b54acca4a99fe00dd588c"}`,
+		Timestamp:   time.Now().Unix(),
+	}})
+	require.NoError(t, err)
+	metaBytes, err := json.Marshal(sim.GetMetaInfo(testWETH, testUSDC))
+	require.NoError(t, err)
+	require.NotContains(t, string(metaBytes), `"so"`)
 }

@@ -33,10 +33,17 @@ func xpMem_inplace(
 	return numTokens
 }
 
+func (t *PoolSimulator) unixNow() int64 {
+	if t.now != nil {
+		return t.now()
+	}
+	return time.Now().Unix()
+}
+
 func (t *PoolSimulator) _A() *uint256.Int {
 	var t1 = t.Extra.FutureATime
 	var a1 = t.Extra.FutureA
-	var now = time.Now().Unix()
+	var now = t.unixNow()
 	if t1 > now {
 		var t0 = t.Extra.InitialATime
 		var a0 = t.Extra.InitialA
@@ -83,7 +90,7 @@ type dCache struct {
 func (t *PoolSimulator) cacheD() {
 	c := &t.dCache
 	c.ok = false
-	if t.Extra.FutureA == nil || t.Extra.FutureATime > time.Now().Unix() {
+	if t.Extra.FutureA == nil || t.Extra.FutureATime > t.unixNow() {
 		return
 	}
 	xp := XpMem(t.Extra.RateMultipliers, t.Reserves)
@@ -98,7 +105,7 @@ func (t *PoolSimulator) cacheD() {
 // writes the reserves directly.
 func (t *PoolSimulator) cachedD(xp []uint256.Int) (*uint256.Int, error) {
 	c := &t.dCache
-	if !c.ok || t.Extra.FutureA == nil || t.Extra.FutureATime > time.Now().Unix() || !c.amp.Eq(t.Extra.FutureA) {
+	if !c.ok || t.Extra.FutureA == nil || t.Extra.FutureATime > t.unixNow() || !c.amp.Eq(t.Extra.FutureA) {
 		return nil, nil
 	}
 	for i := range xp {

@@ -78,7 +78,7 @@ func TestPoolsListUpdater_GetNewPools_MainRegistrySkipsListedPools(t *testing.T)
 
 	getNewPools := func(listed ...string) ([]string, [][]common.Address) {
 		// every call fails: no gamma() and no underlying coins, i.e. a plain pool
-		rpc := testutil.NewTryAggregateStub(t, func(common.Address, []byte) (bool, []byte) { return false, nil })
+		rpc := testutil.NewMulticallStub(t, func(common.Address, []byte) (bool, []byte) { return false, nil })
 		u := NewPoolsListUpdater(&Config{
 			ChainCode:   "ethereum",
 			ChainID:     valueobject.ChainIDEthereum,
