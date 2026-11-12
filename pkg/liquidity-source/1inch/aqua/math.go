@@ -3,6 +3,7 @@ package oneinchaqua
 import (
 	"slices"
 
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -258,19 +259,7 @@ func mulDiv(z, x, y, d *uint256.Int) bool {
 // mulDivCeil sets z = ceil(x*y/d) with a 512-bit intermediate and reports false when d is zero or the result
 // does not fit in 256 bits.
 func mulDivCeil(z, x, y, d *uint256.Int) bool {
-	if d.IsZero() {
-		return false
-	}
-	var rem uint256.Int
-	rem.MulMod(x, y, d)
-	if !mulDiv(z, x, y, d) {
-		return false
-	}
-	if rem.IsZero() {
-		return true
-	}
-	_, overflow := z.AddOverflow(z, big256.U1)
-	return !overflow
+	return !d.IsZero() && v3Utils.MulDivRoundingUpV2(x, y, d, z) == nil
 }
 
 // ceilDiv sets z = ceil(x/d) for d != 0.
