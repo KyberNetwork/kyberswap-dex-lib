@@ -140,11 +140,11 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	s.reserves[indexIn] = new(uint256.Int).Add(s.reserves[indexIn], amountIn)
+	s.reserves[indexIn].Add(s.reserves[indexIn], amountIn)
 	if amountOut.Lt(s.reserves[indexOut]) {
-		s.reserves[indexOut] = new(uint256.Int).Sub(s.reserves[indexOut], amountOut)
+		s.reserves[indexOut].Sub(s.reserves[indexOut], amountOut)
 	} else {
-		s.reserves[indexOut] = new(uint256.Int)
+		s.reserves[indexOut].Clear()
 	}
 }
 

@@ -69,6 +69,9 @@ func (t *PoolTracker) GetNewPoolState(
 	if err != nil {
 		return p, err
 	}
+	if len(resp.Result) != 2 || !resp.Result[0] || !resp.Result[1] {
+		return p, ErrCallReverted
+	}
 	if reserves.ReserveX == nil || reserves.ReserveY == nil ||
 		reserves.ReserveX.Sign() <= 0 || reserves.ReserveY.Sign() <= 0 {
 		return p, ErrInsufficientLiquidity
@@ -116,15 +119,19 @@ func (t *PoolTracker) deriveLpFee(
 		}
 
 		var quote quoteResult
-		if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).
+		resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).
 			AddCall(&ethrpc.Call{
 				ABI:    quoterABI,
 				Target: quoter,
 				Method: "quoteSwapExactInput",
 				Params: []any{marketID, true, probeAmount, []byte{}, []byte{}},
 			}, []any{&quote}).
-			TryAggregate(); err != nil {
+			TryAggregate()
+		if err != nil {
 			return 0, err
+		}
+		if len(resp.Result) != 1 || !resp.Result[0] || quote.ActualOutputAmount == nil {
+			return 0, ErrCallReverted
 		}
 
 		lpFeeBps, err := deriveLpFeeBps(probeAmount, quote.ActualOutputAmount, reserves.ReserveX, reserves.ReserveY, baseFeeBps)

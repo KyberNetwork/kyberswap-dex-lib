@@ -128,6 +128,12 @@ func (u *PoolsListUpdater) decodeMarketCreated(log types.Log) (*entity.Pool, boo
 		return nil, false, err
 	}
 
+	// The tracker fills the fees; seed valid JSON so the simulator can load the pool before then.
+	extra, err := json.Marshal(Extra{TokenX: hexutil.Encode(event.TokenX[:])})
+	if err != nil {
+		return nil, false, err
+	}
+
 	return &entity.Pool{
 		Address:   hexutil.Encode(common.BigToHash(event.MarketID).Bytes()),
 		Exchange:  u.config.DexID,
@@ -138,6 +144,7 @@ func (u *PoolsListUpdater) decodeMarketCreated(log types.Log) (*entity.Pool, boo
 			{Address: hexutil.Encode(event.TokenX[:]), Swappable: true},
 			{Address: hexutil.Encode(event.TokenY[:]), Swappable: true},
 		},
+		Extra:       string(extra),
 		StaticExtra: string(staticExtra),
 		BlockNumber: log.BlockNumber,
 	}, true, nil

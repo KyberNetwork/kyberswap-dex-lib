@@ -54,6 +54,7 @@ func TestDecodeMarketCreatedKeepsPlainSpotMarkets(t *testing.T) {
 	require.Equal(t, "0x0000000000000000000000000000000000000011", pool.Tokens[0].Address)
 	require.Equal(t, "0x0000000000000000000000000000000000000022", pool.Tokens[1].Address)
 	require.Equal(t, DexType, pool.Type)
+	require.JSONEq(t, `{"tokenX":"0x0000000000000000000000000000000000000011","baseFeeBps":0,"lpFeeBps":0}`, pool.Extra)
 }
 
 // A market with an extension, or one on another module, can require component

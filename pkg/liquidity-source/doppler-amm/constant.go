@@ -50,6 +50,7 @@ var (
 	ErrInvalidAmountIn       = errors.New("doppler-amm: invalid amount in")
 	ErrInsufficientOutput    = errors.New("doppler-amm: insufficient output")
 	ErrFeeDerivation         = errors.New("doppler-amm: cannot resolve market fee from quote probe")
+	ErrCallReverted          = errors.New("doppler-amm: rpc call reverted")
 	ErrOverflow              = errors.New("doppler-amm: overflow")
 )
 
