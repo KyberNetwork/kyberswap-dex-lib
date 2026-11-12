@@ -52,6 +52,7 @@ const (
 	ExchangeBeethovenXWeighted          = "beethovenx-weighted"
 	ExchangeBiconomyProp                = "biconomy-prop"
 	ExchangeDaikonProp                  = "daikon-prop"
+	ExchangeDopplerAMM                  = "doppler-amm"
 	ExchangeBeetsSS                     = "beets-ss"
 	ExchangeBeracaine                   = "beracaine"
 	ExchangeBeraSwapComposableStable    = "beraswap-composable-stable"
