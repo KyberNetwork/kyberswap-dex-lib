@@ -7,11 +7,9 @@ const (
 	MetricNameMissingTrieNode       = "missing_trie_node_count"
 	MetricNameUnprocessedEventTopic = "unprocessed_event_topic_count"
 
-	MetricNameDiscardedStrategy     = "discarded_strategy_count"
-	MetricNameTokenUnprobed         = "token_unprobed"
-	MetricNameTokenUnprobedFillable = "token_unprobed_fillable"
-	MetricNameSkippedBlocks         = "skipped_unservable_blocks"
-	MetricNamePortalFallback        = "portal_fallback"
+	MetricNameDiscardedStrategy = "discarded_strategy_count"
+	MetricNameSkippedBlocks     = "skipped_unservable_blocks"
+	MetricNamePortalFallback    = "portal_fallback"
 )
 
 type incrFnType func(ctx context.Context, name string, tags map[string]string, value float64)
@@ -68,18 +66,6 @@ func IncrPortalFallback(exchange, reason string) {
 			"exchange": exchange,
 			"reason":   reason,
 		}, 1)
-	}
-}
-
-// IncrTokenUnprobed counts a strategy left out because a token is not on the probed list, and sums the
-// fillable amount (in the token's smallest unit) that this leaves out.
-func IncrTokenUnprobed(exchange, token string, fillable float64) {
-	if incrFn != nil {
-		tags := map[string]string{"exchange": exchange, "token": token}
-		incrFn(context.Background(), MetricNameTokenUnprobed, tags, 1)
-		if fillable > 0 {
-			incrFn(context.Background(), MetricNameTokenUnprobedFillable, tags, fillable)
-		}
 	}
 }
 

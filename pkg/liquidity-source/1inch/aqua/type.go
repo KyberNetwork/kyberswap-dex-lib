@@ -9,6 +9,9 @@ type StaticExtra struct {
 	Maker        string `json:"maker"`
 	App          string `json:"app"`
 	StrategyHash string `json:"strategyHash"`
+	// Aqua is the Aqua registry the strategy is shipped to. executeAqua approves it for tokenIn and pushes
+	// amountIn to it in the router's callback.
+	Aqua string `json:"aqua"`
 	// Launch is set when the app is the launch router, whose protocol fee pull reverts on a shortfall;
 	// the lister sets it from its config.
 	Launch bool `json:"launch,omitempty"`
@@ -46,8 +49,10 @@ type Extra struct {
 
 // PoolMeta is what the encoder gets per swap: the order to send and the spender to approve.
 type PoolMeta struct {
-	BlockNumber     uint64 `json:"blockNumber"`
+	BlockNumber uint64 `json:"blockNumber"`
+	// ApprovalAddress is the Aqua registry: executeAqua approves it, not the router.
 	ApprovalAddress string `json:"approvalAddress"`
+	Router          string `json:"router"`
 	Maker           string `json:"maker"`
 	Traits          string `json:"traits"`
 	Data            string `json:"data"`

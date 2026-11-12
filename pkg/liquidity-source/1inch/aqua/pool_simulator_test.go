@@ -77,7 +77,7 @@ func newEntity(t testing.TB, o poolOpts) entity.Pool {
 	}
 	traits := order.Traits
 	static := StaticExtra{
-		Maker: addrHex(o.maker), App: addrHex(o.app), StrategyHash: order.Hash().Hex(), Launch: o.app == testLaunch,
+		Maker: addrHex(o.maker), App: addrHex(o.app), StrategyHash: order.Hash().Hex(), Aqua: addrHex(testAqua), Launch: o.app == testLaunch,
 		Traits: traits.Hex(), Data: hexutil.Encode(order.Data),
 	}
 	eb, err := json.Marshal(extra)
@@ -649,11 +649,12 @@ func TestMetaAndApproval(t *testing.T) {
 	s := newSim(t, poolOpts{app: testLaunch})
 	meta, ok := s.GetMetaInfo(s.Info.Tokens[0], s.Info.Tokens[1]).(PoolMeta)
 	require.True(t, ok)
-	require.Equal(t, addrHex(testLaunch), meta.ApprovalAddress)
+	require.Equal(t, addrHex(testAqua), meta.ApprovalAddress, "executeAqua approves the Aqua registry")
+	require.Equal(t, addrHex(testLaunch), meta.Router)
 	require.Equal(t, addrHex(testMaker), meta.Maker)
 	require.Equal(t, uint64(100), meta.BlockNumber)
 	require.Equal(t, hexutil.Encode(defaultProgram()), meta.Data)
-	require.Equal(t, addrHex(testLaunch), s.GetApprovalAddress("", ""))
+	require.Equal(t, addrHex(testAqua), s.GetApprovalAddress("", ""))
 	// What the encoder receives rebuilds the order whose hash is the strategy hash.
 	order, err := (&StaticExtra{Maker: meta.Maker, Traits: meta.Traits, Data: meta.Data}).order()
 	require.NoError(t, err)

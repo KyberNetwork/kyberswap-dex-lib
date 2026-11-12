@@ -37,7 +37,7 @@ func mustReadFile(path string) []byte {
 func testConfig(opts ...func(*Config)) *Config {
 	zero := uint64(0)
 	cfg := &Config{DexId: DexType, ChainId: 1, AquaAddress: testAquaHex, RouterAddress: testRouterHex,
-		StartBlock: 1, LogWindow: 50_000, MaxWindowsPerRun: 20, Confirmations: &zero, ProbedTokens: map[string]string{}}
+		StartBlock: 1, LogWindow: 50_000, MaxWindowsPerRun: 20, Confirmations: &zero}
 	for _, o := range opts {
 		o(cfg)
 	}

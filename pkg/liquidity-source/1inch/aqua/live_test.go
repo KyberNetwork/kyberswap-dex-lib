@@ -45,43 +45,28 @@ var multicall3 = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11
 // Env: ONEINCH_AQUA_RPC_URL (node with eth_getLogs ranges of at least ONEINCH_AQUA_LIVE_WINDOW blocks,
 // default 50000), ONEINCH_AQUA_LIVE_START (first block to scan) or ONEINCH_AQUA_LIVE_BLOCKS (how far back
 // from head, default 150000), optional ONEINCH_AQUA_LAUNCH=1 where the launch router has code.
-//
-// The probed token list belongs to the integration owner; the run first lists with an empty list (the
-// fail-closed default lists nothing) and then probes every token it saw as ok, a shortcut that only this
-// test takes.
 func TestLiveTracker(t *testing.T) {
 	rpcURL := liveEnv(t, "ONEINCH_AQUA_RPC_URL")[0]
 	chain := newScanChain(t, rpcURL)
 	ctx, client, head, start := chain.ctx, chain.client, chain.head, chain.start
 	cfg := chain.config()
 
-	// 1. One scan of the window. With no token probed the lister admits nothing (fail closed); the tokens it
-	// saw then stand in for the probed list, a shortcut only this test takes.
+	// 1. One scan of the window, then the same window through GetNewPools.
 	lister, err := NewPoolsListUpdater(&cfg, client)
 	require.NoError(t, err)
 	started := time.Now()
 	res := chain.scanLogs(t, lister)
 	t.Logf("scan 1: blocks %d..%d in %s, %d strategies shipped", start, head, time.Since(started).Round(time.Second), len(res.shipped))
-	none, _, stats := lister.admitAll(res.shipped, res.docked)
-	require.Empty(t, none, "no token is probed, so no strategy is admitted")
-	t.Logf("discards with no probed token: %v", stats)
+	_, stats := lister.admitAll(res.shipped, res.docked)
+	t.Logf("discards: %v", stats)
 
-	probed := map[string]string{}
-	for _, s := range res.shipped {
-		for _, tk := range s.tokens {
-			probed[hexutil.Encode(tk[:])] = ProbeOK
-		}
-	}
-	cfg.ProbedTokens = probed
-	lister, err = NewPoolsListUpdater(&cfg, client)
-	require.NoError(t, err)
 	started = time.Now()
 	pools, meta, err := lister.GetNewPools(ctx, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, pools)
 	var m Metadata
 	require.NoError(t, json.Unmarshal(meta, &m))
-	t.Logf("scan 2 (GetNewPools): up to block %d in %s, listed %d pools with %d probed tokens", m.LastScannedBlock, time.Since(started).Round(time.Second), len(pools), len(probed))
+	t.Logf("scan 2 (GetNewPools): up to block %d in %s, listed %d pools", m.LastScannedBlock, time.Since(started).Round(time.Second), len(pools))
 	for _, p := range pools {
 		require.Equal(t, entity.PoolReserves{"0", "0"}, p.Reserves)
 		require.Len(t, p.Tokens, 2)
@@ -589,7 +574,7 @@ func batchCall(ctx context.Context, t *testing.T, cl *rpc.Client, elems []rpc.Ba
 // the log scan goes, default 150000) or ONEINCH_AQUA_LIVE_START, optional ONEINCH_AQUA_PORTAL_URL (default
 // https://api.1inch.com) and ONEINCH_AQUA_LAUNCH=1 where the launch router has code. Run it once per chain.
 //
-// The probed list is every token either source saw, a shortcut only this test takes. Checks: the pools both
+// Checks: the pools both
 // paths list are byte-identical (ids, tokens in ascending order, static extra); a pool only the Portal lists
 // is older than the scan window; a pool only the logs list is docked or not shipped on chain at head (the
 // Portal lags docks and ships), with a small tolerance for the newest ships.
@@ -610,7 +595,6 @@ func TestLivePortalVsLogs(t *testing.T) {
 		c.PortalTimeout, c.PortalMaxRetries, c.PortalRetryBackoff = durationjson.Duration{Duration: 30 * time.Second}, &retries, durationjson.Duration{Duration: 2 * time.Second}
 	})
 
-	// The probed list: every token the log scan and the Portal listing saw.
 	probe, err := NewPoolsListUpdater(&cfg, client)
 	require.NoError(t, err)
 	require.NotNil(t, probe.portal, "the Portal must be enabled")
@@ -619,17 +603,8 @@ func TestLivePortalVsLogs(t *testing.T) {
 	items, perr := probe.portal.sweep(ctx)
 	sweepTime := time.Since(sweepStart)
 	require.Nil(t, perr, "the Portal sweep failed")
-	ships, bad := probe.portalShipped(items)
+	_, bad := probe.portalShipped(items)
 	require.Zero(t, bad, "items the lister cannot read")
-	probed := map[string]string{}
-	for _, list := range [][]*shipped{res.shipped, ships} {
-		for _, s := range list {
-			for _, tk := range s.tokens {
-				probed[hexutil.Encode(tk[:])] = ProbeOK
-			}
-		}
-	}
-	cfg.ProbedTokens = probed
 
 	logCfg := cfg
 	logCfg.PortalURL = ""
@@ -799,13 +774,7 @@ func benchPools(t *testing.T, file string) []entity.Pool {
 	require.NoError(t, err)
 	var entries []parityEntry
 	require.NoError(t, json.Unmarshal(raw, &entries))
-	u := &PoolsListUpdater{cfg: &settings{dexId: DexType, router: testRouter, launch: testLaunch, hasLaunch: true,
-		probed: map[string]string{}}}
-	for _, e := range entries {
-		for _, tk := range e.Tokens {
-			u.cfg.probed[strings.ToLower(tk)] = ProbeOK
-		}
-	}
+	u := &PoolsListUpdater{cfg: &settings{dexId: DexType, aqua: testAqua, router: testRouter, launch: testLaunch, hasLaunch: true}}
 	var pools []entity.Pool
 	for _, e := range entries {
 		rawStrategy, err := hexutil.Decode(e.Strategy)
@@ -814,7 +783,7 @@ func benchPools(t *testing.T, file string) []entity.Pool {
 		for _, tk := range e.Tokens {
 			s.tokens = append(s.tokens, common.HexToAddress(tk))
 		}
-		if p, _, reason := u.admit(s, nil); reason == "" {
+		if p, reason := u.admit(s, nil); reason == "" {
 			pools = append(pools, *p)
 		}
 	}
@@ -997,16 +966,12 @@ func TestStatefulReplay(t *testing.T) {
 	require.NoError(t, forkRPC.CallContext(ctx, &forkHead, "eth_blockNumber"))
 	require.Equal(t, rf.ForkBlock, uint64(forkHead), "the anvil fork must sit at forkBlock")
 
-	// The real lister at the block the strategy shipped in builds the pool; both tokens count as probed here
-	// (they were probed separately).
+	// The real lister at the block the strategy shipped in builds the pool.
 	cfg := *testConfig(func(c *Config) {
 		c.ChainId = valueobject.ChainID(rf.ChainId)
 		c.StartBlock, c.LogWindow, c.MaxWindowsPerRun = 1, 1000, 1
 		if strings.EqualFold(rf.Strategy.App, testLaunchHex) {
 			c.LaunchRouterAddress = testLaunchHex
-		}
-		for _, tk := range rf.Strategy.Tokens {
-			c.ProbedTokens[tk] = ProbeOK
 		}
 	})
 	lister, err := NewPoolsListUpdater(&cfg, archive)
@@ -1017,7 +982,7 @@ func TestStatefulReplay(t *testing.T) {
 	logs, _, err := lister.getLogs(ctx, shipBlock, shipBlock, shipBlock+1_000_000)
 	require.NoError(t, err)
 	lister.collect(&res, logs)
-	pools, _, stats := lister.admitAll(res.shipped, res.docked)
+	pools, stats := lister.admitAll(res.shipped, res.docked)
 	var listed *entity.Pool
 	for i := range pools {
 		var se StaticExtra

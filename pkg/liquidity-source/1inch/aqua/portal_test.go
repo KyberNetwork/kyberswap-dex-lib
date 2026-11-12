@@ -114,7 +114,7 @@ func (c *logCapture) joined() string {
 // portalConfig is a lister config with the Portal at fp.
 func portalConfig(fp *fakePortal, mutate ...func(*Config)) Config {
 	retries := 2
-	cfg := Config{DexId: DexType, ChainId: 1, StartBlock: 1, LogWindow: 50, MaxWindowsPerRun: 1, ProbedTokens: probedAll(tokenA, tokenB, tokenC),
+	cfg := Config{DexId: DexType, ChainId: 1, StartBlock: 1, LogWindow: 50, MaxWindowsPerRun: 1,
 		PortalURL: fp.URL, PortalApiKey: testPortalKey, PortalPageLimit: 2, PortalMaxPages: 10,
 		PortalTimeout: durationjson.Duration{Duration: 2 * time.Second}, PortalMaxRetries: &retries,
 		PortalRetryBackoff: durationjson.Duration{Duration: time.Millisecond}}
@@ -485,7 +485,7 @@ func TestPortalAdmission(t *testing.T) {
 	launchOrder := orderOf(testMaker, prog(iFlat(2), iSwap()))
 	unsorted := orderOf(testMaker, prog(iFlat(3), iSwap()))
 	threeTok := orderOf(testMaker, prog(iFlat(4), iSwap()))
-	unprobed := orderOf(testMaker, prog(iFlat(5), iSwap()))
+	excluded := orderOf(testMaker, prog(iFlat(5), iSwap()))
 	unsupported := orderOf(testMaker, prog(ins(0x23), iSwap()))
 	guarded := orderOf(testMaker, prog(ins(opTxOriginGuard, 1), iSwap()))
 	makerMismatch := orderOf(other, prog(iFlat(6), iSwap()))
@@ -506,7 +506,7 @@ func TestPortalAdmission(t *testing.T) {
 		portalItemOf(1, launchOrder, testLaunch, tokenA, tokenB),
 		portalItemOf(1, unsorted, testRouter, tokenB, tokenA),
 		portalItemOf(1, threeTok, testRouter, tokenA, tokenB, tokenC),
-		portalItemOf(1, unprobed, testRouter, tokenA, "0x4444444444444444444444444444444444444444"),
+		portalItemOf(1, excluded, testRouter, tokenA, "0x4444444444444444444444444444444444444444"),
 		portalItemOf(1, unsupported, testRouter, tokenA, tokenB),
 		portalItemOf(1, guarded, testRouter, tokenA, tokenB),
 		makerItem,
@@ -521,7 +521,10 @@ func TestPortalAdmission(t *testing.T) {
 	n := newFakeNode(t, 1000)
 
 	// Without the launch router configured, the launch-app strategy is an unknown app.
-	u, _ := newPortalLister(t, n, fp, portalConfig(fp, func(c *Config) { c.PortalPageLimit = 100 }))
+	u, _ := newPortalLister(t, n, fp, portalConfig(fp, func(c *Config) {
+		c.PortalPageLimit = 100
+		c.ExcludedTokens = []string{"0x4444444444444444444444444444444444444444"}
+	}))
 	pools, meta, err := u.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Equal(t, Metadata{LastPortalHead: 988}, metaOf(t, meta), "discarded items do not fail the sweep")
@@ -535,7 +538,7 @@ func TestPortalAdmission(t *testing.T) {
 	}
 	require.Equal(t, float64(2), got(ReasonApp), "the foreign app and the launch app with no launch router configured")
 	require.Equal(t, float64(3), got(ReasonTokenCount), "3 tokens, 1 token, the same token twice")
-	require.Equal(t, float64(1), got(ReasonTokenUnprobed))
+	require.Equal(t, float64(1), got(ReasonTokenExcluded))
 	require.Equal(t, float64(1), got(ReasonUnsupportedOpcode))
 	require.Equal(t, float64(1), got(ReasonTxOriginGuard))
 	require.Equal(t, float64(1), got(ReasonMakerMismatch))
@@ -547,13 +550,15 @@ func TestPortalAdmission(t *testing.T) {
 	require.Equal(t, []string{tokenA, tokenB}, []string{p.Tokens[0].Address, p.Tokens[1].Address})
 
 	// With the launch router configured the launch strategy is admitted, flagged launch.
+	// Without excludedTokens the strategy with the other token is admitted too.
 	u2, _ := newPortalLister(t, n, fp, portalConfig(fp, func(c *Config) { c.PortalPageLimit = 100; c.LaunchRouterAddress = testLaunchHex }))
 	pools, _, err = u2.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	lp, ok := idsOf(pools)[poolId(testLaunch, launchOrder.Maker, launchOrder.Hash())]
 	require.True(t, ok)
 	require.True(t, decodeStatic(t, lp).Launch)
-	require.Len(t, pools, 4)
+	require.Contains(t, idsOf(pools), poolId(testRouter, excluded.Maker, excluded.Hash()))
+	require.Len(t, pools, 5)
 }
 
 const metricDiscard = "discarded_strategy_count"
@@ -588,7 +593,6 @@ func TestPortalAndLogsMakeIdenticalPools(t *testing.T) {
 	recorder.reset()
 	vectors := loadGolden(t)
 	nodeLogs := newFakeNode(t, 1000)
-	probed := map[string]string{}
 	seen := map[string]bool{}
 	var items []map[string]any
 	for i, v := range vectors {
@@ -596,9 +600,6 @@ func TestPortalAndLogsMakeIdenticalPools(t *testing.T) {
 			continue
 		}
 		seen[v.Strategy] = true
-		for _, tk := range v.Tokens {
-			probed[strings.ToLower(tk)] = ProbeOK
-		}
 		o, err := DecodeOrder(hexutil.MustDecode(v.Strategy))
 		require.NoError(t, err)
 		app := common.HexToAddress(v.App)
@@ -612,9 +613,9 @@ func TestPortalAndLogsMakeIdenticalPools(t *testing.T) {
 		items = append(items, portalItemOf(1, o, app, sorted...))
 	}
 	fp := newFakePortal(t, items...)
-	mut := func(c *Config) { c.ProbedTokens = probed; c.LaunchRouterAddress = testLaunchHex; c.PortalPageLimit = 7 }
+	mut := func(c *Config) { c.LaunchRouterAddress = testLaunchHex; c.PortalPageLimit = 7 }
 
-	logLister := newLister(t, nodeLogs, Config{DexId: DexType, ChainId: 1, StartBlock: 1, ProbedTokens: probed, LaunchRouterAddress: testLaunchHex})
+	logLister := newLister(t, nodeLogs, Config{DexId: DexType, ChainId: 1, StartBlock: 1, LaunchRouterAddress: testLaunchHex})
 	logPools, _, err := logLister.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 
@@ -751,9 +752,8 @@ func TestPortalShippedBadTokenAddress(t *testing.T) {
 	require.Len(t, ships[0].tokens, 2, "a repeated token is one token")
 }
 
-// With no stored cursor the log scan starts at startBlock; a stored cursor wins; and the limit of the unprobed
-// report cap is accepted while one above it is not.
-func TestListerStartAndReportCap(t *testing.T) {
+// With no stored cursor the log scan starts at startBlock and a stored cursor wins.
+func TestListerStart(t *testing.T) {
 	n := newFakeNode(t, 1000)
 	u := newLister(t, n, Config{StartBlock: 100, LogWindow: 50, MaxWindowsPerRun: 1})
 	_, meta, err := u.GetNewPools(context.Background(), nil)
@@ -762,16 +762,6 @@ func TestListerStartAndReportCap(t *testing.T) {
 	require.Equal(t, uint64(149), cursorOf(t, meta))
 	require.Equal(t, uint64(99), u.startCursor(Metadata{}))
 	require.Equal(t, uint64(7), u.startCursor(Metadata{LastScannedBlock: 7}))
-
-	for limit, want := range map[int]string{maxUnprobedReportsLimit: "", maxUnprobedReportsLimit + 1: "above"} {
-		cfg := testConfig(func(c *Config) { c.MaxUnprobedReportsPerRun = limit })
-		_, err := cfg.settings()
-		if want == "" {
-			require.NoError(t, err)
-		} else {
-			require.ErrorContains(t, err, want)
-		}
-	}
 }
 
 // A strategy shipped at or before H that the Portal has not indexed yet is not lost when the Portal then goes

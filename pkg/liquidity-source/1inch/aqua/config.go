@@ -8,18 +8,9 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-)
-
-// Outcomes of the per-chain token transfer probe, the values of Config.ProbedTokens.
-const (
-	ProbeOK                  = "ok"
-	ProbeZeroTransferReverts = "zero_transfer_reverts"
-	ProbeExcluded            = "excluded"
 )
 
 // Config is the deployment properties of the source, one set per chain. Every field that differs by chain or by
@@ -44,14 +35,8 @@ type Config struct {
 	MaxWindowsPerRun int     `json:"maxWindowsPerRun"`
 	Confirmations    *uint64 `json:"confirmations"`
 
-	// ProbedTokens maps a token address to its probe outcome. A token that is not listed is not admitted
-	// (fail closed), so an empty or missing map lists nothing.
-	ProbedTokens map[string]string `json:"probedTokens"`
-
-	// MaxUnprobedReportsPerRun bounds how many token_unprobed strategies one run reads the fillable amount
-	// of (optional: 0 means DefaultMaxUnprobedReports, negative is refused). The strategies past the bound
-	// are still counted, with a fillable of 0, so the reported fillable is a lower bound.
-	MaxUnprobedReportsPerRun int `json:"maxUnprobedReportsPerRun"`
+	// ExcludedTokens is optional: a strategy with a listed token is not admitted.
+	ExcludedTokens []string `json:"excludedTokens"`
 
 	// Portal discovery (lister only). PortalURL is the base URL of the 1inch Business Portal ("https://..."),
 	// empty means the Portal is not used and discovery is the on-chain log scan alone. When it is set, the
@@ -69,12 +54,6 @@ type Config struct {
 	PortalRetryBackoff durationjson.Duration `json:"portalRetryBackoff"`
 }
 
-// DefaultMaxUnprobedReports is MaxUnprobedReportsPerRun when the config leaves it unset.
-const DefaultMaxUnprobedReports = 500
-
-// maxUnprobedReportsLimit is the largest MaxUnprobedReportsPerRun the config accepts.
-const maxUnprobedReportsLimit = 100_000
-
 // settings is Config validated, with addresses parsed and token keys lowercased.
 type settings struct {
 	dexId         string
@@ -86,8 +65,7 @@ type settings struct {
 	logWindow     uint64
 	maxWindows    int
 	confirmations uint64
-	probed        map[string]string
-	maxUnprobed   int
+	excluded      map[common.Address]struct{}
 	// portal is nil when Portal discovery is off: no URL, or a URL with no key.
 	portal *portalSettings
 	// portalNoKey is set when a URL is configured without a key: each run counts a portal_fallback of reason
@@ -185,33 +163,17 @@ func (c *Config) settings() (*settings, error) {
 		return nil, errors.New("1inch-aqua: config maxWindowsPerRun is required and must be above zero")
 	}
 	s.startBlock, s.logWindow, s.maxWindows = c.StartBlock, c.LogWindow, c.MaxWindowsPerRun
-	switch {
-	case c.MaxUnprobedReportsPerRun < 0:
-		return nil, errors.New("1inch-aqua: config maxUnprobedReportsPerRun must not be negative")
-	case c.MaxUnprobedReportsPerRun > maxUnprobedReportsLimit:
-		return nil, errors.Errorf("1inch-aqua: config maxUnprobedReportsPerRun above %d", maxUnprobedReportsLimit)
-	}
-	s.maxUnprobed = lo.Ternary(c.MaxUnprobedReportsPerRun == 0, DefaultMaxUnprobedReports, c.MaxUnprobedReportsPerRun)
 	if s.portal, err = c.portalSettings(); err != nil {
 		return nil, err
 	}
 	s.portalNoKey = c.PortalURL != "" && s.portal == nil
-	s.probed = make(map[string]string, len(c.ProbedTokens))
-	for token, outcome := range c.ProbedTokens {
-		addr, err := parseAddress("probedTokens key", token)
+	s.excluded = make(map[common.Address]struct{}, len(c.ExcludedTokens))
+	for _, token := range c.ExcludedTokens {
+		addr, err := parseAddress("excludedTokens", token)
 		if err != nil {
 			return nil, err
 		}
-		switch outcome {
-		case ProbeOK, ProbeZeroTransferReverts, ProbeExcluded:
-		default:
-			return nil, errors.Errorf("1inch-aqua: config probedTokens: unknown outcome %q for token %s", outcome, token)
-		}
-		key := hexutil.Encode(addr[:])
-		if prev, dup := s.probed[key]; dup && prev != outcome {
-			return nil, errors.Errorf("1inch-aqua: config probedTokens: token %s listed with outcomes %q and %q", key, prev, outcome)
-		}
-		s.probed[key] = outcome
+		s.excluded[addr] = struct{}{}
 	}
 	return s, nil
 }

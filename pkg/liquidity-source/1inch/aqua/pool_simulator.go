@@ -72,6 +72,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	s.limitKeys = [2]string{limitKey(maker, tokens[0]), limitKey(maker, tokens[1])}
 	s.StaticExtra.Maker = maker
 	s.StaticExtra.App = strings.ToLower(s.StaticExtra.App)
+	if !common.IsHexAddress(s.StaticExtra.Aqua) || common.HexToAddress(s.StaticExtra.Aqua) == (common.Address{}) {
+		return nil, ErrInvalidState
+	}
+	s.StaticExtra.Aqua = strings.ToLower(s.StaticExtra.Aqua)
 
 	reserves := make([]*big.Int, 2)
 	for i, r := range entityPool.Reserves {
@@ -377,14 +381,15 @@ func (s *PoolSimulator) GetLimitMergePolicy(string) pool.SwapLimitMergePolicy {
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
 		BlockNumber:     s.Info.BlockNumber,
-		ApprovalAddress: s.StaticExtra.App,
+		ApprovalAddress: s.StaticExtra.Aqua,
+		Router:          s.StaticExtra.App,
 		Maker:           s.StaticExtra.Maker,
 		Traits:          s.StaticExtra.Traits,
 		Data:            s.StaticExtra.Data,
 	}
 }
 
-func (s *PoolSimulator) GetApprovalAddress(_, _ string) string { return s.StaticExtra.App }
+func (s *PoolSimulator) GetApprovalAddress(_, _ string) string { return s.StaticExtra.Aqua }
 
 // maxRefineSteps bounds the walk from the closed-form amountIn to the smallest one that quotes the amount
 // out. The closed form is exact, so the walk does not move; it guards the result against a rounding rule

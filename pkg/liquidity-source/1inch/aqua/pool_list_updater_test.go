@@ -225,14 +225,6 @@ var (
 	tokenC = "0x3333333333333333333333333333333333333333"
 )
 
-func probedAll(tokens ...string) map[string]string {
-	m := map[string]string{}
-	for _, tk := range tokens {
-		m[tk] = ProbeOK
-	}
-	return m
-}
-
 func txHash(i int) common.Hash { return common.BigToHash(big.NewInt(int64(i))) }
 
 // ship adds a Shipped log and Pushed logs for the tokens, the way Aqua.ship emits them.
@@ -249,9 +241,6 @@ func ship(t testing.TB, n *fakeNode, block uint64, tx common.Hash, firstIndex ui
 
 func newLister(t *testing.T, n *fakeNode, cfg Config) *PoolsListUpdater {
 	t.Helper()
-	if cfg.ProbedTokens == nil {
-		cfg.ProbedTokens = probedAll(tokenA, tokenB, tokenC)
-	}
 	base := testConfig()
 	if cfg.Confirmations == nil {
 		cfg.Confirmations = base.Confirmations
@@ -350,7 +339,7 @@ func TestListerDiscardReasons(t *testing.T) {
 	add(ReasonUnsupportedOpcode, orderOf(testMaker, prog(ins(0x20, 1, 2), iSwap())), testRouter, tokenA, tokenB)
 	add(ReasonTokenCount, orderOf(testMaker, good), testRouter, tokenA)
 	add(ReasonTokenCount, orderOf(testMaker, good), testRouter, tokenA, tokenB, tokenC)
-	add(ReasonTokenUnprobed, orderOf(testMaker, prog(iFlat(3), iSwap())), testRouter, tokenA, "0x4444444444444444444444444444444444444444")
+	add("", orderOf(testMaker, prog(iFlat(3), iSwap())), testRouter, tokenA, "0x4444444444444444444444444444444444444444") // any token is admitted
 	add(ReasonTokenExcluded, orderOf(testMaker, prog(iFlat(4), iSwap())), testRouter, tokenA, "0x5555555555555555555555555555555555555555")
 	add("", orderOf(testMaker, prog(iFlat(5), iSwap())), testRouter, tokenA, tokenB) // admitted
 	add("", orderOf(testMaker, prog(iFlat(6), iSwap())), testRouter, tokenA, "0x6666666666666666666666666666666666666666")
@@ -379,55 +368,45 @@ func TestListerDiscardReasons(t *testing.T) {
 	hd := ship(t, n, 21, tx, idx, od, testRouter, tokenA, tokenB)
 	n.add(dockedLog(t, 25, 0, txHash(900), testMaker, testRouter, hd))
 	want[ReasonDockedInWindow]++
-	// Docked in the window with a token that is not probed: docked, not unprobed.
+	// Docked in the window with an excluded token: docked, not excluded.
 	tx, idx = next()
 	odu := orderOf(testMaker, prog(iFlat(11), iSwap()))
-	hdu := ship(t, n, 21, tx, idx, odu, testRouter, tokenA, "0x4444444444444444444444444444444444444444")
+	hdu := ship(t, n, 21, tx, idx, odu, testRouter, tokenA, "0x5555555555555555555555555555555555555555")
 	n.add(dockedLog(t, 26, 0, txHash(901), testMaker, testRouter, hdu))
 	want[ReasonDockedInWindow]++
-	// Launch router configured: zero-transfer-reverting token with a protocol fee is out, without a fee it is in.
+	// A launch strategy with a protocol fee: unknown_app without the launch router configured, a pool with it.
 	tx, idx = next()
 	ship(t, n, 22, tx, idx, orderOf(testMaker, prog(iProtocol(5, testRecipient), iSwap())), launchOnly, tokenA, "0x7777777777777777777777777777777777777777")
-	want[ReasonZeroTransferRevertsFees]++
 
-	probed := probedAll(tokenA, tokenB, tokenC)
-	probed["0x5555555555555555555555555555555555555555"] = ProbeExcluded
-	probed["0x6666666666666666666666666666666666666666"] = ProbeZeroTransferReverts
-	probed["0x7777777777777777777777777777777777777777"] = ProbeZeroTransferReverts
+	excluded := []string{"0x5555555555555555555555555555555555555555"}
 	zero := uint64(0)
 
-	// Without a launch router configured the launch-app strategy is unknown_app; with it, the fee rule.
-	u := newLister(t, n, Config{StartBlock: 1, ProbedTokens: probed, Confirmations: &zero})
+	u := newLister(t, n, Config{StartBlock: 1, ExcludedTokens: excluded, Confirmations: &zero})
 	pools, _, err := u.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	got := map[DiscardReason]int{}
-	for _, r := range []DiscardReason{ReasonApp, ReasonTxOriginGuard, ReasonUnsupportedOpcode, ReasonTokenCount, ReasonTokenUnprobed,
+	for _, r := range []DiscardReason{ReasonApp, ReasonTxOriginGuard, ReasonUnsupportedOpcode, ReasonTokenCount,
 		ReasonTokenExcluded, ReasonMakerMismatch, ReasonNonCanonical, ReasonDockedInWindow} {
 		got[r] = int(recorder.get(MetricNameForTest + "|" + string(r)))
 	}
 	require.Equal(t, want[ReasonTxOriginGuard], got[ReasonTxOriginGuard])
 	require.Equal(t, want[ReasonUnsupportedOpcode], got[ReasonUnsupportedOpcode])
 	require.Equal(t, want[ReasonTokenCount], got[ReasonTokenCount])
-	require.Equal(t, want[ReasonTokenUnprobed], got[ReasonTokenUnprobed])
 	require.Equal(t, want[ReasonTokenExcluded], got[ReasonTokenExcluded])
 	require.Equal(t, want[ReasonMakerMismatch], got[ReasonMakerMismatch])
 	require.Equal(t, want[ReasonNonCanonical], got[ReasonNonCanonical])
 	require.Equal(t, want[ReasonDockedInWindow], got[ReasonDockedInWindow])
 	// The launch fee strategy: unknown_app here (3 in total with the other app discards).
 	require.Equal(t, float64(3), recorder.get(MetricNameForTest+"|"+string(ReasonApp)))
-	require.Len(t, pools, 2, "the two admitted strategies")
-	// token_unprobed reports both tokens of the strategy it left out (the multicall is not served here,
-	// so the fillable stays zero).
-	require.Equal(t, float64(1), recorder.get("token_unprobed|0x4444444444444444444444444444444444444444"),
-		"the docked strategy with the same unprobed token is not reported")
-	require.Equal(t, float64(2), recorder.get("token_unprobed|"+tokenA), "the unprobed and the excluded strategy both hold token A")
+	require.Len(t, pools, 3, "the three admitted strategies")
 
-	// With the launch router configured the fee strategy is refused for its token.
+	// With the launch router configured both launch strategies are pools too, the one with a protocol fee
+	// included.
 	recorder.reset()
-	u2 := newLister(t, n, Config{StartBlock: 1, ProbedTokens: probed, LaunchRouterAddress: testLaunchHex})
-	_, _, err = u2.GetNewPools(context.Background(), nil)
+	u2 := newLister(t, n, Config{StartBlock: 1, ExcludedTokens: excluded, LaunchRouterAddress: testLaunchHex})
+	pools, _, err = u2.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
-	require.Equal(t, float64(1), recorder.get(MetricNameForTest+"|"+string(ReasonZeroTransferRevertsFees)))
+	require.Len(t, pools, 5)
 	require.Equal(t, float64(1), recorder.get(MetricNameForTest+"|"+string(ReasonApp)), "only the foreign app: the launch app now passes the app check")
 }
 
@@ -607,35 +586,6 @@ func TestListerDeduplicatesPools(t *testing.T) {
 	pools, _, err := newLister(t, n, Config{StartBlock: 1}).GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, pools, 1)
-}
-
-func TestReportUnprobedFillable(t *testing.T) {
-	recorder.reset()
-	chain := newFakeChain()
-	maker := testMaker
-	o := orderOf(maker, prog(iFlat(1), iSwap()))
-	hash := o.Hash()
-	chain.raw[rawKey(maker, testRouter, hash, common.HexToAddress(tokenA))] = [2]*big.Int{big.NewInt(500), big.NewInt(2)}
-	chain.raw[rawKey(maker, testRouter, hash, common.HexToAddress(tokenB))] = [2]*big.Int{big.NewInt(900), big.NewInt(2)}
-	chain.setWallet(maker.Hex(), tokenA, uint256.NewInt(400), uint256.NewInt(1000))
-	chain.setWallet(maker.Hex(), tokenB, uint256.NewInt(2000), uint256.NewInt(300))
-	// A docked strategy adds nothing.
-	o2 := orderOf(maker, prog(iFlat(2), iSwap()))
-	chain.raw[rawKey(maker, testRouter, o2.Hash(), common.HexToAddress(tokenA))] = [2]*big.Int{big.NewInt(500), big.NewInt(tokensCountDocked)}
-	chain.raw[rawKey(maker, testRouter, o2.Hash(), common.HexToAddress(tokenB))] = [2]*big.Int{big.NewInt(500), big.NewInt(tokensCountDocked)}
-
-	tr, stub := chain.tracker(t)
-	_ = tr
-	u := &PoolsListUpdater{cfg: &settings{dexId: DexType, aqua: aquaAddr, maxUnprobed: DefaultMaxUnprobedReports}, ethrpcClient: stub.Client()}
-	pair := [2]common.Address{common.HexToAddress(tokenA), common.HexToAddress(tokenB)}
-	u.reportUnprobed(context.Background(), []unprobedStrategy{
-		{maker: maker, app: testRouter, hash: hash, tokens: pair},
-		{maker: maker, app: testRouter, hash: o2.Hash(), tokens: pair},
-	})
-	require.Equal(t, float64(2), recorder.get("token_unprobed|"+tokenA))
-	require.Equal(t, float64(400), recorder.get("token_unprobed_fillable|"+tokenA), "min(raw 500, balance 400, allowance 1000)")
-	require.Equal(t, float64(300), recorder.get("token_unprobed_fillable|"+tokenB), "min(raw 900, balance 2000, allowance 300)")
-	u.reportUnprobed(context.Background(), nil)
 }
 
 // A throttled, timed-out or dropped request never skips a block and never moves the cursor: the error
@@ -927,39 +877,6 @@ func TestListerCanonicalTokenOrder(t *testing.T) {
 	require.Equal(t, tokenB, simDesc.Info.Tokens[1])
 }
 
-// The report reads the fillable of at most maxUnprobed strategies, in multicalls of unprobedBatch; the
-// strategies past the bound are still counted.
-func TestReportUnprobedIsBoundedAndBatched(t *testing.T) {
-	recorder.reset()
-	chain := newFakeChain()
-	const total, bound = 120, 110
-	pair := [2]common.Address{common.HexToAddress(tokenA), common.HexToAddress(tokenB)}
-	chain.setWallet(testMaker.Hex(), tokenA, uint256.NewInt(1000), uint256.NewInt(1000))
-	chain.setWallet(testMaker.Hex(), tokenB, uint256.NewInt(1000), uint256.NewInt(1000))
-	var items []unprobedStrategy
-	for i := range total {
-		hash := common.BigToHash(big.NewInt(int64(i + 1)))
-		for _, tk := range pair {
-			chain.raw[rawKey(testMaker, testRouter, hash, tk)] = [2]*big.Int{big.NewInt(10), big.NewInt(2)}
-		}
-		items = append(items, unprobedAt(hash, pair))
-	}
-	_, stub := chain.tracker(t)
-	u := &PoolsListUpdater{cfg: &settings{dexId: DexType, aqua: aquaAddr, maxUnprobed: bound}, ethrpcClient: stub.Client()}
-	u.reportUnprobed(context.Background(), items)
-
-	calls := stub.Targets()
-	require.Len(t, calls, 3, "110 strategies in batches of 50, 50, 10")
-	require.Len(t, calls[0], 6*unprobedBatch)
-	require.Len(t, calls[2], 6*10)
-	require.Equal(t, float64(total), recorder.get("token_unprobed|"+tokenA), "every strategy is counted")
-	require.Equal(t, float64(bound*10), recorder.get("token_unprobed_fillable|"+tokenA), "the fillable of the bounded strategies only")
-}
-
-func unprobedAt(hash common.Hash, pair [2]common.Address) unprobedStrategy {
-	return unprobedStrategy{maker: testMaker, app: testRouter, hash: hash, tokens: pair}
-}
-
 // Scan skips only blocks the node cannot serve because it pruned them. HyperEVM nodes send the same
 // "invalid block range" for a block above their head, so an unservable block close to the confirmed head
 // is an error: the cursor stays and no block is counted as skipped.
@@ -1128,12 +1045,11 @@ func TestHyperEVMHookExtructionOrderExcluded(t *testing.T) {
 	_, err = parseProgram(program, true)
 	requireReason(t, err, ReasonUnsupportedOpcode, "extruction on the launch router")
 
-	// Through the lister: with both tokens probed the order still never becomes a pool.
-	u := &PoolsListUpdater{cfg: &settings{dexId: DexType, router: common.HexToAddress(v.App),
-		probed: map[string]string{v.Tokens[0]: ProbeOK, v.Tokens[1]: ProbeOK}}}
+	// Through the lister the order still never becomes a pool.
+	u := &PoolsListUpdater{cfg: &settings{dexId: DexType, router: common.HexToAddress(v.App)}}
 	s := &shipped{maker: order.Maker, app: common.HexToAddress(v.App), hash: order.Hash(), strategy: raw,
 		tokens: []common.Address{common.HexToAddress(v.Tokens[0]), common.HexToAddress(v.Tokens[1])}}
-	pool, _, reason := u.admit(s, nil)
+	pool, reason := u.admit(s, nil)
 	require.Nil(t, pool)
 	require.Equal(t, ReasonHooks, reason)
 }
@@ -1179,19 +1095,15 @@ func TestListerOverLiveStrategies(t *testing.T) {
 		ungated[v.Strategy] = v
 	}
 	n2 := newFakeNode(t, 1000)
-	probed := map[string]string{}
 	i := 0
 	for strategy, v := range ungated {
 		i++
 		raw := hexutil.MustDecode(strategy)
 		o, err := DecodeOrder(raw)
 		require.NoError(t, err)
-		for _, tk := range v.Tokens {
-			probed[strings.ToLower(tk)] = ProbeOK
-		}
 		ship(t, n2, 10, txHash(700+i), 0, o, common.HexToAddress(v.App), strings.ToLower(v.Tokens[0]), strings.ToLower(v.Tokens[1]))
 	}
-	pools, _, err = newLister(t, n2, Config{StartBlock: 1, ProbedTokens: probed, LaunchRouterAddress: testLaunchHex}).GetNewPools(context.Background(), nil)
+	pools, _, err = newLister(t, n2, Config{StartBlock: 1, LaunchRouterAddress: testLaunchHex}).GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, pools, len(ungated))
 	for _, p := range pools {
@@ -1210,13 +1122,9 @@ func TestGoldenQuotesThroughLister(t *testing.T) {
 	recorder.reset()
 	vectors := loadGolden(t)
 	n := newFakeNode(t, 1000)
-	probed := map[string]string{}
 	shippedStrategy := map[string]bool{}
 	var descending int
 	for i, v := range vectors {
-		for _, tk := range v.Tokens {
-			probed[strings.ToLower(tk)] = ProbeOK
-		}
 		if shippedStrategy[v.Strategy] {
 			continue
 		}
@@ -1229,7 +1137,7 @@ func TestGoldenQuotesThroughLister(t *testing.T) {
 		ship(t, n, 10, txHash(900+i), 0, o, common.HexToAddress(v.App), strings.ToLower(v.Tokens[0]), strings.ToLower(v.Tokens[1]))
 	}
 	require.Positive(t, descending, "the vectors include strategies pushed in descending token order")
-	pools, _, err := newLister(t, n, Config{StartBlock: 1, ProbedTokens: probed, LaunchRouterAddress: testLaunchHex}).GetNewPools(context.Background(), nil)
+	pools, _, err := newLister(t, n, Config{StartBlock: 1, LaunchRouterAddress: testLaunchHex}).GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Len(t, pools, len(shippedStrategy))
 	byId := map[string]entity.Pool{}

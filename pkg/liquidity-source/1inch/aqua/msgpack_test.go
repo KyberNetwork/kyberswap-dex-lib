@@ -31,7 +31,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	program = append(program, 0x11, 0, 0x14, 1, 7)
 	order := &oneinchaqua.Order{Maker: maker, Traits: traits, Data: program}
 	static, err := json.Marshal(oneinchaqua.StaticExtra{Maker: "0x34b53a760cc91ed37085bfc6493621d10a6a25b8",
-		App: "0x111111338c5091e8440b67b168bae16a668ac0de", StrategyHash: order.Hash().Hex(), Traits: traits.Hex(), Data: hexutil.Encode(program)})
+		App: "0x111111338c5091e8440b67b168bae16a668ac0de", Aqua: "0x1111113ccf1426a8e30e2bff5e005d929bf6a90a", StrategyHash: order.Hash().Hex(), Traits: traits.Hex(), Data: hexutil.Encode(program)})
 	require.NoError(t, err)
 	unlimited := new(uint256.Int).Not(new(uint256.Int))
 	extra, err := json.Marshal(&oneinchaqua.Extra{RawBalance0: e18(1000), RawBalance1: e18(1000), RawBlock: 5,

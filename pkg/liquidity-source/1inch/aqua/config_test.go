@@ -33,20 +33,11 @@ func TestConfigSettings(t *testing.T) {
 		"no windows per run":    {func(c *Config) { c.MaxWindowsPerRun = 0 }, "maxWindowsPerRun is required"},
 		"negative windows":      {func(c *Config) { c.MaxWindowsPerRun = -1 }, "maxWindowsPerRun is required"},
 		"missing confirmations": {func(c *Config) { c.Confirmations = nil }, "confirmations is required"},
-		"bad probe outcome":     {func(c *Config) { c.ProbedTokens = map[string]string{tokenA: "maybe"} }, "unknown outcome"},
 		"launch is router":      {func(c *Config) { c.LaunchRouterAddress = strings.ToUpper(testRouterHex[:2]) + testRouterHex[2:] }, "equals routerAddress"},
 		"launch is aqua":        {func(c *Config) { c.LaunchRouterAddress = testAquaHex }, "equals aquaAddress"},
-		"probed key malformed":  {func(c *Config) { c.ProbedTokens = map[string]string{"0x12": ProbeOK} }, "not an address"},
-		"probed key not hex":    {func(c *Config) { c.ProbedTokens = map[string]string{"dai": ProbeOK} }, "not an address"},
-		"probed key zero": {func(c *Config) {
-			c.ProbedTokens = map[string]string{"0x0000000000000000000000000000000000000000": ProbeOK}
-		}, "zero address"},
-		"probed empty outcome": {func(c *Config) { c.ProbedTokens = map[string]string{tokenA: ""} }, "unknown outcome"},
-		"probed case conflict": {func(c *Config) {
-			c.ProbedTokens = map[string]string{"0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD": ProbeOK, "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd": ProbeExcluded}
-		}, "outcomes"},
-		"negative report cap": {func(c *Config) { c.MaxUnprobedReportsPerRun = -1 }, "must not be negative"},
-		"huge report cap":     {func(c *Config) { c.MaxUnprobedReportsPerRun = 1 << 30 }, "above"},
+		"excluded malformed":    {func(c *Config) { c.ExcludedTokens = []string{"0x12"} }, "not an address"},
+		"excluded not hex":      {func(c *Config) { c.ExcludedTokens = []string{"dai"} }, "not an address"},
+		"excluded zero":         {func(c *Config) { c.ExcludedTokens = []string{"0x0000000000000000000000000000000000000000"} }, "zero address"},
 	} {
 		cfg := testConfig(tc.mutate)
 		_, err := cfg.settings()
@@ -71,7 +62,7 @@ func TestConfigSettings(t *testing.T) {
 		c.AquaAddress, c.RouterAddress, c.LaunchRouterAddress = tokenA, tokenB, tokenC
 		c.StartBlock, c.LogWindow, c.MaxWindowsPerRun, c.Confirmations = 7, 11, 3, &zero
 		c.DexId = ""
-		c.ProbedTokens = map[string]string{"0xAbC0000000000000000000000000000000000001": ProbeOK}
+		c.ExcludedTokens = []string{"0xAbC0000000000000000000000000000000000001", "0xabc0000000000000000000000000000000000001"}
 	})
 	s, err := cfg.settings()
 	require.NoError(t, err)
@@ -83,21 +74,12 @@ func TestConfigSettings(t *testing.T) {
 	require.Equal(t, uint64(11), s.logWindow)
 	require.Equal(t, 3, s.maxWindows)
 	require.Equal(t, uint64(0), s.confirmations, "an explicit 0 is kept")
-	require.Equal(t, ProbeOK, s.probed["0xabc0000000000000000000000000000000000001"], "token keys are lowercased")
+	require.Equal(t, map[common.Address]struct{}{common.HexToAddress("0xabc0000000000000000000000000000000000001"): {}}, s.excluded,
+		"case-only duplicates are one token")
 	noLaunch, err := testConfig().settings()
 	require.NoError(t, err)
 	require.False(t, noLaunch.hasLaunch)
-	require.Equal(t, DefaultMaxUnprobedReports, noLaunch.maxUnprobed)
-	capped, err := testConfig(func(c *Config) { c.MaxUnprobedReportsPerRun = 7 }).settings()
-	require.NoError(t, err)
-	require.Equal(t, 7, capped.maxUnprobed)
-
-	// Case-only duplicates with the same outcome collapse into one lowercase key.
-	same, err := testConfig(func(c *Config) {
-		c.ProbedTokens = map[string]string{"0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD": ProbeOK, "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd": ProbeOK}
-	}).settings()
-	require.NoError(t, err)
-	require.Equal(t, map[string]string{"0xabcdefabcdefabcdefabcdefabcdefabcdefabcd": ProbeOK}, same.probed)
+	require.Empty(t, noLaunch.excluded, "excludedTokens is optional")
 }
 
 // Config validation: required fields, https only, and a missing key is a warning.
@@ -187,7 +169,7 @@ func TestPortalConfigFromProperties(t *testing.T) {
 		"aquaaddress": testAquaHex, "routeraddress": testRouterHex, "startblock": 1, "logwindow": 50000, "maxwindowsperrun": 20,
 		"confirmations": 12, "chainid": 1, "portalurl": "https://api.1inch.com", "portalapikey": "k", "portalpagelimit": 100,
 		"portalmaxpages": 60, "portaltimeout": "10s", "portalmaxretries": 3, "portalretrybackoff": "2s",
-		"probedtokens": map[string]any{tokenA: "ok"},
+		"excludedtokens": []any{tokenA},
 	}
 	b, err := json.Marshal(props)
 	require.NoError(t, err)
@@ -202,4 +184,5 @@ func TestPortalConfigFromProperties(t *testing.T) {
 	require.Equal(t, 3, s.portal.retries)
 	require.Equal(t, 2*time.Second, s.portal.backoff)
 	require.Equal(t, uint64(1), s.portal.chainId)
+	require.Contains(t, s.excluded, common.HexToAddress(tokenA))
 }

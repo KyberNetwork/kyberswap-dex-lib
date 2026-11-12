@@ -25,18 +25,15 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	ethutil "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 )
 
 // Reasons the lister adds to the program-level discard reasons.
 const (
-	ReasonTokenCount              DiscardReason = "token_count"
-	ReasonTokenUnprobed           DiscardReason = "token_unprobed"
-	ReasonTokenExcluded           DiscardReason = "token_excluded"
-	ReasonZeroTransferRevertsFees DiscardReason = "zero_transfer_reverts_launch_fee"
-	ReasonDockedInWindow          DiscardReason = "docked_in_window"
+	ReasonTokenCount     DiscardReason = "token_count"
+	ReasonTokenExcluded  DiscardReason = "token_excluded"
+	ReasonDockedInWindow DiscardReason = "docked_in_window"
 )
 
 var _ = poollist.RegisterFactoryCE1(DexType, NewPoolsListUpdater)
@@ -106,14 +103,6 @@ type scanResult struct {
 	shipped []*shipped
 	docked  map[strategyKey]struct{}
 	skipped uint64
-}
-
-// unprobedStrategy is a strategy left out only because of its tokens.
-type unprobedStrategy struct {
-	maker  common.Address
-	app    common.Address
-	hash   common.Hash
-	tokens [2]common.Address
 }
 
 // GetNewPools lists the new strategies. With the Portal configured (URL and key) it first sweeps the
@@ -203,9 +192,8 @@ func mergePools(a, b []entity.Pool) []entity.Pool {
 func (u *PoolsListUpdater) sweepPortal(ctx context.Context) ([]entity.Pool, *portalError) {
 	items, perr := u.portal.sweep(ctx)
 	ships, bad := u.portalShipped(items)
-	pools, unprobed, stats := u.admitAll(ships, nil)
+	pools, stats := u.admitAll(ships, nil)
 	u.recordDiscards(sourcePortal, stats)
-	u.reportUnprobed(ctx, unprobed)
 	u.log(logInfo, "1inch-aqua portal sweep", logger.Fields{"exchange": u.cfg.dexId, "items": len(items),
 		"pools": len(pools), "discarded": stats, "badItems": bad, "ok": perr == nil && bad == 0})
 	if perr == nil && bad > 0 {
@@ -253,9 +241,8 @@ func (u *PoolsListUpdater) runLogs(ctx context.Context, meta Metadata, metadataB
 		metrics.IncrSkippedBlocks(u.cfg.dexId, float64(res.skipped))
 	}
 
-	pools, unprobed, stats := u.admitAll(res.shipped, res.docked)
+	pools, stats := u.admitAll(res.shipped, res.docked)
 	u.recordDiscards(sourceLogs, stats)
-	u.reportUnprobed(ctx, unprobed)
 	u.log(logInfo, "1inch-aqua lister run", logger.Fields{"exchange": u.cfg.dexId, "lastScannedBlock": last, "shipped": len(res.shipped),
 		"pools": len(pools), "discarded": stats, "skippedBlocks": res.skipped})
 
@@ -438,20 +425,16 @@ func (u *PoolsListUpdater) collect(res *scanResult, logs []types.Log) {
 
 // admitAll runs admit over strategies from either source. docked is the Docked set of the log window, nil
 // for the Portal, whose listing holds only open strategies.
-func (u *PoolsListUpdater) admitAll(ships []*shipped, docked map[strategyKey]struct{}) ([]entity.Pool, []unprobedStrategy, map[DiscardReason]int) {
+func (u *PoolsListUpdater) admitAll(ships []*shipped, docked map[strategyKey]struct{}) ([]entity.Pool, map[DiscardReason]int) {
 	stats := map[DiscardReason]int{}
 	var (
-		pools    []entity.Pool
-		unprobed []unprobedStrategy
-		seen     = map[string]struct{}{}
+		pools []entity.Pool
+		seen  = map[string]struct{}{}
 	)
 	for _, s := range ships {
-		pool, left, reason := u.admit(s, docked)
+		pool, reason := u.admit(s, docked)
 		if reason != "" {
 			stats[reason]++
-			if left != nil {
-				unprobed = append(unprobed, *left)
-			}
 			continue
 		}
 		if _, dup := seen[pool.Address]; dup {
@@ -460,34 +443,33 @@ func (u *PoolsListUpdater) admitAll(ships []*shipped, docked map[strategyKey]str
 		seen[pool.Address] = struct{}{}
 		pools = append(pools, *pool)
 	}
-	return pools, unprobed, stats
+	return pools, stats
 }
 
-func (u *PoolsListUpdater) admit(s *shipped, docked map[strategyKey]struct{}) (*entity.Pool, *unprobedStrategy, DiscardReason) {
+func (u *PoolsListUpdater) admit(s *shipped, docked map[strategyKey]struct{}) (*entity.Pool, DiscardReason) {
 	launch := u.isLaunch(s.app)
 	if s.app != u.cfg.router && !launch {
-		return nil, nil, ReasonApp
+		return nil, ReasonApp
 	}
 	order, err := DecodeOrder(s.strategy)
 	if err != nil {
-		return nil, nil, ReasonNonCanonical
+		return nil, ReasonNonCanonical
 	}
 	if order.Maker != s.maker {
-		return nil, nil, ReasonMakerMismatch
+		return nil, ReasonMakerMismatch
 	}
 	if order.Hash() != s.hash {
-		return nil, nil, ReasonNonCanonical
+		return nil, ReasonNonCanonical
 	}
-	program, err := ParseOrder(order, launch)
-	if err != nil {
-		return nil, nil, ReasonOf(err)
+	if _, err := ParseOrder(order, launch); err != nil {
+		return nil, ReasonOf(err)
 	}
 	if len(s.tokens) != 2 {
-		return nil, nil, ReasonTokenCount
+		return nil, ReasonTokenCount
 	}
 
 	if _, ok := docked[strategyKey{maker: s.maker, app: s.app, hash: s.hash}]; ok {
-		return nil, nil, ReasonDockedInWindow
+		return nil, ReasonDockedInWindow
 	}
 
 	// Canonical token order, ascending by address: the pool id does not depend on it and the order the
@@ -496,22 +478,12 @@ func (u *PoolsListUpdater) admit(s *shipped, docked map[strategyKey]struct{}) (*
 	if bytes.Compare(pair[0][:], pair[1][:]) > 0 {
 		pair[0], pair[1] = pair[1], pair[0]
 	}
-	left := &unprobedStrategy{maker: s.maker, app: s.app, hash: s.hash, tokens: pair}
-	hasProtocolFee := lo.SomeBy(program, func(i Instruction) bool { return i.Op == opAquaProtocolFee })
 	for _, token := range pair {
-		switch u.cfg.probed[hexutil.Encode(token[:])] {
-		case ProbeOK:
-		case ProbeZeroTransferReverts:
-			if launch && hasProtocolFee {
-				return nil, nil, ReasonZeroTransferRevertsFees
-			}
-		case ProbeExcluded:
-			return nil, left, ReasonTokenExcluded
-		default:
-			return nil, left, ReasonTokenUnprobed
+		if _, ok := u.cfg.excluded[token]; ok {
+			return nil, ReasonTokenExcluded
 		}
 	}
-	return u.newPool(s, order, pair), nil, ""
+	return u.newPool(s, order, pair), ""
 }
 
 // isLaunch reports whether app is the configured launch router.
@@ -528,6 +500,7 @@ func (u *PoolsListUpdater) newPool(s *shipped, order *Order, pair [2]common.Addr
 		Maker:        hexutil.Encode(s.maker[:]),
 		App:          hexutil.Encode(s.app[:]),
 		StrategyHash: s.hash.Hex(),
+		Aqua:         hexutil.Encode(u.cfg.aqua[:]),
 		Launch:       u.isLaunch(s.app),
 		Traits:       order.Traits.Hex(),
 		Data:         hexutil.Encode(order.Data),
@@ -548,85 +521,4 @@ func (u *PoolsListUpdater) newPool(s *shipped, order *Order, pair [2]common.Addr
 		Extra:       string(extra),
 		StaticExtra: string(static),
 	}
-}
-
-// unprobedBatch is the number of strategies one multicall of the unprobed report reads (6 calls each).
-const unprobedBatch = 50
-
-// reportUnprobed exports token_unprobed per token with the fillable amount the leftover strategies would
-// add, so an owner can see what the probed list leaves out. The fillable of at most maxUnprobed strategies
-// is read per run, in multicalls of unprobedBatch strategies; the others are counted with a fillable of 0
-// and so is a batch whose read fails.
-func (u *PoolsListUpdater) reportUnprobed(ctx context.Context, items []unprobedStrategy) {
-	if len(items) == 0 {
-		return
-	}
-	read := items[:min(len(items), u.cfg.maxUnprobed)]
-	for _, it := range items[len(read):] {
-		u.countUnprobed(it, [2]uint256.Int{})
-	}
-	if len(items) > len(read) {
-		logger.Warnf("1inch-aqua: %d unprobed strategies past the report bound %d: fillable not read", len(items)-len(read), len(read))
-	}
-	for start := 0; start < len(read); start += unprobedBatch {
-		batch := read[start:min(start+unprobedBatch, len(read))]
-		fillable, err := u.readFillable(ctx, batch)
-		if err != nil {
-			logger.Warnf("1inch-aqua: unprobed token fillable skipped: %v", err)
-		}
-		for i, it := range batch {
-			u.countUnprobed(it, fillable[i])
-		}
-	}
-}
-
-func (u *PoolsListUpdater) countUnprobed(it unprobedStrategy, fillable [2]uint256.Int) {
-	for k, token := range it.tokens {
-		metrics.IncrTokenUnprobed(u.cfg.dexId, hexutil.Encode(token[:]), fillable[k].Float64())
-	}
-}
-
-// readFillable reads min(raw balance, wallet balance, allowance) of both tokens of each strategy in one
-// multicall. A token whose reads fail, or whose strategy is not live, has a fillable of 0.
-func (u *PoolsListUpdater) readFillable(ctx context.Context, items []unprobedStrategy) ([][2]uint256.Int, error) {
-	type reads struct {
-		raw       [2]rawBalancesOutput
-		balance   [2]*big.Int
-		allowance [2]*big.Int
-	}
-	fillable := make([][2]uint256.Int, len(items))
-	out := make([]reads, len(items))
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-	aquaAddr := hexutil.Encode(u.cfg.aqua[:])
-	for i, it := range items {
-		for k, token := range it.tokens {
-			tokenAddr := hexutil.Encode(token[:])
-			req.AddCall(&ethrpc.Call{ABI: aquaABI, Target: aquaAddr, Method: rawBalancesMethod.Name,
-				Params: []any{it.maker, it.app, [32]byte(it.hash), token}}, []any{&out[i].raw[k]})
-			req.AddCall(&ethrpc.Call{ABI: erc20ABI, Target: tokenAddr, Method: balanceOfMethod.Name,
-				Params: []any{it.maker}}, []any{&out[i].balance[k]})
-			req.AddCall(&ethrpc.Call{ABI: erc20ABI, Target: tokenAddr, Method: allowanceMethod.Name,
-				Params: []any{it.maker, u.cfg.aqua}}, []any{&out[i].allowance[k]})
-		}
-	}
-	resp, err := req.TryBlockAndAggregate()
-	if err != nil {
-		return fillable, err
-	}
-	if len(resp.Result) != 6*len(items) {
-		return fillable, errors.New("1inch-aqua: malformed multicall response")
-	}
-	for i := range items {
-		for k := range 2 {
-			base := 6*i + 3*k
-			r := out[i].raw[k]
-			if resp.Result[base] && resp.Result[base+1] && resp.Result[base+2] &&
-				r.Balance != nil && r.TokensCount != nil && r.TokensCount.IsUint64() && r.TokensCount.Uint64() == 2 &&
-				out[i].balance[k] != nil && out[i].allowance[k] != nil {
-				raw, bal, allow := big256.FromBig(r.Balance), big256.FromBig(out[i].balance[k]), big256.FromBig(out[i].allowance[k])
-				fillable[i][k] = *big256.Min(raw, big256.Min(bal, allow))
-			}
-		}
-	}
-	return fillable, nil
 }

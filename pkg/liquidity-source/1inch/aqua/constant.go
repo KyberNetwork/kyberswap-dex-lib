@@ -14,12 +14,14 @@ const (
 	// tokensCountDocked is the Aqua marker of a closed strategy.
 	tokensCountDocked = 0xff
 
-	// Gas of one hop through executeGeneric: on-chain fills traced with debug_traceTransaction on 8 chains
-	// (877 fills) plus the measured helper overhead (~40k). Medians: ~200k with
-	// the protocol fee skipped or absent, ~212k with a fee pull collected (+ margin for a fee recipient
-	// going from a zero balance). Per-fill gas does not depend on how many orders a tx fills.
-	defaultGas             = 200_000
-	defaultGasFeeCollected = 220_000
+	// Gas of one hop through executeAqua. Base: on-chain fills traced with debug_traceTransaction on 8
+	// chains (877 fills) plus the executeGeneric helper overhead (~40k), medians ~200k with the protocol
+	// fee skipped or absent and ~212k with a fee pull collected (+ margin for a fee recipient going from a
+	// zero balance). executeAqua costs ~50k less than executeGeneric for the same swap (Ethereum fork,
+	// deployed helpers: 94k vs 144k with the allowance set, 134k vs 184k with the approval). Per-fill
+	// gas does not depend on how many orders a tx fills.
+	defaultGas             = 150_000
+	defaultGasFeeCollected = 170_000
 )
 
 var (
