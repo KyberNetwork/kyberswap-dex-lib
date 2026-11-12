@@ -97,6 +97,12 @@ func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimul
 	return sim, nil
 }
 
+// CalcAmtOut is not native for this pool: the embedded v3 math would skip this pool's own CalcAmountOut.
+// ErrUnsupported sends the swap to CalcAmountOut.
+func (p *PoolSimulator) CalcAmtOut(pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	return nil, pool.ErrUnsupported
+}
+
 // CalcAmountOut applies Machima's tax layer around the V3 swap:
 //   - buy (counter asset -> token): tax is taken off the input, the remainder is swapped
 //   - sell (token -> counter asset): the V3 output is swapped first, then tax is taken off it

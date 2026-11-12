@@ -74,6 +74,12 @@ func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
 	}
 }
 
+// CalcAmtOut is not native for this pool: the inherited stable-ng math has no underlying-token path.
+// ErrUnsupported sends the swap to CalcAmountOut.
+func (t *PoolSimulator) CalcAmtOut(pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	return nil, pool.ErrUnsupported
+}
+
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut

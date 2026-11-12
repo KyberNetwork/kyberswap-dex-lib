@@ -17,6 +17,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
+func TestCalcAmtOutUnsupported(t *testing.T) {
+	t.Parallel()
+	var sim PoolSimulator
+	_, err := sim.CalcAmtOut(pool.CalcAmtOutParams{})
+	assert.ErrorIs(t, err, pool.ErrUnsupported)
+}
+
 func TestCalcAmountOut(t *testing.T) {
 	t.Parallel()
 	basePools := []string{

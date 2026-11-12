@@ -58,6 +58,13 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	assert.Equal(t, bignumber.NewBig10("871374850342807317560423"), got.TokenAmountOut.Amount)
 }
 
+func TestPoolSimulator_CalcAmtOutUnsupported(t *testing.T) {
+	t.Parallel()
+	var sim PoolSimulator
+	_, err := sim.CalcAmtOut(pool.CalcAmtOutParams{})
+	assert.ErrorIs(t, err, pool.ErrUnsupported)
+}
+
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	t.Parallel()
 	var (

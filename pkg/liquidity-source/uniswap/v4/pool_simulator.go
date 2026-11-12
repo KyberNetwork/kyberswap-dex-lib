@@ -169,6 +169,12 @@ func (p *PoolSimulator) unwrapFew(idx int, amount *big.Int) (*uint256.Int, error
 	return amt.Sub(p.fewReserves[idx], amt), nil
 }
 
+// CalcAmtOut is not native for this pool: the embedded v3 math would skip this pool's own CalcAmountOut.
+// ErrUnsupported sends the swap to CalcAmountOut.
+func (p *PoolSimulator) CalcAmtOut(pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	return nil, pool.ErrUnsupported
+}
+
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult, err error) {
 	originalTokenIn, originalTokenOut := param.TokenAmountIn.Token, param.TokenOut
 	var wrapAdditionalGas int64
