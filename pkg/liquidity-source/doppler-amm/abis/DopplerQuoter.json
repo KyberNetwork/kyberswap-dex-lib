@@ -1,0 +1,18 @@
+[
+  {
+    "type": "function",
+    "name": "quoteSwapExactInput",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "marketId", "type": "uint256" },
+      { "name": "inputIsX", "type": "bool" },
+      { "name": "inputAmount", "type": "uint256" },
+      { "name": "moduleData", "type": "bytes" },
+      { "name": "extensionData", "type": "bytes" }
+    ],
+    "outputs": [
+      { "name": "actualInputAmount", "type": "uint256" },
+      { "name": "actualOutputAmount", "type": "uint256" }
+    ]
+  }
+]

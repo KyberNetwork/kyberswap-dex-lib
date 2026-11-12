@@ -68,6 +68,7 @@ import (
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	dodogsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/gsp"
+	doppleramm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/doppler-amm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
@@ -520,6 +521,7 @@ type Types struct {
 	AltFun                     string
 	FlywheelFun                string
 	Prop1010                   string
+	DopplerAMM                 string
 	BiconomyProp               string
 	DaikonProp                 string
 	FermiProp                  string
@@ -792,6 +794,7 @@ var (
 		AltFun:                     altfun.DexType,
 		FlywheelFun:                flywheelfun.DexType,
 		Prop1010:                   prop1010.DexType,
+		DopplerAMM:                 doppleramm.DexType,
 		BiconomyProp:               biconomyprop.DexType,
 		DaikonProp:                 daikonprop.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
