@@ -4,41 +4,41 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// TokenAmountU is TokenAmount with a uint256 amount.
-type TokenAmountU struct {
+// TokenAmt is TokenAmount with a uint256 amount.
+type TokenAmt struct {
 	Token     string
 	Amount    uint256.Int
 	AmountUsd float64
 }
 
-// CalcAmountOutParamsU is CalcAmountOutParams with a uint256 input amount.
-type CalcAmountOutParamsU struct {
-	TokenAmountIn TokenAmountU
+// CalcAmtOutParams is CalcAmountOutParams with a uint256 input amount.
+type CalcAmtOutParams struct {
+	TokenAmountIn TokenAmt
 	TokenOut      string
 	Limit         SwapLimit
 }
 
-// CalcAmountOutResultU is CalcAmountOutResult with uint256 amounts.
-type CalcAmountOutResultU struct {
-	TokenAmountOut         *TokenAmountU
-	Fee                    *TokenAmountU
-	RemainingTokenAmountIn *TokenAmountU
+// CalcAmtOutResult is CalcAmountOutResult with uint256 amounts.
+type CalcAmtOutResult struct {
+	TokenAmountOut         *TokenAmt
+	Fee                    *TokenAmt
+	RemainingTokenAmountIn *TokenAmt
 	Gas                    int64
 	SwapInfo               any
 }
 
-// CalcAmountInParamsU is CalcAmountInParams with a uint256 output amount.
-type CalcAmountInParamsU struct {
-	TokenAmountOut TokenAmountU
+// CalcAmtInParams is CalcAmountInParams with a uint256 output amount.
+type CalcAmtInParams struct {
+	TokenAmountOut TokenAmt
 	TokenIn        string
 	Limit          SwapLimit
 }
 
-// CalcAmountInResultU is CalcAmountInResult with uint256 amounts.
-type CalcAmountInResultU struct {
-	TokenAmountIn           *TokenAmountU
-	RemainingTokenAmountOut *TokenAmountU
-	Fee                     *TokenAmountU
+// CalcAmtInResult is CalcAmountInResult with uint256 amounts.
+type CalcAmtInResult struct {
+	TokenAmountIn           *TokenAmt
+	RemainingTokenAmountOut *TokenAmt
+	Fee                     *TokenAmt
 	Gas                     int64
 	SwapInfo                any
 }
@@ -46,11 +46,17 @@ type CalcAmountInResultU struct {
 // ICalcAmtOut is implemented by simulators that calculate amountOut natively in uint256.
 // Callers should type-assert and fall back to IPoolSimulator.CalcAmountOut when absent.
 type ICalcAmtOut interface {
-	CalcAmtOut(params CalcAmountOutParamsU) (*CalcAmountOutResultU, error)
+	CalcAmtOut(params CalcAmtOutParams) (*CalcAmtOutResult, error)
 }
 
 // ICalcAmtIn is implemented by simulators that calculate amountIn natively in uint256.
 // Callers should type-assert and fall back to IPoolExactOutSimulator.CalcAmountIn when absent.
 type ICalcAmtIn interface {
-	CalcAmtIn(params CalcAmountInParamsU) (*CalcAmountInResultU, error)
+	CalcAmtIn(params CalcAmtInParams) (*CalcAmtInResult, error)
+}
+
+// IsValid mirrors CalcAmountOutResult.IsValid. uint256 amounts cannot be negative, so the remaining-amount
+// check reduces to a nil check.
+func (r *CalcAmtOutResult) IsValid() bool {
+	return r.TokenAmountOut != nil && !r.TokenAmountOut.Amount.IsZero()
 }
