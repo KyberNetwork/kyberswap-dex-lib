@@ -110,11 +110,19 @@ func (s *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 		return nil, ErrInsufficientOutputAmount
 	}
 
-	return &pool.CalcAmtOutResult{
+	result := &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: s.Info.Tokens[indexOut], Amount: *amountOut},
 		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[indexIn], Amount: uint256.Int{}},
 		Gas:            lo.CoalesceOrEmpty(s.Gas, defaultGas+extraGasByExchange[s.GetExchange()]),
-	}, nil
+	}
+	if s.taxHandler.HasSellTax(s.Info.Tokens[indexIn]) ||
+		s.taxHandler.HasBuyTax(s.Info.Tokens[indexOut]) {
+		result.SwapInfo = SwapInfo{
+			EffectiveAmountIn: effectiveAmountIn.ToBig(),
+			GrossAmountOut:    grossAmountOut.ToBig(),
+		}
+	}
+	return result, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

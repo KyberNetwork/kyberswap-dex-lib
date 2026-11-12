@@ -157,6 +157,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					"native CalcAmtOut must match CalcAmountOut")
 				assert.Equal(t, result.Fee.Amount.String(), native.Fee.Amount.Dec(), "native fee must match")
 				assert.Equal(t, result.Gas, native.Gas, "native gas must match")
+				assert.Equal(t, result.SwapInfo, native.SwapInfo, "native SwapInfo must match")
 				if tc.expectedSwapInfo {
 					assert.IsType(t, SwapInfo{}, result.SwapInfo)
 				} else {
