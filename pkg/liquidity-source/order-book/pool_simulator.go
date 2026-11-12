@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/holiman/uint256"
 )
 
 type PoolSimulator struct {
@@ -74,6 +75,28 @@ func NewPoolSimulatorWith(entityPool entity.Pool, maxAge time.Duration) (*PoolSi
 		minTrades:   [2]float64{firstLevelFrom0.Size(), firstLevelFrom1.Size()},
 		fee:         entityPool.SwapFee,
 	}, nil
+}
+
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenIn, tokenOut, amtIn := params.TokenAmountIn.Token, params.TokenOut, params.TokenAmountIn.Amount
+	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, ErrInvalidToken
+	}
+
+	result, err := p.calcOutAmt(&amtIn, p.tokens[indexIn], p.tokens[indexOut], p.levelsFroms[indexIn], p.minTrades[indexIn])
+	if err != nil {
+		return nil, err
+	}
+
+	if limit := params.Limit; limit != nil {
+		inventoryLimit := limit.GetLimit(tokenOut)
+		// A limit above 2^256-1 cannot be exceeded by a uint256 amount.
+		if limitU, overflow := uint256.FromBig(inventoryLimit); !overflow && result.TokenAmountOut.Amount.Gt(limitU) {
+			return nil, ErrSwapLimitExceeded
+		}
+	}
+	return result, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -151,6 +174,30 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return pool.MetaInfo{BlockNumber: p.Info.BlockNumber}
+}
+
+func (p *PoolSimulator) calcOutAmt(amountIn *uint256.Int, tokenIn, tokenOut *entity.PoolToken, priceLevel []Level,
+	minTrade float64) (*pool.CalcAmtOutResult, error) {
+	amtInF, _ := amountIn.ToBig().Float64()
+	amtInAfterDecimals := amtInF / math.Pow10(int(tokenIn.Decimals))
+	amtOutAfterDecimals, levels, err := getAmountOut(amtInAfterDecimals, priceLevel, minTrade)
+	if err != nil {
+		return nil, err
+	}
+
+	amtOutF := amtOutAfterDecimals * math.Pow10(int(tokenOut.Decimals))
+	amtOutF *= 1 - p.fee
+	amountOut, _ := big.NewFloat(amtOutF).Int(nil)
+	var amountOutU uint256.Int
+	if amountOutU.SetFromBig(amountOut) {
+		return nil, ErrAmountOutOverflow
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut.Address, Amount: amountOutU},
+		Fee:            &pool.TokenAmt{Token: tokenIn.Address, Amount: uint256.Int{}},
+		Gas:            p.Gas.Base + levels*p.Gas.Level,
+	}, nil
 }
 
 func (p *PoolSimulator) calcOut(amountIn *big.Int, tokenIn, tokenOut *entity.PoolToken, priceLevel []Level,

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -180,6 +181,16 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 							tt.expectedAmountOut.String(),
 							result.TokenAmountOut.Amount.String())
 					}
+					native, err := poolSimulator.CalcAmtOut(pool.CalcAmtOutParams{
+						TokenAmountIn: pool.TokenAmt{Token: tt.tokenIn, Amount: *uint256.MustFromBig(tt.amountIn)},
+						TokenOut:      tt.tokenOut,
+						Limit:         limit,
+					})
+					require.NoError(t, err)
+					assert.Equal(t, result.TokenAmountOut.Amount.String(), native.TokenAmountOut.Amount.Dec(),
+						"native CalcAmtOut must match CalcAmountOut")
+					assert.Equal(t, result.Fee.Amount.String(), native.Fee.Amount.Dec(), "native fee must match")
+					assert.Equal(t, result.Gas, native.Gas, "native gas must match")
 				}
 			}
 		})

@@ -14,4 +14,5 @@ var (
 	ErrSwapLimitExceeded     = errors.New("swap limit exceeded")
 	ErrInvalidAmountIn       = errors.WithMessage(pool.ErrSwapAmountBelowMin, "amountIn is less than lowest price level")
 	ErrInsufficientLiquidity = errors.New("amountIn is greater than total price levels")
+	ErrAmountOutOverflow     = errors.New("amountOut overflows uint256")
 )
