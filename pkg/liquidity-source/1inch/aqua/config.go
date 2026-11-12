@@ -26,10 +26,7 @@ type Config struct {
 	RouterAddress       string `json:"routerAddress"`
 	LaunchRouterAddress string `json:"launchRouterAddress"`
 
-	// StartBlock is the first block the lister scans (required, above zero). LogWindow is the largest
-	// eth_getLogs range the chain's nodes serve and MaxWindowsPerRun bounds the windows one GetNewPools call
-	// scans (both required, above zero). Confirmations is how many blocks the cursor stays behind head
-	// (required; 0 on chains with instant finality).
+	// Lister log scan: first block, eth_getLogs range, windows per run, and the blocks kept behind head.
 	StartBlock       uint64  `json:"startBlock"`
 	LogWindow        uint64  `json:"logWindow"`
 	MaxWindowsPerRun int     `json:"maxWindowsPerRun"`
@@ -38,20 +35,14 @@ type Config struct {
 	// ExcludedTokens is optional: a strategy with a listed token is not admitted.
 	ExcludedTokens []string `json:"excludedTokens"`
 
-	// Portal discovery (lister only). HTTPConfig is the Portal API client; an empty base_url means the
-	// Portal is not used and discovery is the on-chain log scan alone. When it is set, the paging fields are
-	// required too: PortalPageLimit (items per request) and PortalMaxPages (a sweep that needs more pages
-	// fails and falls back to logs).
+	// Portal discovery (lister only); an empty http_config.base_url means log scan only.
 	HTTPConfig      HTTPConfig `json:"http_config"`
 	PortalPageLimit int        `json:"portalPageLimit"`
 	PortalMaxPages  int        `json:"portalMaxPages"`
 }
 
-// HTTPConfig is the 1inch Business Portal API client. With BaseURL set ("https://...") every other field is
-// required: Timeout (per request), RetryCount (how many times a 429 is retried; 0 retries none) and
-// RetryWaitTime (the wait before retry n is n times this; required when RetryCount is above zero). ApiKey
-// is a secret: keep it out of committed config and supply it at deploy time; with a base URL and no key the
-// lister warns once and uses logs only.
+// HTTPConfig is the 1inch Business Portal API client. RetryCount retries 429s only, waiting n*RetryWaitTime
+// before retry n. ApiKey is a secret supplied at deploy time; without it the lister uses logs only.
 type HTTPConfig struct {
 	BaseURL       string                `json:"base_url"`
 	ApiKey        string                `json:"api_key"`

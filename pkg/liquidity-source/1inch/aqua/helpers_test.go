@@ -144,3 +144,18 @@ func mustUnmarshal[T any](t testing.TB, data string) T {
 	require.NoError(t, json.Unmarshal([]byte(data), &v))
 	return v
 }
+
+// goldenVector is one recorded router quote with the strategy balances it was taken at.
+type goldenVector struct {
+	ChainId   int      `json:"chainId"`
+	Block     uint64   `json:"block"`
+	App       string   `json:"app"`
+	Strategy  string   `json:"strategy"`
+	Tokens    []string `json:"tokens"`
+	Raw       []string `json:"raw"`
+	In        int      `json:"in"`
+	AmountIn  string   `json:"amountIn"`
+	AmountOut string   `json:"amountOut"`
+}
+
+const parityTakerTraits = "0x" + "0000000000000000000000000000000000000000" + "0001" // exact in, no threshold

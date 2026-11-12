@@ -408,16 +408,9 @@ type quoteInAlloc struct {
 	zeroBig   big.Int
 }
 
-// CalcAmountIn returns the smallest amountIn for which CalcAmountOut gives at least TokenAmountOut. It is
-// not the router's exact-out: swaps are always sent exact-in, so the exact-in rounding of the fee wrappers
-// and of xycSwap decides. The result is the CalcAmountOut of that amountIn, so its fee, gas and SwapInfo
-// feed UpdateBalance the same way, and the caps (strategy balance, wallet limit or SwapLimit, protocol fee
-// shortfall on the launch router, the uint248 push bound) apply to an amountIn exactly as in the other
-// direction. The output may exceed the request by the rounding of the smallest amountIn.
-//
-// The pipeline is inverted from the swap outwards: the concentrate instructions change only the balances;
-// xycSwap on those balances needs net = ceil(out*balanceIn/(balanceOut-out)); the fee wrappers are then
-// inverted from the innermost out (invertFees).
+// CalcAmountIn returns the smallest amountIn for which CalcAmountOut gives at least TokenAmountOut, and
+// the CalcAmountOut result of that amountIn. Swaps are sent exact-in, so the router's exact-out rounding is
+// not ported. The pipeline is inverted from xycSwap outwards (invertFees).
 func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	in, out := s.GetTokenIndex(params.TokenIn), s.GetTokenIndex(params.TokenAmountOut.Token)
 	if in < 0 || out < 0 || in == out {

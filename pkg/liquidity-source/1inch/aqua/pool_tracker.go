@@ -73,24 +73,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	return pools[0], errs[0]
 }
 
-// GetNewPoolStates reads every pool of the batch in one multicall at one block: rawBalances of both
-// tokens per pool, and balanceOf and allowance per unique (maker, token). Each live pool is replaced as a
-// whole with RawBlock = WalletBlock = the block read, so raw balances, tokensCount and the wallet
-// snapshot of a pool are always from one block.
-//
-// A transport error keeps every stored state (errs[i]), and so does a rawBalances sub-call of one pool that
-// reverts or decodes badly: that pool gets an error and its previous state, like a failed batch, and is not
-// marked terminal. A failed wallet read of a live pool is written fail-closed instead: that token gets a
-// zero limit and a zero reserve, so a token whose balanceOf or allowance starts reverting cannot leave a
-// stale fillable state behind.
-//
-// Terminal states: tokensCount other than 2 is Inactive (zero reserves, no limit keys, Timestamp carried
-// from the previous Inactive state, else now: the indexer archives it after its inactivity duration of
-// continuous inactivity, and a lagging node corrects itself on the next refresh). tokensCount 0xff is
-// Docked (zero reserves); it stays in the batch, with Timestamp now so that the indexer keeps it active
-// and in the refresh set, until it was read docked `confirmations` blocks after the first docked read,
-// which the block of this batch's own multicall gives: no extra RPC. Then it is final, its Timestamp is 1
-// (archiving is allowed) and later refreshes return it unchanged with no RPC.
+// GetNewPoolStates reads the batch in one multicall at one block: rawBalances per pool, and balanceOf and
+// allowance per (maker, token). A transport error or a failed rawBalances read keeps the stored state; a
+// failed wallet read gives that token a zero limit and reserve. tokensCount other than 2 is Inactive;
+// 0xff is Docked, final once read docked `confirmations` blocks later (then Timestamp 1, no more RPC).
 func (t *PoolTracker) GetNewPoolStates(ctx context.Context, pools []entity.Pool) ([]entity.Pool, []error) {
 	out := make([]entity.Pool, len(pools))
 	errs := make([]error, len(pools))
@@ -229,11 +215,7 @@ func (tp *trackedPool) build(ok []bool, block uint64, now int64, confirmations u
 			extra.DockedAtBlock = tp.old.DockedAtBlock
 		}
 		extra.DockedFinal = block-extra.DockedAtBlock >= confirmations
-		// Zero reserves. A dock that is not final may still be reorged out, and a pool that the indexer
-		// archives is removed from the refresh set for good (nothing brings it back: no dependency events),
-		// so it keeps a current timestamp, stays active and is read again every refresh. Only a final dock
-		// gets a timestamp of 1 (never 0, which counts as always active), the first point where archiving
-		// is allowed.
+		// A dock that is not final may be reorged out: keep it active until it is final (Timestamp 1).
 		ts := now
 		if extra.DockedFinal {
 			ts = 1
@@ -241,10 +223,7 @@ func (tp *trackedPool) build(ok []bool, block uint64, now int64, confirmations u
 		return tp.finish(p, &extra, entity.PoolReserves{"0", "0"}, ts)
 	case inactive:
 		extra.Inactive = true
-		// Zero reserves. The timestamp is when the strategy was first seen inactive: the indexer archives a
-		// pool whose timestamp is older than its inactivity duration, so a node that is a block behind
-		// does not archive a strategy that is shipped (the next refresh makes it live, with a new
-		// timestamp), and a strategy that stays inactive is archived after that duration.
+		// Timestamp is the first inactive read, so the indexer archives it after the inactivity duration.
 		ts := now
 		if tp.old.Inactive && tp.pool.Timestamp > 1 {
 			ts = tp.pool.Timestamp

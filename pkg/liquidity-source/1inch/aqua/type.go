@@ -35,12 +35,8 @@ type Extra struct {
 	Allowance1     *uint256.Int `json:"allowance1"`
 	WalletBlock    uint64       `json:"walletBlock"`
 
-	// Docked is tokensCount 0xff. It is permanent only once DockedFinal is set: until a refresh reads the
-	// strategy docked at least `confirmations` blocks after DockedAtBlock (the block of the first docked
-	// read), the pool is read again every refresh with a current Timestamp (so the indexer keeps it active
-	// and refreshed), and a dock that a reorg removes goes back to live. A final dock has Timestamp 1.
-	// Inactive is tokensCount other than 2 (a reorged, lagging-node or never shipped strategy, not
-	// permanent): it is read again every refresh too.
+	// Docked is tokensCount 0xff, permanent once DockedFinal (read docked `confirmations` blocks after
+	// DockedAtBlock). Inactive is tokensCount other than 2, read again every refresh.
 	Docked        bool   `json:"docked,omitempty"`
 	DockedAtBlock uint64 `json:"dockedAtBlock,omitempty"`
 	DockedFinal   bool   `json:"dockedFinal,omitempty"`

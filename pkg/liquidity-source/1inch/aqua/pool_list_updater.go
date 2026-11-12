@@ -105,17 +105,9 @@ type scanResult struct {
 	skipped uint64
 }
 
-// GetNewPools lists the new strategies. With the Portal configured (URL and key) it first sweeps the
-// Portal; a full sweep is the whole run. Anything else (no Portal, no key, any Portal failure) runs the
-// on-chain log scan from the stored cursor. The stored state is the cursor alone.
-//
-// The confirmed head H = head - confirmations is read before the sweep. After a full sweep the cursor is
-// max(cursor, H_prev), where H_prev is the H of the previous full sweep (Metadata.LastPortalHead), and H is
-// stored for the next one; the first sweep only stores H. The Portal can lag the chain: a strategy shipped
-// at or before H may not be indexed when the sweep runs, so the cursor trails by one sweep and a log
-// fallback re-scans at least one sweep interval. No logs are read on a full sweep. A sweep that fails keeps
-// the metadata: the log scan starts where the cursor was, and the pools the sweep admitted before it
-// failed are returned too (pool ids are the same on both paths, and the indexer skips ids it has).
+// GetNewPools lists new strategies: a full Portal sweep when the Portal is configured, else (or on any
+// Portal failure) the on-chain log scan from the stored cursor. After a full sweep the cursor moves to the
+// confirmed head of the previous sweep, so a Portal lag of one sweep is covered by the next log fallback.
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var meta Metadata
 	if len(metadataBytes) > 0 {
@@ -283,12 +275,8 @@ func (u *PoolsListUpdater) scan(ctx context.Context, last, target uint64) (scanR
 	return res, last, nil
 }
 
-// getLogs reads one window with a single eth_getLogs for the three events. A window the node refuses for
-// its range or result size, or that times out on the server, is split in two. The only error skipped is a
-// single block the node cannot serve (HyperEVM "invalid block range") that lies at least a log window
-// below target: the same answer comes for a block above the serving node's head (HyperEVM, Polygon bor),
-// so a block near target is an error and the cursor stays. Every other error, throttling, client timeouts
-// and transport failures included, is returned, so the next run reads the window again.
+// getLogs reads one window with one eth_getLogs, splitting a window the node refuses for size or range.
+// A single unservable block is skipped only when it is at least a log window below target.
 func (u *PoolsListUpdater) getLogs(ctx context.Context, from, to, target uint64) ([]types.Log, uint64, error) {
 	logs, err := u.ethrpcClient.GetETHClient().FilterLogs(ctx, ethereum.FilterQuery{
 		FromBlock: new(big.Int).SetUint64(from),
