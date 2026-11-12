@@ -10,6 +10,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
@@ -147,6 +148,15 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				assert.ErrorIs(t, tc.expectedError, err)
 			} else {
 				assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut.Amount)
+				native, err := tc.poolSimulator.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{Token: tc.tokenAmountIn.Token, Amount: *uint256.MustFromBig(tc.tokenAmountIn.Amount)},
+					TokenOut:      tc.tokenOut,
+				})
+				require.NoError(t, err)
+				assert.Equal(t, result.TokenAmountOut.Amount.String(), native.TokenAmountOut.Amount.Dec(),
+					"native CalcAmtOut must match CalcAmountOut")
+				assert.Equal(t, result.Fee.Amount.String(), native.Fee.Amount.Dec(), "native fee must match")
+				assert.Equal(t, result.Gas, native.Gas, "native gas must match")
 				if tc.expectedSwapInfo {
 					assert.IsType(t, SwapInfo{}, result.SwapInfo)
 				} else {

@@ -78,6 +78,45 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
+func (s *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
+	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, ErrInvalidToken
+	}
+
+	amountIn := tokenAmountIn.Amount
+	if amountIn.Sign() <= 0 {
+		return nil, ErrInvalidAmountIn
+	}
+
+	reserveIn := s.reserves[indexIn]
+	reserveOut := s.reserves[indexOut]
+
+	effectiveAmountIn := s.taxHandler.ApplySellTax(s.Info.Tokens[indexIn], &amountIn)
+	if CheckUint112Overflow(reserveIn, effectiveAmountIn) {
+		return nil, ErrUint112Overflow
+	}
+
+	grossAmountOut := s.getAmountOut(effectiveAmountIn, reserveIn, reserveOut)
+	if !grossAmountOut.Lt(reserveOut) {
+		return nil, ErrInsufficientLiquidity
+	} else if grossAmountOut.Sign() <= 0 {
+		return nil, ErrInsufficientOutputAmount
+	}
+
+	amountOut := s.taxHandler.ApplyBuyTax(s.Info.Tokens[indexOut], grossAmountOut)
+	if amountOut.Sign() <= 0 {
+		return nil, ErrInsufficientOutputAmount
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: s.Info.Tokens[indexOut], Amount: *amountOut},
+		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[indexIn], Amount: uint256.Int{}},
+		Gas:            lo.CoalesceOrEmpty(s.Gas, defaultGas+extraGasByExchange[s.GetExchange()]),
+	}, nil
+}
+
 func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
