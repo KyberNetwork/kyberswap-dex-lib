@@ -1,208 +1,157 @@
 package everlongflamm
 
 import (
-	"encoding/json"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// StaticExtra is the listing's pinned identity of one pool: everything the tracker addresses its reads to and the
-// simulator re-checks against the registries (hook_registry.go) on every quote (msgpack restores a simulator
-// without NewPoolSimulator). Every field here is immutable on chain, or its change is a different wiring that has
-// to be relisted once the registries admit it (a new implementation, a new hook set). What a curator can change on
-// a live pool -- the Router venue set -- is in Extra instead, so a refresh can adopt it (Extra.Venues); pool-service
-// is not assumed to overwrite a listed pool's StaticExtra.
+// StaticExtra is fixed at listing: the Factory the pool was found at, whose `isPool` every refresh re-reads.
 type StaticExtra struct {
-	ProfileVersion uint32              `json:"profileVersion"`
-	ChainID        valueobject.ChainID `json:"chainId"`
-	Factory        common.Address      `json:"factory"`
-	Implementation common.Address      `json:"implementation"`
-	Router         common.Address      `json:"router"`
-	PriceFeed      common.Address      `json:"priceFeed"`
-	Morpho         common.Address      `json:"morpho"`
-	PoolAsset      common.Address      `json:"poolAsset"`
-	LoanAsset      common.Address      `json:"loanAsset"`
-	// Hooks is hooks() in field order: invariant, fee, recenter, controller, leverage, spread, loanSwap. The kind of
-	// each is the registry's (hook_registry.go resolveHooks).
-	Hooks [7]common.Address `json:"hooks"`
-	// SequencerFeed and each token's aggregator and heartbeat are fixed by the PriceFeed (immutables and a config
-	// with no setter).
-	SequencerFeed common.Address    `json:"sequencerFeed"`
-	Aggregators   [2]common.Address `json:"aggregators"` // pool asset, loan asset 0
-	Heartbeats    [2]uint64         `json:"heartbeats"`
-	ListedBlock   uint64            `json:"listedBlock"`
+	Factory string `json:"factory"`
 }
 
-// StaticVenue is one Router venue: its financing account, Morpho market id and market params. The market params
-// are immutable per id (Morpho creates a market once), the account and the id per venue index; the set itself is
-// not, so it is published in Extra and re-read by every refresh.
-type StaticVenue struct {
-	Account  common.Address `json:"account"`
-	MarketID common.Hash    `json:"marketId"`
-	Oracle   common.Address `json:"oracle"`
-	Irm      common.Address `json:"irm"`
-	Lltv     uint256.Int    `json:"lltv"`
-	// OracleFeeds are the price feeds Oracle is wired to, in MorphoChainlinkOracleV2 field order (baseFeed1,
-	// baseFeed2, quoteFeed1, quoteFeed2; the unused ones are zero). They are immutables of the oracle, which is
-	// itself immutable per market id, so they are read with the rest of the venue rather than every refresh -- but
-	// each one is a Chainlink proxy, whose aggregator does move, so the tracker resolves them per refresh for the
-	// dependency set (pool_tracker.go). An oracle that is not a MorphoChainlinkOracleV2 answers none and leaves
-	// them zero, which costs the pool nothing but a dependency.
-	OracleFeeds [4]common.Address `json:"oracleFeeds,omitempty"`
+// Point is one probe of a direction: the input the pool used and the net output it pays, in base units, exact
+// unless the ladder's rule lowered it (settle).
+type Point [2]*uint256.Int
+
+// Ladder is one direction's probes at the refresh block, settled: strictly ascending in input, the output never
+// falling, at most maxLadderPoints points.
+type Ladder struct {
+	In     uint8   `json:"i"`
+	Out    uint8   `json:"j"`
+	Points []Point `json:"p"`
+	// Flat has bit k set where span k, from point k-1 to point k, quotes point k-1's output: a chord there could pay
+	// more than the pool, as across a change of route. A direction with a flat span takes no second fill.
+	Flat uint64 `json:"f,omitempty"`
+	// Capped is set only on a clip of the curve's route at the top: the last probe used less than it was asked, the
+	// pool's input ceiling for the direction, where a larger input clips at the same point or fills whole at a better
+	// output. A larger input then fills at that point and returns the rest.
+	Capped bool `json:"c,omitempty"`
+
+	// The charge (gas.go). Cells are the paths a fill of the direction may take, the table's for the pricer's build,
+	// the chain, each live venue kind on the pair and the side, each at its least: a ladder without them is not
+	// quoted. The reads that narrow them at each fill, all at the refresh block: Held, the output's custody
+	// (tokenConfig.held); Freed, the output the pool frees before a draw, its held, supplied and posted (the
+	// request's legs); OwedOut and OwedIn, each token's debt (owedUnknown, owedNone, owedSome); FirstOwing, a borrow
+	// of the output may be a first one while it owes, as a second live venue lends it; PostedIn, the input has
+	// collateral posted (its posted leg), so a borrow of the output while it owes nothing may take an owing borrow's
+	// cells; Repay, the input owes and its repay is certain. Nil or zero: not read. Second is the charge of a fill
+	// after another fill of the route moved the pool, in the same transaction: the least second-fill charge of the
+	// pair's live kinds. A ladder without it is not quoted either. After are the same paths at the gas of the pool's
+	// first fill after another pool of this source filled earlier in the same transaction, never above their cells,
+	// where the table measured such fills: a fill is charged them where the route's swap limit says another pool
+	// filled (pool_simulator.go). A ladder without them charges its cells then.
+	Cells      []Cell       `json:"cs"`
+	Second     int64        `json:"sc"`
+	After      []Cell       `json:"ac,omitempty"`
+	Held       *uint256.Int `json:"ho,omitempty"`
+	Freed      *uint256.Int `json:"fr,omitempty"`
+	OwedOut    uint8        `json:"oo,omitempty"`
+	OwedIn     uint8        `json:"oi,omitempty"`
+	FirstOwing bool         `json:"fw,omitempty"`
+	PostedIn   bool         `json:"pi,omitempty"`
+	Repay      bool         `json:"rp,omitempty"`
 }
 
-// Policy is the configured quoting policy the tracker stamps into Extra (config.go documents each margin).
-type Policy struct {
-	LeverRouting       bool   `json:"leverRouting,omitempty"`
-	LeverMinEdgeBps    uint64 `json:"leverMinEdgeBps,omitempty"`
-	PriceBandMarginBps uint64 `json:"priceBandMarginBps,omitempty"`
-	PriceAgeMarginSec  uint64 `json:"priceAgeMarginSec,omitempty"`
-	SpreadAgeMarginSec uint64 `json:"spreadAgeMarginSec,omitempty"`
-	DebtDriftSec       uint64 `json:"debtDriftSec,omitempty"`
-	MaxSnapshotAgeSec  uint64 `json:"maxSnapshotAgeSec,omitempty"`
-	// QuoteDonatedVenues lifts the refusal of a venue position the Router does not fully manage (envelope).
-	QuoteDonatedVenues bool  `json:"quoteDonatedVenues,omitempty"`
-	GasSwapSell        int64 `json:"gasSwapSell,omitempty"`
-	GasSwapSellCapEval int64 `json:"gasSwapSellCapEval,omitempty"`
-	GasSwapSellPass    int64 `json:"gasSwapSellPass,omitempty"`
-	GasSwapBuy         int64 `json:"gasSwapBuy,omitempty"`
-	GasLeverUp         int64 `json:"gasLeverUp,omitempty"`
-	GasLeverDown       int64 `json:"gasLeverDown,omitempty"`
-}
-
-func (p Policy) withDefaults() Policy {
-	for _, g := range []struct {
-		v   *int64
-		def int64
-	}{{&p.GasSwapSell, defaultGasSwapSell}, {&p.GasSwapSellCapEval, defaultGasSwapSellCapEval},
-		{&p.GasSwapSellPass, defaultGasSwapSellPass}, {&p.GasSwapBuy, defaultGasSwapBuy},
-		{&p.GasLeverUp, defaultGasLeverUp}, {&p.GasLeverDown, defaultGasLeverDown}} {
-		if *g.v <= 0 {
-			*g.v = g.def
-		}
-	}
-	return p
-}
-
-// Extra is one refresh: every word the state is built from (state_reads.go), all read at the entity's
-// BlockNumber, and the verdict of the refresh. The simulator quotes only an Attested snapshot without drift:
-// the tracker re-ran the pool's own previewSwap / previewLever / fundingCeiling at that block and the port
-// reproduced every answer and every revert.
+// Extra is the refresh: a ladder per direction that trades and is routed now, and the haircut taken off every
+// amount interpolated between two probes. A paused pool, a closed pair or a refused hook has no ladder.
 type Extra struct {
-	Reads *flammReads `json:"reads,omitempty"`
-	// Venues is the Router venue set the refresh read at BlockNumber, with the Morpho market params behind each
-	// id: MMRouter.venue(pool, i) for i < venueCount(pool). The curator may add one to a live pool
-	// (MMRouter.sol addVenue), which is why it is refreshed here rather than pinned at listing; every entry is
-	// re-checked against the registry before a quote (validVenues).
-	Venues []StaticVenue `json:"venues,omitempty"`
-	// OracleAhead is what each venue's Morpho market oracle answers at the far end of the snapshot window
-	// (MorphoBlueAccount.oraclePrice(id) at the refresh block with the block timestamp moved to BlockNumber's
-	// timestamp + Policy.MaxSnapshotAgeSec; empty when the policy declares no window). It is the one input of the
-	// state that time alone moves: the BTC/USD feed behind the market oracle is a Chainlink SVR DualAggregator,
-	// which withholds each primary round for a fixed delay, so price() answers a different round as the clock
-	// passes it with no transaction in between. The simulator re-runs every fill at these answers and refuses it
-	// unless it settles identically (pool_simulator.go oracleShifted).
-	OracleAhead []OracleAnswer `json:"oracleAhead,omitempty"`
-	// Dependencies are the non-pool addresses whose logs should also trigger a refresh
-	// (pool.IPoolTrackerWithDependencies): the aggregators the PriceFeed's two proxies and the sequencer proxy
-	// resolve to, the aggregators behind each venue's market oracle feeds, the hooks whose kind emits events of its
-	// own that move a quote (the swap hook and the leverage spread hook) and the Router. DependenciesStored is
-	// pool-service's own flag, which the refresh clears whenever the resolved set changes (a Chainlink phase rotation
-	// emits nothing at the proxy).
-	Dependencies       []common.Address `json:"dependencies,omitempty"`
-	DependenciesStored bool             `json:"dependenciesStored,omitempty"`
-	Attested           bool             `json:"attested"`
-	Probes             int              `json:"probes,omitempty"`
-	AttestFailure      string           `json:"attestFailure,omitempty"`
-	ProfileDrift       string           `json:"profileDrift,omitempty"`
-	// ScheduledChangeAt is the earliest timestamp at which a scheduled change to what the port mirrors can execute
-	// (0: none scheduled): the factory's pending implementation, which anyone may execute for every pool at once
-	// (FLAMMFactory.sol:149), the pool's pending hook set (FLAMMOpsLib.sol:258), a pending venue admission or a
-	// pending loan asset (tracker_reads.go scheduledChangeAt).
-	ScheduledChangeAt uint64 `json:"scheduledChangeAt,omitempty"`
-	Policy            Policy `json:"policy"`
+	Ladders    []Ladder `json:"l"`
+	HaircutBps uint64   `json:"h"`
+	// LiveAt is the time of a refresh that routes something. pool-service saves only a state that changed, and a quiet
+	// pool's ladders can repeat to the byte, so without it such a pool's Timestamp would stop and MaxAge would take it
+	// out of routing, refreshed or not.
+	LiveAt int64 `json:"lv,omitempty"`
 }
 
-// OracleAnswer is one MorphoBlueAccount.oraclePrice(id) answer: whether the oracle answered non-zero inside the
-// account's gas cap, and the price it answered (1e36-scaled).
-type OracleAnswer struct {
-	Ok    bool        `json:"ok"`
-	Price uint256.Int `json:"price"`
+// SwapInfo keeps the shape the encoder reads: venue 0, the adapter's swap kind, for every pair of every pool.
+type SwapInfo struct {
+	Venue        uint8  `json:"venue"`
+	PoolAssetIn  bool   `json:"poolAssetIn"`
+	AmountInUsed string `json:"amountInUsed"`
+	AmountOut    string `json:"amountOut"`
 }
 
-// PoolMeta is what the executor needs: the pool is the approval target (it pulls exactly amountInUsed) and the
-// snapshot block the quote was priced at. The venue is per fill (SwapInfo.Venue, adapter data word 1).
+// PoolMeta names the contract to approve, the pool, which pulls the input in `swap`, and the refresh block.
 type PoolMeta struct {
 	ApprovalAddress string `json:"approvalAddress"`
 	BlockNumber     uint64 `json:"blockNumber"`
 }
 
-// SwapInfo carries one quoted fill to UpdateBalance: the venue the adapter must be told (data word 1), the
-// amounts, and the complete post-state of the settlement CalcAmountOut ran, which UpdateBalance adopts verbatim.
-// AmountInUsed is what the pool pulls: a swap's used input, a lever-up's poolAsset, a lever-down's payNative.
-type SwapInfo struct {
-	Venue        uint8       `json:"venue"`
-	PoolAssetIn  bool        `json:"poolAssetIn"`
-	AmountInUsed uint256.Int `json:"amountInUsed"`
-	AmountOut    uint256.Int `json:"amountOut"`
-	SpreadPpm    uint256.Int `json:"spreadPpm,omitempty"`
-
-	// lineage is the token of the adopted state the fill was quoted on (PoolSimulator.lineage), and amountIn the
-	// input the fill was quoted for: a lever-down is sized on the whole input, not on AmountInUsed
-	// (FLAMMLeverLib.sol:124-141), so the input is part of what identifies the post-state.
-	lineage  uint64
-	amountIn uint256.Int
-	seq      uint64
-	next     *flammState
+// Metadata is the lister's cursor: how many tokens each listed pool had, so a token added later re-lists it.
+type Metadata struct {
+	Pools map[string]int `json:"pools"`
 }
 
-// swapInfoJSON mirrors SwapInfo's exported shape with uint256.Int's own hex/decimal
-// json.Marshaler/Unmarshaler swapped for a plain string. json.Marshal is handed SwapInfo by value
-// wherever it crosses a process boundary (a downstream service decodes it from the route response),
-// and a non-addressable value can't reach uint256.Int's pointer-receiver MarshalJSON: the default
-// reflection path would instead dump each field's internal [4]uint64 limb array. Routing through
-// this alias sidesteps that -- s is a local, addressable copy inside the method, so &s.AmountInUsed
-// etc. are always valid regardless of how the caller held the outer SwapInfo.
-type swapInfoJSON struct {
-	Venue        uint8   `json:"venue"`
-	PoolAssetIn  bool    `json:"poolAssetIn"`
-	AmountInUsed string  `json:"amountInUsed"`
-	AmountOut    string  `json:"amountOut"`
-	SpreadPpm    *string `json:"spreadPpm,omitempty"`
+// ABI result shapes. A function returning one tuple is decoded into a struct wrapping it: go-ethereum copies a
+// single output into the target's first field.
+
+type hookSet struct {
+	Hook       common.Address `abi:"hook"`
+	Controller common.Address `abi:"controller"`
 }
 
-func (s SwapInfo) MarshalJSON() ([]byte, error) {
-	alias := swapInfoJSON{
-		Venue:        s.Venue,
-		PoolAssetIn:  s.PoolAssetIn,
-		AmountInUsed: s.AmountInUsed.Dec(),
-		AmountOut:    s.AmountOut.Dec(),
-	}
-	if !s.SpreadPpm.IsZero() {
-		dec := s.SpreadPpm.Dec()
-		alias.SpreadPpm = &dec
-	}
-	return json.Marshal(alias)
+type hooksResult struct {
+	Set hookSet
 }
 
-func (s *SwapInfo) UnmarshalJSON(data []byte) error {
-	var alias swapInfoJSON
-	if err := json.Unmarshal(data, &alias); err != nil {
-		return err
-	}
-	s.Venue = alias.Venue
-	s.PoolAssetIn = alias.PoolAssetIn
-	if err := s.AmountInUsed.SetFromDecimal(alias.AmountInUsed); err != nil {
-		return err
-	}
-	if err := s.AmountOut.SetFromDecimal(alias.AmountOut); err != nil {
-		return err
-	}
-	if alias.SpreadPpm != nil {
-		return s.SpreadPpm.SetFromDecimal(*alias.SpreadPpm)
-	}
-	return nil
+type tokenConfig struct {
+	Token            common.Address `abi:"token"`
+	Decimals         uint8          `abi:"decimals"`
+	SwapPriceBandWad uint64         `abi:"swapPriceBandWad"`
+	FeeFloorWad      uint64         `abi:"feeFloorWad"`
+	MaxSwapNotional  *big.Int       `abi:"maxSwapNotional"`
+	ReserveTarget    *big.Int       `abi:"reserveTarget"`
+	MinSupplyBatch   *big.Int       `abi:"minSupplyBatch"`
+	Held             *big.Int       `abi:"held"`
+	Partner          uint8          `abi:"partner"`
+	PairId           uint8          `abi:"pairId"`
+	DebtFree         bool           `abi:"debtFree"`
+}
+
+type tokenConfigResult struct {
+	Config tokenConfig
+}
+
+type tradableResult struct {
+	Tradable      *big.Int `abi:"tradable"`
+	HookPairs     *big.Int `abi:"hookPairs"`
+	OperatorPairs *big.Int `abi:"operatorPairs"`
+	PendingPairs  *big.Int `abi:"pendingPairs"`
+	ExecutableAt  *big.Int `abi:"executableAt"`
+}
+
+type pairHookResult struct {
+	Hook common.Address `abi:"hook"`
+	Mask *big.Int       `abi:"mask"`
+}
+
+type laneResult struct {
+	LaneWord   *big.Int `abi:"laneWord"`
+	LaneConfig *big.Int `abi:"laneConfig"`
+	Pending    *big.Int `abi:"pending"`
+}
+
+// venueView is the Router's record of one of a pool's lending venues (IMMRouter.VenueView): the source reads its
+// kind, the tokens of its credit pair and its status, for the kind gate and the charge of the pairs it may fund.
+type venueView struct {
+	Account          common.Address `abi:"account"`
+	Id               [32]byte       `abi:"id"`
+	Kind             uint8          `abi:"kind"`
+	Pair             uint8          `abi:"pair"`
+	Coll             uint8          `abi:"coll"`
+	Debt             uint8          `abi:"debt"`
+	LltvWad          uint64         `abi:"lltvWad"`
+	BorrowEnabled    bool           `abi:"borrowEnabled"`
+	SupplyEnabled    bool           `abi:"supplyEnabled"`
+	Status           uint8          `abi:"status"`
+	DebtCap          *big.Int       `abi:"debtCap"`
+	SupplyCap        *big.Int       `abi:"supplyCap"`
+	MaxBorrowRateWad uint64         `abi:"maxBorrowRateWad"`
+}
+
+type venueResult struct {
+	View venueView
 }

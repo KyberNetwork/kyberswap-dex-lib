@@ -2,144 +2,150 @@ package everlongflamm
 
 import (
 	"errors"
+	"time"
 
-	"github.com/holiman/uint256"
+	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// DexType is the exchange and pool type of the Everlong FLAMM integration.
+// DexType is the exchange and pool type of every Efficient pool, whatever its hooks, feeds and lending venues.
 const DexType = valueobject.ExchangeEverlongFlamm
 
-// Shared read-only words. They are never a destination, and no function returns or stores one where a caller
-// could write through it: results that would be one of these are fresh copies. The big256 words are copied
-// too, because big256.BONE, TenPow and U2Pow96 are shared by every package in the library.
+const (
+	// MaxAge bounds how long a probed state stays routable while StaleCheck is on: every pool prices against
+	// oracle feeds.
+	MaxAge = 30 * time.Second
+
+	// refreshSeconds is how soon after a refresh the tracker asks for the next, with no event: a feed round, an
+	// operator's tuning and a venue's state move the quote and log from elsewhere than the pool.
+	refreshSeconds int64 = 10
+
+	// maxVenues bounds the Router records read per pool; past it the pool is not routed, as a record unread could
+	// be of a kind the chain does not route.
+	maxVenues = 64
+	// venueWindow is how many records the read after the first asks for beside the count; more take one read more.
+	venueWindow = 8
+
+	// The sampler (FlammSampler) prices a pool's directions in one eth_call, each call to the pool or hook under a
+	// per-probe cap. defaultProbeGas is the cap a pool starts at; a pool whose probe starves there is asked at twice
+	// its cap, up to maxProbeGas. defaultSampleGas is the call's own gas, stated, since a node's default is its own.
+	// samplerReserveGas is what the sampler keeps to encode its answer: it calls the pool or hook only with the cap,
+	// its 64th and that much left, so a low gas cap gives a shorter ladder, not a failed call. minSampleGas is the
+	// least call gas that passes that gate at maxProbeGas, with 100,000 for the call's own entry.
+	defaultProbeGas   uint64 = 5_000_000
+	maxProbeGas       uint64 = 20_000_000
+	defaultSampleGas  uint64 = 45_000_000
+	samplerReserveGas uint64 = 300_000
+	minSampleGas             = maxProbeGas*64/63 + samplerReserveGas + 100_000
+	// samplerFlipShift: the sampler bisects a change of route label while its bracket is wider than its lower end
+	// over 2^7. samplerEdgeProbes is how often it bisects towards the first refusal above a price. samplerGapPpm: it
+	// splits a span whose chord may lose more than that many parts per million of the output to the pool's curve.
+	samplerFlipShift  = 7
+	samplerEdgeProbes = 3
+	samplerGapPpm     = 100
+	// maxProbesPerDirection is a direction's probe budget in one sampler call, maxProbesPerRefresh a pool's, shared
+	// out evenly; the probe above a tier-labelled top may add one past either. maxSampledDirections is how many
+	// directions share it at the least a walk can use, four each: the rest are not routed that refresh.
+	// firstRefreshSeeds is how many sizes a direction with no ladder yet is seeded at.
+	maxProbesPerDirection = 32
+	maxProbesPerRefresh   = 64
+	maxSampledDirections  = 16
+	firstRefreshSeeds     = 32
+	// samplerTimeout bounds one sampler call. A node that refuses the sampler samplerFailuresToCooldown times in a
+	// row, no pool answering in between, leaves every refresh to the plain path for samplerRetryAfter.
+	samplerTimeout            = 3 * time.Second
+	samplerRetryAfter         = 10 * time.Minute
+	samplerFailuresToCooldown = 8
+
+	// The plain path, where a node does not run the sampler: each probe, request read and leverage-state read is its
+	// own eth_call in a JSON-RPC batch, plainProbeGas each, as no cap is raised there, and a direction is probed at
+	// plainSeedsPerDirection sizes at most, with no bisection.
+	plainProbeGas          uint64 = 15_000_000
+	plainSeedsPerDirection int    = 16
+
+	// defaultHaircutBps is taken off every amount interpolated between two probed sizes (never off a probed one).
+	defaultHaircutBps uint64 = 1
+
+	// defaultRungs is how many sizes a direction's ladder is seeded at past its first, on every refresh after a
+	// pool's first, beside one size under its last first point; minRungs and maxRungs bound the config's.
+	defaultRungs = 20
+	minRungs     = 4
+	maxRungs     = 24
+
+	// venueSwap is the adapter's kind for every pair of every pool: EverlongFlammAdapter kind 0, `IFLAMM.swap`.
+	venueSwap uint8 = 0
+
+	// maxTokens is the most tokens the trade mask names (bit 16*i + j).
+	maxTokens = 16
+
+	// pairHookTokens bounds the tokens a pair hook may price (FLAMMStore.PAIR_HOOK_TOKENS): its mask names pairs of
+	// tokens 0 to 13 only.
+	pairHookTokens = 14
+
+	// laneVersionShift and laneVersionMask read the cheap lane's version (FLAMMStore.LANE_VERSION, bits 97-103 of
+	// `lane()`'s laneConfig): nonzero once a listed front opened the lane, which then prices the swap hook's pairs
+	// for the pool's life.
+	laneVersionShift = 97
+	laneVersionMask  = 0x7f
+
+	// maxPointBits bounds a probed amount, so products of two stay inside 256 bits.
+	maxPointBits = 120
+
+	// maxLadderPoints bounds a ladder: Ladder.Flat holds one bit per span.
+	maxLadderPoints = 64
+
+	// dustOut is the output under which a refusal ends nothing: the pool's band test rounds a whole-unit output, so a
+	// fill of n units can miss the band by 1/n, and small sizes alternate between a price and a refusal.
+	dustOut = 10_000
+
+	// aboveShift places the probe above a tier-labelled top, at used + (used >> aboveShift) + 1: settle keeps a
+	// tier-labelled point only where one of the points it takes from the probes is priced at least
+	// used >> aboveShift above it.
+	aboveShift = 10
+
+	// minSpreadWad and capMarginWad are the row gate's floors (rowOk): the least lever-down spread, 1 bp, and the
+	// least room each cap leaves inside the band, 0.1 %.
+	minSpreadWad = 100_000_000_000_000
+	capMarginWad = 1_000_000_000_000_000
+
+	// shapeEverlong is the one output shape a hook family can state (HookFamily.Shape): EverlongHook's, the better of
+	// two routes, its curve's and its leverage row's, each fill labelled by the fee rate it reports.
+	shapeEverlong = "everlong"
+
+	// paramsWords is how many words a hook's params() answers; words 27-34 are its leverage row.
+	paramsWords = 35
+
+	// requestWords is how many words the pool's pairRequest answers, levStateWords how many the hook's levState.
+	requestWords  = 26
+	levStateWords = 8
+)
+
+// levStateSelector is EverlongHook's levState(PairRequest): sent as raw call data, the selector and then the 26
+// words pairRequest answered, as an ABI entry taking uint256[26] would carry another selector.
+var levStateSelector = []byte{0xd3, 0x8f, 0x9b, 0xd9}
+
+// samplerTag starts every answer of the sampler: bytes4(keccak256("FlammSampler")), so a caller can tell its code
+// ran.
+var samplerTag = [4]byte{0xed, 0x7b, 0x4a, 0xc9}
+
+// starvedReverts are the reverts a probe ran short of gas with, ReadStarved() of a venue read and GasShort(): a
+// starved probe, which says nothing of the pool.
+var starvedReverts = [][]byte{{0x67, 0x52, 0x1d, 0xd6}, {0x88, 0x2f, 0x2c, 0xb8}}
+
+// defaultTaker is the KyberSwap executor, the caller of the pool's swap in a route: a hook prices the swap for its
+// caller, so every probe is sent from it.
+var defaultTaker = common.HexToAddress("0x8f10b468b06c6fd214b65f87778827f7d113f996")
+
+// erc1967Slot is the ERC-1967 implementation slot.
+var erc1967Slot = common.HexToHash("0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc")
+
+// defaultCodeVersions are the pool implementations quoted when the config names none. Every implementation
+// change reports a higher `poolCodeVersion()`, so an upgrade the config does not name leaves the pools unrouted.
+var defaultCodeVersions = []uint32{1}
+
 var (
-	uZero       = uint256.NewInt(0)
-	uOne        = uint256.NewInt(1)
-	uWad        = new(uint256.Int).Set(big256.BONE)       // 1e18
-	uWadSquared = new(uint256.Int).Set(big256.TenPow(36)) // WAD*WAD
-	uQ96        = new(uint256.Int).Set(big256.U2Pow96)    // 2**96
-	uPpm        = uint256.NewInt(1_000_000)
-	uBps        = uint256.NewInt(10_000)
-)
-
-// Venues of one pool, as the adapter's `data` word 1 selects them (EverlongFlammAdapter.sol VENUE_SWAP /
-// VENUE_LEVERAGE).
-const (
-	VenueSwap  uint8 = 0
-	VenueLever uint8 = 1
-)
-
-// Default gas per venue and direction: the largest receipt gas of executeEverlongFlamm measured through the adapter on
-// anvil forks of Base, plus 25%, rounded up to 10,000 (fork_gas_test.go TestForkGas at blocks 51313000 and
-// 51330060, fork_parity_test.go TestForkParity, and fork_edges_test.go TestForkSequence / TestForkGasGrid at
-// 51302915, 51324800 and 51330060).
-//
-// Gas is state-dependent. A leverage fill is priced on the frozen leverage curve, whose anchor solve is closed-form
-// on the half-law piece and a ~60-step bisection over a quartic Bezier on the Hermite piece
-// (CollRebalancerMath.sol:190, :333). The plan and the execution each run the hook's quote, four solves up (frame,
-// leverageQuote, post-anchor, band assert) and five down (plus _cvRequiredOnAnchor), so the most expensive leverage
-// fills start and end on the Hermite piece: every solve bisects. The recovery piece runs fewer (one wall solve
-// replaces the strict one, and its y-bisection is two mulDivs a step). The first fills after arming, on the
-// half-law piece, cost ~1.9M; Hermite-to-Hermite fills cost 2.89M-2.93M up and 3.30M-3.32M down at every size.
-// The rest varies with the Router legs through Morpho, the same bundles the swap venue settles with.
-//
-// Measured maxima: swap sell 1,085,310 (a notional-capped partial sell, whose hook fill bisects), swap buy 1,202,312,
-// lever-up 2,929,633 and lever-down 3,318,066 (a dust lever-down on the Hermite piece right after a lever-up).
-// Overridable through Config.
-//
-// A swap sell the pool clips (notional cap, room, a venue or asset debt cap, Morpho liquidity, the funding ceiling)
-// also grows with its input, so its estimate adds two terms to defaultGasSwapSell, from the counts the simulator's
-// own settlement ran:
-//   - defaultGasSwapSellCapEval per curve solve of EverlongHook._maxInForGrossCap (EverlongHook.sol:583), a bisection
-//     over [0, amountIn] of min(64, ~log2(amountIn)) solves, run by every previewExactIn of the plan and again by the
-//     execution's executeExactIn (FLAMMSwapLib.sol:87, :197): up to 320 solves;
-//   - defaultGasSwapSellPass per funding pass after the first (FLAMMSwapLib.sol:163, at most four): the re-plan's
-//     Router.fundingCeiling calls, fee and fill.
-//
-// A buy runs neither (its fill never bisects, hook.go capFill; its plan has no funding loop). Measured by
-// fork_gas_test.go TestForkGasSwapSellClip at 51333700 over 645 mined clipped sells (notional cap, venue debt cap,
-// Morpho liquidity, and funding ceilings bound by a lowered pin; 1-4 passes, 24-256 solves, inputs 2^9-2^72): every
-// receipt is within 950,917 + 8,201 per solve + 161,247 per extra pass (the steepest per-solve slope of a scenario,
-// then the largest step between pass counts). The two slopes plus 25%, rounded up to 100 and 10,000, are the terms;
-// the intercept plus 25% (1,188,646) is within defaultGasSwapSell. Estimates were 1.31x-1.56x the receipts across the two recorded fork runs, the highest 1.554x.
-const (
-	defaultGasSwapSell        int64 = 1_360_000
-	defaultGasSwapSellCapEval int64 = 10_300
-	defaultGasSwapSellPass    int64 = 210_000
-	defaultGasSwapBuy         int64 = 1_510_000
-	defaultGasLeverUp         int64 = 3_670_000
-	defaultGasLeverDown       int64 = 4_150_000
-)
-
-// Default margins (Config): the fill-time robustness a listing gets unless its configuration sets a margin, 0
-// included. Each only refuses, so a default trades a sliver of coverage for fewer reverted or re-priced fills:
-//   - a minute of feed life and of spread life;
-//   - 30 seconds of Morpho accrual a swap must survive with the same amounts (a clipped fill's cap can move);
-//   - 50 bps of pool asset feed move, which is one ordinary cbBTC/USD round (below);
-//   - a refresh at most 10 minutes old: a refresh that keeps failing leaves pool-service with an entity that sees
-//     neither the fills nor the feed rounds since.
-//
-// defaultPriceBandMarginBps is sized on the pool asset feed's own round sizes, because the quote has to survive
-// one round the snapshot has not seen. Measured over Base blocks 51066959-51369359 (167.6 h, 567 cbBTC/USD rounds
-// on aggregator 0x51cE3091, the AnswerUpdated logs): consecutive rounds move a median 9.7 bps, p75 28.8, p90 33.6,
-// p95 37.8, p99 52.1, max 72.5, with the mass between 28 and 34 bps -- the feed's own deviation threshold -- and
-// 49.3% of rounds above 10 bps. A margin of m bps covers a round of m bps: on the committed grids, at 50 bps a
-// round of +-10, +-20, +-35 or +-50 bps reverts and re-prices no accepted swap quote at any drift of the snapshot
-// from the book that was tried (0, +200, +400 and +600 bps pinned), where at 10 bps the band-pinned state loses 8,
-// 47 and 57 of its 610 accepted quotes to +20, +35 and +50 bps rounds. The cover costs 23 of 1,463 accepted swap
-// quotes and 23 of 374 leverage quotes, and 50 bps is 1/16th of the deployed band (swapPriceBandWad 8e16). Rounds
-// above the margin are still bounded by the refresh: the feed aggregators are in the dependency set
-// (pool_tracker.go), so a round triggers one.
-//
-// defaultLeverMinEdgeBps keeps the routed quote on the swap venue unless the leverage venue pays more than this
-// many bps above it (pickVenue). The leverage venue costs 2.31M more gas up and 2.64M more down than the swap
-// venue (the gas defaults above), which at Base's observed gas price of 0.006 gwei and ETH at $2,407 is $0.033
-// and $0.038: 10 bps covers it from about $40 of route value up, and below that the whole difference is under
-// four cents. A bps edge is not a gas cost, so it removes the thin-gain tail rather than making the choice
-// gas-aware; gas-aware venue selection stays a condition on enabling LeverRouting (README).
-const (
-	defaultPriceBandMarginBps uint64 = 50
-	defaultPriceAgeMarginSec  uint64 = 60
-	defaultSpreadAgeMarginSec uint64 = 60
-	defaultDebtDriftSec       uint64 = 30
-	defaultMaxSnapshotAgeSec  uint64 = 600
-	defaultLeverMinEdgeBps    uint64 = 10
-)
-
-// maxVenues caps the Router venue set a pool may be listed and quoted with: every venue costs a fixed number of
-// reads per refresh and a leg per settlement pass, and a pool past this is outside what the port was measured on
-// and is refused. It is a port-side ceiling above the Router's own, which is eight and binding for every pool
-// forever (MMRouterLib.sol:227 `if (n >= MAX_VENUES) revert TooManyVenues();` over IMMRouter.sol:13
-// `MAX_VENUES = 8`, on the one site that grows the array; retirement flags a venue and never pops it, so the
-// length is monotonic). On a Router of the registered code, therefore, this refusal cannot fire: it bounds a
-// Router that raises its own cap, and such a Router is new code, to be registered only after the port is measured
-// on it.
-const maxVenues = 64
-
-// scheduledChangeLeadSec is how long before a scheduled implementation, hook-set, venue or loan-asset change
-// becomes executable the simulator stops quoting (Extra.ScheduledChangeAt, tracker_reads.go scheduledChangeAt): a
-// fill quoted now can land that much later, after anyone executed the upgrade in an earlier block.
-const scheduledChangeLeadSec uint64 = 1800
-
-// Refusals of the integration layer. The pool's own reverts are the sentinels in errors.go.
-var (
-	ErrInvalidProfile   = errors.New("everlong-flamm: pool is not a supported profile or its listing disagrees with it")
-	ErrNotAttested      = errors.New("everlong-flamm: snapshot was not attested against the pool's own previews")
-	ErrProfileDrift     = errors.New("everlong-flamm: on-chain wiring drifted from the listed profile")
-	ErrPoolRefused      = errors.New("everlong-flamm: pool state is outside the quotable envelope")
-	ErrInvalidToken     = errors.New("everlong-flamm: invalid token pair")
-	ErrZeroAmountOut    = errors.New("everlong-flamm: zero amount out")
-	ErrFeedAgeMargin    = errors.New("everlong-flamm: a price feed round expires within the configured margin")
-	ErrSpreadNotLive    = errors.New("everlong-flamm: leverage spread is not live through the configured margin")
-	ErrBandMargin       = errors.New("everlong-flamm: fill is within the configured margin of the price band")
-	ErrFeedMoveMargin   = errors.New("everlong-flamm: fill does not survive a pool asset feed move of the configured margin")
-	ErrDebtDrift        = errors.New("everlong-flamm: fill does not survive the configured accrual drift")
-	ErrOracleDrift      = errors.New("everlong-flamm: fill does not survive the market oracle's end-of-window answer")
-	ErrSwapInfoMismatch = errors.New("everlong-flamm: swap info was quoted on a different state")
-	ErrSnapshotStale    = errors.New("everlong-flamm: snapshot is older than the configured maximum age")
-	ErrScheduledChange  = errors.New(
-		"everlong-flamm: a scheduled implementation, hook-set, venue or loan-asset change is executable")
+	ErrInvalidToken = errors.New("invalid token")
+	ErrInvalidState = errors.New("invalid pool state")
+	ErrRead         = errors.New("a pool read failed")
 )
