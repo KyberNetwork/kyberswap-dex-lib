@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -69,6 +70,15 @@ func TestCalcAmountOut(t *testing.T) {
 			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
+			native, err := p.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: *uint256.NewInt(uint64(tc.inAmount))},
+				TokenOut:      tc.out,
+			})
+			require.Nil(t, err)
+			assert.Equal(t, out.TokenAmountOut.Amount.String(), native.TokenAmountOut.Amount.Dec(),
+				"native CalcAmtOut must match CalcAmountOut")
+			assert.Equal(t, out.Fee.Amount.String(), native.Fee.Amount.Dec(), "native fee must match")
+			assert.Equal(t, out.Gas, native.Gas, "native gas must match")
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 			fmt.Println("fee", out.Fee.Amount)
 		})

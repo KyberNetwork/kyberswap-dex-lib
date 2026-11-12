@@ -147,6 +147,29 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
+func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenIndexFrom := t.Info.GetTokenIndex(param.TokenAmountIn.Token)
+	tokenIndexTo := t.Info.GetTokenIndex(param.TokenOut)
+	if tokenIndexFrom < 0 || tokenIndexTo < 0 {
+		return &pool.CalcAmtOutResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
+	}
+
+	var amountOut, adminFee uint256.Int
+	amount := param.TokenAmountIn.Amount
+	if err := t.GetDy(tokenIndexFrom, tokenIndexTo, &amount, nil, &amountOut, &adminFee); err != nil {
+		return nil, err
+	}
+	if amountOut.IsZero() {
+		return &pool.CalcAmtOutResult{}, ErrZero
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: param.TokenOut, Amount: amountOut},
+		Fee:            &pool.TokenAmt{Token: param.TokenOut, Amount: adminFee},
+		Gas:            t.gas.Exchange,
+	}, nil
+}
+
 func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	tokenAmountOut := param.TokenAmountOut
 	tokenIn := param.TokenIn
