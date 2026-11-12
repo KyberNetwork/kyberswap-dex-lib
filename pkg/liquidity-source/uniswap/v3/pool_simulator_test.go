@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -158,6 +159,131 @@ func TestTickRoundingToZero(t *testing.T) {
 		TokenOut: "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
 	})
 	require.ErrorIs(t, err, ErrZeroAmount)
+}
+
+// TestCalcAmtOutParity runs CalcAmtOut and CalcAmountOut on the same inputs and requires the same
+// output amount, fee, gas, remaining input and error. The native path must not drift from the
+// big.Int path that routing has always used.
+func TestCalcAmtOutParity(t *testing.T) {
+	t.Parallel()
+
+	poolEntity := new(entity.Pool)
+	require.NoError(t, json.Unmarshal([]byte(poolEncoded), poolEntity))
+	const uni, weth = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+
+	plain, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
+	require.NoError(t, err)
+
+	var extra ExtraTickU256
+	require.NoError(t, json.Unmarshal([]byte(poolEntity.Extra), &extra))
+	extra.MaxTxToken, extra.MaxTxAmount = uni, bignumber.NewBig10("50000000000000000000")
+	guarded, err := NewPoolSimulatorWithExtra(*poolEntity, &extra, SimulatorConfig{})
+	require.NoError(t, err)
+
+	extra.MaxTxToken, extra.MaxTxAmount = "", nil
+	extra.BuyRestrictedToken = uni
+	restricted, err := NewPoolSimulatorWithExtra(*poolEntity, &extra, SimulatorConfig{})
+	require.NoError(t, err)
+
+	cases := []struct {
+		name     string
+		sim      *PoolSimulator
+		tokenIn  string
+		tokenOut string
+		amountIn string
+	}{
+		{"uni->weth 10", plain, uni, weth, "10000000000000000000"},
+		{"uni->weth 1000", plain, uni, weth, "1000000000000000000000"},
+		{"weth->uni 0.1", plain, weth, uni, "100000000000000000"},
+		{"weth->uni 10", plain, weth, uni, "10000000000000000000"},
+		{"weth->uni near full range", plain, weth, uni, "5000000000000000000000000000"},
+		{"zero input", plain, uni, weth, "0"},
+		{"unknown token", plain, "0x0000000000000000000000000000000000000001", weth, "1000"},
+		{"maxTx sell over cap", guarded, uni, weth, "100000000000000000000"},
+		{"maxTx sell under cap", guarded, uni, weth, "10000000000000000000"},
+		{"maxTx buy over cap", guarded, weth, uni, "1000000000000000000"},
+		{"maxTx buy under cap", guarded, weth, uni, "100000000000000"},
+		{"buy restricted", restricted, weth, uni, "1000000000000000000"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			amtIn := bignumber.NewBig10(tc.amountIn)
+			var amtInU256 uint256.Int
+			require.False(t, amtInU256.SetFromBig(amtIn))
+
+			want, wantErr := tc.sim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: amtIn},
+				TokenOut:      tc.tokenOut,
+			})
+			got, gotErr := tc.sim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tc.tokenIn, Amount: amtInU256},
+				TokenOut:      tc.tokenOut,
+			})
+
+			if wantErr != nil || gotErr != nil {
+				require.ErrorIs(t, gotErr, wantErr)
+				require.Nil(t, got)
+				return
+			}
+			require.NoError(t, gotErr)
+			assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.ToBig().String(), "amountOut")
+			assert.Equal(t, want.TokenAmountOut.Token, got.TokenAmountOut.Token, "tokenOut")
+			assert.Equal(t, want.Gas, got.Gas, "gas")
+			assert.Equal(t, want.Fee.Token, got.Fee.Token, "fee token")
+			assert.Nil(t, want.Fee.Amount, "big.Int path leaves fee amount unset")
+			assert.True(t, got.Fee.Amount.IsZero(), "native path leaves fee amount zero")
+			assert.Equal(t, want.RemainingTokenAmountIn.Amount.String(),
+				got.RemainingTokenAmountIn.Amount.ToBig().String(), "remaining in")
+			assert.Equal(t, want.SwapInfo, got.SwapInfo, "swapInfo")
+		})
+	}
+}
+
+// TestCmpU256Big pins the uint256/big.Int comparison that replaces big.Int compares on the native
+// path, including the out-of-range bounds where a plain conversion would silently wrap.
+func TestCmpU256Big(t *testing.T) {
+	t.Parallel()
+	maxU256 := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
+	over := new(big.Int).Add(maxU256, big.NewInt(1))
+	cases := []struct {
+		name string
+		u    uint256.Int
+		b    *big.Int
+		want int
+	}{
+		{"equal", *uint256.NewInt(5), big.NewInt(5), 0},
+		{"u below", *uint256.NewInt(4), big.NewInt(5), -1},
+		{"u above", *uint256.NewInt(6), big.NewInt(5), 1},
+		{"zero vs zero", uint256.Int{}, big.NewInt(0), 0},
+		{"negative b is below every u", *uint256.NewInt(0), big.NewInt(-1), 1},
+		{"b above 2^256-1 is above every u", *new(uint256.Int).SetAllOne(), over, -1},
+		{"u max equals b max", *new(uint256.Int).SetAllOne(), maxU256, 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, cmpU256Big(&tc.u, tc.b))
+		})
+	}
+}
+
+// TestExceedsMaxTxU256 must agree with exceedsMaxTx for every amount, including the exact cap
+// (not over it) and the case where the guard is unset or the token is not the launched one.
+func TestExceedsMaxTxU256(t *testing.T) {
+	t.Parallel()
+	const launched, other = "0xlaunched", "0xother"
+	capAmt := big.NewInt(50)
+	guarded := &PoolSimulator{maxTxToken: launched, maxTxAmount: capAmt}
+	unguarded := &PoolSimulator{}
+
+	for _, amt := range []int64{0, 49, 50, 51} {
+		u := uint256.NewInt(uint64(amt))
+		b := big.NewInt(amt)
+		assert.Equal(t, guarded.exceedsMaxTx(launched, b), guarded.exceedsMaxTxU256(launched, u), "amt %d", amt)
+		assert.Equal(t, guarded.exceedsMaxTx(other, b), guarded.exceedsMaxTxU256(other, u), "other token %d", amt)
+		assert.Equal(t, unguarded.exceedsMaxTx(launched, b), unguarded.exceedsMaxTxU256(launched, u), "unguarded %d", amt)
+	}
 }
 
 func TestCloneState(t *testing.T) {

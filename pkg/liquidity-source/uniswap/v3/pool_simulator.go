@@ -294,6 +294,53 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 	return &b.res, nil
 }
 
+// CalcAmtOut is CalcAmountOut with uint256 amounts and no price limit. It runs the same checks in
+// the same order; the input is already uint256, so it needs no overflow check.
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
+	tokenIn := tokenAmountIn.Token
+	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
+	if tokenInIndex < 0 || tokenOutIndex < 0 {
+		return nil, ErrInvalidToken
+	} else if p.isBuyRestricted(tokenOut) {
+		return nil, ErrBuyRestricted
+	} else if p.exceedsMaxTxU256(tokenIn, &tokenAmountIn.Amount) {
+		return nil, ErrMaxTxExceeded
+	}
+
+	zeroForOne := tokenInIndex == 0
+	var noLimit uint256.Int
+	result, err := p.V3Pool.GetOutputAmountV2(zeroForOne, tokenAmountIn.Amount, noLimit)
+	if err != nil {
+		return nil, err
+	} else if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {
+		return nil, ErrZeroAmount
+	}
+	if cmpU256Big(&result.AmountCalculated, p.GetReserves()[tokenOutIndex]) > 0 {
+		return nil, ErrInsufficientBalance
+	} else if p.exceedsMaxTxU256(tokenOut, &result.AmountCalculated) {
+		return nil, ErrMaxTxExceeded
+	}
+
+	b := &calcAmtOutBacking{remainingIn: result.RemainingAmountIn, sqrtPrice: result.SqrtRatioX96}
+	b.out = pool.TokenAmt{Token: tokenOut, Amount: result.AmountCalculated}
+	b.remaining = pool.TokenAmt{Token: tokenIn, Amount: b.remainingIn}
+	b.fee = pool.TokenAmt{Token: tokenIn}
+	b.res = pool.CalcAmtOutResult{
+		TokenAmountOut:         &b.out,
+		RemainingTokenAmountIn: &b.remaining, Fee: &b.fee,
+		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops) +
+			p.Gas.CrossEmptyWordGas*int64(result.CrossEmptyWordLoops),
+		SwapInfo: SwapInfo{
+			RemainingAmountIn:     &b.remainingIn,
+			NextStateSqrtRatioX96: &b.sqrtPrice,
+			NextStateLiquidity:    result.Liquidity,
+			NextStateTickCurrent:  result.CurrentTick,
+		},
+	}
+	return &b.res, nil
+}
+
 // calcAmountOutBacking holds everything a CalcAmountOut result points to, so a quote costs one
 // allocation for it plus the SwapInfo interface box instead of eight.
 type calcAmountOutBacking struct {
@@ -302,6 +349,13 @@ type calcAmountOutBacking struct {
 	remainingIn, sqrtPrice   uint256.Int // SwapInfo points here
 	outBI, remainingBI       big.Int
 	outWords, remainingWords [4]big.Word
+}
+
+// calcAmtOutBacking is calcAmountOutBacking for CalcAmtOut, with uint256 amounts held by value.
+type calcAmtOutBacking struct {
+	res                    pool.CalcAmtOutResult
+	out, remaining, fee    pool.TokenAmt
+	remainingIn, sqrtPrice uint256.Int // SwapInfo points here
 }
 
 // calcAmountInBacking is calcAmountOutBacking for CalcAmountIn.
@@ -356,6 +410,24 @@ func (p *PoolSimulator) isBuyRestricted(tokenOut string) bool {
 // OdysToken's maxTx() launch guard.
 func (p *PoolSimulator) exceedsMaxTx(token string, amount *big.Int) bool {
 	return p.maxTxAmount != nil && strings.EqualFold(token, p.maxTxToken) && amount.Cmp(p.maxTxAmount) > 0
+}
+
+// exceedsMaxTxU256 is exceedsMaxTx for a uint256 amount; it returns the same result.
+func (p *PoolSimulator) exceedsMaxTxU256(token string, amount *uint256.Int) bool {
+	return p.maxTxAmount != nil && strings.EqualFold(token, p.maxTxToken) && cmpU256Big(amount, p.maxTxAmount) > 0
+}
+
+// cmpU256Big returns u.Cmp(b) exactly, without allocating. A negative b is below every uint256,
+// and a b above 2^256-1 is above every uint256.
+func cmpU256Big(u *uint256.Int, b *big.Int) int {
+	if b.Sign() < 0 {
+		return 1
+	}
+	var z uint256.Int
+	if z.SetFromBig(b) {
+		return -1
+	}
+	return u.Cmp(&z)
 }
 
 func (p *PoolSimulator) CanSwapTo(address string) []string {
