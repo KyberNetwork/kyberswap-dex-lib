@@ -7,8 +7,8 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo/helper"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo/helper/utils"
 )
 
 type ChainID uint
