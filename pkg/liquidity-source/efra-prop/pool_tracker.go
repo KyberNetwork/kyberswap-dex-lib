@@ -62,6 +62,9 @@ func (t *PoolTracker) GetNewPoolState(
 	if err != nil {
 		return p, err
 	}
+	if resp.BlockNumber == nil {
+		return p, ErrNoBlockNumber
+	}
 
 	points := [2][]*big.Int{
 		ladder.SamplePoints(p, 0, balances[0], balances[1]),

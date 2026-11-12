@@ -25,6 +25,7 @@ const (
 var defaultDest = common.HexToAddress("0x8f10b468b06c6fd214b65f87778827f7d113f996")
 
 var (
-	ErrNoUSDC       = errors.New("efra-prop: venue returned a zero USDC")
-	ErrInvalidToken = errors.New("efra-prop: invalid token address")
+	ErrNoUSDC        = errors.New("efra-prop: venue returned a zero USDC")
+	ErrInvalidToken  = errors.New("efra-prop: invalid token address")
+	ErrNoBlockNumber = errors.New("efra-prop: multicall returned no block number")
 )
