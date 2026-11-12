@@ -70,6 +70,7 @@ import (
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	dodogsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/gsp"
+	efraprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/efra-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
@@ -524,6 +525,7 @@ type Types struct {
 	OneInchAqua                string
 	BiconomyProp               string
 	DaikonProp                 string
+	EfraProp                   string
 	FermiProp                  string
 	Machima                    string
 	MetronomeSwap              string
@@ -797,6 +799,7 @@ var (
 		OneInchAqua:                oneinchaqua.DexType,
 		BiconomyProp:               biconomyprop.DexType,
 		DaikonProp:                 daikonprop.DexType,
+		EfraProp:                   efraprop.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
 		MetronomeSwap:              metronomeswap.DexType,
