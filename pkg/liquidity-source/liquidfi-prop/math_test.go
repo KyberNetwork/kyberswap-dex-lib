@@ -1,4 +1,4 @@
-package pancakeprop
+package liquidfiprop
 
 import (
 	"encoding/json"
@@ -25,26 +25,30 @@ type quoteCase struct {
 	Err      string `json:"err"`
 }
 
-// quote_cases.json holds PropAMMPricing.quoteExactInput results from forks of BSC (random price
-// words, capacities, cumulatives and sizes, edges of the capacity ceiling included) in both
-// directions, the convex and concave curves, and every revert reachable from the price word.
+// quote_cases.json holds quoteExactInput results of the previous PropAMM pricing implementation
+// (forks of BSC: random price words, capacities, cumulatives and sizes, edges of the capacity
+// ceiling included, both directions, convex and concave curves, every revert reachable from the
+// price word). quote_cases_liquidfi.json holds the same kind of cases from the LiquidFi pricing
+// implementation (BSC USDT/WBNB pair, price word written through a state override).
 func TestQuoteMatchesChain(t *testing.T) {
-	raw, err := os.ReadFile("testdata/quote_cases.json")
-	require.NoError(t, err)
-	var cases []quoteCase
-	require.NoError(t, json.Unmarshal(raw, &cases))
-	require.NotEmpty(t, cases)
+	for _, file := range []string{"testdata/quote_cases.json", "testdata/quote_cases_liquidfi.json"} {
+		raw, err := os.ReadFile(file)
+		require.NoError(t, err)
+		var cases []quoteCase
+		require.NoError(t, json.Unmarshal(raw, &cases))
+		require.NotEmpty(t, cases)
 
-	for i, c := range cases {
-		pr := unpackPrice(uint256.MustFromHex(c.Pk))
-		out, err := pr.quote(c.Fwd, uint256.MustFromDecimal(c.MaxInput), uint256.MustFromDecimal(c.Cum),
-			uint256.MustFromDecimal(c.Amount))
-		if c.Err != "" {
-			assert.Error(t, err, "case %d reverts with %s", i, c.Err)
-			continue
+		for i, c := range cases {
+			pr := unpackPrice(uint256.MustFromHex(c.Pk))
+			out, err := pr.quote(c.Fwd, uint256.MustFromDecimal(c.MaxInput), uint256.MustFromDecimal(c.Cum),
+				uint256.MustFromDecimal(c.Amount))
+			if c.Err != "" {
+				assert.Error(t, err, "%s case %d reverts with %s", file, i, c.Err)
+				continue
+			}
+			require.NoError(t, err, "%s case %d", file, i)
+			assert.Equal(t, c.Out, out.Dec(), "%s case %d", file, i)
 		}
-		require.NoError(t, err, "case %d", i)
-		assert.Equal(t, c.Out, out.Dec(), "case %d", i)
 	}
 }
 

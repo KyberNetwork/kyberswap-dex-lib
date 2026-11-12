@@ -23,16 +23,27 @@ func TestPoolSimulator(t *testing.T) {
 	simulator, err := NewPoolSimulator(entity)
 	assert.NoError(t, err)
 
-	// Swap stETH -> eETH
-	amount := big.NewInt(1000000000000000000)
-	res, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  common.STETH,
-			Amount: amount,
-		},
-		TokenOut: common.EETH,
-	})
+	calc := func(out string) (*pool.CalcAmountOutResult, error) {
+		return simulator.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: common.STETH, Amount: big.NewInt(1000000000000000000)},
+			TokenOut:      out,
+		})
+	}
 
+	// eETH is delivered as amountForShare(minted shares) read after the deposit, not as raw shares.
+	// share = dx*S/P; delivered = share*(P+dx)/(S+share) with P=pooled ether, S=eETH total shares.
+	eeth, err := calc(common.EETH)
 	assert.NoError(t, err)
-	assert.Equal(t, "948595782312992511", res.TokenAmountOut.Amount.String())
+	assert.Equal(t, "999753967142391403", eeth.TokenAmountOut.Amount.String())
+
+	// weETH == shares: wrap mints sharesForAmount(eETH amount) on the post-deposit totals (floor, so
+	// at most 1 wei below the minted shares 948595782312992511).
+	weeth, err := calc(common.WEETH)
+	assert.NoError(t, err)
+	assert.Equal(t, "948595782312992510", weeth.TokenAmountOut.Amount.String())
+
+	// UpdateBalance must move both pooled ether and eETH shares; the old code left shares unchanged.
+	sharesBefore := new(big.Int).Set(simulator.EETH.TotalShares)
+	simulator.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: eeth.SwapInfo})
+	assert.Equal(t, "948595782312992511", new(big.Int).Sub(simulator.EETH.TotalShares, sharesBefore).String())
 }

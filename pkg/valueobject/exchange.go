@@ -75,6 +75,7 @@ const (
 	ExchangeCapricornPamm               = "capricorn-pamm"
 	ExchangeCarbon                      = "carbon"
 	ExchangeClear                       = "clear"
+	ExchangeClearRFQ                    = "clear-rfq"
 	ExchangeClipper                     = "clipper"
 	ExchangeCloberOB                    = "clober-ob"
 	ExchangeCoinhaneV3ECLP              = "coinhane-v3-eclp"
@@ -181,6 +182,7 @@ const (
 	ExchangeLiquidCore                  = "liquidcore"
 	ExchangeUSCoreProp                  = "uscore-prop"
 	ExchangeLiquidityParty              = "liquidity-party"
+	ExchangeIguanaDexStable             = "iguanadex-stable"
 	ExchangeListaStable                 = "lista-stable"
 	ExchangeListaStake                  = "lista-stake"
 	ExchangeLitePSM                     = "lite-psm"
@@ -244,7 +246,7 @@ const (
 	ExchangePancakeInfinityCLStable     = "pancake-infinity-cl-stable"
 	ExchangePancakeInfinityCLTax        = "pancake-infinity-cl-tax"
 	ExchangePancakeLegacy               = "pancake-legacy"
-	ExchangePancakeProp                 = "pancake-prop"
+	ExchangeLiquidFiProp                = "liquidfi-prop"
 	ExchangePancakeStable               = "pancake-stable"
 	ExchangePandaFun                    = "panda-fun"
 	ExchangePantherSwap                 = "pantherswap"
@@ -400,6 +402,7 @@ const (
 	ExchangeWooFiV3                     = "woofi-v3"
 	ExchangeWrappedNative               = "wrapped-native"
 	ExchangeWRSETH                      = "wrseth"
+	ExchangeZkSwapStable                = "zkswap-stable"
 	ExchangeCustomWrappedNative         = "custom-wrapped-native"
 	ExchangeXSolvBTC                    = "xsolvbtc"
 	ExchangePrintr                      = "printr"
@@ -419,6 +422,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeLO1inch:               {},
 
 	ExchangeBebop:      {},
+	ExchangeClearRFQ:   {},
 	ExchangeClipper:    {},
 	ExchangeDexalot:    {},
 	ExchangeHashflowV3: {},
@@ -505,7 +509,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeNemoProp:           {},
 	ExchangeBTRProp:            {},
 	ExchangeUniswapV4HyFiProp:  {},
-	ExchangePancakeProp:        {},
+	ExchangeLiquidFiProp:       {},
 	ExchangeBiconomyProp:       {},
 	ExchangeDaikonProp:         {},
 	ExchangeStelaxisProp:       {},

@@ -31,6 +31,7 @@ const (
 	poolMethodPriceOracle        = "price_oracle"
 	poolMethodLastPrices         = "last_prices"
 	poolMethodMath               = "MATH"
+	poolMethodPolicy             = "POLICY"
 
 	PoolMethodD                  = poolMethodD
 	PoolMethodFeeGamma           = poolMethodFeeGamma
@@ -49,6 +50,7 @@ const (
 	PoolMethodPriceOracle        = poolMethodPriceOracle
 	PoolMethodLastPrices         = poolMethodLastPrices
 	PoolMethodMath               = poolMethodMath
+	PoolMethodPolicy             = poolMethodPolicy
 
 	MaxLoopLimit = 256
 	NumTokens    = 2
@@ -140,6 +142,7 @@ var (
 	ErrUnsafeD             = errors.New("unsafe values D")
 	ErrUnsafeX0            = errors.New("unsafe values x[0]")
 	ErrUnsafeXi            = errors.New("unsafe values x[i]")
+	ErrUnsupportedPolicy   = errors.New("unsupported pool policy contract")
 	ErrCoinIndexOutOfRange = errors.New("coin index out of range")
 	ErrExchange0Coins      = errors.New("do not exchange 0 coins")
 )

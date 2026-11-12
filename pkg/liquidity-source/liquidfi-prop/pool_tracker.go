@@ -1,4 +1,4 @@
-package pancakeprop
+package liquidfiprop
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func NewPoolTracker(cfg *Config, client *ethrpc.Client) *PoolTracker {
 }
 
 // GetNewPoolState reads the pair state at one block. The pricing module has no getter for the
-// price word, so it is read from storage (mapping slot 4 keyed by pair id).
+// price word, so it is read from storage (mapping keyed by pair id at priceSlotBase).
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
 	var static StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &static); err != nil {
@@ -138,10 +138,14 @@ func (p *uintPair) at(i int) *big.Int {
 	return p.V1
 }
 
-// priceSlot is keccak256(pairId . 4), the storage slot of the pair's price word.
+// priceSlotBase is the mapping base of pairId => packed price word in the LiquidFi pricing
+// implementation. Found from the SHA3 preimages of a quote on BSC; the PropAMM build used 4.
+var priceSlotBase = common.HexToHash("0x8759f18911d145bf318ed8280c3612d855b1eb13a1ec427ab54ed53d55d77d05")
+
+// priceSlot is keccak256(pairId . priceSlotBase), the storage slot of the pair's price word.
 func priceSlot(pairID uint64) common.Hash {
 	var key [64]byte
 	new(uint256.Int).SetUint64(pairID).WriteToArray32((*[32]byte)(key[:32]))
-	key[63] = slotPairPrice
+	copy(key[32:], priceSlotBase[:])
 	return crypto.Keccak256Hash(key[:])
 }

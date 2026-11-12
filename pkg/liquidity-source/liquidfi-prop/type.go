@@ -1,4 +1,4 @@
-package pancakeprop
+package liquidfiprop
 
 import (
 	"github.com/holiman/uint256"
@@ -6,7 +6,7 @@ import (
 
 type Config struct {
 	DexID string `json:"dexID"`
-	// Entry is the PropAMMEntry; pricing and vault are read from it.
+	// Entry is the LiquidFiEntry; pricing and vault are read from it.
 	Entry string `json:"entry"`
 	// BlockTimeMs converts the price's expiry block into wall-clock time.
 	BlockTimeMs uint64 `json:"blockTimeMs"`

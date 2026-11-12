@@ -1,4 +1,4 @@
-package pancakeprop
+package liquidfiprop
 
 import (
 	"context"
@@ -20,18 +20,18 @@ import (
 // TestLiveLister runs the lister and tracker against a node (an anvil fork at a block where the
 // MM has a live price) and checks the simulator against quoteExactInput for every pair.
 //
-//	PANCAKE_PROP_RPC=<url> PANCAKE_PROP_IMPL=<pricing implementation> [PANCAKE_PROP_MULTICALL=<addr>] go test -run Live
+//	LIQUIDFI_PROP_RPC=<url> LIQUIDFI_PROP_IMPL=<pricing implementation> [LIQUIDFI_PROP_MULTICALL=<addr>] go test -run Live
 func TestLiveLister(t *testing.T) {
-	url, impl := os.Getenv("PANCAKE_PROP_RPC"), os.Getenv("PANCAKE_PROP_IMPL")
+	url, impl := os.Getenv("LIQUIDFI_PROP_RPC"), os.Getenv("LIQUIDFI_PROP_IMPL")
 	if url == "" || impl == "" {
-		t.Skip("PANCAKE_PROP_RPC / PANCAKE_PROP_IMPL not set")
+		t.Skip("LIQUIDFI_PROP_RPC / LIQUIDFI_PROP_IMPL not set")
 	}
 	client := ethrpc.New(url)
-	if mc := os.Getenv("PANCAKE_PROP_MULTICALL"); mc != "" {
+	if mc := os.Getenv("LIQUIDFI_PROP_MULTICALL"); mc != "" {
 		client.SetMulticallContract(common.HexToAddress(mc))
 	}
 	cfg := &Config{
-		DexID: DexType, Entry: "0x12B76204f5A1b390002A73e3d869196F0e6e8b1C", BlockTimeMs: 450,
+		DexID: DexType, Entry: "0x114B11ae066A7785452c4570b42Fff1b7fa5b001", BlockTimeMs: 450,
 		PricingImplementations: []string{impl},
 	}
 	ctx := context.Background()
