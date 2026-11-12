@@ -10,10 +10,9 @@ import (
 const (
 	DexType = "efra-prop"
 
-	// defaultGas is unmeasured: the venue has no deployment yet (its docs still list TBD
-	// addresses), so no swap could be simulated. Must be replaced by the test-dex average
-	// before this source is enabled in prod.
-	defaultGas = 120_000
+	// defaultGas is the integer average of two test-dex swap measurements on Base (TTWOc/USDC):
+	// sell 92184, buy 70207, both stable across 4 runs; (92184+70207)/2 = 81195.5, floored.
+	defaultGas = 81_195
 
 	// maxAge bounds quoting a probed ladder. The venue's quotes expire at most 15 blocks
 	// (~30s on Base) after the maker's last update, so a ladder probed longer ago may price
