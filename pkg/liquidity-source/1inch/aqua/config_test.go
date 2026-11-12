@@ -97,20 +97,20 @@ func TestPortalConfig(t *testing.T) {
 		mutate func(*Config)
 		want   string
 	}{
-		"http":             {func(c *Config) { c.PortalURL = "http://portal.example" }, "must be https"},
-		"no scheme":        {func(c *Config) { c.PortalURL = "portal.example" }, "not a URL"},
-		"no host":          {func(c *Config) { c.PortalURL = "https://" }, "not a URL"},
-		"credentials":      {func(c *Config) { c.PortalURL = "https://user:pw@portal.example" }, "without credentials"},
-		"query":            {func(c *Config) { c.PortalURL = "https://portal.example/?key=x" }, "without credentials, query"},
-		"fragment":         {func(c *Config) { c.PortalURL = "https://portal.example/#x" }, "without credentials, query"},
+		"http":             {func(c *Config) { c.HTTPConfig.BaseURL = "http://portal.example" }, "must be https"},
+		"no scheme":        {func(c *Config) { c.HTTPConfig.BaseURL = "portal.example" }, "not a URL"},
+		"no host":          {func(c *Config) { c.HTTPConfig.BaseURL = "https://" }, "not a URL"},
+		"credentials":      {func(c *Config) { c.HTTPConfig.BaseURL = "https://user:pw@portal.example" }, "without credentials"},
+		"query":            {func(c *Config) { c.HTTPConfig.BaseURL = "https://portal.example/?key=x" }, "without credentials, query"},
+		"fragment":         {func(c *Config) { c.HTTPConfig.BaseURL = "https://portal.example/#x" }, "without credentials, query"},
 		"no chain":         {func(c *Config) { c.ChainId = 0 }, "chainId is required"},
 		"no page limit":    {func(c *Config) { c.PortalPageLimit = 0 }, "portalPageLimit"},
 		"negative limit":   {func(c *Config) { c.PortalPageLimit = -1 }, "portalPageLimit"},
 		"no max pages":     {func(c *Config) { c.PortalMaxPages = 0 }, "portalMaxPages"},
-		"no timeout":       {func(c *Config) { c.PortalTimeout = durationjson.Duration{} }, "portalTimeout"},
-		"no retries":       {func(c *Config) { c.PortalMaxRetries = nil }, "portalMaxRetries"},
-		"negative retries": {func(c *Config) { c.PortalMaxRetries = &neg }, "portalMaxRetries"},
-		"no backoff":       {func(c *Config) { c.PortalRetryBackoff = durationjson.Duration{} }, "portalRetryBackoff"},
+		"no timeout":       {func(c *Config) { c.HTTPConfig.Timeout = durationjson.Duration{} }, "http_config.timeout"},
+		"no retries":       {func(c *Config) { c.HTTPConfig.RetryCount = nil }, "http_config.retry_count"},
+		"negative retries": {func(c *Config) { c.HTTPConfig.RetryCount = &neg }, "http_config.retry_count"},
+		"no backoff":       {func(c *Config) { c.HTTPConfig.RetryWaitTime = durationjson.Duration{} }, "http_config.retry_wait_time"},
 	} {
 		cfg := portalConfig(fp, tc.mutate)
 		cfg.AquaAddress, cfg.RouterAddress = testAquaHex, testRouterHex
@@ -122,7 +122,7 @@ func TestPortalConfig(t *testing.T) {
 		require.ErrorContains(t, err, tc.want, name)
 	}
 	// Zero retries need no backoff.
-	cfg := portalConfig(fp, func(c *Config) { c.PortalMaxRetries = &zero; c.PortalRetryBackoff = durationjson.Duration{} })
+	cfg := portalConfig(fp, func(c *Config) { c.HTTPConfig.RetryCount = &zero; c.HTTPConfig.RetryWaitTime = durationjson.Duration{} })
 	cfg.AquaAddress, cfg.RouterAddress = testAquaHex, testRouterHex
 	confirm := uint64(0)
 	cfg.Confirmations = &confirm
@@ -132,7 +132,7 @@ func TestPortalConfig(t *testing.T) {
 	require.Zero(t, s.portal.retries)
 
 	// URL and no key: not a failure, the Portal is off and the missing key is flagged.
-	cfg.PortalApiKey = ""
+	cfg.HTTPConfig.ApiKey = ""
 	s, err = cfg.settings()
 	require.NoError(t, err)
 	require.Nil(t, s.portal)
@@ -145,18 +145,18 @@ func TestPortalConfig(t *testing.T) {
 	require.Nil(t, s.portal)
 	require.False(t, s.portalNoKey)
 	// The tracker never reads the Portal fields.
-	bad := portalConfig(fp, func(c *Config) { c.PortalURL = "http://x" })
+	bad := portalConfig(fp, func(c *Config) { c.HTTPConfig.BaseURL = "http://x" })
 	bad.AquaAddress, bad.RouterAddress, bad.Confirmations = testAquaHex, testRouterHex, &confirm
 	_, err = NewPoolTracker(&bad, nil)
 	require.NoError(t, err)
 	// the key is trimmed
-	cfg = portalConfig(fp, func(c *Config) { c.PortalApiKey = "  " + testPortalKey + "\n" })
+	cfg = portalConfig(fp, func(c *Config) { c.HTTPConfig.ApiKey = "  " + testPortalKey + "\n" })
 	cfg.AquaAddress, cfg.RouterAddress, cfg.Confirmations = testAquaHex, testRouterHex, &confirm
 	s, err = cfg.settings()
 	require.NoError(t, err)
 	require.Equal(t, testPortalKey, s.portal.key.value)
 	require.Equal(t, "https://portal.example", s.portal.baseURL)
-	cfg.PortalURL = "https://portal.example/"
+	cfg.HTTPConfig.BaseURL = "https://portal.example/"
 	s, err = cfg.settings()
 	require.NoError(t, err)
 	require.Equal(t, "https://portal.example", s.portal.baseURL, "a trailing slash is dropped")
@@ -167,8 +167,8 @@ func TestPortalConfig(t *testing.T) {
 func TestPortalConfigFromProperties(t *testing.T) {
 	props := map[string]any{
 		"aquaaddress": testAquaHex, "routeraddress": testRouterHex, "startblock": 1, "logwindow": 50000, "maxwindowsperrun": 20,
-		"confirmations": 12, "chainid": 1, "portalurl": "https://api.1inch.com", "portalapikey": "k", "portalpagelimit": 100,
-		"portalmaxpages": 60, "portaltimeout": "10s", "portalmaxretries": 3, "portalretrybackoff": "2s",
+		"confirmations": 12, "chainid": 1, "portalpagelimit": 100, "portalmaxpages": 60,
+		"http_config":    map[string]any{"base_url": "https://api.1inch.com", "api_key": "k", "timeout": "10s", "retry_count": 3, "retry_wait_time": "2s"},
 		"excludedtokens": []any{tokenA},
 	}
 	b, err := json.Marshal(props)

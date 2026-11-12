@@ -115,9 +115,9 @@ func (c *logCapture) joined() string {
 func portalConfig(fp *fakePortal, mutate ...func(*Config)) Config {
 	retries := 2
 	cfg := Config{DexId: DexType, ChainId: 1, StartBlock: 1, LogWindow: 50, MaxWindowsPerRun: 1,
-		PortalURL: fp.URL, PortalApiKey: testPortalKey, PortalPageLimit: 2, PortalMaxPages: 10,
-		PortalTimeout: durationjson.Duration{Duration: 2 * time.Second}, PortalMaxRetries: &retries,
-		PortalRetryBackoff: durationjson.Duration{Duration: time.Millisecond}}
+		PortalPageLimit: 2, PortalMaxPages: 10,
+		HTTPConfig: HTTPConfig{BaseURL: fp.URL, ApiKey: testPortalKey, Timeout: durationjson.Duration{Duration: 2 * time.Second},
+			RetryCount: &retries, RetryWaitTime: durationjson.Duration{Duration: time.Millisecond}}}
 	for _, m := range mutate {
 		m(&cfg)
 	}
@@ -290,7 +290,7 @@ func TestPortalFallbackReasons(t *testing.T) {
 			case <-r.Context().Done():
 			}
 			return true
-		}, cfg: func(c *Config) { c.PortalTimeout = durationjson.Duration{Duration: 50 * time.Millisecond} }},
+		}, cfg: func(c *Config) { c.HTTPConfig.Timeout = durationjson.Duration{Duration: 50 * time.Millisecond} }},
 		{name: "page cap", reason: portalPageCap, cfg: func(c *Config) { c.PortalMaxPages = 2 }},
 		{name: "bad item", reason: portalBadItem, fault: func(_ int, w http.ResponseWriter, _ *http.Request) bool {
 			it := portalItemOf(1, testOrders(1)[0], testRouter, tokenA, tokenB)
@@ -353,7 +353,7 @@ func TestPortalNoKeyFallsBack(t *testing.T) {
 	n := newFakeNode(t, 1000)
 	ship(t, n, 10, txHash(1), 0, testOrders(1)[0], testRouter, tokenA, tokenB)
 	for _, key := range []string{"", "   "} {
-		u, _ := newPortalLister(t, n, fp, portalConfig(fp, func(c *Config) { c.PortalApiKey = key }))
+		u, _ := newPortalLister(t, n, fp, portalConfig(fp, func(c *Config) { c.HTTPConfig.ApiKey = key }))
 		pools, meta, err := u.GetNewPools(context.Background(), metaJSON(t, 5, 0))
 		require.NoError(t, err)
 		require.Len(t, pools, 1)
@@ -400,7 +400,7 @@ func TestPortalRetries429(t *testing.T) {
 	fp2 := newFakePortal(t, items...)
 	fp2.fault = statusFault(429)
 	zero := 0
-	u, _ = newPortalLister(t, n, fp2, portalConfig(fp2, func(c *Config) { c.PortalMaxRetries = &zero }))
+	u, _ = newPortalLister(t, n, fp2, portalConfig(fp2, func(c *Config) { c.HTTPConfig.RetryCount = &zero }))
 	_, _, err = u.GetNewPools(context.Background(), metaJSON(t, 5, 0))
 	require.NoError(t, err)
 	require.Equal(t, 1, fp2.callCount())

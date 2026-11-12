@@ -591,8 +591,8 @@ func TestLivePortalVsLogs(t *testing.T) {
 	confirmations := envUint(t, "ONEINCH_AQUA_LIVE_CONFIRMATIONS", 12)
 	cfg := chain.config(func(c *Config) {
 		c.DexId, c.Confirmations = DexType, &confirmations
-		c.PortalURL, c.PortalApiKey, c.PortalPageLimit, c.PortalMaxPages = portalURL, key, 100, 200
-		c.PortalTimeout, c.PortalMaxRetries, c.PortalRetryBackoff = durationjson.Duration{Duration: 30 * time.Second}, &retries, durationjson.Duration{Duration: 2 * time.Second}
+		c.HTTPConfig.BaseURL, c.HTTPConfig.ApiKey, c.PortalPageLimit, c.PortalMaxPages = portalURL, key, 100, 200
+		c.HTTPConfig.Timeout, c.HTTPConfig.RetryCount, c.HTTPConfig.RetryWaitTime = durationjson.Duration{Duration: 30 * time.Second}, &retries, durationjson.Duration{Duration: 2 * time.Second}
 	})
 
 	probe, err := NewPoolsListUpdater(&cfg, client)
@@ -607,7 +607,7 @@ func TestLivePortalVsLogs(t *testing.T) {
 	require.Zero(t, bad, "items the lister cannot read")
 
 	logCfg := cfg
-	logCfg.PortalURL = ""
+	logCfg.HTTPConfig.BaseURL = ""
 	logLister, err := NewPoolsListUpdater(&logCfg, client)
 	require.NoError(t, err)
 	logPools := chain.allPools(t, logLister, confirmations)

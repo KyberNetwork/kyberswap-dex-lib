@@ -38,20 +38,26 @@ type Config struct {
 	// ExcludedTokens is optional: a strategy with a listed token is not admitted.
 	ExcludedTokens []string `json:"excludedTokens"`
 
-	// Portal discovery (lister only). PortalURL is the base URL of the 1inch Business Portal ("https://..."),
-	// empty means the Portal is not used and discovery is the on-chain log scan alone. When it is set, the
-	// other Portal fields are required: PortalPageLimit (items per request), PortalMaxPages (a sweep that
-	// needs more pages fails and falls back to logs), PortalTimeout (per request), PortalMaxRetries (how many
-	// times a 429 is retried; 0 retries none) and PortalRetryBackoff (the wait before retry n is n times
-	// this). PortalApiKey is a secret: keep it out of committed config and supply it at deploy time; with a
-	// URL and no key the lister warns once and uses logs only.
-	PortalURL          string                `json:"portalURL"`
-	PortalApiKey       string                `json:"portalApiKey"`
-	PortalPageLimit    int                   `json:"portalPageLimit"`
-	PortalMaxPages     int                   `json:"portalMaxPages"`
-	PortalTimeout      durationjson.Duration `json:"portalTimeout"`
-	PortalMaxRetries   *int                  `json:"portalMaxRetries"`
-	PortalRetryBackoff durationjson.Duration `json:"portalRetryBackoff"`
+	// Portal discovery (lister only). HTTPConfig is the Portal API client; an empty base_url means the
+	// Portal is not used and discovery is the on-chain log scan alone. When it is set, the paging fields are
+	// required too: PortalPageLimit (items per request) and PortalMaxPages (a sweep that needs more pages
+	// fails and falls back to logs).
+	HTTPConfig      HTTPConfig `json:"http_config"`
+	PortalPageLimit int        `json:"portalPageLimit"`
+	PortalMaxPages  int        `json:"portalMaxPages"`
+}
+
+// HTTPConfig is the 1inch Business Portal API client. With BaseURL set ("https://...") every other field is
+// required: Timeout (per request), RetryCount (how many times a 429 is retried; 0 retries none) and
+// RetryWaitTime (the wait before retry n is n times this; required when RetryCount is above zero). ApiKey
+// is a secret: keep it out of committed config and supply it at deploy time; with a base URL and no key the
+// lister warns once and uses logs only.
+type HTTPConfig struct {
+	BaseURL       string                `json:"base_url"`
+	ApiKey        string                `json:"api_key"`
+	Timeout       durationjson.Duration `json:"timeout"`
+	RetryCount    *int                  `json:"retry_count"`
+	RetryWaitTime durationjson.Duration `json:"retry_wait_time"`
 }
 
 // settings is Config validated, with addresses parsed and token keys lowercased.
@@ -166,7 +172,7 @@ func (c *Config) settings() (*settings, error) {
 	if s.portal, err = c.portalSettings(); err != nil {
 		return nil, err
 	}
-	s.portalNoKey = c.PortalURL != "" && s.portal == nil
+	s.portalNoKey = c.HTTPConfig.BaseURL != "" && s.portal == nil
 	s.excluded = make(map[common.Address]struct{}, len(c.ExcludedTokens))
 	for _, token := range c.ExcludedTokens {
 		addr, err := parseAddress("excludedTokens", token)
@@ -181,37 +187,38 @@ func (c *Config) settings() (*settings, error) {
 // portalSettings validates the Portal fields. A nil result with no error means the Portal is not used: no URL,
 // or a URL with no key (a warning, not a failure: a deployment without the key must still run on logs).
 func (c *Config) portalSettings() (*portalSettings, error) {
-	if c.PortalURL == "" {
+	h := c.HTTPConfig
+	if h.BaseURL == "" {
 		return nil, nil
 	}
-	u, err := url.Parse(c.PortalURL)
+	u, err := url.Parse(h.BaseURL)
 	switch {
 	case err != nil || u.Host == "":
-		return nil, errors.Errorf("1inch-aqua: config portalURL is not a URL")
+		return nil, errors.Errorf("1inch-aqua: config http_config.base_url is not a URL")
 	case u.Scheme != "https":
-		return nil, errors.New("1inch-aqua: config portalURL must be https")
+		return nil, errors.New("1inch-aqua: config http_config.base_url must be https")
 	case u.User != nil || u.RawQuery != "" || u.Fragment != "":
-		return nil, errors.New("1inch-aqua: config portalURL must be a base URL without credentials, query or fragment")
+		return nil, errors.New("1inch-aqua: config http_config.base_url must be a base URL without credentials, query or fragment")
 	case c.ChainId == 0:
-		return nil, errors.New("1inch-aqua: config chainId is required with portalURL")
+		return nil, errors.New("1inch-aqua: config chainId is required with http_config.base_url")
 	case c.PortalPageLimit <= 0:
 		return nil, errors.New("1inch-aqua: config portalPageLimit is required and must be above zero")
 	case c.PortalMaxPages <= 0:
 		return nil, errors.New("1inch-aqua: config portalMaxPages is required and must be above zero")
-	case c.PortalTimeout.Duration <= 0:
-		return nil, errors.New("1inch-aqua: config portalTimeout is required and must be above zero")
-	case c.PortalMaxRetries == nil || *c.PortalMaxRetries < 0:
-		return nil, errors.New("1inch-aqua: config portalMaxRetries is required and must not be negative")
-	case *c.PortalMaxRetries > 0 && c.PortalRetryBackoff.Duration <= 0:
-		return nil, errors.New("1inch-aqua: config portalRetryBackoff is required above zero when portalMaxRetries is above zero")
+	case h.Timeout.Duration <= 0:
+		return nil, errors.New("1inch-aqua: config http_config.timeout is required and must be above zero")
+	case h.RetryCount == nil || *h.RetryCount < 0:
+		return nil, errors.New("1inch-aqua: config http_config.retry_count is required and must not be negative")
+	case *h.RetryCount > 0 && h.RetryWaitTime.Duration <= 0:
+		return nil, errors.New("1inch-aqua: config http_config.retry_wait_time is required above zero when retry_count is above zero")
 	}
-	if strings.TrimSpace(c.PortalApiKey) == "" {
-		logger.Warnf("1inch-aqua: portalURL is set but portalApiKey is empty: discovery uses the on-chain logs only")
+	if strings.TrimSpace(h.ApiKey) == "" {
+		logger.Warnf("1inch-aqua: http_config.base_url is set but http_config.api_key is empty: discovery uses the on-chain logs only")
 		return nil, nil
 	}
 	return &portalSettings{
-		baseURL: strings.TrimRight(u.String(), "/"), key: &secret{value: strings.TrimSpace(c.PortalApiKey)},
+		baseURL: strings.TrimRight(u.String(), "/"), key: &secret{value: strings.TrimSpace(h.ApiKey)},
 		chainId: uint64(c.ChainId), pageLimit: c.PortalPageLimit, maxPages: c.PortalMaxPages,
-		timeout: c.PortalTimeout.Duration, retries: *c.PortalMaxRetries, backoff: c.PortalRetryBackoff.Duration,
+		timeout: h.Timeout.Duration, retries: *h.RetryCount, backoff: h.RetryWaitTime.Duration,
 	}, nil
 }
