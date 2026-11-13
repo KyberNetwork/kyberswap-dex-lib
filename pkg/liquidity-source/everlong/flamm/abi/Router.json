@@ -1,0 +1,136 @@
+[
+  {
+    "type": "function",
+    "name": "venueCount",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "pool",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "venue",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "pool",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IMMRouter.VenueView",
+        "components": [
+          {
+            "name": "account",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "id",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "kind",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "pair",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "coll",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "debt",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "lltvWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "borrowEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "supplyEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "status",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "debtCap",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "supplyCap",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "maxBorrowRateWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "venueActions",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "pool",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ]
+  }
+]
