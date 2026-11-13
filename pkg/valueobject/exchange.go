@@ -7,6 +7,7 @@ type Exchange string
 const (
 	Exchange1010Prop                    = "1010-prop"
 	ExchangeAeonV2                      = "aeon-v2"
+	ExchangeAeroCL                      = "aero-cl"
 	ExchangeAeroV2Stable                = "aero-v2-stable"
 	ExchangeAeroV2Volatile              = "aero-v2-volatile"
 	ExchangeAlienBaseStableSwap         = "alien-base-stableswap"
