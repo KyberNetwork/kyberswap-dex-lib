@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -21,6 +22,13 @@ type ILazyRequest interface {
 	GetUnpacks() []func([]byte) error
 	GetCallMsgs() []ethereum.CallMsg
 	GetEthRpcCall(idx int) *ethrpc.Call
+}
+
+// ILazyRequestWithOverrides is implemented by a lazy request whose calls must run with state overrides.
+// A batch consumer applies them to every call (e.g. ethutil.BatchEthCall); one that cannot must not
+// treat the request as plain.
+type ILazyRequestWithOverrides interface {
+	GetOverrides() map[common.Address]gethclient.OverrideAccount
 }
 
 type LazyRequest struct {
@@ -63,4 +71,8 @@ func (r *LazyRequest) GetCallMsgs() []ethereum.CallMsg {
 
 func (r *LazyRequest) GetEthRpcCall(idx int) *ethrpc.Call {
 	return r.Calls[idx]
+}
+
+func (r *LazyRequest) GetOverrides() map[common.Address]gethclient.OverrideAccount {
+	return r.Request.Overrides
 }

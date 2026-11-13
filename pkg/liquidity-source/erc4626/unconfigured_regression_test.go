@@ -28,7 +28,7 @@ import (
 // A vault without depositsPausedMethod/maxSupplyMethod must behave exactly as before they existed: same RPC
 // calls, same Extra JSON (no "p"/"mH") and same simulator results. The golden was captured from origin/main,
 // then regenerated with UPDATE_GOLDEN=1 to add the VaultV2 permission reads every deposit-enabled vault now makes
-// and the balanceOf cap probe of every redeem-enabled vault (not the lazy batch path, which cannot override state).
+// and the balanceOf cap probe of every redeem-enabled vault (lazy requests carry the probe overrides for the batch consumer).
 const goldenPath = "testdata/unconfigured_golden.json"
 
 const (
@@ -86,6 +86,9 @@ func fillLazy(t *testing.T, req pool.ILazyRequest, apply func(*big.Int) (entity.
 		var v any = new(big.Int).Mul(big.NewInt(int64(1000+i)), big.NewInt(1e15))
 		if c.Method == erc4626.Erc4626MethodPreviewDeposit || c.Method == erc4626.Erc4626MethodPreviewRedeem {
 			v = new(big.Int).Add(c.Params[0].(*big.Int), big.NewInt(int64(i))) // rate around 1:1
+		}
+		if c.Method == "balanceOf" { // cap probe read-back: a marker hit at key 0 (2^128), so no clean re-read
+			v = new(big.Int).Lsh(big.NewInt(1), 128)
 		}
 		packed, err := out.Pack(v)
 		require.NoError(t, err)
