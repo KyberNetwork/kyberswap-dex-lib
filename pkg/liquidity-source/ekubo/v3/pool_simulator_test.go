@@ -200,21 +200,25 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			expectedAmountOut:           "50004414",
 			expectedTickSpacingsCrossed: 0,
 		},
+		// A partial fill: the quote stops at the price limit the swap is executed with (one tick past the fetched
+		// tick bounds), 512 tick spacings here. It used to walk on to the global price limit.
 		{
 			pool:                        "lvlUSD-USDC-base",
 			tokenIn:                     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			tokenOut:                    "0x7c1156e515aa1a2e851674120074968c905aaf37",
 			amountIn:                    "10000000000000",
 			expectedAmountOut:           "22230236553469695333225",
-			expectedTickSpacingsCrossed: 581768,
+			expectedTickSpacingsCrossed: 512,
 		},
+		// A partial fill: the quote stops at the price limit the swap is executed with (one tick past the fetched
+		// tick bounds), 512 tick spacings here. It used to walk on to the global price limit.
 		{
 			pool:                        "lvlUSD-USDC-base",
 			tokenIn:                     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			tokenOut:                    "0x7c1156e515aa1a2e851674120074968c905aaf37",
 			amountIn:                    "1000000000000000000",
 			expectedAmountOut:           "22230236553469695333225",
-			expectedTickSpacingsCrossed: 581768,
+			expectedTickSpacingsCrossed: 512,
 		},
 
 		{
@@ -331,13 +335,15 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			expectedAmountOut:           "2446014701861857",
 			expectedTickSpacingsCrossed: 0,
 		},
+		// A partial fill: the quote stops at the price limit the swap is executed with (one tick past the fetched
+		// tick bounds), 512 tick spacings here. It used to walk on to the global price limit.
 		{
 			pool:                        "ETH-EKUBO-base",
 			tokenIn:                     "0x04c46e830bb56ce22735d5d8fc9cb90309317d0f",
 			tokenOut:                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			amountIn:                    "1000000000000000000000000",
 			expectedAmountOut:           "412153040861140123",
-			expectedTickSpacingsCrossed: 4177,
+			expectedTickSpacingsCrossed: 512,
 		},
 
 		{

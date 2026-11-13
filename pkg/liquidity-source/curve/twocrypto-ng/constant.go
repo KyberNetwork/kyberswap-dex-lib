@@ -2,6 +2,7 @@ package twocryptong
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
@@ -32,6 +33,25 @@ const (
 	poolMethodLastPrices         = "last_prices"
 	poolMethodMath               = "MATH"
 	poolMethodPolicy             = "POLICY"
+
+	poolMethodVersion                    = "version"
+	poolMethodLastTimestamp              = "last_timestamp"
+	poolMethodDonationShares             = "donation_shares"
+	poolMethodDonationDuration           = "donation_duration"
+	poolMethodLastDonationReleaseTs      = "last_donation_release_ts"
+	poolMethodDonationProtectionExpiryTs = "donation_protection_expiry_ts"
+	poolMethodDonationProtectionPeriod   = "donation_protection_period"
+	poolMethodLpXcpProfit                = "lp_xcp_profit"
+	poolMethodReservedProfitFraction     = "reserved_profit_fraction"
+	poolMethodAdminFee                   = "admin_fee"
+
+	policyMethodState        = "state"
+	policyMethodFastHalfLife = "FAST_HALF_LIFE"
+	policyMethodSlowHalfLife = "SLOW_HALF_LIFE"
+	policyMethodKappa        = "KAPPA"
+	policyMethodDeadband     = "DEADBAND"
+	policyMethodMinCap       = "MIN_CAP"
+	policyMethodMaxCap       = "MAX_CAP"
 
 	PoolMethodD                  = poolMethodD
 	PoolMethodFeeGamma           = poolMethodFeeGamma
@@ -145,4 +165,32 @@ var (
 	ErrUnsupportedPolicy   = errors.New("unsupported pool policy contract")
 	ErrCoinIndexOutOfRange = errors.New("coin index out of range")
 	ErrExchange0Coins      = errors.New("do not exchange 0 coins")
+
+	// ErrPoolVersionNotSupported refuses state this package cannot run: pools without allowed_extra_profit
+	// (version v3.0.0) rebalance by another rule, and only some of them quote here (see PoolSimulator.isV3).
+	ErrPoolVersionNotSupported = errors.New("pool version not supported")
+	// ErrStateAfterTrade refuses quotes on a v3.0.0 pool's state after UpdateBalance: the pool may have
+	// rebalanced there by a rule this package does not run.
+	ErrStateAfterTrade = errors.New("state after a trade not simulated for this pool version")
+	// ErrNegativeDonation and ErrTweakedSupply are v2.1.0d's tweak_price asserts.
+	ErrNegativeDonation = errors.New("negative donation")
+	ErrTweakedSupply    = errors.New("tweaked supply must shrink")
+	// ErrUnbalanced is v3.0.0's _assert_balance: a trade may not leave the balances 1000:1 or worse.
+	ErrUnbalanced = errors.New("!balance")
 )
+
+const (
+	// packed_rebalancing_params holds [allowed_extra_profit, adjustment_step, ma_time], 64 bits each.
+	// The EMA uses this ma_time; the ma_time() view reports it multiplied by ln 2.
+	poolMethodPackedRebalancingParams = "packed_rebalancing_params"
+	PoolMethodPackedRebalancingParams = poolMethodPackedRebalancingParams
+)
+
+// MaTimeFromRebalancingParams returns the EMA time constant packed in packed_rebalancing_params.
+func MaTimeFromRebalancingParams(packed *big.Int) *uint256.Int {
+	var maTime uint256.Int
+	maTime.SetFromBig(packed)
+	return maTime.And(&maTime, maTimeMask)
+}
+
+var maTimeMask = new(uint256.Int).SetUint64(1<<64 - 1)

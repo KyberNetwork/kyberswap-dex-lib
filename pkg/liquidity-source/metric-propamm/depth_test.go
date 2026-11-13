@@ -101,3 +101,24 @@ func TestCloneStateKeepsCumulativeInput(t *testing.T) {
 	require.Equal(t, "4", c.extra.Bids[0].CumulativeInput.String())
 	require.NotSame(t, s.extra.Asks[0].CumulativeInput, c.extra.Asks[0].CumulativeInput)
 }
+
+// A swap that ends inside a bin keeps that bin's cumulative input, lowered by the swap's input, so the
+// next quote still walks the depth instead of falling back to the legacy estimate.
+func TestUpdateBalanceInsideABinKeepsCumulativeInput(t *testing.T) {
+	bids := []PairBin{
+		{BinIdx: -1, Price: "49937913286041055521250", CummlativeVolume: "7430706558", CumulativeInput: "2744786401520641763"},
+		{BinIdx: -2, Price: "49932918995283375647711", CummlativeVolume: "21731301391", CumulativeInput: "8027598362225637937"},
+	}
+	s := depthSim(12, bids, nil)
+	out := quote(t, s, "a", "b", "1000000000000000000")
+	s.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: "a", Amount: bignumber.NewBig("1000000000000000000")},
+		TokenAmountOut: pool.TokenAmount{Token: "b", Amount: bignumber.NewBig(out)},
+	})
+	require.Len(t, s.extra.Bids, 2)
+	require.Equal(t, "1744786401520641763", s.extra.Bids[0].CumulativeInput.String())
+	require.Equal(t, "7027598362225637937", s.extra.Bids[1].CumulativeInput.String())
+	// the rest of the first bin, taken whole, pays out what the first bin had left
+	left := new(big.Int).Sub(bignumber.NewBig("7430706558"), bignumber.NewBig(out))
+	require.Equal(t, left.String(), quote(t, s, "a", "b", "1744786401520641763"))
+}

@@ -752,20 +752,10 @@ func _downscaleUp(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int
 	return math.FixedPoint.DivUp(amount, scalingFactor)
 }
 
+// GetTokens lists the pool's own tokens in reserve order, then its base pools' other tokens, sorted.
+// GetTokens()[i] pairs with GetReserves()[i] for i < len(GetReserves()).
 func (s *PoolSimulator) GetTokens() []string {
-	tokenSet := make(map[string]struct{})
-
-	for _, basePool := range s.basePools {
-		for _, token := range basePool.GetTokens() {
-			tokenSet[token] = struct{}{}
-		}
-	}
-
-	for _, token := range s.GetInfo().Tokens {
-		tokenSet[token] = struct{}{}
-	}
-
-	return lo.Keys(tokenSet)
+	return shared.PoolTokens(s.Info.Tokens, s.basePools)
 }
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string { return s.CanSwapTo(address) }

@@ -212,8 +212,10 @@ func TestGetTickAtSqrtRatio(t *testing.T) {
 		require.ErrorIs(t, err, errInvalidSqrtRatio)
 	})
 
+	// MaxSqrtRatioU256P1 is TickMath's MAX_SQRT_RATIO, the price of MaxTick, which getTickAtSqrtRatio
+	// refuses.
 	t.Run("error: at max sqrt ratio", func(t *testing.T) {
-		_, err := GetTickAtSqrtRatio(MaxSqrtRatioU256)
+		_, err := GetTickAtSqrtRatio(MaxSqrtRatioU256P1)
 		require.ErrorIs(t, err, errInvalidSqrtRatio)
 	})
 
@@ -230,12 +232,13 @@ func TestGetTickAtSqrtRatio(t *testing.T) {
 		require.Equal(t, MinTick, tick)
 	})
 
+	// MaxSqrtRatioU256 is MAX_SQRT_RATIO - 1, the highest price limit a swap accepts.
 	t.Run("max valid sqrt ratio → MaxTick-1", func(t *testing.T) {
-		var maxValid uint256.Int
-		maxValid.SubUint64(MaxSqrtRatioU256, 1)
-		tick, err := GetTickAtSqrtRatio(&maxValid)
-		require.NoError(t, err)
-		require.Equal(t, MaxTick-1, tick)
+		for _, maxValid := range []*uint256.Int{MaxSqrtRatioU256, MaxSqrtRatioU256M1} {
+			tick, err := GetTickAtSqrtRatio(maxValid)
+			require.NoError(t, err)
+			require.Equal(t, MaxTick-1, tick)
+		}
 	})
 
 	t.Run("tick 0 sqrt price", func(t *testing.T) {

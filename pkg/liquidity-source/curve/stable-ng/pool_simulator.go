@@ -189,6 +189,7 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *t
+	// Writers replace Info.Reserves' big.Ints rather than change them, so sharing them is safe.
 	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
 	cloned.Reserves = slices.Clone(t.Reserves)
 	return &cloned

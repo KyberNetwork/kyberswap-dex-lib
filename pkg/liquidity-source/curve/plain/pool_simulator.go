@@ -155,6 +155,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *t
+	// Writers replace Info.Reserves' big.Ints rather than change them, so sharing them is safe.
 	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
 	cloned.reserves = slices.Clone(t.reserves)
 	return &cloned

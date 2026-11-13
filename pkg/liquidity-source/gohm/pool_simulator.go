@@ -47,13 +47,6 @@ type PoolSimulator struct {
 	// binding liquidity caps in CalcAmountOut.
 	ohmReserve  *uint256.Int
 	sohmReserve *uint256.Int
-
-	// scratch and scratchIn are pre-allocated uint256.Ints reused across
-	// CalcAmountOut calls to avoid per-call heap allocations. scratchIn holds the
-	// parsed amountIn; scratch holds the intermediate/final result. Neither must
-	// escape across goroutines or be shared between a simulator and its clone.
-	scratch   uint256.Int
-	scratchIn uint256.Int
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -96,13 +89,15 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn := strings.ToLower(params.TokenAmountIn.Token)
 	tokenOut := strings.ToLower(params.TokenOut)
-	// Use scratchIn to parse amountIn without a heap allocation.
+	// in and out are call-local: simulators are shared across concurrent
+	// requests, so CalcAmountOut must not write receiver fields.
+	var in, out uint256.Int
 	// SetFromBig returns true on overflow (amount > 2^256-1), which cannot occur for
 	// realistic token amounts; treat it the same as invalid input.
-	if overflow := s.scratchIn.SetFromBig(params.TokenAmountIn.Amount); overflow {
+	if overflow := in.SetFromBig(params.TokenAmountIn.Amount); overflow {
 		return nil, ErrInvalidTokenIn
 	}
-	amountIn := &s.scratchIn
+	amountIn := &in
 
 	if amountIn.IsZero() {
 		return nil, ErrZeroAmount
@@ -154,24 +149,24 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		// OHM->gOHM (stake rebasing=false): no staking-balance cap.
 		// gOHM.mint is uncapped — the only limit is OHM total supply.
 		// balanceTo: result = amountIn * 1e18 / index
-		s.scratch.Mul(amountIn, number_1e18)
-		s.scratch.Div(&s.scratch, s.index)
+		out.Mul(amountIn, number_1e18)
+		out.Div(&out, s.index)
 		gasEstimate = dfGas.Stake
 	case ActionWrap:
 		// sOHM->gOHM (wrap): no staking-balance cap.
 		// Limited by sOHM circulating supply, not staking balance.
 		// balanceTo: result = amountIn * 1e18 / index
-		s.scratch.Mul(amountIn, number_1e18)
-		s.scratch.Div(&s.scratch, s.index)
+		out.Mul(amountIn, number_1e18)
+		out.Div(&out, s.index)
 		gasEstimate = dfGas.Wrap
 	case ActionUnstakeGOHM:
 		// gOHM->OHM (unstake rebasing=false): cap on outbound OHM.
 		// On-chain: require(amount_ <= OHM.balanceOf(this))
 		// The OHM output = balanceFrom(amountIn) = amountIn * index / 1e18.
 		// Compute output first, then cap-check.
-		s.scratch.Mul(amountIn, s.index)
-		s.scratch.Div(&s.scratch, number_1e18)
-		if s.scratch.Gt(s.ohmReserve) {
+		out.Mul(amountIn, s.index)
+		out.Div(&out, number_1e18)
+		if out.Gt(s.ohmReserve) {
 			return nil, ErrInsufficientLiquidity
 		}
 		gasEstimate = dfGas.Unstake
@@ -180,9 +175,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		// Staking safeTransfers sOHM to recipient; must hold enough.
 		// The sOHM output = balanceFrom(amountIn) = amountIn * index / 1e18.
 		// Compute output first, then cap-check.
-		s.scratch.Mul(amountIn, s.index)
-		s.scratch.Div(&s.scratch, number_1e18)
-		if s.scratch.Gt(s.sohmReserve) {
+		out.Mul(amountIn, s.index)
+		out.Div(&out, number_1e18)
+		if out.Gt(s.sohmReserve) {
 			return nil, ErrInsufficientLiquidity
 		}
 		gasEstimate = dfGas.Unwrap
@@ -191,7 +186,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: s.scratch.ToBig()},
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: out.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            gasEstimate,
 		SwapInfo:       SwapInfo{Action: action},

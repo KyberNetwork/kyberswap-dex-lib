@@ -3,12 +3,16 @@ package tricryptong
 import (
 	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
 )
 
 // from contracts/main/CurveTricryptoOptimizedWETH.vy
 // (contracts/main/CurveTricryptoOptimized.vy is a bit different and we won't support it for now (there is only 1 pool using that anyway))
+
+// nowUnix stands for block.timestamp; tests replace it.
+var nowUnix = func() int64 { return time.Now().Unix() }
 
 func (t *PoolSimulator) FeeCalc(xp []uint256.Int, fee *uint256.Int) error {
 	var f uint256.Int
@@ -41,7 +45,7 @@ func (t *PoolSimulator) GetDy(
 	// When A/gamma is actively ramping, recompute D from current balances using the
 	// ramped A/gamma (mirrors _calc_D_ramp in CurveCryptoViews3Optimized.vy).
 	D := t.Extra.D
-	if time.Now().Unix() < t.Extra.FutureAGammaTime {
+	if nowUnix() < t.Extra.FutureAGammaTime {
 		for k := range NumTokens {
 			xp[k].Set(&t.Reserves[k])
 		}
@@ -160,7 +164,7 @@ func (t *PoolSimulator) _getDxFee(
 
 	// When A/gamma is actively ramping, recompute D from current balances (mirrors _calc_D_ramp).
 	D := t.Extra.D
-	if time.Now().Unix() < t.Extra.FutureAGammaTime {
+	if nowUnix() < t.Extra.FutureAGammaTime {
 		for k := range NumTokens {
 			xp[k].Set(&t.Reserves[k])
 		}
@@ -215,7 +219,8 @@ func (t *PoolSimulator) _getDxFee(
 
 // https://github.com/curvefi/tricrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveTricryptoOptimizedWETH.vy#L964
 func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint256.Int, new_D, K0_prev *uint256.Int,
-	lastPrices, priceScale []uint256.Int, xcp_profit, d, virtualPrice *uint256.Int) error {
+	lastPrices, priceScale, priceOracle []uint256.Int, priceOracleTimestamp *int64,
+	xcp_profit, d, virtualPrice *uint256.Int) error {
 	/*
 				@notice Tweaks price_oracle, last_price and conditionally adjusts
 		            price_scale. This is called whenever there is an unbalanced
@@ -232,13 +237,16 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 	old_xcp_profit := t.Extra.XcpProfit
 	old_virtual_price := t.Extra.VirtualPrice
 
-	blockTimestamp := time.Now().Unix()
+	blockTimestamp := nowUnix()
 	var err error
 
-	// On-chain, this also updates cached_price_oracle and last_timestamp, but only once per
-	// block. The pool tracker already fetches the EMA-computed price_oracle directly, so there
-	// is nothing to recompute here; D, virtual_price, xcp_profit, last_prices and price_scale
-	// below, however, are updated unconditionally on every exchange on-chain and must be too.
+	// # ----------------------- Update MA if needed ----------------------------
+	// The tracker reads price_oracle() at PriceOracleTimestamp; carry it forward to this block as the
+	// contract does once per block. D, virtual_price, xcp_profit, last_prices and price_scale below are
+	// updated on every exchange.
+	if *priceOracleTimestamp, err = t.priceOracleAt(blockTimestamp, priceOracle); err != nil {
+		return err
+	}
 
 	// #                  price_oracle is used further on to calculate its vector
 	// #            distance from price_scale. This distance is used to calculate
@@ -304,7 +312,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 		// #                                                        price_oracle.
 		var norm = new(uint256.Int)
 		for k := range NumTokens - 1 {
-			var ratio = number.Div(number.SafeMul(&t.Extra.PriceOracle[k], U_1e18), &t.Extra.PriceScale[k])
+			var ratio = number.Div(number.SafeMul(&priceOracle[k], U_1e18), &t.Extra.PriceScale[k])
 			if ratio.Cmp(U_1e18) > 0 {
 				ratio = number.SafeSub(ratio, U_1e18)
 			} else {
@@ -334,7 +342,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 				p_new[k].Div(
 					number.SafeAdd(
 						number.SafeMul(&t.Extra.PriceScale[k], number.Sub(norm, adjustment_step)),
-						number.SafeMul(adjustment_step, &t.Extra.PriceOracle[k]),
+						number.SafeMul(adjustment_step, &priceOracle[k]),
 					), norm)
 			}
 
@@ -386,4 +394,45 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 	d.Set(D_unadjusted)
 	virtualPrice.Set(virtual_price)
 	return nil
+}
+
+// priceOracleAt writes price_oracle as the contract computes it at timestamp into out, and returns the
+// timestamp it is for. The tracker reads price_oracle() at PriceOracleTimestamp. Until the next trade the
+// contract's EMA keeps moving toward last_prices, capped at 2 * price_scale:
+//
+//	price_oracle(t) = (min(last_prices, 2 * price_scale) * (1e18 - alpha) + price_oracle(t0) * alpha) / 1e18
+//	alpha = wad_exp(-(t - t0) * 1e18 / ma_time)
+//
+// which composes, so carrying the value read at t0 forward by t - t0 gives the contract's value up to
+// rounding. Without a read time or ma_time (state from an older tracker), PriceOracle is used as is.
+func (t *PoolSimulator) priceOracleAt(timestamp int64, out []uint256.Int) (int64, error) {
+	copy(out, t.Extra.PriceOracle)
+	readAt := t.Extra.PriceOracleTimestamp
+	if readAt == 0 || t.Extra.MaTime == nil || t.Extra.MaTime.IsZero() || timestamp <= readAt {
+		return readAt, nil
+	}
+
+	var elapsed uint256.Int
+	elapsed.SetUint64(uint64(timestamp - readAt))
+	exponent := number.Div(number.SafeMul(&elapsed, U_1e18), t.Extra.MaTime)
+	alpha, err := _snekmate_wad_exp(i256.Neg(i256.SafeToInt256(exponent)))
+	if err != nil {
+		return 0, err
+	}
+
+	var capped uint256.Int
+	for k := range NumTokens - 1 {
+		capped.Mul(&t.Extra.PriceScale[k], number.Number_2)
+		if t.Extra.LastPrices[k].Lt(&capped) {
+			capped.Set(&t.Extra.LastPrices[k])
+		}
+		out[k].Div(
+			number.SafeAdd(
+				number.SafeMul(&capped, number.SafeSub(U_1e18, alpha)),
+				number.SafeMul(&t.Extra.PriceOracle[k], alpha),
+			),
+			U_1e18,
+		)
+	}
+	return timestamp, nil
 }

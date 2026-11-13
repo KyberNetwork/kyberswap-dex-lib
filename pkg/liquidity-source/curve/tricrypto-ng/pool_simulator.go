@@ -116,8 +116,8 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 	A, gamma := t._A_gamma()
 	if err = t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0,
-		swapInfo.LastPrices[:], swapInfo.PriceScale[:], &swapInfo.XcpProfit, &swapInfo.D,
-		&swapInfo.VirtualPrice); err != nil {
+		swapInfo.LastPrices[:], swapInfo.PriceScale[:], swapInfo.PriceOracle[:], &swapInfo.PriceOracleTimestamp,
+		&swapInfo.XcpProfit, &swapInfo.D, &swapInfo.VirtualPrice); err != nil {
 		return nil, errors.WithMessage(err, "tweak price")
 	}
 
@@ -216,6 +216,8 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	t.Extra.LastPrices = swapInfo.LastPrices[:]
 	t.Extra.PriceScale = swapInfo.PriceScale[:]
+	t.Extra.PriceOracle = swapInfo.PriceOracle[:]
+	t.Extra.PriceOracleTimestamp = swapInfo.PriceOracleTimestamp
 	t.Extra.XcpProfit = &swapInfo.XcpProfit
 	t.Extra.D = &swapInfo.D
 	t.Extra.VirtualPrice = &swapInfo.VirtualPrice

@@ -3,11 +3,10 @@ package uniswapv4
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/ethrpc"
 )
 
 // With no StateViewAddress, pool state is read straight from the PoolManager: StateView is only a
@@ -50,15 +49,18 @@ func addOffset(h common.Hash, off uint64) common.Hash {
 
 // tickSlot is the storage slot of ticks[tick] (Pool.TickInfo) for the pool whose state starts at base.
 func tickSlot(base common.Hash, tick int64) common.Hash {
-	var key uint256.Int // int24 -> sign-extended 256-bit key
-	key.SetUint64(uint64(tick))
-	if tick < 0 {
-		key.SetAllOne()
-		key.Sub(&key, new(uint256.Int).SetUint64(uint64(-tick)-1))
+	return mappingSlot(base, ticksMapOffset, tick)
+}
+
+// mappingSlot is the slot of a mapping at base+offset for a signed key: keccak256(int256(key) . slot).
+func mappingSlot(base common.Hash, offset uint64, key int64) common.Hash {
+	var k uint256.Int // sign-extended to 256 bits, as abi.encode pads a signed mapping key
+	k.SetUint64(uint64(max(key, -key)))
+	if key < 0 {
+		k.Neg(&k)
 	}
-	k := key.Bytes32()
-	m := addOffset(base, ticksMapOffset)
-	return crypto.Keccak256Hash(k[:], m[:])
+	kb, m := k.Bytes32(), addOffset(base, offset)
+	return crypto.Keccak256Hash(kb[:], m[:])
 }
 
 // decodeSlot0 unpacks Slot0: sqrtPriceX96 (160) | tick (24, signed) | protocolFee (24) | lpFee (24).

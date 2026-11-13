@@ -67,8 +67,13 @@ var (
 	ErrNilDeltaUnspecified  = errors.New("delta unspecified is nil")
 	ErrFewUnwrapExceeded    = errors.New("few unwrap exceeds underlying balance")
 
-	DefaultGas = uniswapv3.Gas{BaseGas: 129869, CrossInitTickGas: 15460, CrossEmptyWordGas: uniswapv3.CrossEmptyWordGas}
+	DefaultGas = uniswapv3.Gas{BaseGas: 129869, CrossInitTickGas: 15460, CrossEmptyWordGas: CrossEmptyWordGas}
 )
+
+// CrossEmptyWordGas prices one swap-loop iteration of the PoolManager that walks a tick-bitmap word without
+// crossing an initialized tick. Measured on Ethereum (fork at block 26307077, debug_traceCall of whole routes):
+// v4 swaps that walked 20 to 278 words spent 5,200-6,500 gas a word (5,626 over the 278-word one).
+const CrossEmptyWordGas = 5600
 
 // polygonCrossEmptyWordGas is a provisional effective average from observed Polygon V4 traces.
 const polygonCrossEmptyWordGas int64 = 9500

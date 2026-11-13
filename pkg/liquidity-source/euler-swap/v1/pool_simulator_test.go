@@ -1,13 +1,17 @@
 package v1
 
 import (
+	"context"
 	"math/big"
+	"os"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/internal/rpcreplay"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -435,4 +439,120 @@ func TestMergeSwaps(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAccountLiquidityMatchesChain tracks the BSC USDT/USDC pool 0xcc1713f8 at block 131600018 from a fixture of the
+// node's answers and quotes the swaps that were sent to it on a fork of that block. The pool's account holds 56.8
+// USDT of collateral (LTV 0.895) against 51.07 USDC of debt, just short of its borrowing limit, so the chain executes
+// a swap only if it leaves the account healthy: a USDC repayment of 3 or more, or a 100 USDT deposit. The expected
+// amounts are the chain's computeQuote, which those swaps received.
+//
+// Set EULER_RECORD_RPC to a node at that block to record missing calls into the fixture.
+func TestAccountLiquidityMatchesChain(t *testing.T) {
+	const (
+		usdt = "0x55d398326f99059ff775485246999027b3197955"
+		usdc = "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+	)
+	srv := rpcreplay.New(t, "testdata/bsc-131600018-0xcc1713f8.json", os.Getenv("EULER_RECORD_RPC"))
+	defer srv.Save()
+	ctx := context.Background()
+	client := srv.Client()
+	cfg := shared.Config{DexID: DexType}
+	pools, err := NewPoolsListUpdater(&cfg, client).initPools(ctx,
+		[]common.Address{common.HexToAddress("0xcc1713f8220fae2d63215a3f81ef95981423e8a8")})
+	require.NoError(t, err)
+	tracker, err := NewPoolTracker(&cfg, client)
+	require.NoError(t, err)
+	tracked, err := tracker.GetNewPoolState(ctx, pools[0], poolpkg.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	sim, err := NewPoolSimulator(tracked)
+	require.NoError(t, err)
+
+	for _, tc := range []struct {
+		name, in, out, amount string
+		want                  string // amount out, or "" for a swap the chain reverts with E_AccountLiquidity()
+	}{
+		{"USDT->USDC 0.001", usdt, usdc, "1000000000000000", ""},
+		{"USDT->USDC 1", usdt, usdc, "1000000000000000000", ""},
+		{"USDT->USDC 10", usdt, usdc, "10000000000000000000", ""},
+		{"USDT->USDC 100", usdt, usdc, "100000000000000000000", "37704795968373227860"},
+		{"USDC->USDT 0.001", usdc, usdt, "1000000000000000", ""},
+		{"USDC->USDT 1", usdc, usdt, "1000000000000000000", ""},
+		// The chain executes it, but it leaves the account 0.07% inside its limit, within the simulator's 0.1%
+		// safety buffer (shared.BufferSwapLimit), which the simulator keeps.
+		{"USDC->USDT 3", usdc, usdt, "3000000000000000000", ""},
+		{"USDC->USDT 5", usdc, usdt, "5000000000000000000", "4999950254330027036"},
+		{"USDC->USDT 10", usdc, usdt, "10000000000000000000", "9999900440391447660"},
+		{"USDC->USDT 100", usdc, usdt, "100000000000000000000", "99998999991816760778"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			amount, _ := new(big.Int).SetString(tc.amount, 10)
+			res, err := sim.CloneState().(*PoolSimulator).CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{Token: tc.in, Amount: amount}, TokenOut: tc.out})
+			if tc.want == "" {
+				require.ErrorIs(t, err, shared.ErrInsolvency)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.want, res.TokenAmountOut.Amount.String())
+		})
+	}
+}
+
+// BSC USDT/USDC pool 0xcc1713f8220fae2d63215a3f81ef95981423e8a8 at block 129893771. Both tokens
+// have 18 decimals and trade just under $1 in an 18-decimal USD unit of account, so the tracker's
+// integer price per smallest unit stored every price as 0. On chain the account was already short
+// (accountLiquidity: collateral 50.76e18 against liability 50.99e18), and a swap that borrowed
+// 37.49 USDC reverted with E_AccountLiquidity().
+const (
+	// The state as the old tracker stored it, every price 0.
+	bscPoolZeroPrices = `{"address":"0xcc1713f8220fae2d63215a3f81ef95981423e8a8","exchange":"uniswap-v4-euler","type":"euler-swap","timestamp":1793016020,"reserves":["143741528331920456144","37704797652000596970"],"tokens":[{"address":"0x55d398326f99059ff775485246999027b3197955","symbol":"USDT","decimals":18,"swappable":true},{"address":"0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","symbol":"USDC","decimals":18,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"c\":\"266188492289379352624\",\"d\":\"0\",\"mD\":\"999999727319232448563371160\",\"mW\":\"90000000000000000000000000\",\"tB\":\"6492275262057276215\",\"eAA\":\"56201780840218639942\",\"dP\":\"0\",\"vP\":[\"0\",\"0\"],\"vVP\":[\"0\",\"0\"],\"ltv\":[0,8950],\"vLtv\":[0,8950]},{\"c\":\"78896164864146966942\",\"d\":\"51004790140486581633\",\"mD\":\"99999869801676664173203842\",\"mW\":\"90000000000000000000000000\",\"tB\":\"51302158471679829215\",\"eAA\":\"0\",\"dP\":\"0\",\"vP\":[\"0\",\"0\"],\"vVP\":[\"0\",\"0\"],\"ltv\":[8950,0],\"vLtv\":[8950,0],\"iCE\":true},{\"d\":\"51004790140486581633\",\"mW\":\"115792089237316195423570985008687907853269984665640564039457584007913129639935\",\"dP\":\"0\",\"vP\":[\"0\",\"0\"],\"vVP\":[\"0\",\"0\"],\"ltv\":[8950,0],\"vLtv\":[8950,0],\"iCE\":true}],\"cV\":\"0xd98125a23faeb48180e33ca6eef8f128e07418d1\",\"c\":[\"56201780840218639942\",\"0\"]}","staticExtra":"{\"v0\":\"0xe54DFfd36177975938A3873e522dEE535ADebe01\",\"v1\":\"0xD98125a23fAeb48180e33cA6Eef8F128E07418d1\",\"ea\":\"0xdCE0AddCAC50219Fcdf880FdE579FD0969Ba1851\",\"f\":\"10000000000000\",\"pf\":\"0\",\"er0\":\"95714285714285740000\",\"er1\":\"85732039396692070000\",\"px\":\"1000000000000000000\",\"py\":\"1000000000000000000\",\"cx\":\"999999985730546800\",\"cy\":\"999999985730546800\",\"pfr\":\"0x0000000000000000000000000000000000000000\",\"evc\":\"0xb2E5a73CeE08593d1a076a2AE7A6e02925a640ea\"}","blockNumber":129893771}`
+	// The state with the prices the tracker stores with shared.UnitPrice: the vaults' oracle
+	// quoted 1e18 USDT at 0.99848e18 and 1e18 USDC at 0.9997655e18.
+	bscPoolUnitPrices = `{"address":"0xcc1713f8220fae2d63215a3f81ef95981423e8a8","exchange":"uniswap-v4-euler","type":"euler-swap","timestamp":1793016020,"reserves":["143741528331920456144","37704797652000596970"],"tokens":[{"address":"0x55d398326f99059ff775485246999027b3197955","symbol":"USDT","decimals":18,"swappable":true},{"address":"0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d","symbol":"USDC","decimals":18,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"c\":\"266188492289379352624\",\"d\":\"0\",\"mD\":\"999999727319232448563371160\",\"mW\":\"90000000000000000000000000\",\"tB\":\"6492275262057276215\",\"eAA\":\"56201780840218639942\",\"dP\":\"998480000000000000\",\"vP\":[\"998480000000000000\",\"999765500000000000\"],\"vVP\":[\"998480000000000000\",\"999765500000000000\"],\"ltv\":[0,8950],\"vLtv\":[0,8950]},{\"c\":\"78896164864146966942\",\"d\":\"51004790140486581633\",\"mD\":\"99999869801676664173203842\",\"mW\":\"90000000000000000000000000\",\"tB\":\"51302158471679829215\",\"eAA\":\"0\",\"dP\":\"999765500000000000\",\"vP\":[\"998480000000000000\",\"999765500000000000\"],\"vVP\":[\"998480000000000000\",\"999765500000000000\"],\"ltv\":[8950,0],\"vLtv\":[8950,0],\"iCE\":true},{\"d\":\"51004790140486581633\",\"mW\":\"115792089237316195423570985008687907853269984665640564039457584007913129639935\",\"dP\":\"999765500000000000\",\"vP\":[\"998480000000000000\",\"999765500000000000\"],\"vVP\":[\"998480000000000000\",\"999765500000000000\"],\"ltv\":[8950,0],\"vLtv\":[8950,0],\"iCE\":true}],\"cV\":\"0xd98125a23faeb48180e33ca6eef8f128e07418d1\",\"c\":[\"56201780840218639942\",\"0\"]}","staticExtra":"{\"v0\":\"0xe54DFfd36177975938A3873e522dEE535ADebe01\",\"v1\":\"0xD98125a23fAeb48180e33cA6Eef8F128E07418d1\",\"ea\":\"0xdCE0AddCAC50219Fcdf880FdE579FD0969Ba1851\",\"f\":\"10000000000000\",\"pf\":\"0\",\"er0\":\"95714285714285740000\",\"er1\":\"85732039396692070000\",\"px\":\"1000000000000000000\",\"py\":\"1000000000000000000\",\"cx\":\"999999985730546800\",\"cy\":\"999999985730546800\",\"pfr\":\"0x0000000000000000000000000000000000000000\",\"evc\":\"0xb2E5a73CeE08593d1a076a2AE7A6e02925a640ea\"}","blockNumber":129893771}`
+
+	bscUSDT = "0x55d398326f99059ff775485246999027b3197955"
+	bscUSDC = "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+)
+
+func bscPool(t *testing.T, raw string) *PoolSimulator {
+	t.Helper()
+	var p entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(raw), &p))
+	s, err := NewPoolSimulator(p)
+	require.NoError(t, err)
+	return s
+}
+
+func calc(s *PoolSimulator, tokenIn, tokenOut, amount string) error {
+	amt, _ := new(big.Int).SetString(amount, 10)
+	_, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		TokenAmountIn: poolpkg.TokenAmount{Token: tokenIn, Amount: amt},
+		TokenOut:      tokenOut,
+	})
+	return err
+}
+
+func TestSolvencyWithUnitPrices(t *testing.T) {
+	t.Parallel()
+	s := bscPool(t, bscPoolUnitPrices)
+
+	// The swap that reverted on chain borrows USDC past the account's liquidity.
+	require.ErrorIs(t, calc(s, bscUSDT, bscUSDC, "37487854184952442515"), shared.ErrInsolvency)
+
+	// Selling USDC repays the controller vault's debt: no borrow, no solvency limit.
+	require.NoError(t, calc(s, bscUSDC, bscUSDT, "10000000000000000000"))
+}
+
+// A borrow the simulator cannot price is refused, as on chain, where the vault prices the liability
+// with its oracle: state written before shared.UnitPrice (every price 0) or with a failed quote.
+func TestSolvencyWithoutDebtPrice(t *testing.T) {
+	t.Parallel()
+	s := bscPool(t, bscPoolZeroPrices)
+
+	require.ErrorIs(t, calc(s, bscUSDT, bscUSDC, "37487854184952442515"), shared.ErrInsolvency)
+	// Repaying part of the debt leaves a liability to price, so it is refused too.
+	require.ErrorIs(t, calc(s, bscUSDC, bscUSDT, "10000000000000000000"), shared.ErrInsolvency)
+	// Repaying all of it (51.0 USDC) leaves none: nothing to price.
+	require.NoError(t, calc(s, bscUSDC, bscUSDT, "52000000000000000000"))
 }

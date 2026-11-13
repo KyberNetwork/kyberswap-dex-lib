@@ -3,6 +3,7 @@ package v2
 import (
 	"context"
 	"math/big"
+	"slices"
 	"strings"
 	"time"
 
@@ -135,6 +136,7 @@ func (d *PoolTracker) getPoolData(
 	var (
 		data           TrackerData
 		vaults         = make([]shared.VaultRPC, len(uniqueVaultAddresses))
+		vaultDecimals  = make([]uint8, len(uniqueVaultAddresses))
 		oracles        = make([]common.Address, len(uniqueVaultAddresses))
 		unitOfAccounts = make([]common.Address, len(uniqueVaultAddresses))
 		collaterals    []common.Address
@@ -212,6 +214,10 @@ func (d *PoolTracker) getPoolData(
 			Target: addr,
 			Method: shared.VaultMethodUnitOfAccount,
 		}, []any{&unitOfAccounts[i]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: addr,
+			Method: shared.VaultMethodDecimals,
+		}, []any{&vaultDecimals[i]}).AddCall(&ethrpc.Call{
 			ABI:    evcABI,
 			Target: evcAddr,
 			Method: shared.EvcMethodIsControllerEnabled,
@@ -223,6 +229,12 @@ func (d *PoolTracker) getPoolData(
 	if err != nil {
 		return nil, 0, errors.WithMessage(err, "1st rt")
 	}
+	vaultList = shared.WithVaultDecimals(vaultList, lo.Map(vaultList, func(v shared.VaultInfo, _ int) uint8 {
+		_, idx, _ := lo.FindIndexOf(uniqueVaultAddresses, func(addr string) bool {
+			return strings.EqualFold(addr, v.VaultAddress)
+		})
+		return vaultDecimals[idx]
+	}))
 
 	var (
 		controllerDecimals  uint8
@@ -285,6 +297,7 @@ func (d *PoolTracker) getPoolData(
 	data.UniqueVaultAddresses = uniqueVaultAddresses
 	data.Vaults = vaults
 
+	data.Collaterals = collaterals
 	data.CollatAmounts = make([]*big.Int, len(collaterals))
 	fullVaultList := lo.Map(uniqueVaultAddresses, func(addr string, _ int) shared.VaultInfo {
 		if v, ok := lo.Find(vaultList, func(v shared.VaultInfo) bool {
@@ -346,8 +359,14 @@ func (d *PoolTracker) getPoolData(
 
 	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
 	collatQuoteAmts := make([]*big.Int, len(collaterals))
-	data.CollatPrices = make([][][2]*big.Int, len(collaterals))
-	data.CollatLtvs = make([][]uint16, len(collaterals))
+	// One slot per vault for every collateral, filled below only for a vault with an oracle: a vault without one
+	// keeps zero prices and LTVs instead of a short row.
+	data.CollatPrices = lo.Times(len(collaterals), func(_ int) [][2]*big.Int {
+		return make([][2]*big.Int, len(uniqueVaultAddresses))
+	})
+	data.CollatLtvs = lo.Times(len(collaterals), func(_ int) []uint16 {
+		return make([]uint16, len(uniqueVaultAddresses))
+	})
 
 	data.VaultPrices = lo.Times(len(fullVaultList), func(_ int) [][2]*big.Int {
 		return make([][2]*big.Int, len(uniqueVaultAddresses))
@@ -380,17 +399,6 @@ func (d *PoolTracker) getPoolData(
 			}
 		}
 		for j, collateral := range collaterals {
-			if len(data.CollatPrices[j]) <= i {
-				for len(data.CollatPrices[j]) <= i {
-					data.CollatPrices[j] = append(data.CollatPrices[j], [2]*big.Int{})
-				}
-			}
-			if len(data.CollatLtvs[j]) <= i {
-				for len(data.CollatLtvs[j]) <= i {
-					data.CollatLtvs[j] = append(data.CollatLtvs[j], 0)
-				}
-			}
-
 			if idx, ok := fullVaultAddrMap[collateral]; ok {
 				data.CollatPrices[j][i] = data.VaultPrices[idx][i]
 				data.CollatLtvs[j][i] = data.VaultLtvs[idx][i]
@@ -418,11 +426,7 @@ func (d *PoolTracker) getPoolData(
 	for i := range uniqueVaultAddresses {
 		for j, v := range fullVaultList {
 			for k, q := range data.VaultPrices[j][i] {
-				if q != nil {
-					data.VaultPrices[j][i][k] = new(big.Int).Div(q, v.QuoteAmount)
-				} else {
-					data.VaultPrices[j][i][k] = big.NewInt(0)
-				}
+				data.VaultPrices[j][i][k] = shared.UnitPrice(q, v.QuoteAmount)
 			}
 		}
 		for j, collatAddr := range collaterals {
@@ -431,11 +435,7 @@ func (d *PoolTracker) getPoolData(
 				continue
 			}
 			for k, q := range data.CollatPrices[j][i] {
-				if q != nil {
-					data.CollatPrices[j][i][k] = new(big.Int).Div(q, collatQuoteAmts[j])
-				} else {
-					data.CollatPrices[j][i][k] = big.NewInt(0)
-				}
+				data.CollatPrices[j][i][k] = shared.UnitPrice(q, collatQuoteAmts[j])
 			}
 		}
 	}
@@ -475,6 +475,8 @@ func (d *PoolTracker) updatePool(
 	idx0 := uniqueVaultAddrMap[strings.ToLower(staticExtra.SupplyVault0)]
 	idx1 := uniqueVaultAddrMap[strings.ToLower(staticExtra.SupplyVault1)]
 
+	isCollateral0 := slices.Contains(data.Collaterals, common.HexToAddress(staticExtra.SupplyVault0))
+	isCollateral1 := slices.Contains(data.Collaterals, common.HexToAddress(staticExtra.SupplyVault1))
 	vaultMap := make(map[string]*shared.VaultState, len(data.Vaults))
 	for idx, v := range data.Vaults {
 		addr := strings.ToLower(data.UniqueVaultAddresses[idx])
@@ -498,9 +500,12 @@ func (d *PoolTracker) updatePool(
 				uint256.MustFromBig(data.VaultPrices[idx1][idx][0]),
 			}
 			state.LTVs = lo.Map(data.CollatLtvs, func(l []uint16, _ int) uint64 { return uint64(l[idx]) })
+			// The debt vault counts a supply vault only when the account enabled it as collateral: a deposit
+			// into any other vault adds nothing, and a swap that borrows against it reverts with
+			// E_AccountLiquidity.
 			state.VaultLTVs = [2]uint64{
-				uint64(data.VaultLtvs[idx0][idx]),
-				uint64(data.VaultLtvs[idx1][idx]),
+				lo.Ternary(isCollateral0, uint64(data.VaultLtvs[idx0][idx]), 0),
+				lo.Ternary(isCollateral1, uint64(data.VaultLtvs[idx1][idx]), 0),
 			}
 		}
 		vaultMap[addr] = state

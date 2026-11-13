@@ -23,6 +23,10 @@ type SmardexPair struct {
 
 	// fee for FEE_POOL
 	FeeToAmount FeeToAmount
+
+	// FeeOff is set when the factory has no feeTo. The pair then keeps the pool fee in its reserves instead of
+	// adding it to feeToAmount. Stored state without it is read as fee on, which every factory is today.
+	FeeOff bool `json:",omitempty"`
 }
 
 type PairFeeResult struct {
@@ -95,13 +99,14 @@ type GetAmountResult struct {
 	newFictiveReserveOut *uint256.Int
 }
 
+// SwapInfo holds the pool's state after a swap, in token order.
 type SwapInfo struct {
-	newReserveIn              *uint256.Int
-	newReserveOut             *uint256.Int
-	newFictiveReserveIn       *uint256.Int
-	newFictiveReserveOut      *uint256.Int
-	newPriceAverageIn         *uint256.Int
-	newPriceAverageOut        *uint256.Int
+	newReserve0               *uint256.Int
+	newReserve1               *uint256.Int
+	newFictiveReserve0        *uint256.Int
+	newFictiveReserve1        *uint256.Int
+	newPriceAverage0          *uint256.Int
+	newPriceAverage1          *uint256.Int
 	priceAverageLastTimestamp *uint256.Int
 	feeToAmount0              *uint256.Int
 	feeToAmount1              *uint256.Int

@@ -95,6 +95,7 @@ func (t *PoolTracker) GetNewPoolState(
 		reserveY.Mul(&reserveY, staticExtra.ScalingFactorY).String()}
 	p.Extra = string(extraBytes)
 	p.BlockNumber = state.block
+	p.Timestamp = now.Unix()
 
 	l.Info("Finish updating state of pool")
 	return p, nil

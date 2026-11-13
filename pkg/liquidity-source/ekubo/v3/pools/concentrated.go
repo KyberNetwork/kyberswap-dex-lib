@@ -110,6 +110,14 @@ func (s *ConcentratedPoolState) UpdateTick(updatedTickNumber int32, liquidityDel
 	}
 }
 
+// ActiveTickOutsideTickBounds reports whether the active tick has left the window [TickBounds[0], TickBounds[1]) the
+// ticks were fetched for. Outside it SortedTicks no longer describes the liquidity around the price, and the swap price
+// limit derived from TickBounds lies on the wrong side of the price, so the state must be fetched again. A window that
+// ends at ekubomath.MaxTick also holds a price at MaxTick, since no fetch can return a wider one.
+func (s *ConcentratedPoolState) ActiveTickOutsideTickBounds() bool {
+	return s.ActiveTick < s.TickBounds[0] || (s.ActiveTick >= s.TickBounds[1] && s.TickBounds[1] < ekubomath.MaxTick)
+}
+
 func (s *ConcentratedPoolState) AddLiquidityCutoffs() {
 	var currentLiquidity uint256.Int
 	belowActiveTick := true
@@ -242,7 +250,7 @@ func (p *ConcentratedPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Q
 
 	isIncreasing := ekubomath.IsPriceIncreasing(amount, isToken1)
 
-	sqrtRatioLimit := lo.Ternary(isIncreasing, ekubomath.MaxSqrtRatio, ekubomath.MinSqrtRatio)
+	sqrtRatioLimit := p.executedSqrtRatioLimit(isIncreasing)
 
 	var calculatedAmount, feesPaid, amountRemaining, tmp uint256.Int
 	var initializedTicksCrossed uint32 = 0
@@ -333,15 +341,7 @@ func (p *ConcentratedPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Q
 
 	initializedTicksCrossedSigned, extraDistinctBitmapLookupsSigned := int64(initializedTicksCrossed), int64(extraDistinctBitmapLookups)
 
-	priceLimit := sqrtRatioLimit
-	if isIncreasing {
-		if upperTickBound := p.TickBounds[1] + 1; upperTickBound < ekubomath.MaxTick {
-			priceLimit = ekubomath.ToSqrtRatio(upperTickBound)
-		}
-	} else if lowerTickBound := p.TickBounds[0] - 1; lowerTickBound > ekubomath.MinTick {
-		priceLimit = ekubomath.ToSqrtRatio(lowerTickBound)
-	}
-	priceLimit = ekubomath.FixedSqrtRatioToFloat(priceLimit, isIncreasing)
+	priceLimit := ekubomath.FixedSqrtRatioToFloat(sqrtRatioLimit, isIncreasing)
 
 	return &quoting.Quote{
 		ConsumedAmount:   amountRemaining.Sub(amount, &amountRemaining),
@@ -363,6 +363,23 @@ func (p *ConcentratedPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Q
 			TickSpacingsCrossed: tickSpacingsCrossed,
 		},
 	}, nil
+}
+
+// executedSqrtRatioLimit is the price the swap is executed up to (SwapInfo.PriceLimit, in fixed point): one tick
+// past the bound of the ticks the state was fetched on, or the global limit where the bound is at it. The quote
+// stops there too, so that past the known liquidity it reports a partial fill with the gas and the state of the
+// swap that is executed, not a walk through empty ticks to the global limit.
+func (p *ConcentratedPool) executedSqrtRatioLimit(isIncreasing bool) *uint256.Int {
+	if isIncreasing {
+		if upperTickBound := p.TickBounds[1] + 1; upperTickBound < ekubomath.MaxTick {
+			return ekubomath.ToSqrtRatio(upperTickBound)
+		}
+		return ekubomath.MaxSqrtRatio
+	}
+	if lowerTickBound := p.TickBounds[0] - 1; lowerTickBound > ekubomath.MinTick {
+		return ekubomath.ToSqrtRatio(lowerTickBound)
+	}
+	return ekubomath.MinSqrtRatio
 }
 
 func (s *ConcentratedPoolSwapState) Clone() *ConcentratedPoolSwapState {

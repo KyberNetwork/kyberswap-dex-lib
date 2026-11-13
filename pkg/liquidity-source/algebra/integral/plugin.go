@@ -50,6 +50,7 @@ func (s *TimepointStorage) Get(index uint16) Timepoint {
 	}
 	return Timepoint{VolatilityCumulative: uint256.NewInt(0)}
 }
+
 func (s *TimepointStorage) set(index uint16, v Timepoint) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

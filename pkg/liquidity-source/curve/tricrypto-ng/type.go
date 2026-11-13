@@ -22,6 +22,14 @@ type (
 		PriceOracle []uint256.Int
 		LastPrices  []uint256.Int
 
+		// PriceOracleTimestamp is when the tracker read PriceOracle, in unix seconds, and MaTime is the EMA's
+		// time constant (packed_rebalancing_params; the ma_time() view reports it times ln 2). The contract's
+		// price_oracle() keeps moving toward last_prices until the next trade, so the simulator carries
+		// PriceOracle forward to the swap's time (see priceOracleAt). The read's block can be up to one block
+		// older than PriceOracleTimestamp, which leaves the carried value at most one block short.
+		PriceOracleTimestamp int64        `json:",omitempty"`
+		MaTime               *uint256.Int `json:",omitempty"`
+
 		FeeGamma *uint256.Int
 		MidFee   *uint256.Int
 		OutFee   *uint256.Int
@@ -41,5 +49,9 @@ type (
 		XcpProfit    uint256.Int
 		D            uint256.Int
 		VirtualPrice uint256.Int
+
+		// PriceOracle is price_oracle at PriceOracleTimestamp, the time the swap is quoted at.
+		PriceOracle          [NumTokens - 1]uint256.Int
+		PriceOracleTimestamp int64
 	}
 )

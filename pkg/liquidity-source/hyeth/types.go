@@ -30,9 +30,12 @@ type PoolItem struct {
 }
 
 type SwapInfo struct {
-	Fee         *uint256.Int `json:"fee"`
-	TotalSupply *uint256.Int `json:"totalSupply"`
-	TotalAssets *uint256.Int `json:"totalAssets"`
+	Fee          *uint256.Int `json:"fee"`
+	TotalSupply  *uint256.Int `json:"totalSupply"`
+	TotalAssets  *uint256.Int `json:"totalAssets"`
+	HyethBalance *uint256.Int `json:"-"`
+	HyethSupply  *uint256.Int `json:"-"`
+	MaxDeposit   *uint256.Int `json:"-"`
 }
 
 type MetaInfo struct {
