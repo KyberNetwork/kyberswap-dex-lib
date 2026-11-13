@@ -3,9 +3,11 @@ package doppleramm
 import (
 	"context"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -19,6 +21,7 @@ import (
 type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
+	warned       sync.Map // skipped module/extension pairs already logged
 }
 
 // Metadata is the next block to scan; MarketCreated is append-only.
@@ -106,15 +109,30 @@ func (u *PoolsListUpdater) decodeMarketCreated(log types.Log) (*entity.Pool, boo
 	}
 	module := common.BytesToAddress(log.Topics[1].Bytes())
 	extension := common.BytesToAddress(log.Topics[2].Bytes())
+	spotModule, launchModule := common.HexToAddress(u.config.SpotModuleAddress), common.HexToAddress(u.config.LaunchModuleAddress)
 	launch := u.config.MarketKind == MarketKindLaunch
-	if launch {
-		// FeesLocker is the one extension whose swap hooks do not change the quote.
-		if module != common.HexToAddress(u.config.LaunchModuleAddress) ||
-			extension != common.HexToAddress(u.config.FeesLockerAddress) {
-			return nil, false, nil
+	// The AMM only lists registered modules (getModuleCount/moduleAt) and says nothing about their math or
+	// extensions, so each market's module and extension come from its own event and only known pairs are
+	// quoted: SpotModule without extension, LaunchModule with FeesLocker (the one extension whose swap
+	// hooks do not change the quote). Anything else is skipped, with one log line per pair.
+	var supported bool
+	switch module {
+	case spotModule:
+		supported = extension == (common.Address{})
+		launch = false
+	case launchModule:
+		supported = extension == common.HexToAddress(u.config.FeesLockerAddress)
+		launch = true
+	}
+	if !supported {
+		if _, seen := u.warned.LoadOrStore(module.Hex()+extension.Hex(), struct{}{}); !seen {
+			logger.WithFields(logger.Fields{"dex": u.config.DexID, "module": module.Hex(), "extension": extension.Hex()}).
+				Warn("doppler-amm: skipping market with unsupported module or extension")
 		}
-	} else if module != common.HexToAddress(u.config.SpotModuleAddress) || extension != (common.Address{}) {
 		return nil, false, nil
+	}
+	if launch != (u.config.MarketKind == MarketKindLaunch) {
+		return nil, false, nil // the other source lists this kind
 	}
 
 	var event marketCreatedEvent

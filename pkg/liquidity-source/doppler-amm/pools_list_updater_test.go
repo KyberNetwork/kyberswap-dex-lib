@@ -112,3 +112,20 @@ func TestDecodeMarketCreatedLaunchKind(t *testing.T) {
 	_, ok, _ = NewPoolsListUpdater(spotCfg, nil).decodeMarketCreated(marketCreatedLog(t, launch, locker, big.NewInt(7)))
 	require.False(t, ok, "spot source must not list launch markets")
 }
+
+// An unknown module is skipped and reported once per module/extension pair, not once per market.
+func TestDecodeMarketCreatedLogsUnknownModuleOnce(t *testing.T) {
+	cfg := &Config{DexID: "doppler-fun", ChainID: 8453, MarketKind: MarketKindLaunch}
+	require.NoError(t, cfg.withDefaults())
+	u := NewPoolsListUpdater(cfg, nil)
+	unknown := common.HexToAddress("0x00000000000000000000000000000000000000ff")
+
+	for id := int64(1); id <= 3; id++ {
+		_, ok, err := u.decodeMarketCreated(marketCreatedLog(t, unknown, common.Address{}, big.NewInt(id)))
+		require.NoError(t, err)
+		require.False(t, ok)
+	}
+	n := 0
+	u.warned.Range(func(_, _ any) bool { n++; return true })
+	require.Equal(t, 1, n)
+}
