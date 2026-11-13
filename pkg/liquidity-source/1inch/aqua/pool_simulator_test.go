@@ -26,8 +26,7 @@ type poolOpts struct {
 	raw        [2]*uint256.Int
 	wallet     [2]*uint256.Int
 	allowance  [2]*uint256.Int
-	rawBlock   uint64
-	walletBlk  uint64
+	untracked  bool
 	docked     bool
 	inactive   bool
 	tokens     [2]string
@@ -65,14 +64,11 @@ func newEntity(t testing.TB, o poolOpts) entity.Pool {
 			o.allowance[i] = unlimited
 		}
 	}
-	if o.rawBlock == 0 && o.walletBlk == 0 {
-		o.rawBlock, o.walletBlk = 100, 100
-	}
 	order := orderOf(o.maker, o.program)
 	extra := Extra{
-		RawBalance0: o.raw[0], RawBalance1: o.raw[1], RawBlock: o.rawBlock,
+		RawBalance0: o.raw[0], RawBalance1: o.raw[1],
 		WalletBalance0: o.wallet[0], WalletBalance1: o.wallet[1],
-		Allowance0: o.allowance[0], Allowance1: o.allowance[1], WalletBlock: o.walletBlk,
+		Allowance0: o.allowance[0], Allowance1: o.allowance[1],
 		Docked: o.docked, Inactive: o.inactive,
 	}
 	traits := order.Traits
@@ -85,6 +81,10 @@ func newEntity(t testing.TB, o poolOpts) entity.Pool {
 	sb, err := json.Marshal(static)
 	require.NoError(t, err)
 	reserves := []string{minDec(o.raw[0], o.wallet[0], o.allowance[0]), minDec(o.raw[1], o.wallet[1], o.allowance[1])}
+	block := uint64(100) // a tracker read; the lister leaves it at zero
+	if o.untracked {
+		block = 0
+	}
 	return entity.Pool{
 		Address:     "0xpool" + o.strategyId,
 		Exchange:    valueobject.ExchangeOneInchAqua,
@@ -93,7 +93,7 @@ func newEntity(t testing.TB, o poolOpts) entity.Pool {
 		Tokens:      []*entity.PoolToken{{Address: o.tokens[0], Swappable: true}, {Address: o.tokens[1], Swappable: true}},
 		Extra:       string(eb),
 		StaticExtra: string(sb),
-		BlockNumber: o.rawBlock,
+		BlockNumber: block,
 	}
 }
 
@@ -246,26 +246,31 @@ func TestCalcAmountOutInvalidInput(t *testing.T) {
 	require.ErrorIs(t, err, ErrZeroBalance)
 }
 
-// A strategy only quotes with one wallet snapshot taken at the
-// block of its raw balances.
+// A strategy only quotes once the tracker has read it (BlockNumber set).
 func TestCalcAmountOutStateGuards(t *testing.T) {
 	t.Parallel()
-	_, err := quoteOut(newSim(t, poolOpts{rawBlock: 50, walletBlk: 51}), 0, e18(1), nil)
-	require.ErrorIs(t, err, ErrStateMixedBlock)
-	_, err = quoteOut(newSim(t, poolOpts{rawBlock: 51, walletBlk: 50}), 0, e18(1), nil)
-	require.ErrorIs(t, err, ErrStateMixedBlock)
-
-	// No wallet snapshot: both blocks zero, a lister-created pool.
-	fresh := newEntity(t, poolOpts{rawBlock: 1, walletBlk: 1})
+	// A lister-created pool: zero state, BlockNumber zero.
+	fresh := newEntity(t, poolOpts{untracked: true})
 	fresh.Extra = "{}"
 	s, err := NewPoolSimulator(fresh)
 	require.NoError(t, err)
 	_, err = quoteOut(s, 0, e18(1), nil)
 	require.ErrorIs(t, err, ErrNoWalletSnapshot)
-	// A raw read without a wallet read never quotes either.
-	_, err = quoteOut(newSim(t, poolOpts{rawBlock: 7, walletBlk: 0}), 0, e18(1), nil)
-	require.ErrorIs(t, err, ErrNoWalletSnapshot)
 	require.Nil(t, s.CalculateLimit())
+	// Balances without a tracker read never quote either, and publish no limit that would pin the maker's other
+	// strategies at zero.
+	untracked := newSim(t, poolOpts{untracked: true})
+	_, err = quoteOut(untracked, 0, e18(1), nil)
+	require.ErrorIs(t, err, ErrNoWalletSnapshot)
+	require.Nil(t, untracked.CalculateLimit())
+	// An Extra stored with the old read blocks still decodes; the blocks are ignored.
+	legacy := newEntity(t, poolOpts{})
+	legacy.Extra = `{"rawBalance0":"1000","rawBalance1":"1000","rawBlock":5,"walletBalance0":"1000",` +
+		`"walletBalance1":"1000","allowance0":"1000","allowance1":"1000","walletBlock":7}`
+	ls, err := NewPoolSimulator(legacy)
+	require.NoError(t, err)
+	_, err = quoteOut(ls, 0, uint256.NewInt(10), nil)
+	require.NoError(t, err)
 
 	for name, o := range map[string]poolOpts{"docked": {docked: true}, "inactive": {inactive: true}} {
 		s := newSim(t, o)
@@ -482,9 +487,8 @@ func TestUpdateBalance(t *testing.T) {
 	require.Equal(t, new(uint256.Int).Sub(e18(2000), &info.AmountOut).Dec(), s.State.Allowance[1].Dec())
 	require.Equal(t, new(uint256.Int).Add(e18(500), wantNet(info)).Dec(), s.State.Wallet[0].Dec())
 	require.Equal(t, new(uint256.Int).Sub(e18(400), &info.FeeCollected).Dec(), s.State.Allowance[0].Dec())
-	// Blocks never move on a swap.
-	require.Equal(t, uint64(100), s.State.RawBlock)
-	require.Equal(t, uint64(100), s.State.WalletBlock)
+	// The read block never moves on a swap.
+	require.Equal(t, uint64(100), s.Info.BlockNumber)
 	// The published reserves are the fillable amounts.
 	require.Equal(t, minDec(&s.State.Raw[0], &s.State.Wallet[0], &s.State.Allowance[0]), s.Info.Reserves[0].String())
 	require.Equal(t, minDec(&s.State.Raw[1], &s.State.Wallet[1], &s.State.Allowance[1]), s.Info.Reserves[1].String())

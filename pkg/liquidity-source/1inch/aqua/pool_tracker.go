@@ -205,8 +205,8 @@ func (tp *trackedPool) build(ok []bool, block uint64, now int64, confirmations u
 		return tp.pool, ErrRawRead
 	}
 	zero := func() *uint256.Int { return new(uint256.Int) }
-	extra := Extra{RawBlock: block, WalletBlock: block,
-		RawBalance0: zero(), RawBalance1: zero(), WalletBalance0: zero(), WalletBalance1: zero(), Allowance0: zero(), Allowance1: zero()}
+	extra := Extra{RawBalance0: zero(), RawBalance1: zero(), WalletBalance0: zero(), WalletBalance1: zero(),
+		Allowance0: zero(), Allowance1: zero()}
 	switch {
 	case docked:
 		extra.Docked = true
@@ -263,7 +263,6 @@ func walletLimit(w *walletRead, ok []bool) (balance, allowance *uint256.Int, goo
 }
 
 func (tp *trackedPool) finish(p entity.Pool, extra *Extra, reserves entity.PoolReserves, timestamp int64) (entity.Pool, error) {
-	tp.keepReadBlocks(extra)
 	b, err := json.Marshal(extra)
 	if err != nil {
 		return tp.pool, err
@@ -272,18 +271,4 @@ func (tp *trackedPool) finish(p entity.Pool, extra *Extra, reserves entity.PoolR
 	p.Reserves = reserves
 	p.Timestamp = timestamp
 	return p, nil
-}
-
-// keepReadBlocks keeps the stored RawBlock and WalletBlock when nothing else in Extra changed, so an unchanged
-// strategy gives the same Extra and a store that skips unchanged pools does not rewrite it. The blocks are then the
-// first read of the current state; entity.Pool.BlockNumber is still the block of this read.
-func (tp *trackedPool) keepReadBlocks(extra *Extra) {
-	if tp.old.WalletBlock == 0 || tp.old.RawBlock != tp.old.WalletBlock {
-		return
-	}
-	kept := *extra
-	kept.RawBlock, kept.WalletBlock = tp.old.RawBlock, tp.old.WalletBlock
-	if b, err := json.Marshal(&kept); err == nil && string(b) == tp.pool.Extra {
-		*extra = kept
-	}
 }
