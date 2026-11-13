@@ -22,6 +22,21 @@
     ]
   },
   {
+    "type": "function",
+    "name": "marketConfig",
+    "stateMutability": "view",
+    "inputs": [{ "name": "marketId", "type": "uint256" }],
+    "outputs": [
+      { "name": "tokenX", "type": "address" },
+      { "name": "tokenY", "type": "address" },
+      { "name": "extension", "type": "address" },
+      { "name": "unused3", "type": "uint256" },
+      { "name": "module", "type": "address" },
+      { "name": "unused5", "type": "bytes32" },
+      { "name": "configPointer", "type": "address" }
+    ]
+  },
+  {
     "type": "event",
     "name": "MarketCreated",
     "anonymous": false,

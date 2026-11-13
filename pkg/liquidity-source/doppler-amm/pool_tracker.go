@@ -7,8 +7,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -35,11 +35,6 @@ type marketReserves struct {
 	Liquidity *big.Int `abi:"liquidity"`
 }
 
-type quoteResult struct {
-	ActualInputAmount  *big.Int `abi:"actualInputAmount"`
-	ActualOutputAmount *big.Int `abi:"actualOutputAmount"`
-}
-
 type protocolFee struct {
 	SwapFeeShareBps uint16         `abi:"swapFeeShareBps"`
 	SwapBaseFeeBps  uint16         `abi:"swapBaseFeeBps"`
@@ -60,6 +55,10 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, ErrUnsupportedMarket
 	}
 
+	if staticExtra.Module != "" {
+		return t.getLaunchState(ctx, p, staticExtra, marketID)
+	}
+
 	var reserves marketReserves
 	var fee protocolFee
 	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
@@ -77,12 +76,17 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, ErrInsufficientLiquidity
 	}
 
-	lpFeeBps, err := t.deriveLpFee(ctx, staticExtra.Quoter, marketID, reserves, fee.SwapBaseFeeBps, resp.BlockNumber)
-	if err != nil {
-		return p, err
+	// The LP fee and its recipient are fixed per market: read them from the config blob once.
+	var prev Extra
+	_ = json.Unmarshal([]byte(p.Extra), &prev)
+	if prev.FeeRecipient == "" {
+		if err = t.readSpotConfig(ctx, staticExtra.AMM, marketID, resp.BlockNumber, &prev); err != nil {
+			return p, err
+		}
 	}
 
-	extra, err := json.Marshal(Extra{TokenX: staticExtra.TokenX, BaseFeeBps: fee.SwapBaseFeeBps, LpFeeBps: lpFeeBps})
+	extra, err := json.Marshal(Extra{TokenX: staticExtra.TokenX, BaseFeeBps: fee.SwapBaseFeeBps, FeeShareBps: fee.SwapFeeShareBps,
+		LpFeeBps: prev.LpFeeBps, FeeRecipient: prev.FeeRecipient, LpFeeStays: prev.LpFeeStays})
 	if err != nil {
 		return p, err
 	}
@@ -95,108 +99,56 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-// probeDivisors are tried in order. A probe must move the output by more than a
-// wei per basis point to pin the fee down: 1% of reserveX is enough for any
-// market whose other side holds more than dust, and 10% is the fallback.
-var probeDivisors = []int64{100, 10}
-
-// deriveLpFee recovers the module's LP fee from quoter probes. The fee is fixed
-// per market and lives in the component's config pointer, so a probe is the only
-// source available to an off-chain integration.
-func (t *PoolTracker) deriveLpFee(
-	ctx context.Context,
-	quoter string,
-	marketID *big.Int,
-	reserves marketReserves,
-	baseFeeBps uint16,
-	blockNumber *big.Int,
-) (uint16, error) {
-	var lastErr error
-	for _, div := range probeDivisors {
-		probeAmount := new(big.Int).Div(reserves.ReserveX, big.NewInt(div))
-		if probeAmount.Sign() <= 0 {
-			continue
-		}
-
-		var quote quoteResult
-		resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).
-			AddCall(&ethrpc.Call{
-				ABI:    quoterABI,
-				Target: quoter,
-				Method: "quoteSwapExactInput",
-				Params: []any{marketID, true, probeAmount, []byte{}, []byte{}},
-			}, []any{&quote}).
-			TryAggregate()
-		if err != nil {
-			return 0, err
-		}
-		if len(resp.Result) != 1 || !resp.Result[0] || quote.ActualOutputAmount == nil {
-			return 0, ErrCallReverted
-		}
-
-		lpFeeBps, err := deriveLpFeeBps(probeAmount, quote.ActualOutputAmount, reserves.ReserveX, reserves.ReserveY, baseFeeBps)
-		if err == nil {
-			return lpFeeBps, nil
-		}
-		lastErr = err
-	}
-	if lastErr == nil {
-		lastErr = ErrFeeDerivation
-	}
-	return 0, lastErr
+type marketConfig struct {
+	TokenX        common.Address `abi:"tokenX"`
+	TokenY        common.Address `abi:"tokenY"`
+	Extension     common.Address `abi:"extension"`
+	Unused3       *big.Int       `abi:"unused3"`
+	Module        common.Address `abi:"module"`
+	Unused5       [32]byte       `abi:"unused5"`
+	ConfigPointer common.Address `abi:"configPointer"`
 }
 
-// deriveLpFeeBps solves the module LP fee from one (amountIn, amountOut) probe.
-func deriveLpFeeBps(probeAmount, actualOut, reserveX, reserveY *big.Int, baseFeeBps uint16) (uint16, error) {
-	if actualOut.Sign() <= 0 || actualOut.Cmp(reserveY) >= 0 {
-		return 0, ErrFeeDerivation
-	}
+// A spot market's config blob (the code of marketConfig.configPointer) is a zero byte followed by nine
+// words: tokenX, tokenY, extension, module, salt, 0, 0, LP fee recipient, LP fee in bps.
+const (
+	spotConfigWords     = 9
+	spotConfigModuleIdx = 3
+	spotConfigFeeToIdx  = 7
+	spotConfigLpFeeIdx  = 8
+)
 
-	// out = reserveY*a/(reserveX+a)  =>  a = out*reserveX/(reserveY-out)
-	effIn := new(big.Int).Mul(actualOut, reserveX)
-	effIn.Div(effIn, new(big.Int).Sub(reserveY, actualOut))
-
-	afterBase := new(big.Int).Sub(probeAmount,
-		new(big.Int).Div(new(big.Int).Mul(probeAmount, big.NewInt(int64(baseFeeBps))), big.NewInt(bpsDenominator)))
-	if afterBase.Sign() <= 0 {
-		return 0, ErrFeeDerivation
+// readSpotConfig reads at block (the aggregate's block) and fills the LP fee, its recipient and whether the recipient keeps the fee in the market.
+// On chain a swap pays the protocol its base fee and 7.5% of the LP fee out of the input reserve. The
+// rest of the LP fee stays in the reserve when the recipient is a contract and is paid out to it when
+// it is an EOA (observed on every Base market; the AMM is unverified).
+func (t *PoolTracker) readSpotConfig(ctx context.Context, amm string, marketID, block *big.Int, into *Extra) error {
+	var cfg marketConfig
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(block).
+		AddCall(&ethrpc.Call{ABI: ammABI, Target: amm, Method: "marketConfig", Params: []any{marketID}}, []any{&cfg}).
+		Call(); err != nil {
+		return err
 	}
-
-	lpBps := new(big.Int).Sub(afterBase, effIn)
-	lpBps.Mul(lpBps, big.NewInt(bpsDenominator))
-	lpBps.Div(lpBps, afterBase)
-	if lpBps.Sign() < 0 || !lpBps.IsInt64() || lpBps.Int64() > bpsDenominator {
-		return 0, ErrFeeDerivation
+	client := t.ethrpcClient.GetETHClient()
+	blob, err := client.CodeAt(ctx, cfg.ConfigPointer, block)
+	if err != nil {
+		return err
 	}
-
-	// Integer floors in the derivation can land one bps off; accept only a
-	// candidate that reproduces the probe exactly.
-	probeIn, overflow := uint256.FromBig(probeAmount)
-	reserveIn, overflowIn := uint256.FromBig(reserveX)
-	reserveOut, overflowOut := uint256.FromBig(reserveY)
-	if overflow || overflowIn || overflowOut {
-		return 0, ErrOverflow
+	if len(blob) != 1+spotConfigWords*32 {
+		return ErrUnsupportedMarket
 	}
-
-	candidate := uint16(lpBps.Int64())
-	// Integer floors in the derivation can land a bps off, and a probe too small
-	// to move the output by a wei per bps leaves two candidates. Accept a single
-	// value that reproduces the probe exactly, and let the caller retry with a
-	// bigger probe when the answer is ambiguous.
-	var found uint16
-	matches := 0
-	for _, c := range []uint16{candidate - 1, candidate, candidate + 1} {
-		if c > bpsDenominator {
-			continue
-		}
-		out, err := getAmountOut(probeIn, reserveIn, reserveOut, baseFeeBps, c)
-		if err == nil && out.ToBig().Cmp(actualOut) == 0 {
-			found = c
-			matches++
-		}
+	word := func(i int) []byte { return blob[1+i*32 : 1+(i+1)*32] }
+	lpFee := new(big.Int).SetBytes(word(spotConfigLpFeeIdx))
+	if common.BytesToAddress(word(spotConfigModuleIdx)) != cfg.Module || !lpFee.IsUint64() || lpFee.Uint64() > bpsDenominator {
+		return ErrUnsupportedMarket
 	}
-	if matches != 1 {
-		return 0, ErrFeeDerivation
+	recipient := common.BytesToAddress(word(spotConfigFeeToIdx))
+	recipientCode, err := client.CodeAt(ctx, recipient, block)
+	if err != nil {
+		return err
 	}
-	return found, nil
+	into.LpFeeBps = uint16(lpFee.Uint64())
+	into.FeeRecipient = hexutil.Encode(recipient[:])
+	into.LpFeeStays = len(recipientCode) > 0
+	return nil
 }

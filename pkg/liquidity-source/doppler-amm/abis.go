@@ -9,6 +9,7 @@ import (
 var (
 	ammABI    abi.ABI
 	quoterABI abi.ABI
+	launchABI abi.ABI
 )
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 	}{
 		{&ammABI, ammABIData},
 		{&quoterABI, quoterABIData},
+		{&launchABI, launchModuleABIData},
 	}
 
 	for _, b := range builder {
@@ -27,4 +29,16 @@ func init() {
 		}
 		*b.ABI = parsed
 	}
+
+	// The AMM and the module are unverified, so these getters are known by selector only (found
+	// by probing the deployed bytecode); pin their IDs under placeholder names.
+	pinSelector(&ammABI, "marketConfig", [4]byte{0xee, 0x49, 0x32, 0x48})
+	pinSelector(&launchABI, "levelBounds", [4]byte{0x5c, 0xd8, 0x7b, 0xa7})
+	pinSelector(&launchABI, "levelInfo", [4]byte{0x56, 0x49, 0x5c, 0x7c})
+}
+
+func pinSelector(a *abi.ABI, name string, id [4]byte) {
+	m := a.Methods[name]
+	m.ID = id[:]
+	a.Methods[name] = m
 }

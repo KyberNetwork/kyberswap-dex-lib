@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -19,6 +20,13 @@ type PoolSimulator struct {
 	staticExtra StaticExtra
 
 	reserves [2]*uint256.Int
+
+	// Launch Markets only; see launchSwap. bounds/nets are immutable and shared by clones.
+	launch    bool
+	bounds    []uint256.Int
+	nets      []uint256.Int
+	sqrtP     uint256.Int
+	liquidity uint256.Int
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
@@ -48,7 +56,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 		reserves[i] = v
 	}
 
-	return &PoolSimulator{
+	s := &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     ep.Address,
 			Exchange:    ep.Exchange,
@@ -60,7 +68,33 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 		extra:       extra,
 		staticExtra: staticExtra,
 		reserves:    reserves,
-	}, nil
+	}
+	if staticExtra.Module != "" {
+		if err := s.initLaunch(); err != nil {
+			return nil, err
+		}
+	}
+	return s, nil
+}
+
+func (s *PoolSimulator) initLaunch() error {
+	levels, extra := s.staticExtra.Levels, &s.extra
+	if len(levels) == 0 || len(levels) != len(extra.Nets) || extra.SqrtPriceX96 == nil || extra.Liquidity == nil ||
+		extra.SwapFeePips >= feePipsDenominator {
+		return ErrUnsupportedMarket
+	}
+	s.launch = true
+	s.bounds = make([]uint256.Int, len(levels))
+	s.nets = make([]uint256.Int, len(levels))
+	for i, level := range levels {
+		if err := v3.GetSqrtRatioAtTick(int(level), &s.bounds[i]); err != nil {
+			return err
+		}
+		s.nets[i].Set((*uint256.Int)(extra.Nets[i]))
+	}
+	s.sqrtP.Set(extra.SqrtPriceX96)
+	s.liquidity.Set(extra.Liquidity)
+	return nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -74,9 +108,19 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidAmountIn
 	}
 
-	amountOut, err := getAmountOut(amountIn, s.reserves[indexIn], s.reserves[indexOut], s.extra.BaseFeeBps, s.extra.LpFeeBps)
-	if err != nil {
-		return nil, err
+	var amountOut uint256.Int
+	info := s.extra
+	if s.launch {
+		var err error
+		if amountOut, info, err = s.launchOut(amountIn, indexIn == 0); err != nil {
+			return nil, err
+		}
+	} else {
+		var err error
+		if amountOut, err = getAmountOut(amountIn, s.reserves[indexIn], s.reserves[indexOut], s.extra.BaseFeeBps, s.extra.LpFeeBps); err != nil {
+			return nil, err
+		}
+		info.ReserveInDelta = s.spotReserveInDelta(amountIn)
 	}
 	if !amountOut.Lt(s.reserves[indexOut]) || amountOut.IsZero() {
 		return nil, ErrInsufficientLiquidity
@@ -88,8 +132,34 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		Gas:            defaultGas,
 		// The encoder needs tokenX to tell which side the input is, and the
 		// route summary carries SwapInfo but not the pool's Extra.
-		SwapInfo: s.extra,
+		SwapInfo: info,
 	}, nil
+}
+
+// launchOut quotes a Launch Market swap. The returned Extra carries the post-trade
+// price and liquidity for UpdateBalance; the level nets are left out of the route summary.
+func (s *PoolSimulator) launchOut(amountIn *uint256.Int, zeroForOne bool) (uint256.Int, Extra, error) {
+	var fee, eff, sqrtP, liquidity, k uint256.Int
+	// the protocol base fee comes off the input first, floored
+	k.SetUint64(uint64(s.extra.BaseFeeBps))
+	if _, overflow := fee.MulOverflow(amountIn, &k); overflow {
+		return uint256.Int{}, Extra{}, ErrOverflow
+	}
+	fee.Div(&fee, bpsDenomU256)
+	eff.Sub(amountIn, &fee)
+	sqrtP.Set(&s.sqrtP)
+	liquidity.Set(&s.liquidity)
+	// Only the net amount stays in the reserve: the base fee and the whole swap fee leave it.
+	// eff*(1e6-fee) cannot overflow: launchSwap rejects it.
+	delta := new(uint256.Int)
+	k.SetUint64(feePipsDenominator - uint64(s.extra.SwapFeePips))
+	delta.Mul(&eff, &k)
+	k.SetUint64(feePipsDenominator)
+	delta.Div(delta, &k)
+	out, err := launchSwap(s.bounds, s.nets, s.extra.SwapFeePips, &sqrtP, &liquidity, &eff, zeroForOne)
+	info := Extra{TokenX: s.extra.TokenX, BaseFeeBps: s.extra.BaseFeeBps, SwapFeePips: s.extra.SwapFeePips,
+		SqrtPriceX96: &sqrtP, Liquidity: &liquidity, ReserveInDelta: delta}
+	return out, info, err
 }
 
 // getAmountOut mirrors DopplerAMM's swap: the protocol base fee comes off the
@@ -128,6 +198,24 @@ func getAmountOut(
 	return out, nil
 }
 
+// spotReserveInDelta is how much the input reserve grows: the input less the protocol base fee, less the
+// protocol's share of the LP fee when the recipient keeps the rest in the market, else less the whole LP fee.
+// Each amount floors in this order, as the chain does (checked against 36 Base swaps).
+func (s *PoolSimulator) spotReserveInDelta(amountIn *uint256.Int) *uint256.Int {
+	var t uint256.Int
+	delta := new(uint256.Int)
+	t.Mul(amountIn, uint256.NewInt(uint64(s.extra.BaseFeeBps))) // bounded: bps < 2^16
+	t.Div(&t, bpsDenomU256)
+	delta.Sub(amountIn, &t) // input after the base fee
+	t.Mul(delta, uint256.NewInt(uint64(s.extra.LpFeeBps)))
+	t.Div(&t, bpsDenomU256) // LP fee
+	if s.extra.LpFeeStays {
+		t.Mul(&t, uint256.NewInt(uint64(s.extra.FeeShareBps)))
+		t.Div(&t, bpsDenomU256) // protocol share of it
+	}
+	return delta.Sub(delta, &t)
+}
+
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
@@ -140,6 +228,14 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
+	if info, ok := params.SwapInfo.(Extra); ok && s.launch && info.SqrtPriceX96 != nil && info.Liquidity != nil {
+		s.sqrtP.Set(info.SqrtPriceX96)
+		s.liquidity.Set(info.Liquidity)
+	}
+
+	if info, ok := params.SwapInfo.(Extra); ok && info.ReserveInDelta != nil {
+		amountIn = info.ReserveInDelta
+	}
 	s.reserves[indexIn].Add(s.reserves[indexIn], amountIn)
 	if amountOut.Lt(s.reserves[indexOut]) {
 		s.reserves[indexOut].Sub(s.reserves[indexOut], amountOut)
