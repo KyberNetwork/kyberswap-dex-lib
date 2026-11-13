@@ -2,6 +2,7 @@ package vaultT1
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -92,6 +93,14 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			s.Info.Reserves[i] = new(big.Int).Sub(s.Info.Reserves[i], outputAmount)
 		}
 	}
+}
+
+// CloneState copies the reserves slice UpdateBalance writes by index. Each big.Int is replaced on
+// write, not changed in place, so the values can be shared.
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	return &cloned
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
