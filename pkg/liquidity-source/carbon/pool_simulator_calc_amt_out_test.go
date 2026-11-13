@@ -1,10 +1,8 @@
 package carbon
 
 import (
-	"cmp"
 	"fmt"
 	"reflect"
-	"slices"
 	"testing"
 
 	"github.com/holiman/uint256"
@@ -105,15 +103,25 @@ func checkCalcAmtOutParity(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut s
 	require.True(t, ok)
 	gotSwap, ok := got.SwapInfo.(SwapInfo)
 	require.True(t, ok)
-	require.True(t, reflect.DeepEqual(sortedTradeActions(wantSwap), sortedTradeActions(gotSwap)), "SwapInfo differs")
+	require.True(t, reflect.DeepEqual(wantSwap, gotSwap), "SwapInfo differs")
 }
 
-// sortedTradeActions returns a copy ordered by strategy. Match walks ordersMap, so the action order
-// changes between calls even for CalcAmountOut; the fills themselves do not.
-func sortedTradeActions(s SwapInfo) []TradeAction {
-	actions := slices.Clone(s.TradeActions)
-	slices.SortFunc(actions, func(a, b TradeAction) int {
-		return cmp.Compare(a.StrategyId, b.StrategyId)
-	})
-	return actions
+// TestCalcAmountOutDeterministic checks that repeated quotes give the same TradeActions order.
+// Match walks a Go map; quotes with equal rates must still rank by order ID every time.
+func TestCalcAmountOutDeterministic(t *testing.T) {
+	t.Parallel()
+	sim := mustNewSim(t, wethUSDCPool)
+	const weth, usdc = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+	amount := uint256.MustFromDecimal("1000000000000000000")
+
+	first, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: weth, Amount: *amount}, TokenOut: usdc})
+	require.NoError(t, err)
+	want := first.SwapInfo.(SwapInfo).TradeActions
+	for i := range 50 {
+		got, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: weth, Amount: *amount}, TokenOut: usdc})
+		require.NoError(t, err)
+		require.Equal(t, want, got.SwapInfo.(SwapInfo).TradeActions, "call %d changed the order", i)
+	}
 }

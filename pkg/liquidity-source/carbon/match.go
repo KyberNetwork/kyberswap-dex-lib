@@ -278,7 +278,10 @@ func sortedQuotes(
 	}
 
 	sort.Slice(quotes, func(i, j int) bool {
-		return sortFn(quotes[i].Rate, quotes[j].Rate) > 0
+		if c := sortFn(quotes[i].Rate, quotes[j].Rate); c != 0 {
+			return c > 0
+		}
+		return quotes[i].Id < quotes[j].Id
 	})
 
 	return quotes
