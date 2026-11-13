@@ -4,8 +4,11 @@ import (
 	_ "embed"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -58,11 +61,80 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	assert.Equal(t, bignumber.NewBig10("871374850342807317560423"), got.TokenAmountOut.Amount)
 }
 
-func TestPoolSimulator_CalcAmtOutUnsupported(t *testing.T) {
+// swappingHook swaps in BeforeSwap, so the simulator must not quote it natively.
+type swappingHook struct{ *BaseHook }
+
+func (*swappingHook) CanBeforeSwap(common.Address) bool { return true }
+
+// TestPoolSimulator_CalcAmtOutFallsBackOnSwappingHook: a swapping hook is not native, so CalcAmtOut
+// returns ErrUnsupported and the engine uses CalcAmountOut.
+func TestPoolSimulator_CalcAmtOutFallsBackOnSwappingHook(t *testing.T) {
 	t.Parallel()
-	var sim PoolSimulator
-	_, err := sim.CalcAmtOut(pool.CalcAmtOutParams{})
+	var poolEnt entity.Pool
+	assert.NoError(t, json.Unmarshal([]byte(poolData), &poolEnt))
+	pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainIDEthereum)
+	assert.NoError(t, err)
+
+	hooked := *pSim
+	hooked.hook = &swappingHook{&BaseHook{}}
+	_, err = hooked.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: "0x3b50805453023a91a8bf641e279401a0b23fa6f9", Amount: *uint256.NewInt(1)},
+		TokenOut:      "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+	})
 	assert.ErrorIs(t, err, pool.ErrUnsupported)
+}
+
+// TestCalcAmtOutParity: on the no-hook path CalcAmtOut must match CalcAmountOut on amount, gas, fee,
+// remaining input, error and SwapInfo, so routing sees the same quote from either path.
+func TestCalcAmtOutParity(t *testing.T) {
+	t.Parallel()
+	var poolEnt entity.Pool
+	assert.NoError(t, json.Unmarshal([]byte(poolData), &poolEnt))
+	pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainIDEthereum)
+	assert.NoError(t, err)
+
+	const rez, usdc = "0x3b50805453023a91a8bf641e279401a0b23fa6f9", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+	cases := []struct {
+		name     string
+		tokenIn  string
+		tokenOut string
+		amountIn string
+	}{
+		{"usdc->rez", usdc, rez, "15497045801"},
+		{"rez->usdc", rez, usdc, "1000000000000000000000"},
+		{"zero input", usdc, rez, "0"},
+		{"unknown token", "0x0000000000000000000000000000000000000001", rez, "1000"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			amtIn := bignumber.NewBig10(tc.amountIn)
+			var amtInU256 uint256.Int
+			require.False(t, amtInU256.SetFromBig(amtIn))
+
+			want, wantErr := pSim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: amtIn},
+				TokenOut:      tc.tokenOut,
+			})
+			got, gotErr := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tc.tokenIn, Amount: amtInU256},
+				TokenOut:      tc.tokenOut,
+			})
+			if wantErr != nil || gotErr != nil {
+				require.ErrorIs(t, gotErr, wantErr)
+				require.Nil(t, got)
+				return
+			}
+			require.NoError(t, gotErr)
+			assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.ToBig().String(), "amountOut")
+			assert.Equal(t, want.TokenAmountOut.Token, got.TokenAmountOut.Token, "tokenOut")
+			assert.Equal(t, want.Gas, got.Gas, "gas")
+			assert.Equal(t, want.Fee.Token, got.Fee.Token, "fee token")
+			assert.Equal(t, want.RemainingTokenAmountIn.Amount.String(),
+				got.RemainingTokenAmountIn.Amount.ToBig().String(), "remaining in")
+			assert.Equal(t, want.SwapInfo, got.SwapInfo, "swapInfo")
+		})
+	}
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
@@ -105,6 +177,57 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	assert.Equal(t, bignumber.NewBig10("3823278233713"), got.TokenAmountOut.Amount)
 }
 
+// arcNativePoolJSON is a Uniswap v4 pool on Arc whose native-flagged token reserves at 6 decimals.
+const arcNativePoolJSON = `{"address":"0x5e364d6a38b04afc4e4652bf5d4c458e4fd9582d5afd6c8e4ddf474081aa0c0b","swapFee":2500,"exchange":"uniswap-v4-fee","type":"uniswap-v4","reserves":["9648979669","492205419627613882947731456"],"tokens":[{"address":"0x3600000000000000000000000000000000000000","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x5851720cbc734f21486e5aa4bdd97a6ecc29d168","symbol":"DEPEG","decimals":18,"swappable":true}],"extra":"{\"liquidity\":6442580178083530111683225,\"sqrtPriceX96\":12001678736510540164622798031039,\"tickSpacing\":200,\"tick\":100414,\"ticks\":[{\"index\":-887200,\"liquidityGross\":2058049185560336036633495,\"liquidityNet\":2058049185560336036633495},{\"index\":62200,\"liquidityGross\":4874884400914827220820801,\"liquidityNet\":4874884400914827220820801},{\"index\":69000,\"liquidityGross\":7858993796623841096902690,\"liquidityNet\":-1890775005205813344738912},{\"index\":76000,\"liquidityGross\":5109280629542760540342859,\"liquidityNet\":-858938161875267211820919},{\"index\":83000,\"liquidityGross\":2767605234221437899795102,\"liquidityNet\":-1482737233446055428726838},{\"index\":99000,\"liquidityGross\":642434000387691235534132,\"liquidityNet\":-642434000387691235534132},{\"index\":100200,\"liquidityGross\":4384530992523194075049730,\"liquidityNet\":4384530992523194075049730},{\"index\":100600,\"liquidityGross\":4384530992523194075049730,\"liquidityNet\":-4384530992523194075049730},{\"index\":123800,\"liquidityGross\":2050461230538535250501638,\"liquidityNet\":-2050461230538535250501638},{\"index\":887200,\"liquidityGross\":7587955021800786131857,\"liquidityNet\":-7587955021800786131857}]}","staticExtra":"{\"0x0\":[true,false],\"fee\":2500,\"tS\":200,\"hooks\":\"0x0000000000000000000000000000000000000000\",\"uR\":\"0x4fca4a51ab4f23a7447b3284fbd7d73289a89fb1\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\",\"mc3\":\"0xca11bde05977b3631167028862be2a173976ca11\"}","blockNumber":21745328}`
+
+// TestCalcAmtOutParityArcNative: on Arc, a native-flagged token is rescaled 1e12 on input and wrapped
+// back on output. CalcAmtOut must rescale the same way as CalcAmountOut.
+func TestCalcAmtOutParityArcNative(t *testing.T) {
+	t.Parallel()
+	var poolEnt entity.Pool
+	assert.NoError(t, json.Unmarshal([]byte(arcNativePoolJSON), &poolEnt))
+	pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainIDArc)
+	assert.NoError(t, err)
+
+	const usdc, depeg = "0x3600000000000000000000000000000000000000", "0x5851720cbc734f21486e5aa4bdd97a6ecc29d168"
+	cases := []struct {
+		name     string
+		tokenIn  string
+		tokenOut string
+		amountIn string
+	}{
+		{"depeg->usdc", depeg, usdc, "22054196276138829477314"},
+		{"usdc->depeg", usdc, depeg, "15497045801"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			amtIn := bignumber.NewBig10(tc.amountIn)
+			var amtInU256 uint256.Int
+			require.False(t, amtInU256.SetFromBig(amtIn))
+
+			want, wantErr := pSim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: amtIn},
+				TokenOut:      tc.tokenOut,
+			})
+			got, gotErr := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tc.tokenIn, Amount: amtInU256},
+				TokenOut:      tc.tokenOut,
+			})
+			require.Equal(t, wantErr == nil, gotErr == nil, "error presence: want %v got %v", wantErr, gotErr)
+			if wantErr != nil {
+				require.ErrorIs(t, gotErr, wantErr)
+				return
+			}
+			assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.ToBig().String(), "amountOut")
+			assert.Equal(t, want.Gas, got.Gas, "gas")
+			assert.Equal(t, want.RemainingTokenAmountIn.Amount.String(),
+				got.RemainingTokenAmountIn.Amount.ToBig().String(), "remaining in")
+			assert.Equal(t, want.SwapInfo, got.SwapInfo, "swapInfo")
+		})
+	}
+}
+
 // TestPoolSimulator_CalcAmountOut_ArcNativeOut is a regression test for a pool whose
 // native-flagged token stores its reserve at the wrapped-native address's decimals (6 on Arc,
 // vs native's real 18) while the v3 tick math underneath computes amountOut at native's real
@@ -116,7 +239,7 @@ func TestPoolSimulator_CalcAmountOut_ArcNativeOut(t *testing.T) {
 		chainID = valueobject.ChainIDArc
 		poolEnt entity.Pool
 	)
-	assert.NoError(t, json.Unmarshal([]byte(`{"address":"0x5e364d6a38b04afc4e4652bf5d4c458e4fd9582d5afd6c8e4ddf474081aa0c0b","swapFee":2500,"exchange":"uniswap-v4-fee","type":"uniswap-v4","reserves":["9648979669","492205419627613882947731456"],"tokens":[{"address":"0x3600000000000000000000000000000000000000","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x5851720cbc734f21486e5aa4bdd97a6ecc29d168","symbol":"DEPEG","decimals":18,"swappable":true}],"extra":"{\"liquidity\":6442580178083530111683225,\"sqrtPriceX96\":12001678736510540164622798031039,\"tickSpacing\":200,\"tick\":100414,\"ticks\":[{\"index\":-887200,\"liquidityGross\":2058049185560336036633495,\"liquidityNet\":2058049185560336036633495},{\"index\":62200,\"liquidityGross\":4874884400914827220820801,\"liquidityNet\":4874884400914827220820801},{\"index\":69000,\"liquidityGross\":7858993796623841096902690,\"liquidityNet\":-1890775005205813344738912},{\"index\":76000,\"liquidityGross\":5109280629542760540342859,\"liquidityNet\":-858938161875267211820919},{\"index\":83000,\"liquidityGross\":2767605234221437899795102,\"liquidityNet\":-1482737233446055428726838},{\"index\":99000,\"liquidityGross\":642434000387691235534132,\"liquidityNet\":-642434000387691235534132},{\"index\":100200,\"liquidityGross\":4384530992523194075049730,\"liquidityNet\":4384530992523194075049730},{\"index\":100600,\"liquidityGross\":4384530992523194075049730,\"liquidityNet\":-4384530992523194075049730},{\"index\":123800,\"liquidityGross\":2050461230538535250501638,\"liquidityNet\":-2050461230538535250501638},{\"index\":887200,\"liquidityGross\":7587955021800786131857,\"liquidityNet\":-7587955021800786131857}]}","staticExtra":"{\"0x0\":[true,false],\"fee\":2500,\"tS\":200,\"hooks\":\"0x0000000000000000000000000000000000000000\",\"uR\":\"0x4fca4a51ab4f23a7447b3284fbd7d73289a89fb1\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\",\"mc3\":\"0xca11bde05977b3631167028862be2a173976ca11\"}","blockNumber":21745328}`), &poolEnt))
+	assert.NoError(t, json.Unmarshal([]byte(arcNativePoolJSON), &poolEnt))
 
 	pSim, err := NewPoolSimulator(poolEnt, chainID)
 	assert.NoError(t, err)

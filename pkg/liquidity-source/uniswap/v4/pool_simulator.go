@@ -169,10 +169,110 @@ func (p *PoolSimulator) unwrapFew(idx int, amount *big.Int) (*uint256.Int, error
 	return amt.Sub(p.fewReserves[idx], amt), nil
 }
 
-// CalcAmtOut is not native for this pool: the embedded v3 math would skip this pool's own CalcAmountOut.
-// ErrUnsupported sends the swap to CalcAmountOut.
-func (p *PoolSimulator) CalcAmtOut(pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
-	return nil, pool.ErrUnsupported
+// arcNativeScale is the 1e12 decimals gap of valueobject's arcNativeDecimalsScale, for uint256 math.
+var arcNativeScale = uint256.NewInt(1e12)
+
+// hookSwaps reports whether the pool's hook runs in BeforeSwap or AfterSwap for this pool.
+func (p *PoolSimulator) hookSwaps() bool {
+	return p.hook != nil && (p.hook.CanBeforeSwap(p.staticExtra.HooksAddress) ||
+		p.hook.CanAfterSwap(p.staticExtra.HooksAddress))
+}
+
+// CalcAmtOut is CalcAmountOut with uint256 amounts for pools whose hook does not swap. A pool with a
+// swapping hook returns pool.ErrUnsupported, so the engine falls back to CalcAmountOut.
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	if p.hookSwaps() {
+		return nil, pool.ErrUnsupported
+	}
+	originalTokenIn, originalTokenOut := params.TokenAmountIn.Token, params.TokenOut
+	amountIn := params.TokenAmountIn.Amount
+	var wrapAdditionalGas int64
+	unwrapIdx := -1
+
+	if idx := p.GetTokenIndex(originalTokenIn); idx >= 0 && p.staticExtra.IsNative[idx] {
+		if overflow := p.unwrapNativeU256(&amountIn); overflow {
+			return nil, uniswapv3.ErrOverflow
+		}
+	}
+
+	tokenIn, tokenOut := originalTokenIn, originalTokenOut
+	if p.GetTokenIndex(tokenIn) == -1 {
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canWrap := wrapper.CanWrap(p.chainID, tokenIn)
+			if canWrap {
+				tokenIn = metadata.GetWrapToken()
+				wrapAdditionalGas += p.Gas.BaseGas
+				break
+			}
+		}
+	}
+	if p.GetTokenIndex(tokenOut) == -1 {
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canUnwrap := wrapper.CanWrap(p.chainID, tokenOut)
+			if canUnwrap {
+				tokenOut = metadata.GetWrapToken()
+				unwrapIdx = p.GetTokenIndex(tokenOut)
+				wrapAdditionalGas += p.Gas.BaseGas
+				break
+			}
+		}
+	} else if p.fewWrapperIdx >= 0 && p.GetTokenIndex(tokenIn) == p.fewWrapperIdx {
+		unwrapIdx = p.fewWrapperIdx
+	}
+
+	swapResult, err := p.PoolSimulator.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: amountIn},
+		TokenOut:      tokenOut,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	swapResult.TokenAmountOut.Token = originalTokenOut
+	swapResult.RemainingTokenAmountIn.Token = originalTokenIn
+	swapResult.Gas += wrapAdditionalGas
+	if idx := p.GetTokenIndex(originalTokenOut); idx >= 0 && p.staticExtra.IsNative[idx] {
+		p.wrapNativeU256(&swapResult.TokenAmountOut.Amount)
+	}
+
+	v4SwapInfo := SwapInfo{PoolSwapInfo: swapResult.SwapInfo.(PoolSwapInfo)}
+	fewReserve, err := p.unwrapFewU256(unwrapIdx, &swapResult.TokenAmountOut.Amount)
+	if err != nil {
+		return nil, err
+	}
+	if fewReserve != nil {
+		v4SwapInfo.FewReserve, v4SwapInfo.FewIdx = fewReserve, unwrapIdx
+	}
+	swapResult.SwapInfo = v4SwapInfo
+	return swapResult, nil
+}
+
+// unwrapNativeU256 rescales a native-flagged amount to the wrapped-native decimals of valueobject's
+// UnwrapNativeAmount. Only Arc rescales; it reports overflow like a failed big.Int product would revert.
+func (p *PoolSimulator) unwrapNativeU256(amount *uint256.Int) (overflow bool) {
+	if p.chainID != valueobject.ChainIDArc {
+		return false
+	}
+	_, overflow = amount.MulOverflow(amount, arcNativeScale)
+	return overflow
+}
+
+// wrapNativeU256 is the inverse of unwrapNativeU256, matching valueobject's WrapNativeAmount (truncating).
+func (p *PoolSimulator) wrapNativeU256(amount *uint256.Int) {
+	if p.chainID == valueobject.ChainIDArc {
+		amount.Div(amount, arcNativeScale)
+	}
+}
+
+// unwrapFewU256 is unwrapFew for a uint256 amount.
+func (p *PoolSimulator) unwrapFewU256(idx int, amount *uint256.Int) (*uint256.Int, error) {
+	if idx < 0 || p.fewReserves[idx] == nil {
+		return nil, nil
+	}
+	if amount.Gt(p.fewReserves[idx]) {
+		return nil, ErrFewUnwrapExceeded
+	}
+	return new(uint256.Int).Sub(p.fewReserves[idx], amount), nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult, err error) {
