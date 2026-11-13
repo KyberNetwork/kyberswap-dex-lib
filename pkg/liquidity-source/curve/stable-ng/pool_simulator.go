@@ -234,6 +234,24 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.cacheD()
 }
 
+// UpdateState is UpdateBalance with uint256 amounts. The fee is a value, so it needs no nil check.
+func (t *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
+	input, output := params.TokenAmountIn, params.TokenAmountOut
+	var outputAmount uint256.Int
+	outputAmount.Add(&output.Amount, &params.Fee.Amount)
+	for i := range t.Info.Tokens {
+		if t.Info.Tokens[i] == input.Token {
+			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], input.Amount.ToBig())
+			t.Reserves[i].Add(&t.Reserves[i], &input.Amount)
+		}
+		if t.Info.Tokens[i] == output.Token {
+			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount.ToBig())
+			t.Reserves[i].Sub(&t.Reserves[i], &outputAmount)
+		}
+	}
+	t.cacheD()
+}
+
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)

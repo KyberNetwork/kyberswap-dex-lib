@@ -60,3 +60,18 @@ type ICalcAmtIn interface {
 func (r *CalcAmtOutResult) IsValid() bool {
 	return r.TokenAmountOut != nil && !r.TokenAmountOut.Amount.IsZero()
 }
+
+// UpdateStateParams is UpdateBalanceParams with uint256 amounts. Fee is a value, so a zero fee needs no nil check.
+type UpdateStateParams struct {
+	TokenAmountIn  TokenAmt
+	TokenAmountOut TokenAmt
+	Fee            TokenAmt
+	SwapInfo       any
+	SwapLimit      SwapLimit
+}
+
+// IUpdateState is implemented by simulators that update their state from uint256 amounts.
+// Callers should type-assert and fall back to IPoolSimulator.UpdateBalance when absent.
+type IUpdateState interface {
+	UpdateState(params UpdateStateParams)
+}
