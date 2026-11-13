@@ -95,8 +95,9 @@ type marketCreatedEvent struct {
 	BootstrapY          *big.Int       `abi:"bootstrapY"`
 }
 
-// decodeMarketCreated keeps only markets this source can quote: the spot CPMM
-// module and no extension. Any other composition may need component payloads
+// decodeMarketCreated keeps only markets this source can quote: spot markets (CPMM
+// module, no extension) or, for MarketKind launch, the launch module with the
+// FeesLocker extension. Any other composition may need component payloads
 // that cannot be derived from stored state, so it is rejected rather than
 // quoted with guessed bytes.
 func (u *PoolsListUpdater) decodeMarketCreated(log types.Log) (*entity.Pool, bool, error) {
@@ -105,7 +106,14 @@ func (u *PoolsListUpdater) decodeMarketCreated(log types.Log) (*entity.Pool, boo
 	}
 	module := common.BytesToAddress(log.Topics[1].Bytes())
 	extension := common.BytesToAddress(log.Topics[2].Bytes())
-	if module != common.HexToAddress(u.config.SpotModuleAddress) || extension != (common.Address{}) {
+	launch := u.config.MarketKind == MarketKindLaunch
+	if launch {
+		// FeesLocker is the one extension whose swap hooks do not change the quote.
+		if module != common.HexToAddress(u.config.LaunchModuleAddress) ||
+			extension != common.HexToAddress(u.config.FeesLockerAddress) {
+			return nil, false, nil
+		}
+	} else if module != common.HexToAddress(u.config.SpotModuleAddress) || extension != (common.Address{}) {
 		return nil, false, nil
 	}
 
@@ -117,13 +125,17 @@ func (u *PoolsListUpdater) decodeMarketCreated(log types.Log) (*entity.Pool, boo
 		return nil, false, ErrUnsupportedMarket
 	}
 
-	staticExtra, err := json.Marshal(StaticExtra{
+	static := StaticExtra{
 		MarketID: hexutil.Encode(common.BigToHash(event.MarketID).Bytes()),
 		TokenX:   hexutil.Encode(event.TokenX[:]),
 		TokenY:   hexutil.Encode(event.TokenY[:]),
 		AMM:      u.config.AMMAddress,
 		Quoter:   u.config.QuoterAddress,
-	})
+	}
+	if launch {
+		static.Module = hexutil.Encode(module[:]) // the tracker fills Levels on first refresh
+	}
+	staticExtra, err := json.Marshal(static)
 	if err != nil {
 		return nil, false, err
 	}

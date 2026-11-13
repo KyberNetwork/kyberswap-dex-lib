@@ -60,6 +60,10 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, ErrUnsupportedMarket
 	}
 
+	if staticExtra.Module != "" {
+		return t.getLaunchState(ctx, p, staticExtra, marketID)
+	}
+
 	var reserves marketReserves
 	var fee protocolFee
 	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).

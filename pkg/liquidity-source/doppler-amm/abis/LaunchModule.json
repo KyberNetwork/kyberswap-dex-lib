@@ -1,0 +1,51 @@
+[
+  {
+    "type": "function",
+    "name": "marketStates",
+    "stateMutability": "view",
+    "inputs": [{ "name": "marketId", "type": "uint256" }],
+    "outputs": [
+      { "name": "swapFeePips", "type": "uint256" },
+      { "name": "sqrtPriceX96", "type": "uint256" },
+      { "name": "level", "type": "int256" },
+      { "name": "unused3", "type": "uint256" },
+      { "name": "unused4", "type": "uint256" },
+      { "name": "liquidity", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "nextInitializedLevel",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "marketId", "type": "uint256" },
+      { "name": "level", "type": "int24" }
+    ],
+    "outputs": [{ "name": "level", "type": "int256" }]
+  },
+  {
+    "type": "function",
+    "name": "levelBounds",
+    "stateMutability": "view",
+    "inputs": [{ "name": "marketId", "type": "uint256" }],
+    "outputs": [
+      { "name": "spacing", "type": "uint256" },
+      { "name": "count", "type": "uint256" },
+      { "name": "minLevel", "type": "int256" },
+      { "name": "maxLevel", "type": "int256" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "levelInfo",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "marketId", "type": "uint256" },
+      { "name": "level", "type": "int24" }
+    ],
+    "outputs": [
+      { "name": "initialized", "type": "bool" },
+      { "name": "liquidityNet", "type": "int256" }
+    ]
+  }
+]

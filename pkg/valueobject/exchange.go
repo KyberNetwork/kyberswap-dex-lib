@@ -53,6 +53,7 @@ const (
 	ExchangeBiconomyProp                = "biconomy-prop"
 	ExchangeDaikonProp                  = "daikon-prop"
 	ExchangeDopplerAMM                  = "doppler-amm"
+	ExchangeDopplerFun                  = "doppler-fun"
 	ExchangeBeetsSS                     = "beets-ss"
 	ExchangeBeracaine                   = "beracaine"
 	ExchangeBeraSwapComposableStable    = "beraswap-composable-stable"

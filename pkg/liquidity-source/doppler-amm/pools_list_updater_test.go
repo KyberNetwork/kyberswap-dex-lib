@@ -86,3 +86,29 @@ func TestConfigDefaultsOnlyKnownDeployments(t *testing.T) {
 	unknown := &Config{DexID: "doppler-amm", ChainID: 1}
 	require.ErrorIs(t, unknown.withDefaults(), ErrUnsupportedChain)
 }
+
+// A launch source lists only LaunchModule + FeesLocker markets; any other extension
+// (for example the fee-decay one) can change the quote and is dropped. Spot markets
+// are not listed by it, and launch markets are not listed by the spot source.
+func TestDecodeMarketCreatedLaunchKind(t *testing.T) {
+	cfg := &Config{DexID: "doppler-fun", ChainID: 8453, MarketKind: MarketKindLaunch}
+	require.NoError(t, cfg.withDefaults())
+	u := NewPoolsListUpdater(cfg, nil)
+	launch, locker := common.HexToAddress(cfg.LaunchModuleAddress), common.HexToAddress(cfg.FeesLockerAddress)
+
+	pool, ok, err := u.decodeMarketCreated(marketCreatedLog(t, launch, locker, big.NewInt(7)))
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.Equal(t, "doppler-fun", pool.Exchange)
+	require.Contains(t, pool.StaticExtra, `"module":"`+cfg.LaunchModuleAddress+`"`)
+
+	_, ok, _ = u.decodeMarketCreated(marketCreatedLog(t, launch, common.HexToAddress("0x00000000000000000000000000000000000000ee"), big.NewInt(8)))
+	require.False(t, ok, "other extension")
+	_, ok, _ = u.decodeMarketCreated(marketCreatedLog(t, common.HexToAddress(cfg.SpotModuleAddress), common.Address{}, big.NewInt(9)))
+	require.False(t, ok, "spot market")
+
+	spotCfg := &Config{DexID: "doppler-amm", ChainID: 8453}
+	require.NoError(t, spotCfg.withDefaults())
+	_, ok, _ = NewPoolsListUpdater(spotCfg, nil).decodeMarketCreated(marketCreatedLog(t, launch, locker, big.NewInt(7)))
+	require.False(t, ok, "spot source must not list launch markets")
+}
