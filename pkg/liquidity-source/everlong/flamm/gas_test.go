@@ -285,9 +285,10 @@ func TestTrackerRoutesOnlyKindsWithCells(t *testing.T) {
 
 func onBSC(cfg *Config) { cfg.ChainID = valueobject.ChainIDBSC }
 
-// BSC routes the kinds its table measured, Aave V3, Venus Core and Lista Moolah, from the cells generated for the
-// build deployed there, each side with a cell for every path a fill of it took; Morpho Blue, which BSC does not have,
-// has none.
+// BSC routes the kinds its table measured, Aave V3, Venus Core and Lista Moolah, from the cells generated for each
+// build measured there: each kind a build lists has each side with a cell for every path a fill of it took, the hook's
+// build lists all three, and a kind a build does not list has no cells, so its pools of that kind are not routed;
+// Morpho Blue, which BSC does not have, has none.
 func TestTheTableRoutesBSCsMeasuredKinds(t *testing.T) {
 	require.Equal(t, []uint8{1, 2, 3}, chainKinds[valueobject.ChainIDBSC])
 	builds := 0
@@ -302,7 +303,11 @@ func TestTheTableRoutesBSCsMeasuredKinds(t *testing.T) {
 			continue
 		}
 		builds++
-		for _, kind := range chainKinds[valueobject.ChainIDBSC] {
+		require.Subset(t, chainKinds[valueobject.ChainIDBSC], kinds, f.Name)
+		if f.CodeHash == bscBuild {
+			require.ElementsMatch(t, chainKinds[valueobject.ChainIDBSC], kinds, "the hook's build lists every BSC kind")
+		}
+		for _, kind := range kinds {
 			for _, sale := range []bool{true, false} {
 				cs := cellsOf(f.CodeHash, valueobject.ChainIDBSC, kind, sale)
 				require.NotEmpty(t, cs, "%s kind %d sale %v", f.Name, kind, sale)
@@ -314,12 +319,15 @@ func TestTheTableRoutesBSCsMeasuredKinds(t *testing.T) {
 		}
 		require.Empty(t, cellsOf(f.CodeHash, valueobject.ChainIDBSC, 0, true), "no Morpho Blue on BSC")
 	}
-	require.Equal(t, 1, builds, "one build measured on BSC")
+	require.Equal(t, 2, builds, "two builds measured on BSC: the hook's and the idle-entry hook's")
 }
 
 // The builds the table measures: Base's and Ethereum's, and BSC's.
 const measuredBuild, bscBuild = "0x4b085efb8bc456c765bffcdf17d95a5810765bc73b9917d0e5135efa55daeab8",
 	"0x515c083b2bae27cadce7dbea69ca7245f327d5775db6521c5463d3e192d8b5eb"
+
+// idleEntryBuild is the idle-entry hook's build (EverlongIdleEntryHook), measured on Base and BSC.
+const idleEntryBuild = "0x79f4bdf891b3b00115ff3f89e17d5ad8fae87b65e3efc7fc3efcf7fb2b68a07c"
 
 // Every key of the table, each build, chain, venue kind and side, has a custody cell, so a fill paid from custody is
 // never charged a venue's path. Its input stays in custody too wherever the pool lends none of it (lending off, the
@@ -371,6 +379,12 @@ func TestTheTableChargesACustodyFillAtMostItsGas(t *testing.T) {
 		{"BSC Venus Core buy", bscBuild, valueobject.ChainIDBSC, 2, false, 306_175},
 		{"BSC Lista Moolah sale", bscBuild, valueobject.ChainIDBSC, 3, true, 217_314},
 		{"BSC Lista Moolah buy", bscBuild, valueobject.ChainIDBSC, 3, false, 203_457},
+		{"Base Morpho Blue sale, idle entry", idleEntryBuild, valueobject.ChainIDBase, 0, true, 268_200},
+		{"Base Morpho Blue buy, idle entry", idleEntryBuild, valueobject.ChainIDBase, 0, false, 260_883},
+		{"Base Aave V3 sale, idle entry", idleEntryBuild, valueobject.ChainIDBase, 1, true, 268_366},
+		{"Base Aave V3 buy, idle entry", idleEntryBuild, valueobject.ChainIDBase, 1, false, 251_293},
+		{"BSC Lista Moolah sale, idle entry", idleEntryBuild, valueobject.ChainIDBSC, 3, true, 253_185},
+		{"BSC Lista Moolah buy, idle entry", idleEntryBuild, valueobject.ChainIDBSC, 3, false, 232_340},
 	} {
 		cells := cellsOf(f.family, f.chain, f.kind, f.sale)
 		require.NotEmpty(t, cells, f.name)
@@ -431,6 +445,21 @@ func TestTheTableChargesARouteFillAtMostItsGas(t *testing.T) {
 		{measuredFill{"BSC Lista Moolah sale, owing borrow", bscBuild, valueobject.ChainIDBSC, 3, true, 731_970}, "owing borrow"},
 		{measuredFill{"BSC Lista Moolah buy, custody", bscBuild, valueobject.ChainIDBSC, 3, false, 188_557}, "custody"},
 		{measuredFill{"BSC Lista Moolah buy, repay", bscBuild, valueobject.ChainIDBSC, 3, false, 443_142}, "repay"},
+		{measuredFill{"Base Morpho Blue sale, custody, idle entry", idleEntryBuild, valueobject.ChainIDBase, 0, true, 244_800}, "custody"},
+		{measuredFill{"Base Morpho Blue sale, first borrow, idle entry", idleEntryBuild, valueobject.ChainIDBase, 0, true, 513_721}, "first borrow"},
+		{measuredFill{"Base Morpho Blue sale, owing borrow, idle entry", idleEntryBuild, valueobject.ChainIDBase, 0, true, 489_930}, "owing borrow"},
+		{measuredFill{"Base Morpho Blue buy, custody, idle entry", idleEntryBuild, valueobject.ChainIDBase, 0, false, 235_483}, "custody"},
+		{measuredFill{"Base Morpho Blue buy, repay, idle entry", idleEntryBuild, valueobject.ChainIDBase, 0, false, 368_677}, "repay"},
+		{measuredFill{"Base Aave V3 sale, custody, idle entry", idleEntryBuild, valueobject.ChainIDBase, 1, true, 244_966}, "custody"},
+		{measuredFill{"Base Aave V3 sale, first borrow, idle entry", idleEntryBuild, valueobject.ChainIDBase, 1, true, 1_062_255}, "first borrow"},
+		{measuredFill{"Base Aave V3 sale, owing borrow, idle entry", idleEntryBuild, valueobject.ChainIDBase, 1, true, 977_011}, "owing borrow"},
+		{measuredFill{"Base Aave V3 buy, custody, idle entry", idleEntryBuild, valueobject.ChainIDBase, 1, false, 225_893}, "custody"},
+		{measuredFill{"Base Aave V3 buy, repay, idle entry", idleEntryBuild, valueobject.ChainIDBase, 1, false, 563_287}, "repay"},
+		{measuredFill{"BSC Lista Moolah sale, custody, idle entry", idleEntryBuild, valueobject.ChainIDBSC, 3, true, 238_285}, "custody"},
+		{measuredFill{"BSC Lista Moolah sale, first borrow, idle entry", idleEntryBuild, valueobject.ChainIDBSC, 3, true, 815_950}, "first borrow"},
+		{measuredFill{"BSC Lista Moolah sale, owing borrow, idle entry", idleEntryBuild, valueobject.ChainIDBSC, 3, true, 760_766}, "owing borrow"},
+		{measuredFill{"BSC Lista Moolah buy, custody, idle entry", idleEntryBuild, valueobject.ChainIDBSC, 3, false, 217_440}, "custody"},
+		{measuredFill{"BSC Lista Moolah buy, repay, idle entry", idleEntryBuild, valueobject.ChainIDBSC, 3, false, 481_008}, "repay"},
 	} {
 		l, ok := reads[f.class]
 		require.True(t, ok, f.class)

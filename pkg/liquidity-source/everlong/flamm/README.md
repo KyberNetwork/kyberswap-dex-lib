@@ -166,83 +166,114 @@ of the refund the call earns, which the transaction gets back. In a route the ca
 its own where the executor received the input earlier in the same transaction, holding dust of it (the pull finds its
 balance warm and already written, and returns it to its starting value, which earns a refund), and where an earlier
 leg paid the recipient the same token. The route saving is the most a fill's net fell from the one form to the other,
-on the same state and size: Base 25,400, Ethereum 25,400, BSC 14,900. Fills measured in the route form count as they
-are. A cell is the hook build, the chain, the venue kind, the side (a sale pays token 1 for token 0) and the fill's
-path: what pays the output, and whether the input repays a debt first. Every key has a custody cell, measured on fills
-whose input stays in custody too, as a supply of the input is never assumed: a fill that supplies its input is charged
-under its gas.
+on the same state and size: Base 25,400, Ethereum 25,400, BSC 14,900; for the EverlongIdleEntryHook build, measured on
+its own fills, Base 27,992, BSC 14,900. The EverlongIdleEntryHook build's cells stand above EverlongHook's by the
+leverage route's pure computation, and on an unlocked hook by its variance fold and its read of a posted row besides:
+on like fills, the venue idle, locked 28,185 to 35,728, unlocked 28,149 to 35,590, unlocked with a keeper's row posted
+30,823 to 38,264 gas a fill; each cell is the least measured over every setting. Fills measured in the route form
+count as they are. A cell is the hook build (the Hook column), the chain, the venue kind, the side (a sale pays token
+1 for token 0) and the fill's path: what pays the output, and whether the input repays a debt first. Every key has a
+custody cell, measured on fills whose input stays in custody too, as a supply of the input is never assumed: a fill
+that supplies its input is charged under its gas.
 
-| Chain | Venue kind | Side | Output paid by | Input repays | Charge |
-|---|---|---|---|---|---|
-| Base | 0, Morpho Blue | sale | custody | no | 204,000 |
-| Base | 0, Morpho Blue | sale | a venue withdrawal or release | no | 329,000 |
-| Base | 0, Morpho Blue | sale | a first borrow | no | 478,000 |
-| Base | 0, Morpho Blue | sale | an owing borrow | no | 405,000 |
-| Base | 0, Morpho Blue | buy | custody | no | 204,000 |
-| Base | 0, Morpho Blue | buy | custody | yes | 326,000 |
-| Base | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 420,000 |
-| Base | 1, Aave V3 | sale | custody | no | 205,000 |
-| Base | 1, Aave V3 | sale | a venue withdrawal or release | no | 514,000 |
-| Base | 1, Aave V3 | sale | a first borrow | no | 977,000 |
-| Base | 1, Aave V3 | sale | an owing borrow | no | 781,000 |
-| Base | 1, Aave V3 | buy | custody | no | 195,000 |
-| Base | 1, Aave V3 | buy | custody | yes | 519,000 |
-| Base | 1, Aave V3 | buy | a venue withdrawal or release | yes | 811,000 |
-| Ethereum | 0, Morpho Blue | sale | custody | no | 188,000 |
-| Ethereum | 0, Morpho Blue | sale | a venue withdrawal or release | no | 313,000 |
-| Ethereum | 0, Morpho Blue | sale | a first borrow | no | 463,000 |
-| Ethereum | 0, Morpho Blue | sale | an owing borrow | no | 390,000 |
-| Ethereum | 0, Morpho Blue | buy | custody | no | 188,000 |
-| Ethereum | 0, Morpho Blue | buy | custody | yes | 311,000 |
-| Ethereum | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 401,000 |
-| Ethereum | 1, Aave V3 | sale | custody | no | 188,000 |
-| Ethereum | 1, Aave V3 | sale | a venue withdrawal or release | no | 478,000 |
-| Ethereum | 1, Aave V3 | sale | a first borrow | no | 930,000 |
-| Ethereum | 1, Aave V3 | sale | an owing borrow | no | 729,000 |
-| Ethereum | 1, Aave V3 | buy | custody | no | 178,000 |
-| Ethereum | 1, Aave V3 | buy | custody | yes | 492,000 |
-| Ethereum | 1, Aave V3 | buy | a venue withdrawal or release | yes | 767,000 |
-| BSC | 1, Aave V3 | sale | custody | no | 186,000 |
-| BSC | 1, Aave V3 | sale | a venue withdrawal or release | no | 466,000 |
-| BSC | 1, Aave V3 | sale | a first borrow | no | 876,000 |
-| BSC | 1, Aave V3 | sale | an owing borrow | no | 676,000 |
-| BSC | 1, Aave V3 | buy | custody | no | 172,000 |
-| BSC | 1, Aave V3 | buy | custody | yes | 475,000 |
-| BSC | 1, Aave V3 | buy | a venue withdrawal or release | yes | 708,000 |
-| BSC | 2, Venus Core | sale | custody | no | 302,000 |
-| BSC | 2, Venus Core | sale | a venue withdrawal or release | no | 812,000 |
-| BSC | 2, Venus Core | sale | a first borrow | no | 1,890,000 |
-| BSC | 2, Venus Core | sale | an owing borrow | no | 1,625,000 |
-| BSC | 2, Venus Core | buy | custody | no | 288,000 |
-| BSC | 2, Venus Core | buy | custody | yes | 799,000 |
-| BSC | 2, Venus Core | buy | a venue withdrawal or release | yes | 1,602,000 |
-| BSC | 3, Lista Moolah | sale | custody | no | 200,000 |
-| BSC | 3, Lista Moolah | sale | a first borrow | no | 779,000 |
-| BSC | 3, Lista Moolah | sale | an owing borrow | no | 671,000 |
-| BSC | 3, Lista Moolah | buy | custody | no | 186,000 |
-| BSC | 3, Lista Moolah | buy | custody | yes | 438,000 |
-| BSC | 3, Lista Moolah | buy | a venue withdrawal or release | yes | 415,000 |
+| Hook | Chain | Venue kind | Side | Output paid by | Input repays | Charge |
+|---|---|---|---|---|---|---|
+| EverlongHook | Base | 0, Morpho Blue | sale | custody | no | 204,000 |
+| EverlongHook | Base | 0, Morpho Blue | sale | a venue withdrawal or release | no | 329,000 |
+| EverlongHook | Base | 0, Morpho Blue | sale | a first borrow | no | 478,000 |
+| EverlongHook | Base | 0, Morpho Blue | sale | an owing borrow | no | 405,000 |
+| EverlongHook | Base | 0, Morpho Blue | buy | custody | no | 204,000 |
+| EverlongHook | Base | 0, Morpho Blue | buy | custody | yes | 326,000 |
+| EverlongHook | Base | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 420,000 |
+| EverlongHook | Base | 1, Aave V3 | sale | custody | no | 205,000 |
+| EverlongHook | Base | 1, Aave V3 | sale | a venue withdrawal or release | no | 514,000 |
+| EverlongHook | Base | 1, Aave V3 | sale | a first borrow | no | 977,000 |
+| EverlongHook | Base | 1, Aave V3 | sale | an owing borrow | no | 781,000 |
+| EverlongHook | Base | 1, Aave V3 | buy | custody | no | 195,000 |
+| EverlongHook | Base | 1, Aave V3 | buy | custody | yes | 519,000 |
+| EverlongHook | Base | 1, Aave V3 | buy | a venue withdrawal or release | yes | 811,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | sale | custody | no | 188,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | sale | a venue withdrawal or release | no | 313,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | sale | a first borrow | no | 463,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | sale | an owing borrow | no | 390,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | buy | custody | no | 188,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | buy | custody | yes | 311,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 401,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | sale | custody | no | 188,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | sale | a venue withdrawal or release | no | 478,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | sale | a first borrow | no | 930,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | sale | an owing borrow | no | 729,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | buy | custody | no | 178,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | buy | custody | yes | 492,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | buy | a venue withdrawal or release | yes | 767,000 |
+| EverlongHook | BSC | 1, Aave V3 | sale | custody | no | 186,000 |
+| EverlongHook | BSC | 1, Aave V3 | sale | a venue withdrawal or release | no | 466,000 |
+| EverlongHook | BSC | 1, Aave V3 | sale | a first borrow | no | 876,000 |
+| EverlongHook | BSC | 1, Aave V3 | sale | an owing borrow | no | 676,000 |
+| EverlongHook | BSC | 1, Aave V3 | buy | custody | no | 172,000 |
+| EverlongHook | BSC | 1, Aave V3 | buy | custody | yes | 475,000 |
+| EverlongHook | BSC | 1, Aave V3 | buy | a venue withdrawal or release | yes | 708,000 |
+| EverlongHook | BSC | 2, Venus Core | sale | custody | no | 302,000 |
+| EverlongHook | BSC | 2, Venus Core | sale | a venue withdrawal or release | no | 812,000 |
+| EverlongHook | BSC | 2, Venus Core | sale | a first borrow | no | 1,890,000 |
+| EverlongHook | BSC | 2, Venus Core | sale | an owing borrow | no | 1,625,000 |
+| EverlongHook | BSC | 2, Venus Core | buy | custody | no | 288,000 |
+| EverlongHook | BSC | 2, Venus Core | buy | custody | yes | 799,000 |
+| EverlongHook | BSC | 2, Venus Core | buy | a venue withdrawal or release | yes | 1,602,000 |
+| EverlongHook | BSC | 3, Lista Moolah | sale | custody | no | 200,000 |
+| EverlongHook | BSC | 3, Lista Moolah | sale | a first borrow | no | 779,000 |
+| EverlongHook | BSC | 3, Lista Moolah | sale | an owing borrow | no | 671,000 |
+| EverlongHook | BSC | 3, Lista Moolah | buy | custody | no | 186,000 |
+| EverlongHook | BSC | 3, Lista Moolah | buy | custody | yes | 438,000 |
+| EverlongHook | BSC | 3, Lista Moolah | buy | a venue withdrawal or release | yes | 415,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | custody | no | 237,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | a venue withdrawal or release | no | 358,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | a first borrow | no | 504,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | an owing borrow | no | 480,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | custody | no | 230,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | custody | yes | 362,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 448,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | custody | no | 237,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | a venue withdrawal or release | no | 594,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | a first borrow | no | 1,047,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | an owing borrow | no | 962,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | custody | no | 221,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | custody | yes | 555,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | a venue withdrawal or release | yes | 843,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | custody | no | 235,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | a venue withdrawal or release | no | 379,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | a first borrow | no | 807,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | an owing borrow | no | 753,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | custody | no | 215,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | custody | yes | 476,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | a venue withdrawal or release | yes | 661,000 |
 
 A fill on a pool that another fill of the same route moved runs in the same transaction, on what that fill warmed: it
 is charged its key's second fill, the least net gas measured of the second of two swaps of one pool in one transaction
 (the same direction or the other, in either form), less 1 % and rounded down to 1,000.
 
-| Chain | Venue kind | Side | Second fill |
-|---|---|---|---|
-| Base | 0, Morpho Blue | sale | 80,000 |
-| Base | 0, Morpho Blue | buy | 76,000 |
-| Base | 1, Aave V3 | sale | 82,000 |
-| Base | 1, Aave V3 | buy | 73,000 |
-| Ethereum | 0, Morpho Blue | sale | 77,000 |
-| Ethereum | 0, Morpho Blue | buy | 72,000 |
-| Ethereum | 1, Aave V3 | sale | 79,000 |
-| Ethereum | 1, Aave V3 | buy | 69,000 |
-| BSC | 1, Aave V3 | sale | 74,000 |
-| BSC | 1, Aave V3 | buy | 65,000 |
-| BSC | 2, Venus Core | sale | 77,000 |
-| BSC | 2, Venus Core | buy | 68,000 |
-| BSC | 3, Lista Moolah | sale | 78,000 |
-| BSC | 3, Lista Moolah | buy | 68,000 |
+| Hook | Chain | Venue kind | Side | Charge |
+|---|---|---|---|---|
+| EverlongHook | Base | 0, Morpho Blue | sale | 80,000 |
+| EverlongHook | Base | 0, Morpho Blue | buy | 76,000 |
+| EverlongHook | Base | 1, Aave V3 | sale | 82,000 |
+| EverlongHook | Base | 1, Aave V3 | buy | 73,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | sale | 77,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | buy | 72,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | sale | 79,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | buy | 69,000 |
+| EverlongHook | BSC | 1, Aave V3 | sale | 74,000 |
+| EverlongHook | BSC | 1, Aave V3 | buy | 65,000 |
+| EverlongHook | BSC | 2, Venus Core | sale | 77,000 |
+| EverlongHook | BSC | 2, Venus Core | buy | 68,000 |
+| EverlongHook | BSC | 3, Lista Moolah | sale | 78,000 |
+| EverlongHook | BSC | 3, Lista Moolah | buy | 68,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | 116,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | 114,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | 118,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | 111,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | 113,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | 106,000 |
 
 A pool's first fill after another pool of this source filled earlier in the same transaction runs on what that fill
 warmed, the contracts and storage the two share: it is charged its path's cell below where the route's swap limit says
@@ -251,77 +282,104 @@ chain's route saving and 1 %, rounded down to 1,000; and never above the cell's 
 measured on the path, from a fill alone to the same fill after another pool, as that least fill may be one not
 measured again after another pool. A path with no such fill measured keeps its cell above.
 
-| Chain | Venue kind | Side | Output paid by | Input repays | After another pool | Alone |
-|---|---|---|---|---|---|---|
-| Base | 0, Morpho Blue | sale | custody | no | 123,000 | 204,000 |
-| Base | 0, Morpho Blue | sale | a venue withdrawal or release | no | 242,000 | 329,000 |
-| Base | 0, Morpho Blue | sale | a first borrow | no | 390,000 | 478,000 |
-| Base | 0, Morpho Blue | sale | an owing borrow | no | 318,000 | 405,000 |
-| Base | 0, Morpho Blue | buy | custody | no | 121,000 | 204,000 |
-| Base | 0, Morpho Blue | buy | custody | yes | 238,000 | 326,000 |
-| Base | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 333,000 | 420,000 |
-| Base | 1, Aave V3 | sale | custody | no | 123,000 | 205,000 |
-| Base | 1, Aave V3 | sale | a venue withdrawal or release | no | 426,000 | 514,000 |
-| Base | 1, Aave V3 | sale | a first borrow | no | 889,000 | 977,000 |
-| Base | 1, Aave V3 | sale | an owing borrow | no | 693,000 | 781,000 |
-| Base | 1, Aave V3 | buy | custody | no | 111,000 | 195,000 |
-| Base | 1, Aave V3 | buy | custody | yes | 432,000 | 519,000 |
-| Base | 1, Aave V3 | buy | a venue withdrawal or release | yes | 724,000 | 811,000 |
-| Ethereum | 0, Morpho Blue | sale | custody | no | 120,000 | 188,000 |
-| Ethereum | 0, Morpho Blue | sale | a venue withdrawal or release | no | 239,000 | 313,000 |
-| Ethereum | 0, Morpho Blue | sale | a first borrow | no | 388,000 | 463,000 |
-| Ethereum | 0, Morpho Blue | sale | an owing borrow | no | 315,000 | 390,000 |
-| Ethereum | 0, Morpho Blue | buy | custody | no | 117,000 | 188,000 |
-| Ethereum | 0, Morpho Blue | buy | custody | yes | 236,000 | 311,000 |
-| Ethereum | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 326,000 | 401,000 |
-| Ethereum | 1, Aave V3 | sale | custody | no | 120,000 | 188,000 |
-| Ethereum | 1, Aave V3 | sale | a venue withdrawal or release | no | 404,000 | 478,000 |
-| Ethereum | 1, Aave V3 | sale | a first borrow | no | 855,000 | 930,000 |
-| Ethereum | 1, Aave V3 | sale | an owing borrow | no | 654,000 | 729,000 |
-| Ethereum | 1, Aave V3 | buy | custody | no | 108,000 | 178,000 |
-| Ethereum | 1, Aave V3 | buy | custody | yes | 417,000 | 492,000 |
-| Ethereum | 1, Aave V3 | buy | a venue withdrawal or release | yes | 692,000 | 767,000 |
-| BSC | 1, Aave V3 | sale | custody | no | 123,000 | 186,000 |
-| BSC | 1, Aave V3 | sale | a venue withdrawal or release | no | 399,000 | 466,000 |
-| BSC | 1, Aave V3 | sale | a first borrow | no | 809,000 | 876,000 |
-| BSC | 1, Aave V3 | sale | an owing borrow | no | 610,000 | 676,000 |
-| BSC | 1, Aave V3 | buy | custody | no | 112,000 | 172,000 |
-| BSC | 1, Aave V3 | buy | custody | yes | 412,000 | 475,000 |
-| BSC | 1, Aave V3 | buy | a venue withdrawal or release | yes | 645,000 | 708,000 |
-| BSC | 2, Venus Core | sale | custody | no | 239,000 | 302,000 |
-| BSC | 2, Venus Core | sale | a venue withdrawal or release | no | 745,000 | 812,000 |
-| BSC | 2, Venus Core | sale | a first borrow | no | 1,823,000 | 1,890,000 |
-| BSC | 2, Venus Core | sale | an owing borrow | no | 1,558,000 | 1,625,000 |
-| BSC | 2, Venus Core | buy | custody | no | 228,000 | 288,000 |
-| BSC | 2, Venus Core | buy | custody | yes | 737,000 | 799,000 |
-| BSC | 2, Venus Core | buy | a venue withdrawal or release | yes | 1,539,000 | 1,602,000 |
-| BSC | 3, Lista Moolah | sale | custody | no | 137,000 | 200,000 |
-| BSC | 3, Lista Moolah | sale | a first borrow | no | 686,000 | 779,000 |
-| BSC | 3, Lista Moolah | sale | an owing borrow | no | 578,000 | 671,000 |
-| BSC | 3, Lista Moolah | buy | custody | no | 126,000 | 186,000 |
-| BSC | 3, Lista Moolah | buy | custody | yes | 376,000 | 438,000 |
-| BSC | 3, Lista Moolah | buy | a venue withdrawal or release | yes | 353,000 | 415,000 |
+| Hook | Chain | Venue kind | Side | Output paid by | Input repays | After another pool | Alone |
+|---|---|---|---|---|---|---|---|
+| EverlongHook | Base | 0, Morpho Blue | sale | custody | no | 123,000 | 204,000 |
+| EverlongHook | Base | 0, Morpho Blue | sale | a venue withdrawal or release | no | 242,000 | 329,000 |
+| EverlongHook | Base | 0, Morpho Blue | sale | a first borrow | no | 390,000 | 478,000 |
+| EverlongHook | Base | 0, Morpho Blue | sale | an owing borrow | no | 318,000 | 405,000 |
+| EverlongHook | Base | 0, Morpho Blue | buy | custody | no | 121,000 | 204,000 |
+| EverlongHook | Base | 0, Morpho Blue | buy | custody | yes | 238,000 | 326,000 |
+| EverlongHook | Base | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 333,000 | 420,000 |
+| EverlongHook | Base | 1, Aave V3 | sale | custody | no | 123,000 | 205,000 |
+| EverlongHook | Base | 1, Aave V3 | sale | a venue withdrawal or release | no | 426,000 | 514,000 |
+| EverlongHook | Base | 1, Aave V3 | sale | a first borrow | no | 889,000 | 977,000 |
+| EverlongHook | Base | 1, Aave V3 | sale | an owing borrow | no | 693,000 | 781,000 |
+| EverlongHook | Base | 1, Aave V3 | buy | custody | no | 111,000 | 195,000 |
+| EverlongHook | Base | 1, Aave V3 | buy | custody | yes | 432,000 | 519,000 |
+| EverlongHook | Base | 1, Aave V3 | buy | a venue withdrawal or release | yes | 724,000 | 811,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | sale | custody | no | 120,000 | 188,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | sale | a venue withdrawal or release | no | 239,000 | 313,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | sale | a first borrow | no | 388,000 | 463,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | sale | an owing borrow | no | 315,000 | 390,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | buy | custody | no | 117,000 | 188,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | buy | custody | yes | 236,000 | 311,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 326,000 | 401,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | sale | custody | no | 120,000 | 188,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | sale | a venue withdrawal or release | no | 404,000 | 478,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | sale | a first borrow | no | 855,000 | 930,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | sale | an owing borrow | no | 654,000 | 729,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | buy | custody | no | 108,000 | 178,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | buy | custody | yes | 417,000 | 492,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | buy | a venue withdrawal or release | yes | 692,000 | 767,000 |
+| EverlongHook | BSC | 1, Aave V3 | sale | custody | no | 123,000 | 186,000 |
+| EverlongHook | BSC | 1, Aave V3 | sale | a venue withdrawal or release | no | 399,000 | 466,000 |
+| EverlongHook | BSC | 1, Aave V3 | sale | a first borrow | no | 809,000 | 876,000 |
+| EverlongHook | BSC | 1, Aave V3 | sale | an owing borrow | no | 610,000 | 676,000 |
+| EverlongHook | BSC | 1, Aave V3 | buy | custody | no | 112,000 | 172,000 |
+| EverlongHook | BSC | 1, Aave V3 | buy | custody | yes | 412,000 | 475,000 |
+| EverlongHook | BSC | 1, Aave V3 | buy | a venue withdrawal or release | yes | 645,000 | 708,000 |
+| EverlongHook | BSC | 2, Venus Core | sale | custody | no | 239,000 | 302,000 |
+| EverlongHook | BSC | 2, Venus Core | sale | a venue withdrawal or release | no | 745,000 | 812,000 |
+| EverlongHook | BSC | 2, Venus Core | sale | a first borrow | no | 1,823,000 | 1,890,000 |
+| EverlongHook | BSC | 2, Venus Core | sale | an owing borrow | no | 1,558,000 | 1,625,000 |
+| EverlongHook | BSC | 2, Venus Core | buy | custody | no | 228,000 | 288,000 |
+| EverlongHook | BSC | 2, Venus Core | buy | custody | yes | 737,000 | 799,000 |
+| EverlongHook | BSC | 2, Venus Core | buy | a venue withdrawal or release | yes | 1,539,000 | 1,602,000 |
+| EverlongHook | BSC | 3, Lista Moolah | sale | custody | no | 137,000 | 200,000 |
+| EverlongHook | BSC | 3, Lista Moolah | sale | a first borrow | no | 686,000 | 779,000 |
+| EverlongHook | BSC | 3, Lista Moolah | sale | an owing borrow | no | 578,000 | 671,000 |
+| EverlongHook | BSC | 3, Lista Moolah | buy | custody | no | 126,000 | 186,000 |
+| EverlongHook | BSC | 3, Lista Moolah | buy | custody | yes | 376,000 | 438,000 |
+| EverlongHook | BSC | 3, Lista Moolah | buy | a venue withdrawal or release | yes | 353,000 | 415,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | custody | no | 154,000 | 237,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | a venue withdrawal or release | no | 268,000 | 358,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | a first borrow | no | 413,000 | 504,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | an owing borrow | no | 390,000 | 480,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | custody | no | 144,000 | 230,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | custody | yes | 272,000 | 362,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 358,000 | 448,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | custody | no | 154,000 | 237,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | a venue withdrawal or release | no | 503,000 | 594,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | a first borrow | no | 956,000 | 1,047,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | an owing borrow | no | 872,000 | 962,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | custody | no | 135,000 | 221,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | custody | yes | 464,000 | 555,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | a venue withdrawal or release | yes | 752,000 | 843,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | custody | no | 170,000 | 235,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | a venue withdrawal or release | no | 310,000 | 379,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | a first borrow | no | 738,000 | 807,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | an owing borrow | no | 683,000 | 753,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | custody | no | 152,000 | 215,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | custody | yes | 411,000 | 476,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | a venue withdrawal or release | yes | 596,000 | 661,000 |
 
 Gas limits, for the route's transaction: the dearest swap call measured of each key before refunds, over every path,
 state, size and recipient, times 1.10 and rounded up to 5,000. A route result carries one gas figure and no limit, so
 the package carries none of these.
 
-| Chain | Venue kind | Side | Dearest | Limit |
-|---|---|---|---|---|
-| Base | 0, Morpho Blue | sale | 698,551 | 770,000 |
-| Base | 0, Morpho Blue | buy | 785,914 | 865,000 |
-| Base | 1, Aave V3 | sale | 1,263,077 | 1,390,000 |
-| Base | 1, Aave V3 | buy | 1,260,197 | 1,390,000 |
-| Ethereum | 0, Morpho Blue | sale | 686,768 | 760,000 |
-| Ethereum | 0, Morpho Blue | buy | 774,153 | 855,000 |
-| Ethereum | 1, Aave V3 | sale | 1,201,472 | 1,325,000 |
-| Ethereum | 1, Aave V3 | buy | 1,187,211 | 1,310,000 |
-| BSC | 1, Aave V3 | sale | 1,289,060 | 1,420,000 |
-| BSC | 1, Aave V3 | buy | 1,151,654 | 1,270,000 |
-| BSC | 2, Venus Core | sale | 2,505,658 | 2,760,000 |
-| BSC | 2, Venus Core | buy | 2,618,365 | 2,885,000 |
-| BSC | 3, Lista Moolah | sale | 984,972 | 1,085,000 |
-| BSC | 3, Lista Moolah | buy | 1,049,739 | 1,155,000 |
+| Hook | Chain | Venue kind | Side | Dearest | Limit |
+|---|---|---|---|---|---|
+| EverlongHook | Base | 0, Morpho Blue | sale | 698,551 | 770,000 |
+| EverlongHook | Base | 0, Morpho Blue | buy | 785,914 | 865,000 |
+| EverlongHook | Base | 1, Aave V3 | sale | 1,263,077 | 1,390,000 |
+| EverlongHook | Base | 1, Aave V3 | buy | 1,260,197 | 1,390,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | sale | 686,768 | 760,000 |
+| EverlongHook | Ethereum | 0, Morpho Blue | buy | 774,153 | 855,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | sale | 1,201,472 | 1,325,000 |
+| EverlongHook | Ethereum | 1, Aave V3 | buy | 1,187,211 | 1,310,000 |
+| EverlongHook | BSC | 1, Aave V3 | sale | 1,289,060 | 1,420,000 |
+| EverlongHook | BSC | 1, Aave V3 | buy | 1,151,654 | 1,270,000 |
+| EverlongHook | BSC | 2, Venus Core | sale | 2,505,658 | 2,760,000 |
+| EverlongHook | BSC | 2, Venus Core | buy | 2,618,365 | 2,885,000 |
+| EverlongHook | BSC | 3, Lista Moolah | sale | 984,972 | 1,085,000 |
+| EverlongHook | BSC | 3, Lista Moolah | buy | 1,049,739 | 1,155,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | 739,141 | 815,000 |
+| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | 795,521 | 880,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | 1,346,581 | 1,485,000 |
+| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | 1,292,704 | 1,425,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | 1,048,795 | 1,155,000 |
+| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | 1,056,125 | 1,165,000 |
 
 <!-- End of the generated tables. -->
 

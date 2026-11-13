@@ -1120,6 +1120,56 @@ func TestTrackerReadsAHooksRowOnce(t *testing.T) {
 	}
 }
 
+// A hook may keep its tuning row in a parameter record that a keeper's setTuning publishes (an idle-entry hook: the
+// record's address in slot 13's low 160 bits, zero until a setTuning lands, and always on a locked hook, whose row in
+// force is then the construction's, from code). The source reads neither the record nor tuning(): it reads params(),
+// whose words 27-34 hold the leverage row, fixed at construction whether or not a record landed, and the curve's fee
+// and top bid from quotePair and levState, which the hook prices on the row in force. So no record, a record that
+// lands between two refreshes and one that landed before the first all read the same: the row read once, the same
+// ladders as a hook whose tuning words never move, and no other call to the hook.
+func TestAHooksParameterRecordMovesNoReadOfTheSource(t *testing.T) {
+	words := func(seed int64) (w [27]*big.Int) {
+		for k := range w {
+			w[k] = big.NewInt(seed*1_000_000_000_000_000 + int64(k+1))
+		}
+		return w
+	}
+	built, posted := words(1), words(2)
+	refreshes := func(t *testing.T, first, second [27]*big.Int) ([]Extra, *fakeHook) {
+		w, cfg := testWorld(), testConfig()
+		h := w.hooks[common.HexToAddress(hookA)]
+		h.tuning = first
+		n, pools := listed(t, w, cfg)
+		tracker := NewPoolTracker(cfg, n.client())
+		var out []Extra
+		for k := range 2 {
+			if k == 1 {
+				h.tuning = second
+			}
+			p, err := tracker.GetNewPoolState(context.Background(), pools[0], pool.GetNewPoolStateParams{})
+			require.NoError(t, err)
+			out = append(out, extraOf(t, p))
+		}
+		return out, h
+	}
+	want, _ := refreshes(t, [27]*big.Int{}, [27]*big.Int{})
+	for name, tc := range map[string]struct{ first, second [27]*big.Int }{
+		"no record, the construction's row":        {built, built},
+		"a record lands between the two refreshes": {built, posted},
+		"a record landed before the first":         {posted, posted},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got, h := refreshes(t, tc.first, tc.second)
+			require.Equal(t, 1, h.asked, "params() read once")
+			require.Zero(t, h.other, "no record or tuning() read, nor any other call to the hook")
+			for k := range got {
+				require.ElementsMatch(t, [][2]uint8{{0, 1}, {1, 0}}, directionsOf(got[k]))
+				require.Equal(t, want[k].Ladders, got[k].Ladders, "refresh %d", k+1)
+			}
+		})
+	}
+}
+
 // levState takes the hook's PairRequest, 26 static words, the same words pairRequest answers.
 func TestTrackerPinsTheLevStateSelector(t *testing.T) {
 	sig := "levState((address,address,address,uint8,uint8,uint16,uint16,uint16,uint64,uint64,uint64" +

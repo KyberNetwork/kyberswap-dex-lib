@@ -42,16 +42,19 @@ type fakePool struct {
 	noRequest bool
 }
 
-// fakeHook is a pricing hook of the fake chain: params() answers its leverage row in words 27-34 of 35, quotePair
-// the curve's fee in word 3 of 7, and levState, sent the 26 words of a request, its top bid in word 6 of 8.
+// fakeHook is a pricing hook of the fake chain: params() answers its curve and tuning in words 0-26 and its leverage
+// row in words 27-34 of 35, quotePair the curve's fee in word 3 of 7, and levState, sent the 26 words of a request,
+// its top bid in word 6 of 8. Any other call reverts.
 type fakeHook struct {
-	row      [8]*big.Int // spread, spreadDn, upCap, dnCap, ceiling, band, feedGate, upFloor
-	words    int         // how many words params() answers; zero: 35
-	reverts  int         // params() reverts this many times more before it answers; negative: always
-	bid      *big.Int    // levState's word 6; nil: 1e18
-	noLev    bool        // levState reverts
-	levWords int         // how many words levState answers; zero: 8
-	asked    int         // the params() calls it saw
+	tuning   [27]*big.Int // params() words 0-26, the row in force: a parameter record a keeper posts moves them
+	row      [8]*big.Int  // spread, spreadDn, upCap, dnCap, ceiling, band, feedGate, upFloor
+	words    int          // how many words params() answers; zero: 35
+	reverts  int          // params() reverts this many times more before it answers; negative: always
+	bid      *big.Int     // levState's word 6; nil: 1e18
+	noLev    bool         // levState reverts
+	levWords int          // how many words levState answers; zero: 8
+	asked    int          // the params() calls it saw
+	other    int          // the calls it saw of any other method than params, quotePair and levState
 }
 
 // curveLabel is the fee rate the fake pools' curve route reports: on no row's tiers.
@@ -79,6 +82,11 @@ func (h *fakeHook) respond(data []byte) (bool, []byte) {
 		for k := range w {
 			w[k] = new(big.Int)
 		}
+		for k, v := range h.tuning {
+			if v != nil {
+				w[k].Set(v)
+			}
+		}
 		for k, v := range h.row {
 			if v != nil {
 				w[27+k].Set(v)
@@ -91,6 +99,7 @@ func (h *fakeHook) respond(data []byte) (bool, []byte) {
 		}
 		return ok, ret
 	case len(data) != 4+32*requestWords:
+		h.other++
 		return false, nil
 	case bytes.HasPrefix(data, levStateSelector):
 		if h.noLev {
@@ -107,6 +116,7 @@ func (h *fakeHook) respond(data []byte) (bool, []byte) {
 		curveLabel.FillBytes(ret[32*3 : 32*4])
 		return true, ret
 	}
+	h.other++
 	return false, nil
 }
 
