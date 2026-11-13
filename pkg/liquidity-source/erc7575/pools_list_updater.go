@@ -67,6 +67,7 @@ func (u *PoolsListUpdater) getNewPool(ctx context.Context, vaultAddr string, vau
 	// Reuse erc4626 for asset + state. tokenAddr is empty here (Tokens[0] isn't persisted yet), so the initial
 	// totalSupply targets the vault - a harmless placeholder at discovery; the tracker reads it from the share
 	// token on the next refresh. All logic getters target the vault entrypoint.
+	vaultCfg.Balance.None = true // probe off: share balance is not the vault balance, keep bK/nbK out of StaticExtra
 	assetToken, state, err := erc4626lazy.FetchAssetAndState(ctx, u.ethrpcClient, vaultAddr, "", vaultCfg, true, nil)
 	if err != nil {
 		u.logger.WithFields(logger.Fields{"error": err}).Error("failed to FetchAssetAndState")

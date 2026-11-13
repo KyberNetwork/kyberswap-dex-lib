@@ -25,6 +25,8 @@ type VaultCfg struct {
 	// IgnoreZeroMaxDeposit marks a vault that reports maxDeposit 0 while it accepts deposits, so a 0 falls back to
 	// totalAssets instead of closing deposits.
 	IgnoreZeroMaxDeposit bool `json:"ignoreZeroMaxDeposit,omitempty"`
+	// Balance is the cached balanceOf slot probe outcome, filled by the tracker from StaticExtra. Not configuration.
+	Balance BalanceSlot `json:"-"`
 }
 
 type GasCfg struct {
