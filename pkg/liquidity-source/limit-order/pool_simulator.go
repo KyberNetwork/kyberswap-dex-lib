@@ -164,22 +164,46 @@ func (p *PoolSimulator) calcAmountOut(
 	limit pool.SwapLimit,
 ) (*pool.CalcAmountOutResult, error) {
 	swapSide := p.getSwapSide(tokenAmountIn.Token, tokenOut)
-	amountOut, swapInfo, feeAmount, err := p.calcAmountOutWithSwapInfo(swapSide, tokenAmountIn, limit)
+	var amountIn uint256.Int
+	amountInOK := setAmount(&amountIn, tokenAmountIn.Amount)
+	amountOut, feeAmount, swapInfo, noOrders, err := p.calcAmountOutWithSwapInfo(swapSide, amountIn, amountInOK, limit)
 	if err != nil {
 		return nil, err
 	}
 
+	var fee *big.Int
+	if !noOrders {
+		fee = amountToBig(&feeAmount)
+	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: amountOut,
+			Amount: amountToBig(&amountOut),
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: feeAmount,
+			Amount: fee,
 		},
 		Gas:      p.estimateGas(len(swapInfo.FilledOrders)),
 		SwapInfo: swapInfo,
+	}, nil
+}
+
+// CalcAmtOut is CalcAmountOut with uint256 amounts, with the same fields and errors.
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenOut := params.TokenOut
+	swapSide := p.getSwapSide(params.TokenAmountIn.Token, tokenOut)
+	amountOut, feeAmount, swapInfo, _, err := p.calcAmountOutWithSwapInfo(swapSide, params.TokenAmountIn.Amount,
+		true, params.Limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: amountOut},
+		Fee:            &pool.TokenAmt{Token: tokenOut, Amount: feeAmount},
+		Gas:            p.estimateGas(len(swapInfo.FilledOrders)),
+		SwapInfo:       swapInfo,
 	}, nil
 }
 
@@ -225,18 +249,20 @@ func amountString(b *big.Int) string {
 	return b.String()
 }
 
-func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.TokenAmount, limit pool.SwapLimit) (*big.Int, SwapInfo, *big.Int, error) {
+// calcAmountOutWithSwapInfo runs the fill walk. noOrders reports no order on this side, which
+// returns no fee. amountInOK false means amountIn is not a usable amount.
+func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, amountIn uint256.Int, amountInOK bool,
+	limit pool.SwapLimit) (uint256.Int, uint256.Int, SwapInfo, bool, error) {
 	orderIDs := p.getOrderIDsBySwapSide(swapSide)
 	if limit != nil {
 		// EX-2684: Filter out orders that are not in allowedSenders list.
 		orderIDs = p.filterOrdersByAllowedSenders(orderIDs, limit.GetAllowedSenders())
 	}
 	if len(orderIDs) == 0 {
-		return big.NewInt(0), SwapInfo{}, nil, nil
+		return uint256.Int{}, uint256.Int{}, SwapInfo{}, true, nil
 	}
-	var amountIn uint256.Int
-	if !setAmount(&amountIn, tokenAmountIn.Amount) {
-		return nil, SwapInfo{}, nil, ErrCannotFulfillAmountIn
+	if !amountInOK {
+		return uint256.Int{}, uint256.Int{}, SwapInfo{}, false, ErrCannotFulfillAmountIn
 	}
 
 	swapInfo := SwapInfo{
@@ -264,7 +290,7 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 	for i, orderID := range orderIDs {
 		order, ok := p.ordersMapping[orderID]
 		if !ok {
-			return nil, swapInfo, nil, fmt.Errorf("order %d is not existed in pool", orderID)
+			return uint256.Int{}, uint256.Int{}, swapInfo, false, fmt.Errorf("order %d is not existed in pool", orderID)
 		}
 
 		// Get remaining making amount, taking amount
@@ -330,9 +356,9 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 		break
 	}
 	if !isFulfillAmountIn {
-		return nil, SwapInfo{}, nil, ErrCannotFulfillAmountIn
+		return uint256.Int{}, uint256.Int{}, SwapInfo{}, false, ErrCannotFulfillAmountIn
 	}
-	return amountToBig(&totalAmountOut), swapInfo, amountToBig(&totalFeeAmount), nil
+	return totalAmountOut, totalFeeAmount, swapInfo, false, nil
 }
 
 // fallbackThreshold is ceil(amountOut * FallbackPercentageOfTotalMakingAmount): fallback orders

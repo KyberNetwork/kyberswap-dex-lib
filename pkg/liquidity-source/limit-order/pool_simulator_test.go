@@ -1504,3 +1504,92 @@ func TestFallbackThreshold_MatchesBigFloatCompare(t *testing.T) {
 	threshold := fallbackThreshold(ten)
 	assert.Equal(t, uint64(14), threshold.Uint64())
 }
+
+func TestPool_CalcAmtOut_MatchesCalcAmountOut(t *testing.T) {
+	t.Parallel()
+	type testorder struct {
+		id              int64
+		makingAmount    string
+		takingAmount    string
+		feePct          uint32
+		isTakerAssetFee bool
+	}
+	pools := map[string][]testorder{
+		"taker-fee":  {{1001, "10000000", "12000000", 100, true}, {1002, "10000000", "10000000", 100, true}},
+		"maker-fee":  {{1001, "10000000", "12000000", 100, false}, {1002, "10000000", "10000000", 100, false}},
+		"mixed-fee":  {{1001, "10000000", "12000000", 100, true}, {1002, "10000000", "10000000", 100, false}},
+		"no-fee":     {{1001, "7", "5", 0, false}, {1002, "1000000000000000000", "3", 0, false}},
+		"single-big": {{1001, "50000000000000000000000000", "49522200853987088", 100, true}},
+	}
+	amounts := []string{"0", "1", "2", "10000", "12000000", "22220000", "22220003", "1000000000000000000",
+		"50017422862526959", "1000000000000000000000000000000", "1606938044258990275541962092341162602522202993782792835301375"}
+
+	var filled int
+	for name, orders := range pools {
+		extra := Extra{BuyOrders: lo.Map(orders, func(o testorder, _ int) *order {
+			return &order{
+				ID:                    o.id,
+				MakingAmount:          bignumber.NewBig10(o.makingAmount),
+				TakingAmount:          bignumber.NewBig10(o.takingAmount),
+				AvailableMakingAmount: bignumber.NewBig10(o.makingAmount),
+				MakerBalanceAllowance: bignumber.NewBig10("100000000000000000000000000000000000000000"),
+				MakerTokenFeePercent:  o.feePct,
+				IsTakerAssetFee:       o.isTakerAssetFee,
+			}
+		})}
+		sExtra, _ := json.Marshal(extra)
+		p, err := NewPoolSimulator(entity.Pool{
+			Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+			Reserves:    entity.PoolReserves{"0", "0"},
+			StaticExtra: `{"ContractAddress":""}`,
+			Extra:       string(sExtra),
+		})
+		require.NoError(t, err)
+
+		for _, tokenIn := range []string{"A", "B"} {
+			tokenOut := "B"
+			if tokenIn == "B" {
+				tokenOut = "A"
+			}
+			for _, amt := range amounts {
+				for _, withLimit := range []bool{false, true} {
+					var limit pool.SwapLimit
+					if withLimit {
+						limit = swaplimit.NewInventory("", p.CalculateLimit())
+					}
+					amtIn := bignumber.NewBig10(amt)
+					want, wantErr := p.CalcAmountOut(pool.CalcAmountOutParams{
+						TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amtIn},
+						TokenOut:      tokenOut,
+						Limit:         limit,
+					})
+					var amtIn256 uint256.Int
+					require.False(t, amtIn256.SetFromBig(amtIn))
+					got, gotErr := p.CalcAmtOut(pool.CalcAmtOutParams{
+						TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: amtIn256},
+						TokenOut:      tokenOut,
+						Limit:         limit,
+					})
+					label := fmt.Sprintf("%s %s->%s amt=%s limit=%v", name, tokenIn, tokenOut, amt, withLimit)
+					require.Equal(t, wantErr, gotErr, label)
+					if wantErr != nil {
+						continue
+					}
+					filled++
+					assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.Dec(), label+" amountOut")
+					// no-order sides return a nil big.Int fee, which is zero
+					wantFee := "0"
+					if want.Fee.Amount != nil {
+						wantFee = want.Fee.Amount.String()
+					}
+					assert.Equal(t, wantFee, got.Fee.Amount.Dec(), label+" fee")
+					assert.Equal(t, want.Gas, got.Gas, label+" gas")
+					assert.Nil(t, want.RemainingTokenAmountIn, label+" remaining")
+					assert.Nil(t, got.RemainingTokenAmountIn, label+" remaining")
+					assert.Equal(t, want.SwapInfo, got.SwapInfo, label+" swapInfo")
+				}
+			}
+		}
+	}
+	assert.Greater(t, filled, 0, "parity must cover quotes that fill")
+}
