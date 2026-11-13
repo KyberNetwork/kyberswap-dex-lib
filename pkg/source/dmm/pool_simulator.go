@@ -3,6 +3,7 @@ package dmm
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -95,6 +96,15 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("invalid amount out: %v", amountOut.String())
+}
+
+// CloneState copies the reserve and virtual-reserve slices UpdateBalance writes by index. The big.Int
+// values are replaced on write, not changed in place, so sharing them is safe.
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	cloned.VReserves = slices.Clone(t.VReserves)
+	return &cloned
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

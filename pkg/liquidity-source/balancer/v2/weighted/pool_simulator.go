@@ -3,6 +3,7 @@ package weighted
 import (
 	"errors"
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
@@ -947,6 +948,23 @@ func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
 	}
 
 	return result
+}
+
+// CloneState copies the slices UpdateBalance writes by index, and clones each base pool, since
+// UpdateBalance also updates them. A base pool without its own CloneState is copied by value.
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	cloned.totalAmountsIn = slices.Clone(s.totalAmountsIn)
+	cloned.basePools = make(map[string]shared.IBasePool, len(s.basePools))
+	for addr, bp := range s.basePools {
+		if c, ok := bp.CloneState().(shared.IBasePool); ok {
+			cloned.basePools[addr] = c
+		} else {
+			cloned.basePools[addr] = bp
+		}
+	}
+	return &cloned
 }
 
 func (s *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
