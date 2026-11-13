@@ -41,7 +41,7 @@ func (d *PoolTracker) GetNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	switch p.Type {
-	case PoolTypeBase, PoolTypeListaSwap:
+	case PoolTypeBase, PoolTypeListaSwap, PoolTypePancakeStable:
 		return d.getNewPoolStateTypeBase(ctx, p, nil)
 	case PoolTypePlainOracle:
 		return d.getNewPoolStateTypePlainOracle(ctx, p, nil)
@@ -71,7 +71,7 @@ func (d *PoolTracker) GetNewPoolStateWithOverrides(
 	params pool.GetNewPoolStateWithOverridesParams,
 ) (entity.Pool, error) {
 	switch p.Type {
-	case PoolTypeBase:
+	case PoolTypeBase, PoolTypePancakeStable:
 		return d.getNewPoolStateTypeBase(ctx, p, params.Overrides)
 	case PoolTypePlainOracle:
 		return d.getNewPoolStateTypePlainOracle(ctx, p, params.Overrides)

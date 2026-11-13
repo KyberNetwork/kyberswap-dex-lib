@@ -317,3 +317,79 @@ func TestDebugSwap_MAV_WETH(t *testing.T) {
 		fmt.Printf("✅ MATCH: Result matches expected value\n")
 	}
 }
+
+func TestSwapInsufficientLiquidity(t *testing.T) {
+	t.Parallel()
+
+	// Live arbitrum pool 0x19d613edfa9db4a009582103f585369e3f89fd34 (tokenA / USDC), where swapping
+	// more than the pool's tokenA liquidity reverts out of gas in pool.swap instead of partially filling
+	data, err := os.ReadFile("./data/arb_pool_19d6.json")
+	require.NoError(t, err)
+
+	var poolEntity entity.Pool
+	err = json.Unmarshal(data, &poolEntity)
+	require.NoError(t, err)
+
+	poolSim, err := NewPoolSimulator(poolEntity)
+	require.NoError(t, err)
+
+	tokenA, tokenB := poolEntity.Tokens[0].Address, poolEntity.Tokens[1].Address
+
+	calcAmountOut := func(t *testing.T, tokenIn, tokenOut string, amountIn *big.Int) (*pool.CalcAmountOutResult, error) {
+		t.Helper()
+		return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
+			TokenOut:      tokenOut,
+		})
+	}
+	calcAmountIn := func(t *testing.T, tokenIn, tokenOut string, amountOut *big.Int) (*pool.CalcAmountInResult, error) {
+		t.Helper()
+		return poolSim.CalcAmountIn(pool.CalcAmountInParams{
+			TokenIn:        tokenIn,
+			TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: amountOut},
+		})
+	}
+
+	reservesBefore := []*big.Int{new(big.Int).Set(poolSim.Info.Reserves[0]), new(big.Int).Set(poolSim.Info.Reserves[1])}
+
+	t.Run("tokenB in within liquidity", func(t *testing.T) {
+		result, err := calcAmountOut(t, tokenB, tokenA, big.NewInt(1_000_000_000)) // 1,000 USDC
+		require.NoError(t, err)
+		require.Equal(t, "1000299884059565185946", result.TokenAmountOut.Amount.String())
+	})
+
+	t.Run("tokenB in beyond liquidity", func(t *testing.T) {
+		_, err := calcAmountOut(t, tokenB, tokenA, big.NewInt(10_000_000_000)) // 10,000 USDC
+		require.ErrorIs(t, err, ErrInsufficientLiquidity)
+	})
+
+	t.Run("tokenA in within liquidity", func(t *testing.T) {
+		result, err := calcAmountOut(t, tokenA, tokenB, new(big.Int).Exp(big.NewInt(10), big.NewInt(21), nil)) // 1,000 tokenA
+		require.NoError(t, err)
+		require.Equal(t, "998966821", result.TokenAmountOut.Amount.String())
+	})
+
+	t.Run("tokenA in beyond liquidity", func(t *testing.T) {
+		_, err := calcAmountOut(t, tokenA, tokenB, new(big.Int).Exp(big.NewInt(10), big.NewInt(22), nil)) // 10,000 tokenA
+		require.ErrorIs(t, err, ErrInsufficientLiquidity)
+	})
+
+	t.Run("exact output within liquidity", func(t *testing.T) {
+		result, err := calcAmountIn(t, tokenB, tokenA, new(big.Int).Exp(big.NewInt(10), big.NewInt(21), nil)) // 1,000 tokenA out
+		require.NoError(t, err)
+		require.Equal(t, "999700103", result.TokenAmountIn.Amount.String())
+	})
+
+	t.Run("exact output beyond liquidity", func(t *testing.T) {
+		_, err := calcAmountIn(t, tokenB, tokenA, new(big.Int).Exp(big.NewInt(10), big.NewInt(22), nil)) // 10,000 tokenA out
+		require.ErrorIs(t, err, ErrInsufficientLiquidity)
+
+		_, err = calcAmountIn(t, tokenA, tokenB, big.NewInt(2_000_000_000)) // 2,000 USDC out
+		require.ErrorIs(t, err, ErrInsufficientLiquidity)
+	})
+
+	t.Run("state unchanged after error", func(t *testing.T) {
+		require.Equal(t, reservesBefore[0].String(), poolSim.Info.Reserves[0].String())
+		require.Equal(t, reservesBefore[1].String(), poolSim.Info.Reserves[1].String())
+	})
+}

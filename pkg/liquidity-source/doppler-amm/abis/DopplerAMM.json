@@ -1,0 +1,43 @@
+[
+  {
+    "type": "function",
+    "name": "reserves",
+    "stateMutability": "view",
+    "inputs": [{ "name": "marketId", "type": "uint256" }],
+    "outputs": [
+      { "name": "reserveX", "type": "uint128" },
+      { "name": "reserveY", "type": "uint128" },
+      { "name": "liquidity", "type": "uint96" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "protocolFeeForMarket",
+    "stateMutability": "view",
+    "inputs": [{ "name": "marketId", "type": "uint256" }],
+    "outputs": [
+      { "name": "swapFeeShareBps", "type": "uint16" },
+      { "name": "swapBaseFeeBps", "type": "uint16" },
+      { "name": "account", "type": "address" }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "MarketCreated",
+    "anonymous": false,
+    "inputs": [
+      { "name": "marketId", "type": "uint256", "indexed": false },
+      { "name": "module", "type": "address", "indexed": true },
+      { "name": "extension", "type": "address", "indexed": true },
+      { "name": "creator", "type": "address", "indexed": true },
+      { "name": "marketConfigPointer", "type": "address", "indexed": false },
+      { "name": "tokenX", "type": "address", "indexed": false },
+      { "name": "tokenY", "type": "address", "indexed": false },
+      { "name": "liquidity", "type": "uint96", "indexed": false },
+      { "name": "uniqueKey", "type": "uint256", "indexed": false },
+      { "name": "lpTokenId", "type": "uint256", "indexed": false },
+      { "name": "bootstrapX", "type": "uint128", "indexed": false },
+      { "name": "bootstrapY", "type": "uint128", "indexed": false }
+    ]
+  }
+]

@@ -1,0 +1,195 @@
+{
+ "block": 26389395,
+ "results": [
+  {
+   "id": "current-fee-collected",
+   "reverted": false,
+   "amountOut": "180163785259326660600",
+   "feePaid": "1000000000000000000",
+   "rawAfter": [
+    "1099000000000000000000",
+    "1819836214740673339400"
+   ]
+  },
+  {
+   "id": "current-fee-skipped-strategy-short",
+   "reverted": false,
+   "amountOut": "1989949748743718592964",
+   "feePaid": "0",
+   "rawAfter": [
+    "100500000000000000000",
+    "10050251256281407036"
+   ]
+  },
+  {
+   "id": "current-fee-skipped-wallet-short",
+   "reverted": false,
+   "amountOut": "180163785259326660600",
+   "feePaid": "0",
+   "rawAfter": [
+    "1100000000000000000000",
+    "1819836214740673339400"
+   ]
+  },
+  {
+   "id": "current-fee-skipped-no-allowance",
+   "reverted": false,
+   "amountOut": "180163785259326660600",
+   "feePaid": "0",
+   "rawAfter": [
+    "1100000000000000000000",
+    "1819836214740673339400"
+   ]
+  },
+  {
+   "id": "current-fee-rounds-to-zero",
+   "reverted": false,
+   "amountOut": "197",
+   "feePaid": "0",
+   "rawAfter": [
+    "1000000000000000000099",
+    "1999999999999999999803"
+   ]
+  },
+  {
+   "id": "current-fee-at-exact-strategy-balance",
+   "reverted": false,
+   "amountOut": "1980000000000000000000",
+   "feePaid": "1000000000000000000",
+   "rawAfter": [
+    "100000000000000000000",
+    "20000000000000000000"
+   ]
+  },
+  {
+   "id": "current-zero-recipient-bps0",
+   "reverted": false,
+   "amountOut": "181818181818181818181",
+   "feePaid": "0",
+   "rawAfter": [
+    "1100000000000000000000",
+    "1818181818181818181819"
+   ]
+  },
+  {
+   "id": "current-zero-recipient-bps1",
+   "reverted": true,
+   "amountOut": "",
+   "feePaid": "",
+   "rawAfter": [
+    "1000000000000000000000",
+    "2000000000000000000000"
+   ]
+  },
+  {
+   "id": "current-stacked-first-collected-second-short",
+   "reverted": false,
+   "amountOut": "1464668094218415417558",
+   "feePaid": "180000000000000000",
+   "rawAfter": [
+    "1070000000000000000",
+    "535331905781584582442"
+   ]
+  },
+  {
+   "id": "current-stacked-both-collected",
+   "reverted": false,
+   "amountOut": "812351543942992874109",
+   "feePaid": "280000000000000000",
+   "rawAfter": [
+    "1720000000000000000",
+    "1187648456057007125891"
+   ]
+  },
+  {
+   "id": "launch-fee-collected",
+   "reverted": false,
+   "amountOut": "180163785259326660600",
+   "feePaid": "1000000000000000000",
+   "rawAfter": [
+    "1099000000000000000000",
+    "1819836214740673339400"
+   ]
+  },
+  {
+   "id": "launch-fee-short-strategy",
+   "reverted": true,
+   "amountOut": "",
+   "feePaid": "",
+   "rawAfter": [
+    "500000000000000000",
+    "2000000000000000000000"
+   ]
+  },
+  {
+   "id": "launch-fee-short-wallet",
+   "reverted": true,
+   "amountOut": "",
+   "feePaid": "",
+   "rawAfter": [
+    "1000000000000000000000",
+    "2000000000000000000000"
+   ]
+  },
+  {
+   "id": "launch-fee-rounds-to-zero",
+   "reverted": false,
+   "amountOut": "197",
+   "feePaid": "0",
+   "rawAfter": [
+    "1000000000000000000099",
+    "1999999999999999999803"
+   ]
+  },
+  {
+   "id": "launch-zero-recipient-bps0",
+   "reverted": true,
+   "amountOut": "",
+   "feePaid": "",
+   "rawAfter": [
+    "1000000000000000000000",
+    "2000000000000000000000"
+   ]
+  },
+  {
+   "id": "launch-zero-recipient-bps1",
+   "reverted": true,
+   "amountOut": "",
+   "feePaid": "",
+   "rawAfter": [
+    "1000000000000000000000",
+    "2000000000000000000000"
+   ]
+  },
+  {
+   "id": "launch-stacked-first-collected-second-short",
+   "reverted": true,
+   "amountOut": "",
+   "feePaid": "",
+   "rawAfter": [
+    "250000000000000000",
+    "2000000000000000000000"
+   ]
+  },
+  {
+   "id": "current-push-fits-uint248",
+   "reverted": false,
+   "amountOut": "3",
+   "feePaid": "0",
+   "rawAfter": [
+    "452312848583266388373324160190187140051835877600158453279131187530910662655",
+    "1532495540865888858358347027150309183618739122183602173"
+   ]
+  },
+  {
+   "id": "current-push-overflows-uint248",
+   "reverted": true,
+   "amountOut": "",
+   "feePaid": "",
+   "rawAfter": [
+    "452312848583266388373324160190187140051835877600158452279131187530910662656",
+    "1532495540865888858358347027150309183618739122183602176"
+   ]
+  }
+ ]
+}

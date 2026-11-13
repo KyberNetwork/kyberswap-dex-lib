@@ -79,8 +79,10 @@ const (
 	PoolTypeTricrypto   = "curve-tricrypto"
 	PoolTypeTwo         = "curve-two"
 
-	PoolTypeListaSwap   = "lista-stable"
-	PoolTypeUnsupported = "unsupported"
+	PoolTypeListaSwap = "lista-stable"
+	// PoolTypePancakeStable is the type of pools listed by the pancake-stable handler.
+	PoolTypePancakeStable = "pancake-stable"
+	PoolTypeUnsupported   = "unsupported"
 )
 
 // Curve pool types
