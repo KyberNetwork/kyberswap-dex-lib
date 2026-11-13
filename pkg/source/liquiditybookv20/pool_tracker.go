@@ -3,9 +3,11 @@ package liquiditybookv20
 import (
 	"cmp"
 	"context"
+	"fmt"
 	"math/big"
 	"slices"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -22,7 +24,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -31,6 +33,7 @@ type PoolTracker struct {
 	cfg           *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
+	lensGuard     *ephemeral.Guard
 }
 
 var _ = pooltrack.RegisterFactoryCEG0(DexTypeLiquidityBookV20, NewPoolTracker)
@@ -44,34 +47,52 @@ func NewPoolTracker(
 		cfg:           cfg,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
+		lensGuard:     ephemeral.NewGuard(cfg.LensGuard),
 	}
 }
 
-func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
+func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, param pool.GetNewPoolStateParams) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
+	if t.cfg.UseLens {
+		lensPool, _, err := t.bootstrapFromLens(ctx, p, nil)
+		if err == nil {
+			return lensPool, nil
+		}
+		// A node that cannot serve a lens read at all, as one ignoring a pinned block (HyperEVM's)
+		// does for a read across blocks, has the pool bootstrapped without the lens rather than left
+		// unsaved; any other failure is the bootstrap's own, to be tried again.
+		if !ephemeral.Unreadable(err) {
+			return lensPool, err
+		}
+		logger.WithFields(logger.Fields{"address": p.Address, "error": err}).Warn("failed to bootstrap the pool through the lens, bootstrapping it without")
+		return t.bootstrapWithoutLens(ctx, p, param)
+	}
+
+	return t.bootstrapPool(ctx, p, param)
+}
+
+// bootstrapPool reads the pool's state without the lens. FetchPoolTicks reads its bins again at
+// the block of that state, unless the lens is on.
+func (t *PoolTracker) bootstrapPool(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
 	var (
 		rpcData        *QueryRpcPoolStateResult
 		subgraphResult *querySubgraphPoolStateResult
-		err            error
 	)
 
+	// Each read keeps its own error: the two run at once.
 	g := new(errgroup.Group)
 	g.Go(func() error {
+		var err error
 		rpcData, err = t.FetchRPCData(ctx, &p, 0)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 	g.Go(func() error {
+		var err error
 		subgraphResult, err = t.querySubgraph(ctx, p)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 	if err := g.Wait(); err != nil {
 		return entity.Pool{}, err
@@ -102,6 +123,18 @@ func (t *PoolTracker) BootstrapPoolState(ctx context.Context, p entity.Pool, _ p
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
+}
+
+// bootstrapWithoutLens bootstraps the pool without the lens and reads its bins again at the block
+// of its state, as FetchPoolTicks does when the lens is off: with the lens on, FetchPoolTicks
+// leaves them as they are.
+func (t *PoolTracker) bootstrapWithoutLens(ctx context.Context, p entity.Pool,
+	param pool.GetNewPoolStateParams) (entity.Pool, error) {
+	p, err := t.bootstrapPool(ctx, p, param)
+	if err != nil {
+		return p, err
+	}
+	return t.refetchBins(ctx, p)
 }
 
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {
@@ -254,13 +287,62 @@ func (t *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 	}, nil
 }
 
+// bootstrapFromLens reads the pair's bins through the lens at block (nil for the latest), then its
+// fee parameters, which the lens does not return, at the same block. It returns the pair with the
+// block the lens read it at.
+func (t *PoolTracker) bootstrapFromLens(ctx context.Context, p entity.Pool, block *big.Int) (entity.Pool, uint64,
+	error) {
+	snap, err := t.snapshot(ctx, p.Address, block)
+	if err != nil {
+		return entity.Pool{}, 0, err
+	}
+
+	rpcData, err := t.FetchRPCData(ctx, &p, snap.block)
+	if err != nil {
+		return entity.Pool{}, 0, err
+	}
+	if rpcData.ReservesAndID.ActiveId.Uint64() != uint64(snap.activeID) ||
+		rpcData.ReservesAndID.ReserveX.Cmp(snap.reserveX) != 0 || rpcData.ReservesAndID.ReserveY.Cmp(snap.reserveY) != 0 {
+		return entity.Pool{}, 0, fmt.Errorf("pair %s at block %d: RPC and lens disagree on the active bin or reserves",
+			p.Address, snap.block)
+	}
+
+	extraBytes, err := json.Marshal(Extra{
+		RpcBlockTimestamp: rpcData.BlockTimestamp,
+		FeeParameters:     rpcData.FeeParameters,
+		ActiveBinID:       snap.activeID,
+		Bins:              withActiveBin(snap.bins, snap.activeID),
+	})
+	if err != nil {
+		return entity.Pool{}, 0, err
+	}
+
+	p.Reserves = entity.PoolReserves{snap.reserveX.String(), snap.reserveY.String()}
+	p.BlockNumber = max(p.BlockNumber, snap.block)
+	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
+	return p, snap.block, nil
+}
+
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param pool.GetNewPoolStateParams) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
 		"exchange": p.Exchange,
 	})
 
-	if err := t.updateStateByDexLib(ctx, &p, param.Logs); err != nil {
+	if t.cfg.UseLens && !hasState(p) {
+		return tickspkg.StateFromLens(ctx, t.lensGuard, p, param,
+			func(ctx context.Context, block *big.Int) (entity.Pool, uint64, error) {
+				return t.bootstrapFromLens(ctx, p, block)
+			},
+			func(ctx context.Context) (entity.Pool, error) {
+				return t.bootstrapWithoutLens(ctx, p, param)
+			},
+			l), nil
+	}
+
+	read, err := t.updateStateByDexLib(ctx, &p, param.Logs)
+	if err != nil {
 		l.WithFields(logger.Fields{
 			"msg": err.Error(),
 		}).Error(ErrUpdateStateByDexLibFailed.Error())
@@ -268,7 +350,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 		return p, errors.Wrap(ErrUpdateStateByDexLibFailed, err.Error())
 	}
 
-	if err := t.updateBinsData(ctx, &p, param.Logs); err != nil {
+	if err := t.updateBinsData(ctx, &p, param.Logs, read); err != nil {
 		l.WithFields(logger.Fields{
 			"msg": err.Error(),
 		}).Error(ErrUpdateBinsDataFailed.Error())
@@ -282,6 +364,16 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, param 
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+	// The lens read the bins at the block it read the state, which is what reading them again is
+	// for; a bootstrap that fell back from the lens read them again itself.
+	if t.cfg.UseLens {
+		return p, nil
+	}
+	return t.refetchBins(ctx, p)
+}
+
+// refetchBins reads the pool's stored bins again at the block of its state.
+func (t *PoolTracker) refetchBins(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
 		"exchange": p.Exchange,
@@ -317,33 +409,32 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 	return p, nil
 }
 
-func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
+// updateStateByDexLib reads the pair's reserves, active bin and fee parameters, and returns the block
+// it read them at.
+func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) (uint64, error) {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
 		"exchange": p.Exchange,
 	})
 
-	var blockNumber uint64
-	if len(logs) > 0 {
-		blockNumber = logs[len(logs)-1].BlockNumber
-	}
-
+	blockNumber := tickspkg.ReadBlock(logs, p.BlockNumber)
 	rpcState, err := t.FetchRPCData(ctx, p, blockNumber)
 	if err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
+			blockNumber = 0
 			rpcState, err = t.FetchRPCData(ctx, p, 0)
 			if err != nil {
 				l.WithFields(logger.Fields{
 					"error": err,
 				}).Error("failed to fetch latest state from RPC")
-				return err
+				return 0, err
 			}
 		} else {
 			l.WithFields(logger.Fields{
 				"error":       err,
 				"blockNumber": blockNumber,
 			}).Error("failed to fetch state from RPC")
-			return err
+			return 0, err
 		}
 	}
 
@@ -351,13 +442,18 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 		rpcState.ReservesAndID.ReserveX.String(),
 		rpcState.ReservesAndID.ReserveY.String(),
 	}
-	p.BlockNumber = rpcState.BlockNumber
+	// The block asked for when there was one: a multicall's own block is not the chain's number on
+	// every chain (Etherlink reports the next one). The pair's block never goes back.
+	if blockNumber == 0 {
+		blockNumber = rpcState.BlockNumber
+	}
+	p.BlockNumber = max(p.BlockNumber, blockNumber)
 
 	var extra Extra
 	if p.Extra != "" {
 		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 			l.Error(err.Error())
-			return err
+			return 0, err
 		}
 	}
 
@@ -368,15 +464,15 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.Error(err.Error())
-		return err
+		return 0, err
 	}
 
 	p.Extra = string(extraBytes)
 
-	return nil
+	return blockNumber, nil
 }
 
-func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
+func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs []ethtypes.Log, read uint64) error {
 	l := logger.WithFields(logger.Fields{
 		"address":  p.Address,
 		"exchange": p.Exchange,
@@ -385,7 +481,10 @@ func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs [
 	if len(logs) == 0 {
 		return nil
 	}
-	blockNumber := eth.GetBlockNumberFromLogs(logs)
+	// At the block the reserves were just read at, so the bins add up to them: a late log's own
+	// block would put its bins back to their values there, behind the rest of the pair, and a
+	// reorg's, read at its logs' block, below the pair's, would read them ahead of it.
+	blockNumber := read
 
 	binIDsFromLogs, err := t.binIDsFromLogs(logs)
 	if err != nil {
@@ -404,7 +503,7 @@ func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs [
 
 	if err := t.validateBins(p, bins); err != nil {
 
-		bins, err = t.fetchAllBins(ctx, p, binsFromLogs, blockNumber)
+		bins, err = t.refetchAllBins(ctx, p, binsFromLogs, blockNumber)
 		if err != nil {
 			return err
 		}
@@ -429,6 +528,71 @@ func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs [
 	p.Extra = string(extraBytes)
 
 	return nil
+}
+
+// refetchAllBins reads the pair's bins again once those merged from logs no longer add up to its
+// reserves. Without the lens it reads the bins already stored, which cannot find one the stored set
+// never had; the lens reads every non-empty bin at the block the reserves were read at, and its set
+// replaces the stored one.
+//
+// The lens read goes through the guard, so it never makes the update wait: when the guard declines
+// it, or it fails, the stored bins are read again as without the lens.
+func (t *PoolTracker) refetchAllBins(ctx context.Context, p *entity.Pool, binsFromLogs []Bin,
+	blockNumber uint64) ([]Bin, error) {
+	if t.cfg.UseLens {
+		var bins []Bin
+		ran, err := t.lensGuard.Try(ctx, p.Address, func(ctx context.Context) error {
+			// At the block the reserves were read at, so the bins add up to them, as the stored ones
+			// read again do: the pair's own block is past them after a reorg.
+			var at *big.Int
+			if blockNumber > 0 {
+				at = new(big.Int).SetUint64(blockNumber)
+			}
+			snap, err := t.snapshot(ctx, p.Address, at)
+			if err != nil {
+				return err
+			}
+			bins = snap.bins
+			return nil
+		})
+		if ran && err == nil {
+			return bins, nil
+		}
+		logger.WithFields(logger.Fields{"address": p.Address, "ran": ran, "error": err}).
+			Warn("bins not read through the lens; reading the stored ones again")
+	}
+
+	return t.fetchAllBins(ctx, p, binsFromLogs, blockNumber)
+}
+
+var _ pool.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
+
+// NextUpdateAt asks for a pair still without bins, its lens read declined by the guard, to be
+// updated again as soon as the guard would take it: it may see no log for a long time, and only an
+// update gives it its bins. Every other pair needs no update without an event.
+func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
+	if t.cfg.UseLens && !hasState(p) {
+		return t.lensGuard.ReadyAt(p.Address, time.Now()).Unix()
+	}
+	return 0
+}
+
+var _ pool.IPoolTrackerWithReset = (*PoolTracker)(nil)
+
+// ResetPoolState drops the pair's bins for its next update to read them whole through the lens, at a
+// block no lower than block. Without the lens nothing can read them whole, and the pair is kept.
+func (t *PoolTracker) ResetPoolState(p entity.Pool, block uint64) (entity.Pool, bool) {
+	if !t.cfg.UseLens {
+		return p, false
+	}
+	extra := map[string]json.RawMessage{}
+	_ = json.Unmarshal([]byte(p.Extra), &extra)
+	delete(extra, "bins")
+	extra["lensDue"] = json.RawMessage(strconv.FormatUint(max(tickspkg.LensDue(p), block), 10))
+	if b, err := json.Marshal(extra); err == nil {
+		p.Extra = string(b)
+	}
+	return p, true
 }
 
 func (t *PoolTracker) fetchAllBins(ctx context.Context, p *entity.Pool, binsFromLogs []Bin, blockNumber uint64) ([]Bin, error) {

@@ -84,6 +84,8 @@ type FetchRPCResult struct {
 	HookExtra   json.RawMessage     `json:"hX,omitempty"`
 	TrackedAt   int64               `json:"lv,omitempty"`
 	FewReserves []*big.Int          `json:"fwR,omitempty"`
+	// LensBlock is the block the ticks were last read whole at through the lens, 0 if never.
+	LensBlock uint64 `json:"-"`
 }
 
 // ToExtra builds the pool's Extra from this fetch and the given ticks. Every
@@ -97,6 +99,7 @@ func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
 			SqrtPriceX96: r.Slot0.SqrtPriceX96,
 			Tick:         r.Slot0.Tick,
 			Ticks:        ticks,
+			LensBlock:    r.LensBlock,
 		},
 		HookExtra:   r.HookExtra,
 		TrackedAt:   r.TrackedAt,

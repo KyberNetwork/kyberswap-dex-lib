@@ -1,0 +1,102 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "binPoolManager",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "poolId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint24",
+          "name": "startId",
+          "type": "uint24"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "binPoolManager",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "poolId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint24",
+          "name": "startId",
+          "type": "uint24"
+        }
+      ],
+      "name": "getSnapshot",
+      "outputs": [
+        {
+          "internalType": "uint24",
+          "name": "activeId",
+          "type": "uint24"
+        },
+        {
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint24",
+          "name": "nextId",
+          "type": "uint24"
+        },
+        {
+          "internalType": "bool",
+          "name": "done",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint24",
+              "name": "id",
+              "type": "uint24"
+            },
+            {
+              "internalType": "uint128",
+              "name": "reserveX",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "reserveY",
+              "type": "uint128"
+            }
+          ],
+          "internalType": "struct PancakeInfinityBinLens.PopulatedBin[]",
+          "name": "bins",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "UnexpectedPoolManagerResponse",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "UnknownPool",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x6080601f6103d938819003918201601f19168301916001600160401b038311848410176103b7578084926060946040528339810103126103b3578051906001600160a01b0382168083036103b357604060208301519201519062ffffff8216908183036103b3575a604051630716a42560e11b815260048101869052919060c0836024818a5afa156103aa5760c060603d940151931061024d575a810390811161036257613a988111156103a0578061ea60029061ea6082040361036257613a989004915b6001600160a01b03160361039157604051633205590760e21b81528460048201525f602482015260205f602483895afa1561025c57505f5160203d1061024d576040805160e08101825262ffffff929092169591945f948594919015159061012e6104f0846103cb565b915b825a1061037f57908a91610264575b604051635fbdb94360e11b81528660048201525f602482015260205f60648362ffffff8616968760448301525afa1561025c57505f5160203d1061024d5762ffffff16918a81108061023a575b610232575b62ffffff831611156101a557506001610130565b9650505050505060e09293945060015b5f925f60643b61020c575b15610204575b62ffffff90606084029460c0860188526020880198895260408801521660608601521515608085015260a08085015260c08401528201016040525190fd5b4393506101c6565b50925063a3b1b31d841b5f5260205f6004816064614e20fa60203d1416925f51936101c0565b8a9250610191565b50808311158061018c57508a831161018c565b637fae662760e11b5f5260045ffd5b3d5f823e3d90fd5b60408051634580c3c560e01b81526004810188905262ffffff8316602482018190529350905f6044838f5afa1561025c57503d915f51926040602051911061024d578c936001600160801b0391821691168015801590610376575b6102cc575b50505061013f565b8994506060610140949a028c019260e0840152610100830152610120820152016040525f1981146103625760018a91019584871461030d575b5f80806102c4565b9150506040830180931161036257826060810290808204606014901517156103625760c0018060c0116103625761035c6103568b92601f0160051c80800260091c906006020190565b846103cb565b91610305565b634e487b7160e01b5f52601160045260245ffd5b508115156102bf565b5095935050505060e0939495506101b5565b63f7139e3360e01b5f5260045ffd5b5061ea60916100c4565b823d5f823e3d90fd5b5f80fd5b634e487b7160e01b5f52604160045260245ffd5b919082018092116103625756fe"
+}

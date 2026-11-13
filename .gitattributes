@@ -1,0 +1,5 @@
+# Written by go generate from pkg/util/ephemeral/contracts; never edited by hand.
+pkg/**/abi/lens.json linguist-generated=true
+pkg/**/abis/lens.json linguist-generated=true
+pkg/**/abis/plugin.json linguist-generated=true
+pkg/util/ephemeral/contracts/sources.json linguist-generated=true

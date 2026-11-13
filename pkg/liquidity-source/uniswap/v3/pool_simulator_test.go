@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -247,4 +248,19 @@ func TestMaxTxGuard(t *testing.T) {
 		})
 		assert.ErrorIs(t, err, ErrMaxTxExceeded)
 	})
+}
+
+// TestPoolResetForTheLensIsNotBuilt: a pool reset for the lens keeps its tick but not its liquidity
+// until its next read. A hook that allows empty ticks lets it past the ticks check, and building it
+// would read the nil liquidity.
+func TestPoolResetForTheLensIsNotBuilt(t *testing.T) {
+	var p entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(poolEncoded), &p))
+	p = tickspkg.WithoutState(p, 1)
+
+	var extra ExtraTickU256
+	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
+	require.NotNil(t, extra.Tick, "the reset keeps the tick")
+	_, err := NewPoolSimulatorWithExtra(p, &extra, SimulatorConfig{AllowEmptyTicks: true})
+	require.ErrorIs(t, err, ErrNoState)
 }

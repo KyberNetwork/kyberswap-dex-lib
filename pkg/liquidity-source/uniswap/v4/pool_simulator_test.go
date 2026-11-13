@@ -6,8 +6,10 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -123,4 +125,27 @@ func TestPoolSimulator_CalcAmountOut_ArcNativeOut(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Positive(t, got.TokenAmountOut.Amount.Sign())
+}
+
+// TestPoolResetForTheLensIsNotSimulated: a pool reset for the lens keeps its tick and price but not
+// its liquidity until its next read. Its hook allows empty ticks, so only the missing liquidity
+// keeps the simulator from being built on it, and it fails rather than panics.
+func TestPoolResetForTheLensIsNotSimulated(t *testing.T) {
+	cfg := &Config{}
+	cfg.UseLens = true
+	tracker := &PoolTracker{config: cfg}
+
+	p := entity.Pool{
+		Address: "0xpool", SwapFee: 3000, Reserves: entity.PoolReserves{"0", "0"},
+		Tokens:      []*entity.PoolToken{{Address: "0x1", Decimals: 18}, {Address: "0x2", Decimals: 18}},
+		StaticExtra: `{"hooks":"` + liveActiveHookAddr.Hex() + `","fee":3000,"tS":60}`,
+		Extra:       `{"liquidity":1,"sqrtPriceX96":79228162514264337593543950336,"tickSpacing":60,"tick":0,"ticks":[],"hX":{"a":1}}`,
+	}
+	_, err := NewPoolSimulator(p, 1)
+	require.NoError(t, err, "the hook lets a pool without ticks be simulated")
+
+	reset, ok := tracker.ResetPoolState(p, 100)
+	require.True(t, ok)
+	_, err = NewPoolSimulator(reset, 1)
+	require.ErrorIs(t, err, uniswapv3.ErrNoState)
 }

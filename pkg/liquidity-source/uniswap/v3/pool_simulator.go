@@ -61,6 +61,11 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 	if extra.Tick == nil {
 		return nil, ErrTickNil
 	}
+	// A pool reset for the lens keeps its tick but not its liquidity, until its next read: a hook
+	// that allows empty ticks would otherwise build it on a nil liquidity.
+	if extra.Liquidity == nil || extra.SqrtPriceX96 == nil {
+		return nil, ErrNoState
+	}
 
 	swapFee := big.NewInt(int64(entityPool.SwapFee))
 	tokens := make([]string, 2)
