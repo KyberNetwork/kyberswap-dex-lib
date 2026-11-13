@@ -76,9 +76,7 @@ func Lazycall(
 		DepositRates: make([]*big.Int, len(erc4626.PrefetchAmounts)),
 		RedeemRates:  make([]*big.Int, len(erc4626.PrefetchAmounts)),
 	}
-	if tokenAddr != "" { // decoupled share: balanceOf of the vault is not the share balance
-		vaultCfg.Balance.None = true
-	}
+	vaultCfg = decoupledShareCfg(vaultCfg, tokenAddr)
 	// The probe overrides ride on the request; the batch consumer applies them (ILazyRequestWithOverrides).
 	r := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(vaultCfg.WithBalanceProbe(vaultAddr, overrides))
 	req := poolpkg.LazyRequest{Request: r}
@@ -92,16 +90,12 @@ func Lazycall(
 		}
 		normalizePoolState(vaultCfg, &poolState) // resolves the probe read-back too
 		if poolState.NeedsCleanRead() {          // markers may alias storage: read again without them, once per vault
-			clean := vaultCfg
-			clean.Balance = erc4626.BalanceSlot{None: true}
-			_, state, err := fetchAssetAndState(ctx, ethrpcClient, vaultAddr, tokenAddr, clean, fetchAsset, overrides)
+			_, state, err := cleanReread(ctx, ethrpcClient, vaultAddr, tokenAddr, vaultCfg, fetchAsset, overrides, poolState.Slot)
 			if err != nil {
 				return *pool, err
 			}
-			state.Slot, state.SlotChanged = poolState.Slot, true
-			poolState = *state
-		}
-		if blockNumber != nil {
+			poolState = *state // keeps the re-read block
+		} else if blockNumber != nil {
 			poolState.BlockNumber = blockNumber.Uint64()
 		} else {
 			poolState.BlockNumber = pool.BlockNumber

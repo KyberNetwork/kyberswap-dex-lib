@@ -136,13 +136,29 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	if err != nil || !state.NeedsCleanRead() {
 		return assetToken, state, err
 	}
+	return cleanReread(ctx, ethrpcClient, vaultAddr, tokenAddr, vaultCfg, fetchAsset, overrides, state.Slot)
+}
+
+// cleanReread fetches the state again without probe markers (they may alias packed storage), keeping the
+// probe's slot result. The returned state carries the re-read block.
+func cleanReread(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr, tokenAddr string, vaultCfg erc4626.VaultCfg,
+	fetchAsset bool, overrides map[common.Address]gethclient.OverrideAccount, slot erc4626.BalanceSlot,
+) (common.Address, *erc4626.PoolState, error) {
 	vaultCfg.Balance = erc4626.BalanceSlot{None: true}
-	slot := state.Slot
-	assetToken, state, err = fetchAssetAndState(ctx, ethrpcClient, vaultAddr, tokenAddr, vaultCfg, fetchAsset, overrides)
+	assetToken, state, err := fetchAssetAndState(ctx, ethrpcClient, vaultAddr, tokenAddr, vaultCfg, fetchAsset, overrides)
 	if err == nil {
 		state.Slot, state.SlotChanged = slot, true
 	}
 	return assetToken, state, err
+}
+
+// decoupledShareCfg disables the balance probe when the share token is not the vault: balanceOf of the vault
+// is not the share balance.
+func decoupledShareCfg(vaultCfg erc4626.VaultCfg, tokenAddr string) erc4626.VaultCfg {
+	if tokenAddr != "" {
+		vaultCfg.Balance.None = true
+	}
+	return vaultCfg
 }
 
 func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr, tokenAddr string, vaultCfg erc4626.VaultCfg,
@@ -153,9 +169,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		RedeemRates:  make([]*big.Int, len(erc4626.PrefetchAmounts)),
 	}
 
-	if tokenAddr != "" { // decoupled share: balanceOf of the vault is not the share balance
-		vaultCfg.Balance.None = true
-	}
+	vaultCfg = decoupledShareCfg(vaultCfg, tokenAddr)
 	req := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(vaultCfg.WithBalanceProbe(vaultAddr, overrides))
 	addStateCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, tokenAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
 	erc4626.AddBalanceProbeCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, vaultCfg, &poolState)
