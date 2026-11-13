@@ -27,6 +27,13 @@ func (c *Config) withDefaults() error {
 	if !ok {
 		return ErrUnsupportedChain
 	}
+	switch c.MarketKind {
+	case "":
+		c.MarketKind = MarketKindSpot
+	case MarketKindSpot, MarketKindLaunch:
+	default:
+		return ErrUnsupportedMarketKind
+	}
 	if c.AMMAddress == "" {
 		c.AMMAddress = d.AMM
 	}

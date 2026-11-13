@@ -85,6 +85,11 @@ func TestConfigDefaultsOnlyKnownDeployments(t *testing.T) {
 
 	unknown := &Config{DexID: "doppler-amm", ChainID: 1}
 	require.ErrorIs(t, unknown.withDefaults(), ErrUnsupportedChain)
+
+	// empty kind defaults to spot; a typo must not silently list spot pools under a launch dex
+	require.Equal(t, MarketKindSpot, cfg.MarketKind)
+	typo := &Config{DexID: "doppler-fun", ChainID: 8453, MarketKind: "lunch"}
+	require.ErrorIs(t, typo.withDefaults(), ErrUnsupportedMarketKind)
 }
 
 // A launch source lists only LaunchModule + FeesLocker markets; any other extension

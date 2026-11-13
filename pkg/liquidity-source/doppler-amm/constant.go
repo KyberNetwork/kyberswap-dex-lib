@@ -50,6 +50,7 @@ var deployments = map[int]Deployment{
 
 var (
 	ErrUnsupportedChain      = errors.New("doppler-amm: unsupported chain")
+	ErrUnsupportedMarketKind = errors.New("doppler-amm: unsupported market kind")
 	ErrUnsupportedMarket     = errors.New("doppler-amm: unsupported market composition")
 	ErrInsufficientLiquidity = errors.New("doppler-amm: insufficient liquidity")
 	ErrInvalidToken          = errors.New("doppler-amm: invalid token")

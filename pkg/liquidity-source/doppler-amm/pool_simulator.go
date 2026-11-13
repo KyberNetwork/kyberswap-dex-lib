@@ -139,17 +139,23 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 // launchOut quotes a Launch Market swap. The returned Extra carries the post-trade
 // price and liquidity for UpdateBalance; the level nets are left out of the route summary.
 func (s *PoolSimulator) launchOut(amountIn *uint256.Int, zeroForOne bool) (uint256.Int, Extra, error) {
-	var fee, eff, sqrtP, liquidity uint256.Int
+	var fee, eff, sqrtP, liquidity, k uint256.Int
 	// the protocol base fee comes off the input first, floored
-	fee.Mul(amountIn, uint256.NewInt(uint64(s.extra.BaseFeeBps))) // bounded: bps < 2^16
+	k.SetUint64(uint64(s.extra.BaseFeeBps))
+	if _, overflow := fee.MulOverflow(amountIn, &k); overflow {
+		return uint256.Int{}, Extra{}, ErrOverflow
+	}
 	fee.Div(&fee, bpsDenomU256)
 	eff.Sub(amountIn, &fee)
 	sqrtP.Set(&s.sqrtP)
 	liquidity.Set(&s.liquidity)
 	// Only the net amount stays in the reserve: the base fee and the whole swap fee leave it.
 	// eff*(1e6-fee) cannot overflow: launchSwap rejects it.
-	delta := new(uint256.Int).Mul(&eff, uint256.NewInt(feePipsDenominator-uint64(s.extra.SwapFeePips)))
-	delta.Div(delta, uint256.NewInt(feePipsDenominator))
+	delta := new(uint256.Int)
+	k.SetUint64(feePipsDenominator - uint64(s.extra.SwapFeePips))
+	delta.Mul(&eff, &k)
+	k.SetUint64(feePipsDenominator)
+	delta.Div(delta, &k)
 	out, err := launchSwap(s.bounds, s.nets, s.extra.SwapFeePips, &sqrtP, &liquidity, &eff, zeroForOne)
 	info := Extra{TokenX: s.extra.TokenX, BaseFeeBps: s.extra.BaseFeeBps, SwapFeePips: s.extra.SwapFeePips,
 		SqrtPriceX96: &sqrtP, Liquidity: &liquidity, ReserveInDelta: delta}
