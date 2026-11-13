@@ -3,6 +3,7 @@ package fraxswap
 import (
 	"errors"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
@@ -115,6 +116,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee:            fee,
 		Gas:            p.gas.Swap,
 	}, nil
+}
+
+// CloneState copies the reserves slice UpdateBalance writes by index. Fee is read-only and the
+// big.Int reserves are replaced on write, so both can be shared.
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
