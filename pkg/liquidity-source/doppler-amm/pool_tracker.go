@@ -80,7 +80,7 @@ func (t *PoolTracker) GetNewPoolState(
 	var prev Extra
 	_ = json.Unmarshal([]byte(p.Extra), &prev)
 	if prev.FeeRecipient == "" {
-		if err = t.readSpotConfig(ctx, staticExtra.AMM, marketID, &prev); err != nil {
+		if err = t.readSpotConfig(ctx, staticExtra.AMM, marketID, resp.BlockNumber, &prev); err != nil {
 			return p, err
 		}
 	}
@@ -118,19 +118,19 @@ const (
 	spotConfigLpFeeIdx  = 8
 )
 
-// readSpotConfig fills the LP fee, its recipient and whether the recipient keeps the fee in the market.
+// readSpotConfig reads at block (the aggregate's block) and fills the LP fee, its recipient and whether the recipient keeps the fee in the market.
 // On chain a swap pays the protocol its base fee and 7.5% of the LP fee out of the input reserve. The
 // rest of the LP fee stays in the reserve when the recipient is a contract and is paid out to it when
 // it is an EOA (observed on every Base market; the AMM is unverified).
-func (t *PoolTracker) readSpotConfig(ctx context.Context, amm string, marketID *big.Int, into *Extra) error {
+func (t *PoolTracker) readSpotConfig(ctx context.Context, amm string, marketID, block *big.Int, into *Extra) error {
 	var cfg marketConfig
-	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(block).
 		AddCall(&ethrpc.Call{ABI: ammABI, Target: amm, Method: "marketConfig", Params: []any{marketID}}, []any{&cfg}).
 		Call(); err != nil {
 		return err
 	}
 	client := t.ethrpcClient.GetETHClient()
-	blob, err := client.CodeAt(ctx, cfg.ConfigPointer, nil)
+	blob, err := client.CodeAt(ctx, cfg.ConfigPointer, block)
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func (t *PoolTracker) readSpotConfig(ctx context.Context, amm string, marketID *
 		return ErrUnsupportedMarket
 	}
 	recipient := common.BytesToAddress(word(spotConfigFeeToIdx))
-	recipientCode, err := client.CodeAt(ctx, recipient, nil)
+	recipientCode, err := client.CodeAt(ctx, recipient, block)
 	if err != nil {
 		return err
 	}
