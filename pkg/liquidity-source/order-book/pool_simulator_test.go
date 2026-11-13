@@ -34,6 +34,15 @@ var entityPool = entity.Pool{
 	Extra: "{\"l\":[null,[[0,0.9991504223059631],[500.2249999999999,0.9991504223059631],[3501.5749999999994,0.9991504223059631],[9504.274999999998,0.9991504223059628],[18508.324999999997,0.9991504223059632],[30513.725,0.9990275390775962],[45520.474999999984,0.9988769463564154],[63528.57499999998,0.998190713968263],[84538.025,0.9987006696901404],[108548.82500000001,0.9987006696901407]]]}",
 }
 
+// clear-rfq gas is measured, not the 68331 default; a missing gasByDex entry would silently under-cost it.
+func TestPoolSimulator_ClearRFQGas(t *testing.T) {
+	clearPool := entityPool
+	clearPool.Exchange = "clear-rfq"
+	poolSimulator, err := NewPoolSimulator(pool.FactoryParams{EntityPool: clearPool})
+	require.NoError(t, err)
+	assert.Equal(t, Gas{Base: 589176}, poolSimulator.Gas)
+}
+
 func TestPoolSimulator_NewPool(t *testing.T) {
 	poolSimulator, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool})
 	assert.NoError(t, err)

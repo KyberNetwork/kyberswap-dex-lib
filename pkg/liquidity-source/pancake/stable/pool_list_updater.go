@@ -13,7 +13,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
@@ -185,20 +184,24 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common
 			})
 		}
 
-		var newPool = entity.Pool{
-			Address:     hexutil.Encode(poolAddress[:]),
-			Exchange:    u.config.DexID,
-			Type:        curve.PoolTypeBase,
-			Timestamp:   time.Now().Unix(),
-			Reserves:    []string{"0", "0"},
-			Tokens:      tokens,
-			StaticExtra: string(extraBytes),
-		}
+		newPool := newEntityPool(u.config.DexID, poolAddress, tokens, extraBytes)
 
 		pools = append(pools, newPool)
 	}
 
 	return pools, nil
+}
+
+func newEntityPool(dexID string, poolAddress common.Address, tokens []*entity.PoolToken, staticExtra []byte) entity.Pool {
+	return entity.Pool{
+		Address:     hexutil.Encode(poolAddress[:]),
+		Exchange:    dexID,
+		Type:        DexType,
+		Timestamp:   time.Now().Unix(),
+		Reserves:    []string{"0", "0"},
+		Tokens:      tokens,
+		StaticExtra: string(staticExtra),
+	}
 }
 
 func (u *PoolsListUpdater) listPoolTokens(ctx context.Context, poolAddresses []common.Address) ([][]common.Address, error) {
