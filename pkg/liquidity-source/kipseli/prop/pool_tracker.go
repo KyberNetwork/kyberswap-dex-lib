@@ -88,7 +88,6 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extraBytes, err := json.Marshal(Extra{
 		Ladders: ladders,
-		SO:      titanState.ToStateOverrides(),
 	})
 	if err != nil {
 		return p, err

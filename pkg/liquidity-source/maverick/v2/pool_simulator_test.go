@@ -419,16 +419,39 @@ func quoteOut(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut string, amount
 	return res
 }
 
-// fillable is the part of amountIn the pool's liquidity can take, from the swap the quote runs.
+// fillable is the part of amountIn the pool's liquidity can take: the largest amount up to it whose swap
+// completes, found by bisection.
 func fillable(t *testing.T, sim *PoolSimulator, zeroForOne bool, amountIn *big.Int, decimals uint8) *big.Int {
 	t.Helper()
-	scaled := scaleFromAmount(uint256.MustFromBig(amountIn), decimals)
-	_, unfilled, _, _, err := swap(sim.state.Clone(true), scaled, zeroForOne, false)
-	require.NoError(t, err)
-	if unfilled == nil {
-		return amountIn
+	return ScaleToAmount(fillableScaled(t, sim.state, zeroForOne,
+		scaleFromAmount(uint256.MustFromBig(amountIn), decimals)), decimals).ToBig()
+}
+
+// fillableScaled is the largest scaled input up to limit whose swap on state completes.
+func fillableScaled(t *testing.T, state *MaverickPoolState, zeroForOne bool, limit *uint256.Int) *uint256.Int {
+	t.Helper()
+	fills := func(amount *uint256.Int) bool {
+		_, _, _, err := swap(state.Clone(true), amount, zeroForOne, false)
+		if err != nil {
+			require.ErrorIs(t, err, ErrInsufficientLiquidity)
+		}
+		return err == nil
 	}
-	return new(big.Int).Sub(amountIn, ScaleToAmount(unfilled.Clone(), decimals).ToBig())
+	if fills(limit) {
+		return limit.Clone()
+	}
+	low, high := uint256.NewInt(0), limit.Clone() // fills(low), !fills(high)
+	one := uint256.NewInt(1)
+	for new(uint256.Int).Sub(high, low).Gt(one) {
+		mid := new(uint256.Int).Add(low, high)
+		mid.Rsh(mid, 1)
+		if fills(mid) {
+			low = mid
+		} else {
+			high = mid
+		}
+	}
+	return low
 }
 
 // Past the liquidity the quote can reach, the swap is refused: the executor's tickLimit is int32.max, so the
@@ -491,18 +514,16 @@ func TestCalcAmountIn_PastCapacityIsRefused(t *testing.T) {
 }
 
 // The quote counts the ticks without liquidity it walks over to reach a tick it swaps in (about 2,540 gas each
-// on-chain), but not the walk past the last liquidity, which the executable swap of the consumed amount never
-// makes.
-func TestSwap_CountsEmptyTicksWalkedOnlyUpToLiquidity(t *testing.T) {
+// on-chain). Each swap here takes all the liquidity the pool has in its direction.
+func TestSwap_CountsEmptyTicksWalkedToLiquidity(t *testing.T) {
 	t.Parallel()
 	sim, _ := loadEzEthWeth(t)
-	amount := bignumber.NewBig10("6550000000000000000")
+	limit := scaleFromAmount(uint256FromBig(t, bignumber.NewBig10("6550000000000000000")), 18)
 
 	full := sim.state.Clone(true)
-	_, unfilled, _, empty, err := swap(full, scaleFromAmount(uint256FromBig(t, amount), 18), true, false)
+	_, _, empty, err := swap(full, fillableScaled(t, sim.state, true, limit), true, false)
 	require.NoError(t, err)
-	require.NotNil(t, unfilled)
-	require.Zero(t, empty, "the walk past the last liquidity is not part of the executed swap")
+	require.Zero(t, empty, "the pool's liquid ticks are next to each other")
 
 	gapped := sim.state.Clone(true)
 	_, ok := gapped.Ticks[-10]
@@ -510,9 +531,8 @@ func TestSwap_CountsEmptyTicksWalkedOnlyUpToLiquidity(t *testing.T) {
 	gappedTicks := maps.Clone(gapped.Ticks)
 	delete(gappedTicks, -10) // tick -10 now has no liquidity, between liquid ticks -11 and -9
 	gapped.Ticks = gappedTicks
-	_, unfilled, _, empty, err = swap(gapped, scaleFromAmount(uint256FromBig(t, amount), 18), true, false)
+	_, _, empty, err = swap(gapped.Clone(true), fillableScaled(t, gapped, true, limit), true, false)
 	require.NoError(t, err)
-	require.NotNil(t, unfilled)
 	require.Equal(t, uint32(1), empty)
 	require.Equal(t, int64(GasSwap+GasCrossBin*3+GasEmptyTick*2), swapGas(3, 2))
 }
@@ -522,4 +542,80 @@ func uint256FromBig(t *testing.T, b *big.Int) *uint256.Int {
 	u, overflow := uint256.FromBig(b)
 	require.False(t, overflow)
 	return u
+}
+
+func TestSwapInsufficientLiquidity(t *testing.T) {
+	t.Parallel()
+
+	// Live arbitrum pool 0x19d613edfa9db4a009582103f585369e3f89fd34 (tokenA / USDC), where swapping
+	// more than the pool's tokenA liquidity reverts out of gas in pool.swap instead of partially filling
+	data, err := os.ReadFile("./data/arb_pool_19d6.json")
+	require.NoError(t, err)
+
+	var poolEntity entity.Pool
+	err = json.Unmarshal(data, &poolEntity)
+	require.NoError(t, err)
+
+	poolSim, err := NewPoolSimulator(poolEntity)
+	require.NoError(t, err)
+
+	tokenA, tokenB := poolEntity.Tokens[0].Address, poolEntity.Tokens[1].Address
+
+	calcAmountOut := func(t *testing.T, tokenIn, tokenOut string, amountIn *big.Int) (*pool.CalcAmountOutResult, error) {
+		t.Helper()
+		return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
+			TokenOut:      tokenOut,
+		})
+	}
+	calcAmountIn := func(t *testing.T, tokenIn, tokenOut string, amountOut *big.Int) (*pool.CalcAmountInResult, error) {
+		t.Helper()
+		return poolSim.CalcAmountIn(pool.CalcAmountInParams{
+			TokenIn:        tokenIn,
+			TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: amountOut},
+		})
+	}
+
+	reservesBefore := []*big.Int{new(big.Int).Set(poolSim.Info.Reserves[0]), new(big.Int).Set(poolSim.Info.Reserves[1])}
+
+	t.Run("tokenB in within liquidity", func(t *testing.T) {
+		result, err := calcAmountOut(t, tokenB, tokenA, big.NewInt(1_000_000_000)) // 1,000 USDC
+		require.NoError(t, err)
+		require.Equal(t, "1000299884059565185946", result.TokenAmountOut.Amount.String())
+	})
+
+	t.Run("tokenB in beyond liquidity", func(t *testing.T) {
+		_, err := calcAmountOut(t, tokenB, tokenA, big.NewInt(10_000_000_000)) // 10,000 USDC
+		require.ErrorIs(t, err, ErrInsufficientLiquidity)
+	})
+
+	t.Run("tokenA in within liquidity", func(t *testing.T) {
+		result, err := calcAmountOut(t, tokenA, tokenB, new(big.Int).Exp(big.NewInt(10), big.NewInt(21), nil)) // 1,000 tokenA
+		require.NoError(t, err)
+		require.Equal(t, "998966821", result.TokenAmountOut.Amount.String())
+	})
+
+	t.Run("tokenA in beyond liquidity", func(t *testing.T) {
+		_, err := calcAmountOut(t, tokenA, tokenB, new(big.Int).Exp(big.NewInt(10), big.NewInt(22), nil)) // 10,000 tokenA
+		require.ErrorIs(t, err, ErrInsufficientLiquidity)
+	})
+
+	t.Run("exact output within liquidity", func(t *testing.T) {
+		result, err := calcAmountIn(t, tokenB, tokenA, new(big.Int).Exp(big.NewInt(10), big.NewInt(21), nil)) // 1,000 tokenA out
+		require.NoError(t, err)
+		require.Equal(t, "999700103", result.TokenAmountIn.Amount.String())
+	})
+
+	t.Run("exact output beyond liquidity", func(t *testing.T) {
+		_, err := calcAmountIn(t, tokenB, tokenA, new(big.Int).Exp(big.NewInt(10), big.NewInt(22), nil)) // 10,000 tokenA out
+		require.ErrorIs(t, err, ErrInsufficientLiquidity)
+
+		_, err = calcAmountIn(t, tokenA, tokenB, big.NewInt(2_000_000_000)) // 2,000 USDC out
+		require.ErrorIs(t, err, ErrInsufficientLiquidity)
+	})
+
+	t.Run("state unchanged after error", func(t *testing.T) {
+		require.Equal(t, reservesBefore[0].String(), poolSim.Info.Reserves[0].String())
+		require.Equal(t, reservesBefore[1].String(), poolSim.Info.Reserves[1].String())
+	})
 }

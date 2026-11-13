@@ -133,7 +133,6 @@ type Delta struct {
 	TokenAIn           bool
 	ExactOutput        bool
 	SkipCombine        bool
-	Unfilled           *uint256.Int // nomutate: the excess pastMaxTick zeroed; nil while the swap fills
 }
 
 // Tick represents a tick's liquidity state

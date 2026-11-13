@@ -30,5 +30,5 @@ var (
 	ErrEmptyBins = errors.New("empty bins")
 	ErrOverflow  = errors.New("overflow")
 
-	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
+	ErrInsufficientLiquidity = errors.New("INSUFFICIENT_LIQUIDITY")
 )
