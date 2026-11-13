@@ -183,6 +183,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 }
 
+// CloneState is a struct copy: UpdateBalance replaces Reserves, FictiveReserve, PriceAverage and
+// FeeToAmount wholesale and never writes through their pointers.
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	return &cloned
+}
+
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return pool.MetaInfo{BlockNumber: p.Info.BlockNumber}
 }
