@@ -135,6 +135,42 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}, nil
 }
 
+// CalcAmtOut is CalcAmountOut with uint256 amounts. It runs the same GetDy and tweak_price steps.
+func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenIndexFrom := t.Info.GetTokenIndex(param.TokenAmountIn.Token)
+	tokenIndexTo := t.Info.GetTokenIndex(param.TokenOut)
+	if tokenIndexFrom < 0 || tokenIndexTo < 0 {
+		return nil, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
+	}
+
+	var amountOut, fee uint256.Int
+	var swapInfo SwapInfo
+	err := t.GetDy(
+		tokenIndexFrom,
+		tokenIndexTo,
+		&param.TokenAmountIn.Amount,
+		&amountOut, &fee, &swapInfo.K0, swapInfo.Xp[:],
+	)
+	if err != nil {
+		return nil, err
+	} else if amountOut.IsZero() {
+		return nil, ErrZero
+	}
+	A, gamma := t._A_gamma()
+	if err = t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0,
+		swapInfo.LastPrices[:], swapInfo.PriceScale[:], &swapInfo.XcpProfit, &swapInfo.D,
+		&swapInfo.VirtualPrice); err != nil {
+		return nil, errors.WithMessage(err, "tweak price")
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: param.TokenOut, Amount: amountOut},
+		Fee:            &pool.TokenAmt{Token: param.TokenOut, Amount: fee},
+		Gas:            t.gas,
+		SwapInfo:       swapInfo,
+	}, nil
+}
+
 func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	tokenIn := param.TokenIn
 	tokenAmountOut := param.TokenAmountOut
