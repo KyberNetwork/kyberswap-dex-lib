@@ -7,6 +7,112 @@
     "type": "address"
    }
   ],
+  "name": "getAsset",
+  "outputs": [
+   {
+    "components": [
+     {
+      "internalType": "uint128",
+      "name": "reserves",
+      "type": "uint128"
+     },
+     {
+      "internalType": "uint128",
+      "name": "liabilities",
+      "type": "uint128"
+     },
+     {
+      "internalType": "address",
+      "name": "anchor",
+      "type": "address"
+     },
+     {
+      "internalType": "uint96",
+      "name": "minLiquidity",
+      "type": "uint96"
+     },
+     {
+      "internalType": "uint72",
+      "name": "liquidityIndexWad",
+      "type": "uint72"
+     },
+     {
+      "internalType": "uint32",
+      "name": "minDispersionPbps",
+      "type": "uint32"
+     },
+     {
+      "internalType": "uint16",
+      "name": "curveId",
+      "type": "uint16"
+     },
+     {
+      "internalType": "uint16",
+      "name": "minFeePbps",
+      "type": "uint16"
+     },
+     {
+      "internalType": "uint16",
+      "name": "vegaBps",
+      "type": "uint16"
+     },
+     {
+      "internalType": "uint16",
+      "name": "depositCapCode",
+      "type": "uint16"
+     },
+     {
+      "internalType": "uint8",
+      "name": "decimals",
+      "type": "uint8"
+     },
+     {
+      "internalType": "uint8",
+      "name": "deadSeedPow10",
+      "type": "uint8"
+     },
+     {
+      "internalType": "uint16",
+      "name": "flags",
+      "type": "uint16"
+     },
+     {
+      "internalType": "uint16",
+      "name": "maxLiabWeightBps",
+      "type": "uint16"
+     },
+     {
+      "internalType": "uint8",
+      "name": "oracleBits",
+      "type": "uint8"
+     },
+     {
+      "internalType": "uint32",
+      "name": "covBits",
+      "type": "uint32"
+     },
+     {
+      "internalType": "uint16",
+      "name": "kneeBits",
+      "type": "uint16"
+     }
+    ],
+    "internalType": "struct IPool.Asset",
+    "name": "",
+    "type": "tuple"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "tk",
+    "type": "address"
+   }
+  ],
   "name": "getRiskFlags",
   "outputs": [
    {
@@ -109,6 +215,25 @@
     "internalType": "struct IPool.SwapQuote",
     "name": "",
     "type": "tuple"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "who",
+    "type": "address"
+   }
+  ],
+  "name": "inSwapGate",
+  "outputs": [
+   {
+    "internalType": "bool",
+    "name": "",
+    "type": "bool"
    }
   ],
   "stateMutability": "view",

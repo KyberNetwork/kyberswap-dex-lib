@@ -8,7 +8,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -26,19 +25,18 @@ var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 var probeExps = [...]int{-2, 0, 2}
 
 // gridPermille are the grid amounts as a share of maxIn, the tokenIn amount
-// worth the full tokenOut balance at the probed rate. The core caps its output
-// near 93% of the balance, and the curve is near-linear below that, so the
-// samples are denser toward the top where the cap shows up. The 17 sample trims
-// the chord overquote between 10 and 30 (the pool's own +-50 sat output
-// sawtooth on cbBTC pairs remains).
+// worth the full tokenOut balance at the probed rate, clamped to both legs'
+// coverage caps (clampToCaps). The curve is near-linear below the cap and
+// steepens toward it (the coverage toll), so the samples are denser toward the
+// top. The 17 sample trims the chord overquote between 10 and 30 (the pool's
+// own +-50 sat output sawtooth on cbBTC pairs remains).
 var gridPermille = [...]uint64{1, 3, 10, 17, 30, 60, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000}
 
-// The core caps its output near 92.7% of the out balance, which sits at about
-// 0.98-0.995 of maxIn in input terms on the live pairs. The grid's last segment
-// (900..1000) would straddle that kink and underquote by ~140 bps, so a few
-// extra samples go around it. Cold start (no previous ladder): fixed permille
-// of maxIn. Warm start: permille of the previous ladder's last In, which is the
-// first sample at the cap. The 1005 point catches an onset that drifted up.
+// The coverage cap refuses a size past it, and the toll steepens as a leg nears
+// it, so the grid's last segment (900..1000) would straddle the steep part and
+// underquote; a few extra samples go around it. Cold start (no previous
+// ladder): fixed permille of maxIn. Warm start: permille of the previous
+// ladder's last In, which is the last size the pool still served.
 var (
 	coldKneePermille = [...]uint64{950, 975, 990}
 	warmKneePermille = [...]uint64{950, 980, 995}
@@ -85,6 +83,33 @@ type rpcSwapQuoteResult struct {
 	Quote rpcSwapQuote
 }
 
+// rpcAsset mirrors the IPool.Asset tuple returned by getAsset, in ABI order. The tracker reads
+// Reserves, Liabilities, Flags, CovBits and KneeBits: they size the coverage caps.
+type rpcAsset struct {
+	Reserves          *big.Int       `abi:"reserves"`
+	Liabilities       *big.Int       `abi:"liabilities"`
+	Anchor            common.Address `abi:"anchor"`
+	MinLiquidity      *big.Int       `abi:"minLiquidity"`
+	LiquidityIndexWad *big.Int       `abi:"liquidityIndexWad"`
+	MinDispersionPbps uint32         `abi:"minDispersionPbps"`
+	CurveID           uint16         `abi:"curveId"`
+	MinFeePbps        uint16         `abi:"minFeePbps"`
+	VegaBps           uint16         `abi:"vegaBps"`
+	DepositCapCode    uint16         `abi:"depositCapCode"`
+	Decimals          uint8          `abi:"decimals"`
+	DeadSeedPow10     uint8          `abi:"deadSeedPow10"`
+	Flags             uint16         `abi:"flags"`
+	MaxLiabWeightBps  uint16         `abi:"maxLiabWeightBps"`
+	OracleBits        uint8          `abi:"oracleBits"`
+	CovBits           uint32         `abi:"covBits"`
+	KneeBits          uint16         `abi:"kneeBits"`
+}
+
+// rpcAssetResult wraps the single unnamed tuple output, as rpcSwapQuoteResult does.
+type rpcAssetResult struct {
+	Asset rpcAsset
+}
+
 // pairProbe holds the rate probes of one ordered pair, then its grid.
 type pairProbe struct {
 	from, to int
@@ -118,9 +143,11 @@ func (t *PoolTracker) GetNewPoolState(
 	var prev Extra
 	_ = json.Unmarshal([]byte(p.Extra), &prev)
 
-	// Phase 1: flags, balances, the lane registry and the rate probes, all in one multicall.
+	// Phase 1: flags, balances, books, the executor's swap-gate membership and the rate probes,
+	// all in one multicall.
 	flags := make([]uint16, n)
 	balances := make([]*big.Int, n)
+	assets := make([]*rpcAssetResult, n)
 	req := t.client.NewRequest().SetContext(ctx)
 	for i := range addrs {
 		req.AddCall(&ethrpc.Call{
@@ -129,9 +156,20 @@ func (t *PoolTracker) GetNewPoolState(
 		req.AddCall(&ethrpc.Call{
 			ABI: utilabi.Erc20ABI, Target: p.Tokens[i].Address, Method: "balanceOf", Params: []any{poolAddr},
 		}, []any{&balances[i]})
+		assets[i] = new(rpcAssetResult)
+		req.AddCall(&ethrpc.Call{
+			ABI: poolABI, Target: p.Address, Method: "getAsset", Params: []any{addrs[i]},
+		}, []any{assets[i]})
 	}
-	var registry common.Address
-	req.AddCall(&ethrpc.Call{ABI: registryABI, Target: p.Address, Method: "registry"}, []any{&registry})
+	// Whether the executor may swap SWAP_GATED legs. Read, never assumed: the owner admits the
+	// executor to the pool's swap gate separately, and the answer flips the legs open.
+	var inGate bool
+	hasExecutor := common.IsHexAddress(t.config.Executor)
+	if hasExecutor {
+		req.AddCall(&ethrpc.Call{
+			ABI: poolABI, Target: p.Address, Method: "inSwapGate", Params: []any{common.HexToAddress(t.config.Executor)},
+		}, []any{&inGate})
+	}
 	probes := make([]*pairProbe, 0, n*(n-1))
 	for i := range addrs {
 		for j := range addrs {
@@ -153,28 +191,25 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 	for i := range addrs {
-		if !resp.Result[2*i] {
+		if !resp.Result[3*i] {
 			flags[i] = 0 // unreadable flags read as swap disabled
 		}
+		if !resp.Result[3*i+2] {
+			assets[i] = nil // unreadable book: no cap clamp, the first revert ends the ladder
+		}
 	}
-	probeOK := resp.Result[2*n+1:]
-	registryOK := resp.Result[2*n]
+	probeOK := resp.Result[3*n:]
+	gateOK := false
+	if hasExecutor {
+		gateOK, probeOK = resp.Result[3*n] && inGate, resp.Result[3*n+1:]
+	}
 	for _, pp := range probes {
 		pp.ok, probeOK = probeOK[:len(pp.ins)], probeOK[len(pp.ins):]
 	}
 
-	// Phase 2: the executor's lane (it depends on the registry address) and the
-	// grid, pinned to the block of phase 1.
+	// Phase 2: the grid, pinned to the block of phase 1.
 	grids := make([]*pairProbe, 0, len(probes))
 	req = t.client.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
-	var perms *big.Int
-	hasLane := registryOK && registry != (common.Address{}) && common.IsHexAddress(t.config.Executor)
-	if hasLane {
-		req.AddCall(&ethrpc.Call{
-			ABI: registryABI, Target: hexutil.Encode(registry[:]), Method: "perms",
-			Params: []any{common.HexToAddress(t.config.Executor)},
-		}, []any{&perms})
-	}
 	for _, pp := range probes {
 		if balances[pp.to] == nil {
 			continue
@@ -184,6 +219,9 @@ func (t *PoolTracker) GetNewPoolState(
 			continue
 		}
 		maxIn := pp.maxIn(&balOut)
+		// Both coverage caps refuse a size past them (ThresholdViolation), so a grid sized
+		// past either would spend its upper samples on reverts.
+		maxIn = pp.clampToCaps(maxIn, &balOut, assets[pp.from], assets[pp.to])
 		g := &pairProbe{from: pp.from, to: pp.to, probes: pp, ins: gridAmounts(maxIn, kneeAmounts(prev.ladder(pp.from, pp.to), &maxIn))}
 		if len(g.ins) == 0 {
 			continue
@@ -191,23 +229,19 @@ func (t *PoolTracker) GetNewPoolState(
 		g.addQuoteCalls(req, p.Address, addrs[pp.from], addrs[pp.to])
 		grids = append(grids, g)
 	}
-	extra := Extra{Flags: flags, Ladders: make([][]Ladder, n)}
+	extra := Extra{Flags: flags, GateOK: gateOK, Ladders: make([][]Ladder, n)}
 	for i := range extra.Ladders {
 		extra.Ladders[i] = make([]Ladder, n)
 		for j := range extra.Ladders[i] {
 			extra.Ladders[i][j] = Ladder{}
 		}
 	}
-	if hasLane || len(grids) > 0 {
+	if len(grids) > 0 {
 		gridResp, err := req.TryBlockAndAggregate()
 		if err != nil {
 			return p, err
 		}
 		okAll := gridResp.Result
-		if hasLane {
-			extra.LaneOK = okAll[0] && perms != nil && perms.Bit(LaneSwapBit) == 1
-			okAll = okAll[1:]
-		}
 		for _, g := range grids {
 			g.ok, okAll = okAll[:len(g.ins)], okAll[len(g.ins):]
 			if pts := g.probes.mergeInto(g.ladder()); len(pts) > 0 {
@@ -269,6 +303,28 @@ func (pp *pairProbe) maxIn(balOut *uint256.Int) uint256.Int {
 		big256.MulDivDown(&res, balOut, &pp.ins[best], &bestOut)
 	}
 	return res
+}
+
+// clampToCaps limits maxIn, the tokenIn amount worth the whole tokenOut balance, to what both
+// legs' coverage caps admit: the input room of tokenIn directly, and the output room of
+// tokenOut converted at the probed rate. A nil book (unreadable) leaves its side unclamped.
+func (pp *pairProbe) clampToCaps(maxIn uint256.Int, balOut *uint256.Int, in, out *rpcAssetResult) uint256.Int {
+	if in != nil {
+		if room := legRoom(&in.Asset, false); room != nil && maxIn.Gt(room) {
+			maxIn = *room
+		}
+	}
+	if out != nil {
+		if room := legRoom(&out.Asset, true); room != nil && !balOut.IsZero() {
+			// maxIn is worth balOut, so the output room is worth maxIn*room/balOut.
+			var scaled uint256.Int
+			big256.MulDivDown(&scaled, &maxIn, room, balOut)
+			if scaled.Lt(&maxIn) {
+				maxIn = scaled
+			}
+		}
+	}
+	return maxIn
 }
 
 // ladder collects the pair's grid into strictly increasing samples. It stops at
