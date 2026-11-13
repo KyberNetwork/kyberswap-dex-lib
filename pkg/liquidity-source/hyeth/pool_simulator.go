@@ -141,8 +141,9 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		// DebtIssuanceModule.issue mints the quantity and its fee, and takes the components for both,
 		// rounded up.
 		minted := s.calculateTotalFees(amountOut, true)
-		used, _ := new(uint256.Int).MulDivOverflow(minted, s._getTotalIssuanceUnits(), U_1e18)
-		if new(uint256.Int).MulMod(minted, s._getTotalIssuanceUnits(), U_1e18).Sign() > 0 {
+		units := s._getTotalIssuanceUnits()
+		used, _ := new(uint256.Int).MulDivOverflow(minted, units, U_1e18)
+		if new(uint256.Int).MulMod(minted, units, U_1e18).Sign() > 0 {
 			used.AddUint64(used, 1)
 		}
 		post = SwapInfo{
