@@ -22,18 +22,17 @@ type StaticExtra struct {
 
 // Extra is the mutable state of a strategy. Token order follows entity.Pool.Tokens.
 type Extra struct {
-	// RawBalance0/1 are the strategy's virtual balances (Aqua rawBalances) at RawBlock.
+	// RawBalance0/1 are the strategy's virtual balances (Aqua rawBalances).
 	RawBalance0 *uint256.Int `json:"rawBalance0"`
 	RawBalance1 *uint256.Int `json:"rawBalance1"`
-	RawBlock    uint64       `json:"rawBlock"`
 
-	// WalletBalance and Allowance are the maker's balanceOf and allowance to Aqua at WalletBlock.
-	// WalletBlock == 0 means the pool has no wallet snapshot yet.
+	// WalletBalance and Allowance are the maker's balanceOf and allowance to Aqua. The tracker reads them in the
+	// multicall of the raw balances, at entity.Pool.BlockNumber; no block is kept here, so an unchanged strategy
+	// keeps the same Extra.
 	WalletBalance0 *uint256.Int `json:"walletBalance0"`
 	WalletBalance1 *uint256.Int `json:"walletBalance1"`
 	Allowance0     *uint256.Int `json:"allowance0"`
 	Allowance1     *uint256.Int `json:"allowance1"`
-	WalletBlock    uint64       `json:"walletBlock"`
 
 	// Docked is tokensCount 0xff, permanent once DockedFinal (read docked `confirmations` blocks after
 	// DockedAtBlock). Inactive is tokensCount other than 2, read again every refresh.
@@ -64,17 +63,15 @@ type SwapInfo struct {
 
 // state is the simulator's own copy of Extra: plain values, so a clone shares no integer with its source.
 type state struct {
-	Raw         [2]uint256.Int
-	RawBlock    uint64
-	Wallet      [2]uint256.Int
-	Allowance   [2]uint256.Int
-	WalletBlock uint64
-	Docked      bool
-	Inactive    bool
+	Raw       [2]uint256.Int
+	Wallet    [2]uint256.Int
+	Allowance [2]uint256.Int
+	Docked    bool
+	Inactive  bool
 }
 
 func (e *Extra) state() state {
-	s := state{RawBlock: e.RawBlock, WalletBlock: e.WalletBlock, Docked: e.Docked, Inactive: e.Inactive}
+	s := state{Docked: e.Docked, Inactive: e.Inactive}
 	for i, src := range [...]struct{ raw, wallet, allowance *uint256.Int }{
 		{e.RawBalance0, e.WalletBalance0, e.Allowance0}, {e.RawBalance1, e.WalletBalance1, e.Allowance1},
 	} {

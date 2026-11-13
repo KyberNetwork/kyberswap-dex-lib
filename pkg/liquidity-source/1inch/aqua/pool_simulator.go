@@ -172,16 +172,17 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return &q.result, nil
 }
 
-// checkQuotable refuses a strategy that is terminal, has no wallet snapshot or holds a mixed-block state.
+// tracked reports whether the tracker has read the strategy: the lister leaves BlockNumber at zero, and every
+// tracker read sets it.
+func (s *PoolSimulator) tracked() bool { return s.Info.BlockNumber != 0 }
+
+// checkQuotable refuses a strategy that is terminal or that the tracker has not read yet.
 func (s *PoolSimulator) checkQuotable() error {
 	if !s.live() {
 		return ErrStrategyTerminal
 	}
-	if s.State.WalletBlock == 0 {
+	if !s.tracked() {
 		return ErrNoWalletSnapshot
-	}
-	if s.State.RawBlock != s.State.WalletBlock {
-		return ErrStateMixedBlock
 	}
 	return nil
 }
@@ -365,7 +366,7 @@ func (s *PoolSimulator) publishReserves() {
 // wallet snapshot yet publishes nothing: under the min merge a key without a read would pin the limit
 // of every other strategy of the maker at zero.
 func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	if !s.live() || s.State.WalletBlock == 0 {
+	if !s.live() || !s.tracked() {
 		return nil
 	}
 	l0, l1 := s.snapshotLimit(0), s.snapshotLimit(1)

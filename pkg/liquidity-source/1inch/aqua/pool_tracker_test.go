@@ -125,6 +125,43 @@ func listedPool(t *testing.T, id string, o poolOpts) entity.Pool {
 
 func decodeExtra(t *testing.T, e entity.Pool) Extra { return mustUnmarshal[Extra](t, e.Extra) }
 
+// An unchanged strategy read at a later block keeps the same Extra (only entity.Pool.BlockNumber moves), so a
+// store that skips unchanged pools does not rewrite a pool whose state did not move.
+func TestGetNewPoolStatesExtraStableAcrossBlocks(t *testing.T) {
+	t.Parallel()
+	chain := newFakeChain()
+	e := listedPool(t, "1", poolOpts{})
+	chain.setStrategy(poolOpts{}, e, 2, e18(1000), e18(500))
+	chain.setWallet(testMaker.Hex(), testToken0, e18(900), e18(5000))
+	chain.setWallet(testMaker.Hex(), testToken1, e18(200), unlimited)
+
+	read := func(stored entity.Pool, block uint64) entity.Pool {
+		stub := testutil.NewMulticallStub(t, chain.respond).At(block, 1_700_000_000)
+		tr, err := NewPoolTracker(testConfig(), stub.Client())
+		require.NoError(t, err)
+		pools, errs := tr.GetNewPoolStates(context.Background(), []entity.Pool{stored})
+		require.NoError(t, errs[0])
+		return pools[0]
+	}
+	first := read(e, testBlock)
+	require.Equal(t, uint64(testBlock), first.BlockNumber)
+
+	later := read(first, testBlock+100)
+	require.Equal(t, uint64(testBlock+100), later.BlockNumber)
+	require.Equal(t, first.Extra, later.Extra)
+	require.Equal(t, first.Reserves, later.Reserves)
+	sim, err := NewPoolSimulator(later)
+	require.NoError(t, err)
+	_, err = quoteOut(sim, 0, e18(1), nil)
+	require.NoError(t, err)
+
+	chain.setWallet(testMaker.Hex(), testToken1, e18(150), unlimited)
+	changed := read(later, testBlock+101)
+	require.NotEqual(t, first.Extra, changed.Extra, "a wallet change is a state change")
+	require.Equal(t, e18(150).Dec(), decodeExtra(t, changed).WalletBalance1.Dec())
+	require.Equal(t, uint64(testBlock+101), changed.BlockNumber)
+}
+
 func TestGetNewPoolStatesLive(t *testing.T) {
 	t.Parallel()
 	chain := newFakeChain()
@@ -147,8 +184,6 @@ func TestGetNewPoolStatesLive(t *testing.T) {
 		require.Equal(t, uint64(testBlock), p.BlockNumber)
 		require.Greater(t, p.Timestamp, int64(1))
 		x := decodeExtra(t, p)
-		require.Equal(t, uint64(testBlock), x.RawBlock)
-		require.Equal(t, uint64(testBlock), x.WalletBlock, "raw balances and wallet from one block")
 		require.False(t, x.Docked || x.Inactive)
 		require.Equal(t, e18(900).Dec(), x.WalletBalance0.Dec())
 		require.Equal(t, e18(5000).Dec(), x.Allowance0.Dec())
@@ -310,7 +345,7 @@ func TestSubCallRevertsFailClosed(t *testing.T) {
 				x := decodeExtra(t, p)
 				require.True(t, x.WalletBalance0.IsZero() && x.Allowance0.IsZero(), "zero wallet limit for the broken token")
 				require.Equal(t, e18(60).Dec(), x.WalletBalance1.Dec())
-				require.Equal(t, uint64(testBlock), x.WalletBlock)
+				require.Equal(t, uint64(testBlock), p.BlockNumber)
 				sim, err := NewPoolSimulator(p)
 				require.NoError(t, err)
 				limit := sim.CalculateLimit()
