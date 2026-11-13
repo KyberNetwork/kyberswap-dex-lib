@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // DexType* are kept as the historical, backward-compatible pool-type strings for every
@@ -52,6 +53,16 @@ var (
 	zeroBI     = big.NewInt(0)
 	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492, CrossEmptyWordGas: CrossEmptyWordGas}
 
+	// gasByExchange overrides defaultGas for forks whose pool costs far more than a Uniswap V3 pool.
+	//
+	// aero-cl (Aerodrome Slipstream) runs a beforeSwap dynamic-fee hook (an oracle observe, about 118k
+	// gas) plus proxy and reward accounting, so one hop with no initialized tick crossed measured about
+	// 308k (base) and 311k (ethereum) including the executor's per-edge overhead. The 75k per crossed
+	// tick is the best single linear value for 1 to 21 crossings; CrossEmptyWordGas is unchanged.
+	gasByExchange = map[string]Gas{
+		valueobject.ExchangeAeroCL: {BaseGas: 310000, CrossInitTickGas: 75000, CrossEmptyWordGas: CrossEmptyWordGas},
+	}
+
 	ErrOverflow            = errors.New("bigInt overflow int/uint256")
 	ErrInvalidFeeTier      = errors.New("invalid feeTier")
 	ErrTickNil             = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
@@ -64,6 +75,14 @@ var (
 
 	ErrMalformedLog = errors.New("malformed event log")
 )
+
+// gasForExchange returns the gas model of an exchange: its override in gasByExchange, else defaultGas.
+func gasForExchange(exchange string) Gas {
+	if g, ok := gasByExchange[exchange]; ok {
+		return g
+	}
+	return defaultGas
+}
 
 // PoolCreated event topic0s. Every merged fork's factory PoolCreated event decodes into one
 // of exactly two shapes; in both, `token0`/`token1` are always topics[1]/topics[2] and `pool`
