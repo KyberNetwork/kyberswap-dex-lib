@@ -82,7 +82,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 		},
 		extra:   extra,
 		ladders: ladders,
-		gated:   lo.SomeBy(extra.Flags, func(f uint16) bool { return gate(f, extra.LaneOK) != nil }),
+		gated:   lo.SomeBy(extra.Flags, func(f uint16) bool { return gate(f, extra.GateOK) != nil }),
 	}, nil
 }
 
@@ -101,13 +101,13 @@ func validPoints(pts []Point) bool {
 }
 
 // gate mirrors swap_qe's checks: halted or swap-disabled legs revert, and a
-// SWAP_GATED leg reverts unless the executor holds lane 0x400 (laneOK).
-func gate(flags uint16, laneOK bool) error {
+// SWAP_GATED leg reverts unless the executor is in the pool's swap gate (gateOK).
+func gate(flags uint16, gateOK bool) error {
 	if flags&HaltMask != 0 || flags&SwapEnabledBit == 0 {
 		return ErrBTRGated
 	}
-	if flags&SwapGatedBit != 0 && !laneOK {
-		return ErrBTRGatedLane
+	if flags&SwapGatedBit != 0 && !gateOK {
+		return ErrBTRGatedCaller
 	}
 	return nil
 }
@@ -209,7 +209,7 @@ func invert(pts []Point, y, res *uint256.Int) {
 
 // CalcAmountOut returns the BTR output for an exact-in amount, from the sampled
 // ladder. It refuses a leg the executor cannot swap: halted, disabled, or
-// SWAP_GATED without the executor's lane.
+// SWAP_GATED with the executor outside the swap gate.
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenOut
 	i, j := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
@@ -220,10 +220,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if amt := params.TokenAmountIn.Amount; amt == nil || amt.Sign() <= 0 || amountIn.SetFromBig(amt) {
 		return nil, ErrBTRInvalidAmount
 	}
-	if err := gate(s.extra.Flags[i], s.extra.LaneOK); err != nil {
+	if err := gate(s.extra.Flags[i], s.extra.GateOK); err != nil {
 		return nil, err
 	}
-	if err := gate(s.extra.Flags[j], s.extra.LaneOK); err != nil {
+	if err := gate(s.extra.Flags[j], s.extra.GateOK); err != nil {
 		return nil, err
 	}
 

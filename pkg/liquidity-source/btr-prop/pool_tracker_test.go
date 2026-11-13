@@ -31,20 +31,85 @@ func TestSwapQuoteUnpack(t *testing.T) {
 	require.Len(t, out.Quote.RouteHops, 2)
 }
 
-// TestRegistryABI pins the pool's registry getter selector (0xbcf0196b, no known
-// name) and perms(address), and the decode of the lane word.
-func TestRegistryABI(t *testing.T) {
-	reg, err := registryABI.Pack("registry")
+// TestInSwapGateABI pins the swap gate probe (selector 0x0d0e0323) and its bool decode.
+func TestInSwapGateABI(t *testing.T) {
+	call, err := poolABI.Pack("inSwapGate", common.HexToAddress(usdc))
 	require.NoError(t, err)
-	require.Equal(t, []byte{0xbc, 0xf0, 0x19, 0x6b}, reg)
-	perms, err := registryABI.Pack("perms", common.HexToAddress(usdc))
+	require.Equal(t, []byte{0x0d, 0x0e, 0x03, 0x23}, call[:4])
+	out, err := poolABI.Unpack("inSwapGate", common.LeftPadBytes([]byte{1}, 32))
 	require.NoError(t, err)
-	require.Equal(t, []byte{0xb4, 0x09, 0xea, 0x4e}, perms[:4])
+	require.Equal(t, true, out[0])
+}
 
-	raw := common.LeftPadBytes(big.NewInt(0x400).Bytes(), 32)
-	out, err := registryABI.Unpack("perms", raw)
+// getAsset's tuple must decode into rpcAssetResult.Asset field for field (v2 layout: covBits,
+// kneeBits at the tail), or every refresh loses the cap clamp.
+func TestAssetUnpack(t *testing.T) {
+	in := rpcAsset{
+		Reserves: big.NewInt(7), Liabilities: big.NewInt(9), MinLiquidity: big.NewInt(1),
+		LiquidityIndexWad: big.NewInt(1), Flags: SwapEnabledBit | KneeBit, MaxLiabWeightBps: 10000,
+		CovBits: 3049886662, KneeBits: 2585,
+	}
+	raw, err := poolABI.Methods["getAsset"].Outputs.Pack(in)
 	require.NoError(t, err)
-	require.EqualValues(t, 1, out[0].(*big.Int).Bit(LaneSwapBit))
+	var out rpcAssetResult
+	require.NoError(t, poolABI.UnpackIntoInterface(&out, "getAsset", raw))
+	require.Zero(t, out.Asset.Reserves.Cmp(big.NewInt(7)))
+	require.Zero(t, out.Asset.Liabilities.Cmp(big.NewInt(9)))
+	require.Equal(t, SwapEnabledBit|KneeBit, out.Asset.Flags)
+	require.Equal(t, uint32(3049886662), out.Asset.CovBits)
+	require.Equal(t, uint16(2585), out.Asset.KneeBits)
+}
+
+// Vectors are CovLib.cap read from the linked library on Monad (0x4c85...C567, `cast call`,
+// 2026-11-13); bits are live v2 covBits of USDC, WMON, cbBTC and USDe.
+func TestCoverageRoomMatchesCovLib(t *testing.T) {
+	for _, c := range []struct {
+		bits uint32
+		knee uint16
+		neg  bool
+		kNeg uint64
+		r, l string
+		want string
+	}{
+		{3049886662, 0, true, 5000, "1000000000000", "1000000000000", "367601636094"},
+		{3049886662, 0, false, 0, "1000000000000", "1000000000000", "451545702540"},
+		{1771521287, 0, false, 0, "5000000000000000000000", "3000000000000000000000", "27650620716364722999"},
+		{1771521287, 0, true, 1000, "5000000000000000000000", "3000000000000000000000", "3793055390652036944000"},
+		{1765229831, 0, false, 0, "100000000", "90000000", "50829518"},
+		{2228357001, 0, true, 800, "123456789012", "100000000000", "82730967509"},
+		{2228357001, 0, false, 0, "123456789012", "100000000000", "0"},
+		{2228357001, 0, false, 0, "0", "100000000000", "119236490208"},
+		{2228357001, 0, true, 800, "0", "0", "0"},
+		{2228357001, 0, true, 800, "5000", "0", "5000"},
+		{2228357001, 2585, true, 800, "123456789012", "100000000000", "81015727161"},
+		{2228357001, 2585, true, 3000, "123456789012", "100000000000", "65344686483"},
+		{1771521287, 2585, true, 800, "5000000000000000000000", "3000000000000000000000", "3798915879378588290000"},
+	} {
+		r, l := uint256.MustFromDecimal(c.r), uint256.MustFromDecimal(c.l)
+		got := coverageRoom(c.bits, c.knee, c.neg, c.kNeg, r, l)
+		require.Equal(t, c.want, got.Dec(), "bits=%d knee=%d neg=%v r=%s l=%s", c.bits, c.knee, c.neg, c.r, c.l)
+	}
+}
+
+// The grid is sized inside both caps: input room of tokenIn, output room of tokenOut at the rate.
+func TestClampToCaps(t *testing.T) {
+	book := func(r, l string, bits uint32) *rpcAssetResult {
+		rr, _ := new(big.Int).SetString(r, 10)
+		ll, _ := new(big.Int).SetString(l, 10)
+		return &rpcAssetResult{Asset: rpcAsset{Reserves: rr, Liabilities: ll, CovBits: bits}}
+	}
+	pp := &pairProbe{}
+	maxIn, bal := *uint256.NewInt(1_000_000_000_000), uint256.NewInt(1_000_000_000_000)
+	// Input room 451545702540 (USDC-like book) binds first.
+	got := pp.clampToCaps(maxIn, bal, book("1000000000000", "1000000000000", 3049886662), nil)
+	require.Equal(t, "451545702540", got.Dec())
+	// A tight output room scales maxIn down by room/balance.
+	got = pp.clampToCaps(maxIn, bal, nil, book("1000000000000", "1000000000000", 3049886662))
+	require.Less(t, got.Uint64(), maxIn.Uint64())
+	require.Greater(t, got.Uint64(), uint64(0))
+	// Unreadable books leave the grid alone.
+	got = pp.clampToCaps(maxIn, bal, nil, nil)
+	require.Equal(t, maxIn.Dec(), got.Dec())
 }
 
 func probe(ins []uint64, outs []int64) *pairProbe {
