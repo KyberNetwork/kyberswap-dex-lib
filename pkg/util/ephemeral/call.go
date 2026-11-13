@@ -64,24 +64,36 @@ func (e *RevertError) Error() string {
 // An error the node returns without revert data, such as a rate limit or a pruned block, is
 // returned as it is: the call never ran.
 func Call(ctx context.Context, c Caller, contract *Contract, out any, gas uint64, block *big.Int, args ...any) error {
-	var settled atomic.Uint64
-	settled.Store(callGas(ctx, c, gas))
-	return callSettled(ctx, c, contract, out, &settled, block, args...)
+	return NewReadGas(ctx, c, gas).Call(ctx, c, contract, out, block, args...)
 }
 
-// callSettled is Call with the gas the calls of one read share: a call refused for its size halves
-// it for the calls after it too, so a read of many pages is refused once for each size, not on every
-// page.
-func callSettled(ctx context.Context, c Caller, contract *Contract, out any, settled *atomic.Uint64,
-	block *big.Int, args ...any) error {
+// ReadGas is the gas the calls of one read share, as its pages do: a call refused for the size of its
+// response halves it for the calls after it too, so a read of many pages is refused once for each
+// size, not on every page. Its calls may run concurrently.
+type ReadGas struct {
+	gas atomic.Uint64
+}
+
+// NewReadGas is the gas a read through c starts with: gas, or for 0 the node's cap up to
+// CallGasCeiling (see GasCap).
+func NewReadGas(ctx context.Context, c Caller, gas uint64) *ReadGas {
+	var g ReadGas
+	g.gas.Store(callGas(ctx, c, gas))
+	return &g
+}
+
+// Call is the package's Call sent the read's gas, which it halves when the node refuses the
+// response for its size.
+func (g *ReadGas) Call(ctx context.Context, c Caller, contract *Contract, out any, block *big.Int,
+	args ...any) error {
 	for {
-		gas := settled.Load()
+		gas := g.gas.Load()
 		err := callOnce(ctx, c, contract, out, gas, block, args...)
 		if !refusedForSize(err) || gas/2 < minPageGas {
 			return err
 		}
 		// Calls in flight refused at the same gas halve it once.
-		settled.CompareAndSwap(gas, gas/2)
+		g.gas.CompareAndSwap(gas, gas/2)
 	}
 }
 

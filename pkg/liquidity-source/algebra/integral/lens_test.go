@@ -1,6 +1,9 @@
 package integral
 
 import (
+	"errors"
+	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -8,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // TestHasState: only a liquidity the tracker wrote, 0 included, marks a pool as having its state;
@@ -68,4 +72,47 @@ func TestResetPoolStateNeedsTheLens(t *testing.T) {
 		UseLens: true}}).ResetPoolState(p, 10)
 	require.True(t, ok)
 	require.False(t, hasState(got))
+}
+
+// TestSnapshotKeepsTheGasARefusalSettles: a node that refuses a large response refuses the first page
+// of a snapshot once, and the pages after it are sent the gas that page settled on rather than
+// refused again each.
+func TestSnapshotKeepsTheGasARefusalSettles(t *testing.T) {
+	t.Parallel()
+
+	const refuseAbove, pages = 25_000_000, 8
+	var (
+		mu   sync.Mutex
+		sent []uint64
+	)
+	node := testutil.NewNodeStub(t, 1, 100, func(c testutil.NodeCall) ([]byte, error) {
+		mu.Lock()
+		sent = append(sent, c.Gas)
+		mu.Unlock()
+		if c.Gas > refuseAbove {
+			return nil, errors.New("response is too big")
+		}
+		args, err := lens.UnpackArgs(c.Data)
+		require.NoError(t, err)
+		start := args[1].(*big.Int).Int64()
+		out, err := lens.PackResult(big.NewInt(60), new(big.Int).Lsh(big.NewInt(1), 96), big.NewInt(0),
+			big.NewInt(0), big.NewInt(100), big.NewInt(start+1), start >= lensStartTick+pages-1,
+			[]struct{ Tick, LiquidityNet, LiquidityGross *big.Int }{})
+		require.NoError(t, err)
+		return nil, testutil.Revert(out)
+	})
+	tracker := &PoolTracker{EthrpcClient: node.Client(), config: &Config{LensGas: 50_000_000}}
+
+	snap, err := tracker.snapshot(t.Context(), "0x0000000000000000000000000000000000000001", nil)
+	require.NoError(t, err)
+	require.EqualValues(t, 100, snap.block)
+
+	refused := 0
+	for _, gas := range sent {
+		if gas > refuseAbove {
+			refused++
+		}
+	}
+	require.Equal(t, 1, refused, "gas sent: %v", sent)
+	require.Len(t, sent, pages+1, "one refused call and a call for each page")
 }

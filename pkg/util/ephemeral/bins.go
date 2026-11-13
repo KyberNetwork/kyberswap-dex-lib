@@ -83,10 +83,12 @@ func ReadBins(ctx context.Context, c Node, contract *Contract, gas uint64, block
 	}
 	p := BinPool{Bins: []Bin{}}
 	first := true
+	// The pages share the gas a refusal for size settles on.
+	readGas := NewReadGas(ctx, c, gas)
 	read, err := Scan(ctx, uint32(0), pin,
 		func(ctx context.Context, start uint32, block *big.Int) (Page[uint32], error) {
 			var out BinSnapshot
-			if err := Call(ctx, c, contract, &out, gas, block,
+			if err := readGas.Call(ctx, c, contract, &out, block,
 				append(slices.Clip(args), new(big.Int).SetUint64(uint64(start)))...); err != nil {
 				return Page[uint32]{}, err
 			}

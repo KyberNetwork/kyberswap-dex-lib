@@ -561,11 +561,13 @@ func TestPinAsksTheChainOnce(t *testing.T) {
 	assert.EqualValues(t, 1, h.asked.Load())
 }
 
-// refusingNode serves V3Lens one word a call at block 100, and refuses, as a proxy does for its
-// size, a call sent more gas than refuseAbove. It keeps the gas each lens call was sent.
+// refusingNode serves a lens one page a call at block 100, as page packs it from the call's
+// arguments, and refuses, as a proxy does for its size, a call sent more gas than refuseAbove. It
+// keeps the gas each lens call was sent.
 type refusingNode struct {
 	t           *testing.T
 	lens        *Contract
+	page        func(args []any) ([]byte, error)
 	refuseAbove uint64
 	mu          sync.Mutex
 	sent        []uint64
@@ -585,11 +587,23 @@ func (n *refusingNode) CallContract(_ context.Context, msg ethereum.CallMsg, _ *
 	}
 	args, err := n.lens.UnpackArgs(msg.Data)
 	require.NoError(n.t, err)
-	from, to := args[1].(int16), args[2].(int16)
-	out, err := n.lens.PackResult(big.NewInt(60), big.NewInt(1<<40), big.NewInt(0), big.NewInt(0),
-		big.NewInt(100), from+1, from >= to, []struct{ Tick, LiquidityNet, LiquidityGross *big.Int }{})
+	out, err := n.page(args)
 	require.NoError(n.t, err)
 	return nil, dataError{hexutil.Encode(out)}
+}
+
+// refusedOnce checks that a read of pages calls made one call each and the first page's alone was
+// refused: the pages after it were sent the gas it settled on.
+func (n *refusingNode) refusedOnce(t *testing.T, pages int) {
+	t.Helper()
+	refused := 0
+	for _, gas := range n.sent {
+		if gas > n.refuseAbove {
+			refused++
+		}
+	}
+	assert.Equal(t, 1, refused, "gas sent: %v", n.sent)
+	assert.Len(t, n.sent, pages+1, "one refused call and a call for each page")
 }
 
 // TestReadTicksKeepsTheGasARefusalSettles: a node that refuses a large response refuses the first
@@ -598,18 +612,36 @@ func (n *refusingNode) CallContract(_ context.Context, msg ethereum.CallMsg, _ *
 func TestReadTicksKeepsTheGasARefusalSettles(t *testing.T) {
 	raw, err := os.ReadFile("../../liquidity-source/uniswap/v3/abis/lens.json")
 	require.NoError(t, err)
-	node := &refusingNode{t: t, lens: MustLoad("V3Lens", raw), refuseAbove: 25_000_000}
+	lens := MustLoad("V3Lens", raw)
+	node := &refusingNode{t: t, lens: lens, refuseAbove: 25_000_000, page: func(args []any) ([]byte, error) {
+		from, to := args[1].(int16), args[2].(int16)
+		return lens.PackResult(big.NewInt(60), big.NewInt(1<<40), big.NewInt(0), big.NewInt(0),
+			big.NewInt(100), from+1, from >= to, []struct{ Tick, LiquidityNet, LiquidityGross *big.Int }{})
+	}}
 
 	p, err := ReadTicks(t.Context(), node, node.lens, 50_000_000, 0, 7, nil, common.Address{1})
 	require.NoError(t, err)
 	assert.EqualValues(t, 100, p.Block)
+	node.refusedOnce(t, 8)
+}
 
-	refused := 0
-	for _, gas := range node.sent {
-		if gas > node.refuseAbove {
-			refused++
-		}
-	}
-	assert.Equal(t, 1, refused, "gas sent: %v", node.sent)
-	assert.Len(t, node.sent, 9, "one refused call and a call for each of the 8 words")
+// TestReadBinsKeepsTheGasARefusalSettles is TestReadTicksKeepsTheGasARefusalSettles for a bin
+// lens, one bin a page.
+func TestReadBinsKeepsTheGasARefusalSettles(t *testing.T) {
+	raw, err := os.ReadFile("../../source/liquiditybookv21/abis/lens.json")
+	require.NoError(t, err)
+	lens := MustLoad("LiquidityBookV21Lens", raw)
+	type bin struct{ Id, ReserveX, ReserveY *big.Int }
+	node := &refusingNode{t: t, lens: lens, refuseAbove: 25_000_000, page: func(args []any) ([]byte, error) {
+		id := args[1].(*big.Int).Int64()
+		return lens.PackResult(big.NewInt(3), big.NewInt(8), big.NewInt(0), big.NewInt(100),
+			big.NewInt(id+1), id >= 7, []bin{{big.NewInt(id), big.NewInt(1), big.NewInt(0)}})
+	}}
+
+	p, err := ReadBins(t.Context(), node, node.lens, 50_000_000, nil, common.Address{1})
+	require.NoError(t, err)
+	assert.EqualValues(t, 100, p.Block)
+	assert.Len(t, p.Bins, 8)
+	require.NoError(t, p.Check())
+	node.refusedOnce(t, 8)
 }
