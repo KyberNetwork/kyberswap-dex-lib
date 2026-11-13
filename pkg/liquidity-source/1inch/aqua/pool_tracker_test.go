@@ -125,6 +125,55 @@ func listedPool(t *testing.T, id string, o poolOpts) entity.Pool {
 
 func decodeExtra(t *testing.T, e entity.Pool) Extra { return mustUnmarshal[Extra](t, e.Extra) }
 
+// An unchanged strategy read at a later block keeps the same Extra (the read blocks stay at the first read of
+// the state), so a store that skips unchanged pools does not rewrite a pool whose state did not move.
+func TestGetNewPoolStatesExtraStableAcrossBlocks(t *testing.T) {
+	t.Parallel()
+	chain := newFakeChain()
+	e := listedPool(t, "1", poolOpts{})
+	chain.setStrategy(poolOpts{}, e, 2, e18(1000), e18(500))
+	chain.setWallet(testMaker.Hex(), testToken0, e18(900), e18(5000))
+	chain.setWallet(testMaker.Hex(), testToken1, e18(200), unlimited)
+
+	read := func(stored entity.Pool, block uint64) entity.Pool {
+		stub := testutil.NewMulticallStub(t, chain.respond).At(block, 1_700_000_000)
+		tr, err := NewPoolTracker(testConfig(), stub.Client())
+		require.NoError(t, err)
+		pools, errs := tr.GetNewPoolStates(context.Background(), []entity.Pool{stored})
+		require.NoError(t, errs[0])
+		return pools[0]
+	}
+	first := read(e, testBlock)
+	require.Equal(t, uint64(testBlock), decodeExtra(t, first).WalletBlock, "the lister pool has no read block")
+
+	later := read(first, testBlock+100)
+	require.Equal(t, uint64(testBlock+100), later.BlockNumber)
+	require.Equal(t, first.Extra, later.Extra)
+	require.Equal(t, first.Reserves, later.Reserves)
+	sim, err := NewPoolSimulator(later)
+	require.NoError(t, err)
+	_, err = quoteOut(sim, 0, e18(1), nil)
+	require.NoError(t, err)
+
+	chain.setWallet(testMaker.Hex(), testToken1, e18(150), unlimited)
+	changed := read(later, testBlock+101)
+	require.NotEqual(t, first.Extra, changed.Extra, "a wallet change is a state change")
+	x := decodeExtra(t, changed)
+	require.Equal(t, uint64(testBlock+101), x.RawBlock)
+	require.Equal(t, uint64(testBlock+101), x.WalletBlock)
+
+	// A stored state with mixed or missing read blocks is not kept: the new read stamps both blocks.
+	mixed := later
+	mx := decodeExtra(t, mixed)
+	mx.RawBlock = 7
+	b, err := json.Marshal(&mx)
+	require.NoError(t, err)
+	mixed.Extra = string(b)
+	x = decodeExtra(t, read(mixed, testBlock+102))
+	require.Equal(t, uint64(testBlock+102), x.RawBlock)
+	require.Equal(t, uint64(testBlock+102), x.WalletBlock)
+}
+
 func TestGetNewPoolStatesLive(t *testing.T) {
 	t.Parallel()
 	chain := newFakeChain()
