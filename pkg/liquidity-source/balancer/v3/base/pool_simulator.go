@@ -252,6 +252,93 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}, nil
 }
 
+// CalcAmtOut mirrors CalcAmountOut in uint256 with the same checks, order and rounding.
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
+	tokenIn := tokenAmountIn.Token
+	if tokenIn == tokenOut {
+		return nil, shared.ErrInvalidToken
+	}
+
+	if p.paused {
+		return nil, shared.ErrPoolIsPaused
+	}
+
+	indexIn, isTokenInUnderlying, err := p.ResolveToken(tokenIn)
+	if err != nil {
+		return nil, err
+	}
+	indexOut, isTokenOutUnderlying, err := p.ResolveToken(tokenOut)
+	if err != nil {
+		return nil, err
+	}
+
+	amountIn := tokenAmountIn.Amount.Clone()
+
+	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
+		amountOut, err := p.handleBufferConversion(indexIn, amountIn, isTokenInUnderlying, false)
+		if err != nil {
+			return nil, err
+		}
+
+		return &pool.CalcAmtOutResult{
+			TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
+			Fee:            &pool.TokenAmt{Token: tokenIn},
+			SwapInfo: shared.SwapInfo{
+				AggregateFee: bignumber.ZeroBI,
+			},
+			Gas: bufferGas,
+		}, nil
+	}
+
+	gas := p.BaseGas()
+	if isTokenInUnderlying {
+		if indexIn >= len(p.buffers) || p.buffers[indexIn] == nil {
+			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenIn, indexIn)
+		}
+
+		amountIn, err = p.buffers[indexIn].ConvertToShares(amountIn, false)
+		if err != nil {
+			return nil, err
+		}
+		gas += bufferGas
+	}
+
+	amountOut, totalSwapFee, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
+		Kind:           shared.ExactIn,
+		IndexIn:        indexIn,
+		IndexOut:       indexOut,
+		AmountGivenRaw: amountIn,
+	}, p.OnSwap)
+	if err != nil {
+		return nil, err
+	}
+
+	amountOutBeforeConvert := amountOut.ToBig()
+
+	if isTokenOutUnderlying {
+		if indexOut >= len(p.buffers) || p.buffers[indexOut] == nil {
+			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenOut, indexOut)
+		}
+
+		amountOut, err = p.buffers[indexOut].ConvertToAssets(amountOut, false)
+		if err != nil {
+			return nil, err
+		}
+		gas += bufferGas
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
+		Fee:            &pool.TokenAmt{Token: tokenIn, Amount: *totalSwapFee},
+		SwapInfo: shared.SwapInfo{
+			AggregateFee:           aggregateFee.ToBig(),
+			AmountOutBeforeConvert: amountOutBeforeConvert,
+		},
+		Gas: gas,
+	}, nil
+}
+
 func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
 	tokenOut := tokenAmountOut.Token
