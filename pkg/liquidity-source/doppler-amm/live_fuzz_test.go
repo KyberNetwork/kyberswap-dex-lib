@@ -126,6 +126,9 @@ func TestLiveFuzzAgainstQuoter(t *testing.T) {
 				case !chainOK:
 					stats["sim ok, chain reverts"]++
 					t.Errorf("%s xIn=%v in=%s: sim out %s, chain reverts", ep.Address[:10], xIn, a, res.TokenAmountOut.Amount)
+				case quotes[i].ActualInputAmount == nil || quotes[i].ActualInputAmount.Cmp(a) != 0:
+					stats["partial fill on chain"]++
+					t.Errorf("%s xIn=%v in=%s: chain consumed %s", ep.Address[:10], xIn, a, quotes[i].ActualInputAmount)
 				case res.TokenAmountOut.Amount.Cmp(quotes[i].ActualOutputAmount) != 0:
 					stats["different"]++
 					t.Errorf("%s xIn=%v in=%s: sim %s chain %s", ep.Address[:10], xIn, a, res.TokenAmountOut.Amount, quotes[i].ActualOutputAmount)
