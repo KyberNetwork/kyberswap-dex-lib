@@ -56,7 +56,7 @@ func (t *PoolTracker) fetchLevels(ctx context.Context, module string, marketID *
 		var next *big.Int
 		if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).
 			AddCall(&ethrpc.Call{ABI: launchABI, Target: module, Method: "nextInitializedLevel",
-				Params: []any{marketID, int32(level)}}, []any{&next}).
+				Params: []any{marketID, big.NewInt(level)}}, []any{&next}).
 			Call(); err != nil {
 			return nil, err
 		}
@@ -95,7 +95,7 @@ func (t *PoolTracker) getLaunchState(
 		AddCall(&ethrpc.Call{ABI: launchABI, Target: static.Module, Method: "marketStates", Params: []any{marketID}}, []any{&state})
 	for i, level := range static.Levels {
 		req.AddCall(&ethrpc.Call{ABI: launchABI, Target: static.Module, Method: "levelInfo",
-			Params: []any{marketID, level}}, []any{&infos[i]})
+			Params: []any{marketID, big.NewInt(int64(level))}}, []any{&infos[i]})
 	}
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
