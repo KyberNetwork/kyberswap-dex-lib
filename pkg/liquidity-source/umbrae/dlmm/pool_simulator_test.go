@@ -228,4 +228,7 @@ func TestGetMetaInfo_ApprovalAddressMatchesRouter(t *testing.T) {
 	require.Equal(t, router, meta.ApprovalAddress)
 	require.Equal(t, sim.GetApprovalAddress(tokenX, tokenY), meta.ApprovalAddress)
 	require.Equal(t, uint16(25), meta.BinStep)
+	require.True(t, meta.SwapForY, "tokenX in")
+	meta, _ = sim.GetMetaInfo(tokenY, tokenX).(PoolMeta)
+	require.False(t, meta.SwapForY, "tokenY in")
 }

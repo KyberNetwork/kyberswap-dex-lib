@@ -84,6 +84,8 @@ type PoolMeta struct {
 	BlockNumber     uint64 `json:"blockNumber"`
 	ApprovalAddress string `json:"approvalAddress"`
 	BinStep         uint16 `json:"binStep"`
+	// SwapForY is true when tokenIn is tokenX (the pair's swap direction).
+	SwapForY bool `json:"swapForY"`
 }
 
 // decimalsResult decodes the pair's getDecimals() two-value return (ABI multi-returns unpack into

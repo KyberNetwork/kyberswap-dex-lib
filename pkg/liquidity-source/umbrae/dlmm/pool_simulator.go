@@ -336,8 +336,9 @@ func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
 	return s.router
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return PoolMeta{BlockNumber: s.Info.BlockNumber, ApprovalAddress: s.router, BinStep: s.binStep}
+func (s *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
+	return PoolMeta{BlockNumber: s.Info.BlockNumber, ApprovalAddress: s.router, BinStep: s.binStep,
+		SwapForY: tokenIn == s.Info.Tokens[0]}
 }
 
 func orZero(v *uint256.Int) *uint256.Int {

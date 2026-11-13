@@ -152,3 +152,13 @@ func TestMalformedSwapInputs(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, testCurve(), s.Curve)
 }
+
+// The executor approves the Settlement; the encoder reads it from meta, so both must agree.
+func TestApprovalAddressIsSettlement(t *testing.T) {
+	s, err := NewPoolSimulator(testEntity())
+	require.NoError(t, err)
+	meta := s.GetMetaInfo("", "").(Meta)
+	require.NotEmpty(t, Settlement)
+	require.Equal(t, Settlement, meta.ApprovalAddress)
+	require.Equal(t, meta.ApprovalAddress, s.GetApprovalAddress("", ""))
+}

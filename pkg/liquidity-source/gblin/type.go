@@ -52,4 +52,6 @@ type SwapInfo struct {
 // buyGBLINWithWeth(amount, minOut, receiver) on the vault, which pulls WETH from the caller.
 type PoolMeta struct {
 	BlockNumber uint64 `json:"blockNumber"`
+	// Lens is the GBLINLens the SC quoter prices mints with.
+	Lens string `json:"lens,omitempty"`
 }

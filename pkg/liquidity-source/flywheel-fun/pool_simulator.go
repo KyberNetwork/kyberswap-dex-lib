@@ -415,8 +415,9 @@ func (s *PoolSimulator) SetBasePool(p pool.IPoolSimulator) {
 		s.Revision++
 	}
 }
+func (s *PoolSimulator) GetApprovalAddress(_, _ string) string { return Settlement }
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return Meta{Settlement: Settlement, Token: s.Info.Address, BlockNumber: s.Info.BlockNumber}
+	return Meta{Settlement: Settlement, ApprovalAddress: Settlement, Token: s.Info.Address, BlockNumber: s.Info.BlockNumber}
 }
 func (s *PoolSimulator) SwapReceiveNativeIn(in, out string, chain valueobject.ChainID) bool {
 	return chain == 4663 && in == WETH && out == s.Info.Address

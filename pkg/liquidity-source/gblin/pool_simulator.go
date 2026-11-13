@@ -20,6 +20,7 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 	extra Extra
+	lens  string
 	gas   int64
 }
 
@@ -34,6 +35,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
+	}
+
+	var static StaticExtra
+	if entityPool.StaticExtra != "" {
+		if err := json.Unmarshal([]byte(entityPool.StaticExtra), &static); err != nil {
+			return nil, err
+		}
 	}
 
 	tokens := make([]string, 2)
@@ -56,6 +64,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: entityPool.BlockNumber,
 		},
 		extra: extra,
+		lens:  static.Lens,
 		gas:   defaultMintGas,
 	}, nil
 }
@@ -190,7 +199,7 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return PoolMeta{BlockNumber: p.Info.BlockNumber}
+	return PoolMeta{BlockNumber: p.Info.BlockNumber, Lens: p.lens}
 }
 
 // GetApprovalAddress returns the vault: buyGBLINWithWeth pulls the WETH from the caller.
