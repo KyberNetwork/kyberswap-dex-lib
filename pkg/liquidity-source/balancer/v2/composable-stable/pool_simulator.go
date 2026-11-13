@@ -2,6 +2,7 @@ package composablestable
 
 import (
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
@@ -280,6 +281,26 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 
 func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
 	return s.vault
+}
+
+// CloneState gives the clone one reserves slice shared by all three pools, as NewPoolSimulator does.
+// UpdateBalance writes reserves and bptSimulator's tokenRateCaches by index, so both are copied.
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	reserves := slices.Clone(s.Info.Reserves)
+	cloned.Info.Reserves = reserves
+	if s.regularSimulator != nil {
+		reg := *s.regularSimulator
+		reg.Info.Reserves = reserves
+		cloned.regularSimulator = &reg
+	}
+	if s.bptSimulator != nil {
+		bpt := *s.bptSimulator
+		bpt.Info.Reserves = reserves
+		bpt.tokenRateCaches = slices.Clone(s.bptSimulator.tokenRateCaches)
+		cloned.bptSimulator = &bpt
+	}
+	return &cloned
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
