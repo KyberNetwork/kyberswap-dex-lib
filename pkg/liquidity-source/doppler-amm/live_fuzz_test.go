@@ -38,7 +38,7 @@ func TestLiveFuzzAgainstQuoter(t *testing.T) {
 	pools := listLivePools(t, client)
 	require.NotEmpty(t, pools)
 
-	tracker, err := NewPoolTracker(&Config{ChainID: 8453}, client)
+	tracker, err := NewPoolTracker(testConfig(), client)
 	require.NoError(t, err)
 	rng := rand.New(rand.NewSource(1))
 	samples := 200
@@ -165,7 +165,7 @@ func crossingAmounts(sim *PoolSimulator, xIn bool) []*big.Int {
 func listLivePools(t *testing.T, client *ethrpc.Client) []entity.Pool {
 	t.Helper()
 	ctx := context.Background()
-	f, err := NewPoolFactory(poolfactory.PoolsDecoderParams[Config]{Cfg: &Config{ChainID: 8453}})
+	f, err := NewPoolFactory(poolfactory.PoolsDecoderParams[Config]{Cfg: testConfig()})
 	require.NoError(t, err)
 	bf, err := poolfactory.NewFilterLogsBackfiller(f, client, poolfactory.BackfillConfig{
 		FactoryAddresses:     []common.Address{f.amm},

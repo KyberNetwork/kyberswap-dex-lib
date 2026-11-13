@@ -48,7 +48,7 @@ func TestLiveMarketRefresh(t *testing.T) {
 
 	client := ethrpc.New(rpc).
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
-	tracker, err := NewPoolTracker(&Config{ChainID: 8453}, client)
+	tracker, err := NewPoolTracker(testConfig(), client)
 	require.NoError(t, err)
 
 	refreshed, err := tracker.GetNewPoolState(context.Background(), ep, pool.GetNewPoolStateParams{})

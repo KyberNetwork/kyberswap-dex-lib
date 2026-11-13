@@ -40,7 +40,7 @@ type PoolFactory struct {
 
 func NewPoolFactory(params poolfactory.PoolsDecoderParams[Config]) (*PoolFactory, error) {
 	cfg := params.Cfg
-	if err := cfg.withDefaults(); err != nil {
+	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
 	return &PoolFactory{cfg: cfg, amm: common.HexToAddress(cfg.AMMAddress)}, nil

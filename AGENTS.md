@@ -81,6 +81,9 @@ Suffixes:
   to narrow the scan). Historical scans run through `poolfactory.FilterLogsBackfiller`
   (`pkg/source/pool/poolfactory/backfill.go`), driven by the consumer's per-dex `backfill` config (sources, start block, range).
   Example: `pkg/liquidity-source/pons-v2/pool_factory.go`.
+- Never hardcode contract addresses (factory, singleton, modules, quoter, extensions) or per-chain address tables in a source.
+  Every address is a `Config` field filled from the consumer's per-dex `properties`, validated at construction (error when missing
+  or malformed, no chain defaults). Example: `pkg/liquidity-source/doppler-amm/config.go`.
 
 ### Pool Tracker - IPoolTracker
 

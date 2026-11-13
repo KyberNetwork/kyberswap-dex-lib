@@ -12,6 +12,20 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
+// Base deployment addresses, fed in as config the way pool-service yaml does.
+const (
+	testAMM          = "0x533b7ee11f4f9be09191ebf6667abe73c01fe2c2"
+	testQuoter       = "0x384e4c09071f7e511be34e38b4fcba23be51ea55"
+	testSpotModule   = "0x3d17adc45d3c40735e7fdd271710f90d84c1b838"
+	testLaunchModule = "0xf2e28140520de30de998ea25f46923bb7bebd909"
+	testFeesLocker   = "0x05cfa684b6f28c3dfddcd6f9b361c8f90cd09ead"
+)
+
+func testConfig() *Config {
+	return &Config{AMMAddress: testAMM, QuoterAddress: testQuoter, SpotModuleAddress: testSpotModule,
+		LaunchModuleAddress: testLaunchModule, FeesLockerAddress: testFeesLocker}
+}
+
 func marketCreatedLog(t *testing.T, module, extension common.Address, marketID *big.Int) types.Log {
 	t.Helper()
 	event := ammABI.Events["MarketCreated"]
@@ -29,7 +43,7 @@ func marketCreatedLog(t *testing.T, module, extension common.Address, marketID *
 	require.NoError(t, err)
 	creator := common.HexToAddress("0x00000000000000000000000000000000000000d0")
 	return types.Log{
-		Address: common.HexToAddress(deployments[8453].AMM),
+		Address: common.HexToAddress(testAMM),
 		Topics: []common.Hash{
 			event.ID,
 			common.BytesToHash(common.LeftPadBytes(module[:], 32)),
@@ -43,7 +57,7 @@ func marketCreatedLog(t *testing.T, module, extension common.Address, marketID *
 
 func newTestFactory(t *testing.T) (*PoolFactory, *Config) {
 	t.Helper()
-	cfg := &Config{ChainID: 8453}
+	cfg := testConfig()
 	f, err := NewPoolFactory(poolfactory.PoolsDecoderParams[Config]{Cfg: cfg})
 	require.NoError(t, err)
 	return f, cfg
@@ -84,14 +98,31 @@ func TestDecodeMarketCreatedRejectsUnsupportedComposition(t *testing.T) {
 	require.Nil(t, pool, "market on a non-CPMM module must be skipped")
 }
 
-func TestConfigDefaultsOnlyKnownDeployments(t *testing.T) {
-	cfg := &Config{ChainID: 84532}
-	require.NoError(t, cfg.withDefaults())
-	require.Equal(t, deployments[84532].AMM, cfg.AMMAddress)
-	require.Equal(t, deployments[84532].Quoter, cfg.QuoterAddress)
-
-	_, err := NewPoolFactory(poolfactory.PoolsDecoderParams[Config]{Cfg: &Config{ChainID: 1}})
-	require.ErrorIs(t, err, ErrUnsupportedChain)
+// Every address is required and validated: no chain defaults, so a yaml typo or omission must
+// fail at construction instead of silently decoding against the wrong contract.
+func TestConfigRequiresEveryAddress(t *testing.T) {
+	mutate := map[string]func(*Config, string){
+		"ammAddress":          func(c *Config, v string) { c.AMMAddress = v },
+		"quoterAddress":       func(c *Config, v string) { c.QuoterAddress = v },
+		"spotModuleAddress":   func(c *Config, v string) { c.SpotModuleAddress = v },
+		"launchModuleAddress": func(c *Config, v string) { c.LaunchModuleAddress = v },
+		"feesLockerAddress":   func(c *Config, v string) { c.FeesLockerAddress = v },
+	}
+	for name, set := range mutate {
+		for _, bad := range []string{"", "0x1234", "not-an-address", "0x0000000000000000000000000000000000000000"} {
+			cfg := testConfig()
+			set(cfg, bad)
+			_, err := NewPoolFactory(poolfactory.PoolsDecoderParams[Config]{Cfg: cfg})
+			require.ErrorIs(t, err, ErrInvalidConfig, "%s=%q", name, bad)
+			_, err = NewPoolTracker(cfg, nil)
+			require.ErrorIs(t, err, ErrInvalidConfig, "%s=%q", name, bad)
+		}
+	}
+	cfg := testConfig()
+	cfg.AMMAddress = "0x533B7ee11f4F9be09191ebf6667abe73c01fe2C2"
+	_, err := NewPoolFactory(poolfactory.PoolsDecoderParams[Config]{Cfg: cfg})
+	require.NoError(t, err)
+	require.Equal(t, testAMM, cfg.AMMAddress, "lowercased")
 }
 
 // One decoder lists both kinds and sets Exchange by module. pool-service keeps one decoder per

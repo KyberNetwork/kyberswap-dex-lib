@@ -24,7 +24,7 @@ func testLog(amm string, topics ...string) types.Log {
 
 func TestPoolFactoryRoutesMarketEvents(t *testing.T) {
 	const amm = "0x533b7ee11f4f9be09191ebf6667abe73c01fe2c2"
-	f, err := NewPoolFactory(poolfactory.PoolsDecoderParams[Config]{Cfg: &Config{ChainID: 8453}})
+	f, err := NewPoolFactory(poolfactory.PoolsDecoderParams[Config]{Cfg: testConfig()})
 	require.NoError(t, err)
 	ctx := context.Background()
 
