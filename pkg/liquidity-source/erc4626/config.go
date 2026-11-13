@@ -19,8 +19,11 @@ type VaultCfg struct {
 	// MaxSupplyMethod is an optional no-arg view returning the share supply cap, e.g. "maxSupply". Deposits that
 	// mint shares beyond maxSupply - totalSupply revert, though maxDeposit/maxMint don't show it.
 	MaxSupplyMethod string `json:"maxSupplyMethod,omitempty"`
-	// MaxAge (seconds, 0 = off) makes the simulator reject deposits once the pool is older than this, so a
-	// failed pause/cap read (nothing saved) stops quoting. Needs a pool-service heartbeat below it.
+	// RedeemsPausedMethod is an optional no-arg view returning bool, true while redeems revert, e.g. "paused".
+	// It is read for every redeem-enabled vault, whether or not deposits are enabled.
+	RedeemsPausedMethod string `json:"redeemsPausedMethod,omitempty"`
+	// MaxAge (seconds, 0 = off) makes the simulator reject deposits and redeems once the pool is older than
+	// this, so a failed pause/cap read (nothing saved) stops quoting. Needs a state refresh (heartbeat) interval below it.
 	MaxAge int64 `json:"maxAge,omitempty"`
 	// IgnoreZeroMaxDeposit marks a vault that reports maxDeposit 0 while it accepts deposits, so a 0 falls back to
 	// totalAssets instead of closing deposits.

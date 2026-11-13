@@ -45,6 +45,7 @@ var (
 	ErrERC4626RedeemMoreThanMax  = errors.New("ERC4626: redeem more than max")
 	ErrERC4626StalePoolData      = errors.New("ERC4626: stale pool data")
 	ErrERC4626DepositsPaused     = errors.New("ERC4626: deposits paused")
+	ErrERC4626RedeemsPaused      = errors.New("ERC4626: redeems paused")
 	ErrERC4626MintMoreThanMax    = errors.New("ERC4626: mint more than max supply")
 	ErrERC4626DepositLessThanMin = errors.WithMessage(pool.ErrSwapAmountBelowMin, "ERC4626: deposit less than min")
 
@@ -52,4 +53,5 @@ var (
 	ErrInvalidRate        = errors.New("invalid rate")
 	ErrInvalidRedeemRate  = errors.New("invalid redeem rate")
 	ErrInvalidDepositRate = errors.New("invalid deposit rate")
+	ErrZeroAmountOut      = errors.New("zero amount out")
 )
