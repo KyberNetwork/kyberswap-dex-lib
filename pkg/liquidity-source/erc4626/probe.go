@@ -1,6 +1,8 @@
 package erc4626
 
 import (
+	"maps"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -67,14 +69,10 @@ func (c VaultCfg) WithBalanceProbe(vaultAddr string,
 	}
 	addr := common.HexToAddress(vaultAddr)
 	out := make(map[common.Address]gethclient.OverrideAccount, len(overrides)+1)
-	for a, o := range overrides {
-		out[a] = o
-	}
+	maps.Copy(out, overrides)
 	o := out[addr]
 	diff := make(map[common.Hash]common.Hash, len(o.StateDiff)+probeKeys)
-	for k, v := range o.StateDiff {
-		diff[k] = v
-	}
+	maps.Copy(diff, o.StateDiff)
 	if c.Balance.Key != (common.Hash{}) {
 		diff[c.Balance.Key] = markerValue(0)
 	} else {
