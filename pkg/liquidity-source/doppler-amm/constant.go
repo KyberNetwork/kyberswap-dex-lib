@@ -19,14 +19,13 @@ const (
 )
 
 // Deployment pins one DopplerAMM deployment set. Base and Base Sepolia run the
-// same addresses, so only the deployment block differs.
+// same addresses.
 type Deployment struct {
 	AMM          string
 	SpotModule   string
 	LaunchModule string
 	FeesLocker   string // the only extension a supported Launch Market carries
 	Quoter       string
-	StartBlock   uint64
 }
 
 var deployments = map[int]Deployment{
@@ -36,7 +35,6 @@ var deployments = map[int]Deployment{
 		LaunchModule: "0xf2e28140520de30de998ea25f46923bb7bebd909",
 		FeesLocker:   "0x05cfa684b6f28c3dfddcd6f9b361c8f90cd09ead",
 		Quoter:       "0x384e4c09071f7e511be34e38b4fcba23be51ea55",
-		StartBlock:   52856797,
 	},
 	84532: {
 		AMM:          "0x533b7ee11f4f9be09191ebf6667abe73c01fe2c2",
@@ -44,13 +42,11 @@ var deployments = map[int]Deployment{
 		LaunchModule: "0xf2e28140520de30de998ea25f46923bb7bebd909",
 		FeesLocker:   "0x05cfa684b6f28c3dfddcd6f9b361c8f90cd09ead",
 		Quoter:       "0x384e4c09071f7e511be34e38b4fcba23be51ea55",
-		StartBlock:   48399444,
 	},
 }
 
 var (
 	ErrUnsupportedChain      = errors.New("doppler-amm: unsupported chain")
-	ErrUnsupportedMarketKind = errors.New("doppler-amm: unsupported market kind")
 	ErrUnsupportedMarket     = errors.New("doppler-amm: unsupported market composition")
 	ErrInsufficientLiquidity = errors.New("doppler-amm: insufficient liquidity")
 	ErrInvalidToken          = errors.New("doppler-amm: invalid token")

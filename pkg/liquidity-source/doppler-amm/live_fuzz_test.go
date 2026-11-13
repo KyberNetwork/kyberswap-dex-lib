@@ -16,6 +16,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
 type quoteResult struct {
@@ -34,36 +35,7 @@ func TestLiveFuzzAgainstQuoter(t *testing.T) {
 	}
 	ctx := context.Background()
 	client := ethrpc.New(rpc).SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
-	d := deployments[8453]
-
-	var pools []entity.Pool
-	for _, kind := range []string{MarketKindSpot, MarketKindLaunch} {
-		cfg := &Config{DexID: DexType, ChainID: 8453, MarketKind: kind, MaxBlockRange: 200_000}
-		updater := NewPoolsListUpdater(cfg, client)
-		meta, err := json.Marshal(Metadata{LastScannedBlock: d.StartBlock})
-		require.NoError(t, err)
-		head, err := client.GetBlockNumber(ctx)
-		require.NoError(t, err)
-		for {
-			var ps []entity.Pool
-			var newMeta []byte
-			var err error
-			for try := 0; try < 5; try++ { // load-balanced nodes lag behind each other
-				if ps, newMeta, err = updater.GetNewPools(ctx, meta); err == nil {
-					break
-				}
-				time.Sleep(time.Second)
-			}
-			require.NoError(t, err)
-			pools = append(pools, ps...)
-			meta = newMeta
-			var m Metadata
-			require.NoError(t, json.Unmarshal(meta, &m))
-			if m.LastScannedBlock > head {
-				break
-			}
-		}
-	}
+	pools := listLivePools(t, client)
 	require.NotEmpty(t, pools)
 
 	tracker, err := NewPoolTracker(&Config{ChainID: 8453}, client)
@@ -186,4 +158,34 @@ func crossingAmounts(sim *PoolSimulator, xIn bool) []*big.Int {
 		}
 	}
 	return out
+}
+
+// listLivePools replays every MarketCreated log of the Base AMM through the backfiller, as
+// pool-service does, and returns the pools of both kinds.
+func listLivePools(t *testing.T, client *ethrpc.Client) []entity.Pool {
+	t.Helper()
+	ctx := context.Background()
+	f, err := NewPoolFactory(poolfactory.PoolsDecoderParams[Config]{Cfg: &Config{ChainID: 8453}})
+	require.NoError(t, err)
+	bf, err := poolfactory.NewFilterLogsBackfiller(f, client, poolfactory.BackfillConfig{
+		FactoryAddresses:     []common.Address{f.amm},
+		StartBlock:           52_856_797,
+		MaxBlockRangePerScan: 200_000,
+		Exchange:             DexType,
+	})
+	require.NoError(t, err)
+
+	var pools, ps []entity.Pool
+	var meta []byte
+	for done := false; !done; {
+		for try := 0; try < 5; try++ { // load-balanced nodes lag behind each other
+			if ps, meta, done, err = bf.Backfill(ctx, meta); err == nil {
+				break
+			}
+			time.Sleep(time.Second)
+		}
+		require.NoError(t, err)
+		pools = append(pools, ps...)
+	}
+	return pools
 }

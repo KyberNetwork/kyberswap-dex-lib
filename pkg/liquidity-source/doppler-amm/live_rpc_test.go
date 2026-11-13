@@ -71,8 +71,8 @@ func TestLiveMarketRefresh(t *testing.T) {
 	require.Equal(t, "2096", res.TokenAmountOut.Amount.String(), "matches quoteSwapExactInput")
 }
 
-// TestLiveMarketDiscovery decodes a real MarketCreated log from Base and checks
-// the discovery gate keeps the spot-CPMM/no-extension market.
+// TestLiveMarketDiscovery backfills every MarketCreated log on Base and checks that the 6 known spot
+// markets (including 0xcab05a53, WETH/USDC) and 4 launch markets are listed under their exchange.
 func TestLiveMarketDiscovery(t *testing.T) {
 	rpc := os.Getenv("LIVE_RPC")
 	if rpc == "" {
@@ -81,20 +81,21 @@ func TestLiveMarketDiscovery(t *testing.T) {
 
 	client := ethrpc.New(rpc).
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
-	updater := NewPoolsListUpdater(&Config{DexID: DexType, ChainID: 8453, MaxBlockRange: 50_000}, client)
+	pools := listLivePools(t, client)
 
-	// Block 53106797 holds market 0xcab05a53 (WETH/USDC, spot CPMM, no extension).
-	metadata, err := json.Marshal(Metadata{LastScannedBlock: 53106797})
-	require.NoError(t, err)
-
-	pools, newMetadata, err := updater.GetNewPools(context.Background(), metadata)
-	require.NoError(t, err)
-	require.NotEmpty(t, newMetadata)
-	require.Len(t, pools, 1)
-	require.Equal(t, "0xcab05a53e320d3f8d8f72e749bda740e02b504c32e8f91a63bfd3e7bd4c6ad74", pools[0].Address)
-	require.Equal(t, DexType, pools[0].Exchange)
-	require.Equal(t, DexType, pools[0].Type)
-	require.Equal(t, "0x4200000000000000000000000000000000000006", pools[0].Tokens[0].Address)
-	require.Equal(t, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", pools[0].Tokens[1].Address)
-	t.Logf("staticExtra=%s block=%d", pools[0].StaticExtra, pools[0].BlockNumber)
+	byExchange := map[string]map[string]*entity.Pool{}
+	for i, p := range pools {
+		if byExchange[p.Exchange] == nil {
+			byExchange[p.Exchange] = map[string]*entity.Pool{}
+		}
+		byExchange[p.Exchange][p.Address] = &pools[i]
+	}
+	require.GreaterOrEqual(t, len(byExchange["doppler-amm"]), 6)
+	require.GreaterOrEqual(t, len(byExchange["doppler-fun"]), 4)
+	spot := byExchange["doppler-amm"]["0xcab05a53e320d3f8d8f72e749bda740e02b504c32e8f91a63bfd3e7bd4c6ad74"]
+	require.NotNil(t, spot)
+	require.Equal(t, DexType, spot.Type)
+	require.Equal(t, "0x4200000000000000000000000000000000000006", spot.Tokens[0].Address)
+	require.Equal(t, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", spot.Tokens[1].Address)
+	t.Logf("spot=%d launch=%d", len(byExchange["doppler-amm"]), len(byExchange["doppler-fun"]))
 }

@@ -7,6 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
 // Topics of real Base logs from tx 0x2c5bb90f (sell on spot market 0xbf674fb6).
@@ -22,7 +24,8 @@ func testLog(amm string, topics ...string) types.Log {
 
 func TestPoolFactoryRoutesMarketEvents(t *testing.T) {
 	const amm = "0x533b7ee11f4f9be09191ebf6667abe73c01fe2c2"
-	f := NewPoolFactory(&Config{ChainID: 8453})
+	f, err := NewPoolFactory(poolfactory.PoolsDecoderParams[Config]{Cfg: &Config{ChainID: 8453}})
+	require.NoError(t, err)
 	ctx := context.Background()
 
 	for name, topic0 := range map[string]string{
