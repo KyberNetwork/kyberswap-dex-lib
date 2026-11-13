@@ -23,7 +23,7 @@ type PoolTracker struct {
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
-	if err := cfg.withDefaults(); err != nil {
+	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
 	return &PoolTracker{cfg: cfg, ethrpcClient: ethrpcClient}, nil

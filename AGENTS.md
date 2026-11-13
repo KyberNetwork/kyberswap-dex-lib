@@ -76,6 +76,14 @@ Suffixes:
 - Lowercase all pool addresses and token addresses.
 - Always wrap native tokens when the protocol supports native swaps (some protocols use the zero address or 0xeeee...eeee).
 - Persist immutable metadata the tracker and simulator need in `StaticExtra` of `entity.Pool`
+- Listers must not scan blocks themselves: no block cursor or `FilterLogs` loop in an `IPoolsListUpdater`. Discover pools from
+  creation logs with a `poolfactory` `IPoolFactoryDecoder` (`DecodePoolCreated`, `IsEventSupported`, plus `SupportedEventTopics`
+  to narrow the scan). Historical scans run through `poolfactory.FilterLogsBackfiller`
+  (`pkg/source/pool/poolfactory/backfill.go`), driven by the consumer's per-dex `backfill` config (sources, start block, range).
+  Example: `pkg/liquidity-source/pons-v2/pool_factory.go`.
+- Never hardcode contract addresses (factory, singleton, modules, quoter, extensions) or per-chain address tables in a source.
+  Every address is a `Config` field filled from the consumer's per-dex `properties`, validated at construction (error when missing
+  or malformed, no chain defaults). Example: `pkg/liquidity-source/doppler-amm/config.go`.
 
 ### Pool Tracker - IPoolTracker
 

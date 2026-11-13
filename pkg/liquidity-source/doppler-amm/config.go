@@ -1,59 +1,36 @@
 package doppleramm
 
-type Config struct {
-	DexID             string `json:"dexID"`
-	ChainID           int    `json:"chainId"`
-	AMMAddress        string `json:"ammAddress"`
-	QuoterAddress     string `json:"quoterAddress"`
-	SpotModuleAddress string `json:"spotModuleAddress"`
-	// MarketKind picks which markets this source lists: "spot" (default) or "launch".
-	MarketKind          string `json:"marketKind"`
-	LaunchModuleAddress string `json:"launchModuleAddress"`
-	FeesLockerAddress   string `json:"feesLockerAddress"`
-	StartBlock          uint64 `json:"startBlock"`
-	MaxBlockRange       uint64 `json:"maxBlockRange"`
-}
+import (
+	"fmt"
+	"strings"
 
-const (
-	defaultMaxBlockRange = 10_000
-	MarketKindSpot       = "spot"
-	MarketKindLaunch     = "launch"
+	"github.com/ethereum/go-ethereum/common"
 )
 
-// withDefaults fills every field the deployment set can supply, so pool-service
-// only has to configure dexID and chainId.
-func (c *Config) withDefaults() error {
-	d, ok := deployments[c.ChainID]
-	if !ok {
-		return ErrUnsupportedChain
-	}
-	switch c.MarketKind {
-	case "":
-		c.MarketKind = MarketKindSpot
-	case MarketKindSpot, MarketKindLaunch:
-	default:
-		return ErrUnsupportedMarketKind
-	}
-	if c.AMMAddress == "" {
-		c.AMMAddress = d.AMM
-	}
-	if c.QuoterAddress == "" {
-		c.QuoterAddress = d.Quoter
-	}
-	if c.SpotModuleAddress == "" {
-		c.SpotModuleAddress = d.SpotModule
-	}
-	if c.LaunchModuleAddress == "" {
-		c.LaunchModuleAddress = d.LaunchModule
-	}
-	if c.FeesLockerAddress == "" {
-		c.FeesLockerAddress = d.FeesLocker
-	}
-	if c.StartBlock == 0 {
-		c.StartBlock = d.StartBlock
-	}
-	if c.MaxBlockRange == 0 {
-		c.MaxBlockRange = defaultMaxBlockRange
+// Config holds every contract address the source needs; none has a default, so a
+// deployment is wired by the consumer's yaml only.
+type Config struct {
+	AMMAddress          string `json:"ammAddress"`
+	QuoterAddress       string `json:"quoterAddress"`
+	SpotModuleAddress   string `json:"spotModuleAddress"`
+	LaunchModuleAddress string `json:"launchModuleAddress"`
+	// FeesLockerAddress is the only extension a supported launch market carries.
+	FeesLockerAddress string `json:"feesLockerAddress"`
+}
+
+// validate checks that every address is set and well formed, and lowercases them.
+func (c *Config) validate() error {
+	for name, addr := range map[string]*string{
+		"ammAddress":          &c.AMMAddress,
+		"quoterAddress":       &c.QuoterAddress,
+		"spotModuleAddress":   &c.SpotModuleAddress,
+		"launchModuleAddress": &c.LaunchModuleAddress,
+		"feesLockerAddress":   &c.FeesLockerAddress,
+	} {
+		if !common.IsHexAddress(*addr) || common.HexToAddress(*addr) == (common.Address{}) {
+			return fmt.Errorf("%w: %s=%q", ErrInvalidConfig, name, *addr)
+		}
+		*addr = strings.ToLower(*addr)
 	}
 	return nil
 }
