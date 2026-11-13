@@ -74,5 +74,5 @@ func (r *LazyRequest) GetEthRpcCall(idx int) *ethrpc.Call {
 }
 
 func (r *LazyRequest) GetOverrides() map[common.Address]gethclient.OverrideAccount {
-	return r.Request.Overrides
+	return r.Overrides
 }
