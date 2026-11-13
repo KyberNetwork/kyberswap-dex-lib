@@ -77,9 +77,16 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, ErrInsufficientLiquidity
 	}
 
-	lpFeeBps, err := t.deriveLpFee(ctx, staticExtra.Quoter, marketID, reserves, fee.SwapBaseFeeBps, resp.BlockNumber)
-	if err != nil {
-		return p, err
+	// The LP fee is fixed per market, so the quoter probe only runs until it is known
+	// (or the base fee changes). Interval refresh then costs a single multicall.
+	var prev Extra
+	_ = json.Unmarshal([]byte(p.Extra), &prev)
+	lpFeeBps := prev.LpFeeBps
+	if lpFeeBps == 0 || prev.BaseFeeBps != fee.SwapBaseFeeBps {
+		lpFeeBps, err = t.deriveLpFee(ctx, staticExtra.Quoter, marketID, reserves, fee.SwapBaseFeeBps, resp.BlockNumber)
+		if err != nil {
+			return p, err
+		}
 	}
 
 	extra, err := json.Marshal(Extra{TokenX: staticExtra.TokenX, BaseFeeBps: fee.SwapBaseFeeBps, LpFeeBps: lpFeeBps})

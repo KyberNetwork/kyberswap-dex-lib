@@ -200,3 +200,33 @@ func newTestSimulator(t *testing.T, reserveX, reserveY string, baseFeeBps, lpFee
 	require.NoError(t, err)
 	return sim
 }
+
+// Base txs 0x9bf40413... (buy) and 0x2c5bb90f... (sell) on market 0xbf674fb6...,
+// base fee 10 bps, LP fee 100 bps. The sell was quoted ~9x low because the pool
+// still held its pre-buy reserves; the chain output is wei-exact once the buy has
+// been applied (reserves refreshed from chain). Fixtures are archive reads at blocks 56572972 and 56574352.
+func TestSellAfterBuyMatchesChain(t *testing.T) {
+	sim := newTestSimulator(t, "9888682694008172885300", "24227272600320", 10, 100)
+	tokenX, tokenY := sim.Info.Tokens[0], sim.Info.Tokens[1]
+
+	buyIn := bi("100000000000000")
+	buy, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenY, Amount: buyIn}, TokenOut: tokenX})
+	require.NoError(t, err)
+	require.Equal(t, "7942941019685519127495", buy.TokenAmountOut.Amount.String())
+
+	sellIn := bi("7942941019685519127494") // buy output minus the executor's 1 wei
+	sell := func(s *PoolSimulator) string {
+		res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: tokenX, Amount: sellIn}, TokenOut: tokenY})
+		require.NoError(t, err)
+		return res.TokenAmountOut.Amount.String()
+	}
+
+	// Stale reserves: the ~10x underquote seen in production.
+	require.Equal(t, "10725731511188", sell(sim))
+
+	// Chain reserves at block 56574352 (after the buy) give the chain's exact output.
+	fresh := newTestSimulator(t, "1945741674322653757805", "124052347600320", 10, 100)
+	require.Equal(t, "99425858078591", sell(fresh))
+}
