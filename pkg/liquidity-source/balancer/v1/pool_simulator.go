@@ -135,6 +135,30 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.totalAmountsIn[params.TokenAmountIn.Token] = newTotalAmountIn
 }
 
+// CloneState copies the maps UpdateBalance writes into, and the fee. The uint256 values are cloned too,
+// so a later write through a pointer cannot reach the original.
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.records = make(map[string]Record, len(s.records))
+	for k, v := range s.records {
+		cloned.records[k] = v
+	}
+	cloned.totalAmountsIn = cloneUint256Map(s.totalAmountsIn)
+	cloned.maxTotalAmountsIn = cloneUint256Map(s.maxTotalAmountsIn)
+	if s.swapFee != nil {
+		cloned.swapFee = s.swapFee.Clone()
+	}
+	return &cloned
+}
+
+func cloneUint256Map(m map[string]*uint256.Int) map[string]*uint256.Int {
+	out := make(map[string]*uint256.Int, len(m))
+	for k, v := range m {
+		out[k] = v.Clone()
+	}
+	return out
+}
+
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		BlockNumber: s.Info.BlockNumber,

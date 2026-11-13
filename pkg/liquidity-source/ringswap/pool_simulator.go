@@ -3,6 +3,7 @@ package ringswap
 import (
 	"fmt"
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -232,6 +233,14 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	deltaOut := lo.Ternary(swapInfo.IsUnwrapOut, params.TokenAmountOut.Amount, bignumber.ZeroBI)
 
 	_, _, _ = params.SwapLimit.UpdateLimit(swapInfo.WTokenOut, swapInfo.WTokenIn, deltaOut, deltaIn)
+}
+
+// CloneState copies the reserve slice UpdateBalance writes by index. The big.Int reserves are replaced
+// on write, not changed in place, so sharing them is safe.
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	return &cloned
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
