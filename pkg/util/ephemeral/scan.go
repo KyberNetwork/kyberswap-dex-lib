@@ -33,6 +33,12 @@ type Chain interface {
 
 // Pinned is the block a read of several calls is pinned to, nil until its first call reports one,
 // and how the chain's node reports a call. Pin makes one.
+//
+// The pin is a block number, not a hash: a reorg of that block between two calls gives a read
+// pages of both of its versions. A pool's ticks, price and liquidity differ between them only if
+// a swap, mint or burn in one changed them, and each logs an event that the reorg reverts or adds,
+// so the pool is read again after it, as a one-call read of the block it replaced must be too.
+// Pinning by hash (EIP-1898) would cost a header request per read and a node that serves it.
 type Pinned struct {
 	Block *big.Int
 	// late: the node runs a call in the block after the one whose state it reads, pinned to block
