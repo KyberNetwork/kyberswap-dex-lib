@@ -415,6 +415,7 @@ func (s *PoolSimulator) SetBasePool(p pool.IPoolSimulator) {
 		s.Revision++
 	}
 }
+func (s *PoolSimulator) GetApprovalAddress(_, _ string) string { return Settlement }
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return Meta{Settlement: Settlement, ApprovalAddress: Settlement, Token: s.Info.Address, BlockNumber: s.Info.BlockNumber}
 }

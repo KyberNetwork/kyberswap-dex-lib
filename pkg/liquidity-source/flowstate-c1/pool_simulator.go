@@ -129,6 +129,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.FillableAmount = new(uint256.Int).Sub(s.FillableAmount, amountOut)
 }
 
+func (s *PoolSimulator) GetApprovalAddress(_, _ string) string { return s.Market }
+
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return MetaInfo{
 		Market:          s.Market,

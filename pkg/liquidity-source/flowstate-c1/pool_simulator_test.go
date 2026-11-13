@@ -160,3 +160,12 @@ func TestCalcAmountOut_ZeroOutput(t *testing.T) {
 	})
 	require.ErrorIs(t, err, ErrZeroAmountOut)
 }
+
+// The executor approves the Market; the encoder reads it from meta, so both must agree.
+func TestApprovalAddressIsMarket(t *testing.T) {
+	sim := newTestPool(t, "1000000000000000")
+	meta := sim.GetMetaInfo("", "").(MetaInfo)
+	require.NotEmpty(t, sim.Market)
+	require.Equal(t, sim.Market, meta.ApprovalAddress)
+	require.Equal(t, meta.ApprovalAddress, sim.GetApprovalAddress("", ""))
+}
