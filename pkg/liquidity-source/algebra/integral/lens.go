@@ -60,10 +60,12 @@ func (d *PoolTracker) snapshot(ctx context.Context, address string, block *big.I
 	if err != nil {
 		return nil, fmt.Errorf("lens snapshot of %s: %w", address, err)
 	}
+	// The pages share the gas a refusal for size settles on.
+	readGas := ephemeral.NewReadGas(ctx, d.EthrpcClient.GetETHClient(), d.config.LensGas)
 	read, err := ephemeral.Scan(ctx, lensStartTick, pin,
 		func(ctx context.Context, start int, block *big.Int) (ephemeral.Page[int], error) {
 			var out snapshot
-			err := ephemeral.Call(ctx, d.EthrpcClient.GetETHClient(), lens, &out, d.config.LensGas, block,
+			err := readGas.Call(ctx, d.EthrpcClient.GetETHClient(), lens, &out, block,
 				pool, big.NewInt(int64(start)))
 			if err != nil {
 				return ephemeral.Page[int]{}, err
