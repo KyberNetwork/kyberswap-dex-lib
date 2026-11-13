@@ -41,7 +41,6 @@ func TestCalcAmountOutMatchesDeployedQuoter(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, tc.out, res.TokenAmountOut.Amount.String(), "X->Y in %s", tc.in)
 		// The encoder reads tokenX off SwapInfo to derive inputIsX.
-		require.Equal(t, sim.extra, res.SwapInfo)
 		require.NotEmpty(t, res.SwapInfo.(Extra).TokenX)
 	}
 
@@ -64,53 +63,14 @@ func TestCalcAmountOutMatchesDeployedQuoter(t *testing.T) {
 	}
 }
 
-func TestDeriveLpFeeBpsFromProbe(t *testing.T) {
-	// 1e18 X in quoted 1972361223047609121719 Y out on the fork.
-	lp, err := deriveLpFeeBps(
-		bi("1000000000000000000"),
-		bi("1972361223047609121719"),
-		bi("100000000000000000000"),
-		bi("200000000000000000000000"),
-		10,
-	)
-	require.NoError(t, err)
-	require.Equal(t, uint16(30), lp)
-
-	// A probe that cannot be explained by any fee must be rejected rather than
-	// silently persisted as a wrong rate.
-	_, err = deriveLpFeeBps(
-		bi("1000000000000000000"),
-		bi("1000000000000000000"),
-		bi("100000000000000000000"),
-		bi("200000000000000000000000"),
-		10,
-	)
-	require.ErrorIs(t, err, ErrFeeDerivation)
-
-	// Output at or above the reserve is not a valid quote.
-	_, err = deriveLpFeeBps(bi("1000000000000000000"), bi("200000000000000000000000"),
-		bi("100000000000000000000"), bi("200000000000000000000000"), 10)
-	require.ErrorIs(t, err, ErrFeeDerivation)
-}
-
 // Real market 0xcab05a53... on Base (WETH/USDC, LP fee 5 bps, base fee 10 bps).
 // Every quoted output below came from DopplerQuoter.quoteSwapExactInput at block
 // 56.3M, including the amount whose output floors to zero.
-func TestDeriveLpFeeBpsRealMarket(t *testing.T) {
+func TestGetAmountOutRealMarket(t *testing.T) {
 	reserveX := bi("2275146628267141")
 	reserveY := bi("4777975")
+	lp := uint16(5)
 
-	// 1% of reserveX pins the rate down.
-	lp, err := deriveLpFeeBps(bi("22751466282671"), bi("47236"), reserveX, reserveY, 10)
-	require.NoError(t, err)
-	require.Equal(t, uint16(5), lp)
-
-	// 0.1% of reserveX is too small: 4 bps and 5 bps both reproduce the quote, so
-	// the answer must be reported as unresolvable instead of guessed.
-	_, err = deriveLpFeeBps(bi("2275146628267"), bi("4766"), reserveX, reserveY, 10)
-	require.ErrorIs(t, err, ErrFeeDerivation)
-
-	// The derived rate reproduces the whole quote curve, not just the probe.
 	for _, tc := range []struct{ in, out string }{
 		{"100000000000", "209"},
 		{"1000000000000", "2096"},
@@ -149,6 +109,7 @@ func TestUpdateBalanceMovesReservesAndCloneIsolates(t *testing.T) {
 	clone := sim.CloneState().(*PoolSimulator)
 
 	amountIn, amountOut := big.NewInt(1e18), bi("1972361223047609121719")
+	// Without SwapInfo the gross input is added.
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: sim.Info.Tokens[0], Amount: amountIn},
 		TokenAmountOut: pool.TokenAmount{Token: sim.Info.Tokens[1], Amount: amountOut},
@@ -158,6 +119,47 @@ func TestUpdateBalanceMovesReservesAndCloneIsolates(t *testing.T) {
 	require.Equal(t, "198027638776952390878281", sim.reserves[1].Dec())
 	require.Equal(t, "100000000000000000000", clone.reserves[0].Dec(),
 		"clone must keep the pre-swap reserves")
+}
+
+// quoteAndApply quotes a swap and applies it with the SwapInfo like the router does.
+func quoteAndApply(t *testing.T, sim *PoolSimulator, xIn bool, in string) *pool.CalcAmountOutResult {
+	t.Helper()
+	tokenIn, tokenOut := sim.Info.Tokens[1], sim.Info.Tokens[0]
+	if xIn {
+		tokenIn, tokenOut = tokenOut, tokenIn
+	}
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: bi(in)}, TokenOut: tokenOut})
+	require.NoError(t, err)
+	sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: bi(in)},
+		TokenAmountOut: *res.TokenAmountOut, SwapInfo: res.SwapInfo})
+	return res
+}
+
+// Reserves read on Base before and after real swaps (archive reads at block-1 and block). The
+// protocol takes its base fee and 7.5% of the LP fee out of the input reserve; the rest of the LP
+// fee stays when the fee recipient is a contract and leaves with the swap when it is an EOA.
+func TestUpdateBalanceMatchesChainReserves(t *testing.T) {
+	// Market 0xbf674fb6 (LP 100 bps, contract recipient), buy of 1e14 WETH at block 56572973.
+	sim := newTestSimulator(t, "9888682694008172885300", "24227272600320", 10, 100)
+	sim.extra.FeeShareBps, sim.extra.LpFeeStays = 750, true
+	quoteAndApply(t, sim, false, "100000000000000")
+	require.Equal(t, "1945741674322653757805", sim.reserves[0].Dec())
+	require.Equal(t, "124052347600320", sim.reserves[1].Dec())
+
+	// Market 0xcab05a53 (LP 5 bps, EOA recipient), sell of 1e14 WETH at block 55766610.
+	sim = newTestSimulator(t, "2175296578267141", "4997292", 10, 5)
+	sim.extra.FeeShareBps = 750
+	res := quoteAndApply(t, sim, true, "100000000000000")
+	require.Equal(t, "219317", res.TokenAmountOut.Amount.String())
+	require.Equal(t, "2275146628267141", sim.reserves[0].Dec())
+	require.Equal(t, "4777975", sim.reserves[1].Dec())
+
+	// Launch market 0x59bd7910 (1% fee): only the net amount stays, 98901000000000 of 1e14 at block 55766015.
+	launch := newLaunchSimulator(t, "999958632605582091063890108", "101074615332646",
+		"3916473128391601941059829", "18812618797347724045334")
+	quoteAndApply(t, launch, false, "100000000000000")
+	require.Equal(t, "199975615332646", launch.reserves[1].Dec())
 }
 
 func TestGetMetaInfoApprovesAMM(t *testing.T) {

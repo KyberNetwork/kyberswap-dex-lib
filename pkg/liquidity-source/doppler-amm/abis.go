@@ -30,8 +30,9 @@ func init() {
 		*b.ABI = parsed
 	}
 
-	// The module is unverified, so two getters are known by selector only (found
+	// The AMM and the module are unverified, so these getters are known by selector only (found
 	// by probing the deployed bytecode); pin their IDs under placeholder names.
+	pinSelector(&ammABI, "marketConfig", [4]byte{0xee, 0x49, 0x32, 0x48})
 	pinSelector(&launchABI, "levelBounds", [4]byte{0x5c, 0xd8, 0x7b, 0xa7})
 	pinSelector(&launchABI, "levelInfo", [4]byte{0x56, 0x49, 0x5c, 0x7c})
 }
