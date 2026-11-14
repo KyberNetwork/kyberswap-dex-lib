@@ -63,3 +63,18 @@ func ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, endingSqrtRatio *
 func ApproximateSqrtRatioToTick(sqrtRatio *uint256.Int) int32 {
 	return int32(math.Round(math.Log(U256ToFloatBaseX128(sqrtRatio)) / logBaseSqrtTickSize))
 }
+
+// SqrtRatioToTick returns the greatest tick whose sqrt ratio is less than or equal to sqrtRatio, clamped to the tick
+// bounds, as Core computes the tick of a price.
+func SqrtRatioToTick(sqrtRatio *uint256.Int) int32 {
+	tick := min(max(ApproximateSqrtRatioToTick(sqrtRatio), MinTick), MaxTick)
+
+	for tick > MinTick && ToSqrtRatio(tick).Gt(sqrtRatio) {
+		tick--
+	}
+	for tick < MaxTick && !ToSqrtRatio(tick+1).Gt(sqrtRatio) {
+		tick++
+	}
+
+	return tick
+}

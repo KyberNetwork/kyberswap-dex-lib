@@ -99,6 +99,7 @@ func (f *dataFetchers) fetchPools(
 	}
 
 	twammPoolKeys, boostedFeeConcentratedPoolKeys, ve33PoolKeys, basicPoolKeys := make([]pools.AnyPoolKey, 0), make([]pools.AnyPoolKey, 0), make([]pools.AnyPoolKey, 0), make([]poolKeyWithExtType, 0)
+	var launchPoolKeys []pools.AnyPoolKey
 
 	for _, key := range poolKeys {
 		extType := f.config.ExtensionType(key.Extension())
@@ -115,12 +116,21 @@ func (f *dataFetchers) fetchPools(
 			boostedFeeConcentratedPoolKeys = append(boostedFeeConcentratedPoolKeys, key)
 		case ExtensionTypeVe33:
 			ve33PoolKeys = append(ve33PoolKeys, key)
+		case ExtensionTypeZeroSeedLaunch:
+			launchPoolKeys = append(launchPoolKeys, key)
 		default:
 			logger.Errorf("unknown extension %v", key.Extension())
 		}
 	}
 
 	fetchedPools := make([]fetchedPool, 0, len(poolKeys))
+	if len(launchPoolKeys) != 0 {
+		launches, err := f.fetchLaunchPools(ctx, launchPoolKeys, overrides)
+		if err != nil {
+			return nil, err
+		}
+		fetchedPools = append(fetchedPools, launches...)
+	}
 
 	for _, poolKeyBatch := range lo.Chunk(basicPoolKeys, maxBatchSize) {
 		req := f.ethrpcClient.R().SetContext(ctx)
