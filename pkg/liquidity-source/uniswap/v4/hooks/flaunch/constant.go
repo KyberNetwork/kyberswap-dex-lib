@@ -58,4 +58,13 @@ var HookAddresses = []common.Address{
 	// ---- Base, Arbitrum, Robinhood (CREATE3 parity, 2026-09-17) ----
 	// AnyPositionManager, vested-launch generation (Game Mode). One address on all three chains.
 	common.HexToAddress("0xE753a351FB498051a09Dc130fcC29aEBc76525DC"),
+
+	// ---- Base, Arbitrum, Robinhood, Ethereum (CREATE3 parity, 2026-10-21) ----
+	// v1.6.0: hard 10% swap-fee cap and non-reverting fee-calculator calls. getPoolFeeDistribution,
+	// the dispatcher walk and the 1% default swapFee are unchanged, so Track needs no changes.
+	// https://github.com/flayerlabs/flaunch-contracts/releases/tag/v1.6.0
+	// PositionManager v1.6.0. One address on all four chains.
+	common.HexToAddress("0x54bEDD41AfDf57722518cF6Dd826a70d81e9a5DC"),
+	// AnyPositionManager v1.6.0. One address on all four chains.
+	common.HexToAddress("0x0a68F68D0C5C4c7c32BCDF0a64670D8cEe5565DC"),
 }
