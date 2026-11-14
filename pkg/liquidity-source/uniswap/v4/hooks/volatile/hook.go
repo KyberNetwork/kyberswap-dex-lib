@@ -3,6 +3,7 @@ package volatile
 import (
 	"context"
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -19,9 +20,14 @@ type Extra struct {
 	State  FeeState  `json:"s"`
 }
 
+// Hook embeds BaseHook by value, not the Hook interface, so a simulator survives the msgpack round trip
+// (as pons-v2 and coocoo, #1800).
 type Hook struct {
-	uniswapv4.Hook `json:"-"`
+	uniswapv4.BaseHook `json:"-"`
 	Extra
+	// MaxFee is the most this hook charges per side, in pips. The factory sets it from the hook address and it is never
+	// tracked or stored in hX. 0, as in a Hook built without the factory, means Uniswap's 999,998.
+	MaxFee uint32 `json:"-"`
 	// advanced: State already holds this block's top-of-block advance (a swap of this sim ran).
 	advanced bool
 }
@@ -32,10 +38,22 @@ type SwapInfo struct {
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	h := &Hook{Hook: &uniswapv4.BaseHook{Exchange: DexType}}
+	h := &Hook{BaseHook: uniswapv4.BaseHook{Exchange: DexType}}
+	if slices.Contains(ChangingFeeHookAddresses, param.HookAddress) {
+		h.MaxFee = ChangingFeeMaxFee
+	}
 	_ = param.HookExtra.Unmarshal(&h.Extra)
 	return h
-}, HookAddress)
+}, append([]common.Address{HookAddress}, ChangingFeeHookAddresses...)...)
+
+// maxFee is the ceiling of the fee this hook charges. ChangingFeeHook clamps the fee at 20,000 pips after the
+// library's own clamp (ChangingFeeHook._chargedFee); Uniswap's hook is limited only by the library's 999,998.
+func (h *Hook) maxFee() uint32 {
+	if h.MaxFee == 0 {
+		return maxFeeE6
+	}
+	return h.MaxFee
+}
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	poolID := common.HexToHash(param.Pool.Address)
@@ -110,7 +128,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		h.Config.advance(&state, cur)
 		res.SwapInfo = &SwapInfo{State: state}
 	}
-	res.SwapFee = uniswapv4.FeeAmount(h.Config.fee(&state, cur, params.ZeroForOne))
+	res.SwapFee = uniswapv4.FeeAmount(min(h.Config.fee(&state, cur, params.ZeroForOne), h.maxFee()))
 	return res, nil
 }
 
