@@ -1,6 +1,10 @@
 package pool
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/holiman/uint256"
+)
 
 // SwapLimit is the interface implement a separate limit from pool's State.
 // i.e: SwapLimit must be something affect multiple pools once it is change.
@@ -47,4 +51,12 @@ func MergeSwapLimits(limits map[string]*big.Int, simulator IPoolSimulator) {
 			limits[key] = value
 		}
 	}
+}
+
+// ISwapLimitU is implemented by swap limits that expose uint256 amounts. Callers should type-assert and
+// fall back to SwapLimit (big.Int) when absent.
+type ISwapLimitU interface {
+	GetLimitU(key string) *uint256.Int
+	CheckLimitU(key string, amount *uint256.Int) error
+	UpdateLimitU(decreaseKey, increasedKey string, decreasedDelta, increasedDelta *uint256.Int) (increasedLimitAfter *uint256.Int, decreasedLimitAfter *uint256.Int, err error)
 }
