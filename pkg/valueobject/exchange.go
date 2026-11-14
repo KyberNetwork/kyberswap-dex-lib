@@ -419,6 +419,7 @@ const (
 	ExchangeTitanProp                   = "titan-prop"
 	ExchangeOdysFun                     = "odys-fun"
 	ExchangeStelaxisProp                = "stelaxis-prop"
+	ExchangeRateOB                      = "rate-ob"
 )
 
 var RFQSourceSet = map[Exchange]struct{}{
