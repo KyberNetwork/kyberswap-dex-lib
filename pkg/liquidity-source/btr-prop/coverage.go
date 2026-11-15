@@ -35,8 +35,9 @@ func coverageRoom(bits uint32, knee uint16, neg bool, kNeg uint64, r, l *uint256
 		pole = u(uint64(bits&63) * 2e16)
 		span = new(uint256.Int).Sub(t, pole)
 		kb = kNeg
-		if kb2 = kappaBps(uint64(knee >> 6)); kb2 != 0 {
-			bk = uint64(knee&63)*2e16 - uint64(bits&63)*2e16
+		kneePole, basePole := uint64(knee&63), uint64(bits&63)
+		if kb2 = kappaBps(uint64(knee >> 6)); kb2 != 0 && kneePole > basePole {
+			bk = (kneePole - basePole) * 2e16
 		}
 	} else {
 		pole = u(105e16 + uint64((bits>>15)&31)*5e16)
