@@ -34,9 +34,11 @@ const (
 	// MaxAge drops a stale sampled ladder rather than quoting marks the keeper
 	// has since moved. The keeper pushes about every 3 s and the tracker refreshes on its poll,
 	// so a ladder is replaced within a couple of pushes: 6 s. Every sampled output is also
-	// scaled down by the worst-case drift of the pool's staleness premium over MaxAge (see
-	// guard.refine), so a longer window costs competitiveness, a shorter one only refetches.
+	// scaled down by the worst-case drift of the pool's staleness premium over MaxAge plus
+	// InclusionAllowance (see guard.refine), so a longer window costs competitiveness, a shorter one only refetches.
 	MaxAge = 6 * time.Second
+	// InclusionAllowance extends the drift window past MaxAge for the time a swap takes to land.
+	InclusionAllowance = 2 * time.Second
 	// RPCTimeout bounds one tracker refresh.
 	RPCTimeout = 15 * time.Second
 )

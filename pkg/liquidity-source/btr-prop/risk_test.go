@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// word packs a MarkWordLib leg word. mark is in 1e18 WAD; its lane float keeps 25 bits.
+// word packs a leg word. mark is in 1e18 WAD; its lane float keeps 25 bits.
 func word(obs, sigma, ttl uint64, mark uint64, halted, internal bool, depegCode uint64) *big.Int {
 	m := new(big.Int).Lsh(new(big.Int).SetUint64(mark), 16)
 	e := uint(0)
@@ -95,46 +95,103 @@ func TestCutAbove(t *testing.T) {
 	require.Len(t, cutAbove(p, nil), 3)
 }
 
-// refine refuses a path through a depegged, expired or unreadable leg, including an interior
-// hop, and cuts the ladder at the output leg's settle-time room.
+// bookOf is a getAsset result with the fields the route rule reads.
+func bookOf(anchor common.Address, lane uint8) *rpcAssetResult {
+	return &rpcAssetResult{Asset: rpcAsset{Anchor: anchor, OracleBits: lane}}
+}
+
+// refine refuses a path through a depegged, expired, uncertain or unreadable leg, including an
+// interior hop, and cuts the ladder at the output leg's settle-time room.
 func TestGuardRefine(t *testing.T) {
 	a, b, hub := common.HexToAddress("0x01"), common.HexToAddress("0x02"), common.HexToAddress("0x03")
 	leg := func(mark uint64, code uint64) *markLeg {
 		l, _ := decodeMark(word(1000, 100, 60, mark, false, false, code))
 		return l
 	}
-	ladder := pts(10, 9, 20, 18, 30, 27)
+	ladder := pts(1_000_000, 900_000, 2_000_000, 1_800_000, 3_000_000, 2_700_000)
 	mk := func(hubLeg *markLeg, room *uint256.Int) *guard {
 		return &guard{
 			tokens: []common.Address{a, b, hub},
 			legs:   []*markLeg{leg(wad, 1), leg(wad, 1), hubLeg},
+			assets: []*rpcAssetResult{bookOf(hub, 1), bookOf(hub, 2), bookOf(common.Address{}, 0)},
+			base:   hub,
 			rooms:  []*uint256.Int{nil, room, nil},
 			now:    1000, window: 10,
 		}
 	}
 	hops := []common.Address{a, hub, b}
-	require.Len(t, mk(leg(wad, 1), nil).refine(0, 1, hops, ladder), 3)
-	require.Nil(t, mk(leg(wad*90/100, 1), nil).refine(0, 1, hops, ladder), "depegged interior hop")
-	require.Len(t, mk(leg(wad*90/100, 1), nil).refine(0, 1, nil, ladder), 3, "without a hop list only the endpoints are checked")
-	require.Nil(t, mk(nil, nil).refine(0, 1, hops, ladder), "unreadable interior word")
+	require.Len(t, mk(leg(wad, 1), nil).refine(0, 1, hops, 3000, ladder), 3)
+	require.Nil(t, mk(leg(wad*90/100, 1), nil).refine(0, 1, hops, 3000, ladder), "depegged interior hop")
+	require.Len(t, mk(leg(wad*90/100, 1), nil).refine(0, 1, nil, 3000, ladder), 3, "without a hop list only the endpoints are checked")
+	require.Nil(t, mk(nil, nil).refine(0, 1, hops, 3000, ladder), "unreadable interior word")
 	g := mk(leg(wad, 1), nil)
 	g.window = 100
-	require.Nil(t, g.refine(0, 1, hops, ladder), "TTL expires inside the window")
-	require.Len(t, mk(leg(wad, 1), uint256.NewInt(20)).refine(0, 1, hops, ladder), 2, "liquid floor cuts the top")
+	require.Nil(t, g.refine(0, 1, hops, 3000, ladder), "TTL expires inside the window")
+	require.Len(t, mk(leg(wad, 1), uint256.NewInt(2_000_000)).refine(0, 1, hops, 3000, ladder), 2, "liquid floor cuts the top")
+	g = mk(leg(wad, 1), nil)
+	g.assets[0] = nil
+	require.Nil(t, g.refine(0, 1, hops, 3000, ladder), "unreadable book cannot clear the route rule")
+	require.Nil(t, mk(leg(wad, 1), nil).refine(0, 1, []common.Address{a, common.HexToAddress("0x99"), b}, 3000, ladder), "route through an unknown node")
 }
 
-// driftPool is a synthetic pool whose quote is the base curve less the path's staleness premium
-// at block time t, the way the live quote drifts. Samples are taken at t=now.
-func driftPool(g *guard, legs []int, x, t uint64) uint64 {
-	var s uint64
+// An INTERNAL (or any) leg whose mark confidence interval exceeds the limit is refused.
+func TestTradableAtConfidence(t *testing.T) {
+	w := word(1000, 100, 60, wad, false, true, 0)
+	w.Or(w, new(big.Int).Lsh(big.NewInt(1000), 91))
+	l, _ := decodeMark(w)
+	require.True(t, l.tradableAt(1000))
+	w.Or(w, new(big.Int).Lsh(big.NewInt(1), 91)) // conf 1001
+	l, _ = decodeMark(w)
+	require.Equal(t, uint64(1001), l.conf)
+	require.False(t, l.tradableAt(1000))
+}
+
+// The route rule: no ascending and no descending chain may price two legs off one oracle lane.
+func TestDistinctFeeds(t *testing.T) {
+	a, c, hub, b := common.HexToAddress("0x01"), common.HexToAddress("0x02"), common.HexToAddress("0x03"), common.HexToAddress("0x04")
+	mk := func(laneA, laneC, laneB uint8) *guard {
+		return &guard{
+			tokens: []common.Address{a, c, hub, b}, base: hub,
+			assets: []*rpcAssetResult{bookOf(c, laneA), bookOf(hub, laneC), bookOf(common.Address{}, 0), bookOf(hub, laneB)},
+		}
+	}
+	route := []int{0, 1, 2, 3} // a -> c -> hub -> b
+	require.True(t, mk(1, 2, 3).distinctFeeds(route))
+	require.False(t, mk(5, 5, 3).distinctFeeds(route), "ascent chain repeats a lane")
+	require.True(t, mk(1, 2, 1).distinctFeeds(route), "a lane shared across the turn is fine")
+	require.True(t, mk(7, 7, 7).distinctFeeds([]int{0, 2}), "single-child chains have nothing to collide with")
+	g := mk(1, 2, 3)
+	g.assets[3] = nil
+	require.False(t, g.distinctFeeds(route))
+	// Descent chain: hub -> c -> a read downward.
+	d := &guard{
+		tokens: []common.Address{a, c, hub}, base: hub,
+		assets: []*rpcAssetResult{bookOf(c, 4), bookOf(hub, 4), bookOf(common.Address{}, 0)},
+	}
+	require.False(t, d.distinctFeeds([]int{2, 1, 0}), "descent chain repeats a lane")
+}
+
+// driftPool is a synthetic pool: the pool pays half the quoted spread on the output,
+// out = gross - ceil(gross*spread/2e6), and the spread is a fixed part plus the path's
+// staleness premium at block time t. Samples are taken at t=now.
+const driftBase = 3000
+
+func driftSpread(g *guard, legs []int, t uint64) uint64 {
+	s := uint64(driftBase)
 	for _, i := range legs {
 		s += g.legs[i].staleTermAt(t)
 	}
-	return x * 99 / 100 * (pbps - s) / pbps
+	return s
+}
+
+func driftPool(g *guard, legs []int, x, t uint64) uint64 {
+	gross := x * 99 / 100
+	return gross - (gross*driftSpread(g, legs, t)+2*pbps-1)/(2*pbps)
 }
 
 // The ladder never promises more than the pool pays at any second of the window (no push in
-// between), for volatile spokes, a stable-ish leg, a fresh mark and one already well past grace.
+// between), for volatile spokes, a stable-ish leg, a fresh mark and one already well past the
+// keeper's allowance.
 func TestRefineNeverOverquotesAcrossWindow(t *testing.T) {
 	a, b, hub := common.HexToAddress("0x01"), common.HexToAddress("0x02"), common.HexToAddress("0x03")
 	for _, c := range []struct {
@@ -142,13 +199,12 @@ func TestRefineNeverOverquotesAcrossWindow(t *testing.T) {
 		obsA, obsB   uint64
 		sigA, sigB   uint64
 		ttl          uint64
-		wantHaircut  bool
 		maxHaircutBp uint64
 	}{
-		{"fresh volatile", 1000, 1000, 11264, 11264, 180, true, 25},
-		{"aged volatile", 970, 960, 11264, 6000, 180, true, 40},
-		{"stable-ish", 995, 995, 200, 150, 180, true, 5},
-		{"short ttl", 1000, 1000, 11264, 11264, 8, true, 25},
+		{"fresh volatile", 1000, 1000, 11264, 11264, 180, 20},
+		{"aged volatile", 970, 960, 11264, 6000, 180, 25},
+		{"stable-ish", 995, 995, 200, 150, 180, 5},
+		{"short ttl", 1000, 1000, 11264, 11264, 12, 20},
 	} {
 		wa, _ := decodeMark(word(c.obsA, c.sigA, c.ttl, wad, false, false, 0))
 		wb, _ := decodeMark(word(c.obsB, c.sigB, c.ttl, wad, false, false, 0))
@@ -156,14 +212,15 @@ func TestRefineNeverOverquotesAcrossWindow(t *testing.T) {
 		wh.base = true
 		g := &guard{
 			tokens: []common.Address{a, b, hub}, legs: []*markLeg{wa, wb, wh},
-			rooms: make([]*uint256.Int, 3), now: 1000, window: uint64(MaxAge.Seconds()),
+			assets: []*rpcAssetResult{bookOf(hub, 1), bookOf(hub, 2), bookOf(common.Address{}, 0)}, base: hub,
+			rooms: make([]*uint256.Int, 3), now: 1000, window: uint64((MaxAge + InclusionAllowance).Seconds()),
 		}
 		path := []int{0, 1}
 		var raw []Point
 		for _, x := range []uint64{1e6, 1e9, 1e12} {
 			raw = append(raw, Point{In: *uint256.NewInt(x), Out: *uint256.NewInt(driftPool(g, path, x, g.now))})
 		}
-		got := g.refine(0, 1, []common.Address{a, hub, b}, raw)
+		got := g.refine(0, 1, []common.Address{a, hub, b}, driftSpread(g, path, g.now), raw)
 		require.Len(t, got, len(raw), c.name)
 		for k, p := range got {
 			x := p.In.Uint64()
@@ -176,27 +233,40 @@ func TestRefineNeverOverquotesAcrossWindow(t *testing.T) {
 	}
 }
 
-// A refreshed mark (age inside grace) has no premium to grow into the window beyond sqrt(excess)
-// of the seconds past grace; a base-only path has none at all.
+// A path of base legs only has no premium to grow; just the rounding allowance applies.
 func TestRefineBaseOnlyPathUntouched(t *testing.T) {
 	a, hub := common.HexToAddress("0x01"), common.HexToAddress("0x03")
 	wa, _ := decodeMark(word(1000, 11264, 180, wad, false, false, 0))
 	wh, _ := decodeMark(word(1000, 11264, 180, wad, false, false, 0))
 	wa.base, wh.base = true, true
 	g := &guard{tokens: []common.Address{a, hub}, legs: []*markLeg{wa, wh}, rooms: make([]*uint256.Int, 2), now: 1000, window: 6}
-	in := pts(1000, 990, 2000, 1980)
-	got := g.refine(0, 1, nil, in)
+	in := pts(1_000_000, 990_000, 2_000_000, 1_980_000)
+	got := g.refine(0, 1, nil, 3000, in)
 	require.Len(t, got, 2)
-	// Only the 1 PBPS rounding allowance applies.
-	require.Equal(t, uint64(990*(pbps-1)/pbps), got[0].Out.Uint64())
+	den := uint64(2*pbps - 3000)
+	require.Equal(t, uint64(990_000)*(den-1)/den, got[0].Out.Uint64())
 }
 
-func TestStaleTermMatchesPricingLib(t *testing.T) {
-	// STALE_Z*sigma*floor(sqrt(excess))/BPS: sigma 11264 (1.13%), 100 s past grace -> 53166.
+// A larger sampled spread gives a larger haircut for the same drift (the ratio falls as the
+// spread grows), so the largest spread over a pair's samples is the safe one to use.
+func TestRefineSpreadMonotone(t *testing.T) {
+	a, hub := common.HexToAddress("0x01"), common.HexToAddress("0x03")
+	wa, _ := decodeMark(word(1000, 11264, 180, wad, false, false, 0))
+	wh, _ := decodeMark(word(1000, 100, 180, wad, false, false, 0))
+	wh.base = true
+	g := &guard{tokens: []common.Address{a, hub}, legs: []*markLeg{wa, wh}, rooms: make([]*uint256.Int, 2), now: 1000, window: 8}
+	in := pts(1_000_000, 990_000)
+	lo := g.refine(0, 1, nil, 1000, in)[0].Out.Uint64()
+	hi := g.refine(0, 1, nil, 30000, in)[0].Out.Uint64()
+	require.Less(t, hi, lo)
+}
+
+func TestStaleTermFormula(t *testing.T) {
+	// premium = 472*sigma*floor(sqrt(excess))/10000 PBPS.
 	l, _ := decodeMark(word(900, 11264, 180, wad, false, false, 0))
-	require.Equal(t, uint64(97), l.staleExcessAt(1000), "age 100 less the 3 s grace")
+	require.Equal(t, uint64(97), l.staleExcessAt(1000), "age 100 less the 3 s allowance")
 	require.Equal(t, uint64(472*11264*9/10_000), l.staleTermAt(1000))
-	require.Zero(t, l.staleTermAt(903), "inside the grace")
+	require.Zero(t, l.staleTermAt(903), "inside the allowance")
 	l.base = true
 	require.Zero(t, l.staleTermAt(1000))
 }

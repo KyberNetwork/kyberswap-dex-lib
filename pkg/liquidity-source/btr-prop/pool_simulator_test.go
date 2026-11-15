@@ -340,3 +340,13 @@ func TestGasByRouteLength(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(DefaultGas+GasPerExtraHop), res.Gas)
 }
+
+// Only tokens with a sampled ladder are offered as swap partners, in each direction.
+func TestCanSwapOnlyLadderPairs(t *testing.T) {
+	sim := newSim(t, SwapEnabledBit, pts(1000, 900, 2000, 1700)) // USDC -> WMON only
+	require.Equal(t, []string{wmon}, sim.CanSwapTo(usdc))
+	require.Empty(t, sim.CanSwapTo(wmon))
+	require.Equal(t, []string{usdc}, sim.CanSwapFrom(wmon))
+	require.Empty(t, sim.CanSwapFrom(usdc))
+	require.Nil(t, sim.CanSwapTo("0xdead"))
+}

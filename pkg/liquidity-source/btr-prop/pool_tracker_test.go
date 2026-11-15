@@ -266,8 +266,8 @@ func maxInOf(pp *pairProbe, bal *uint256.Int) uint64 {
 
 func u64(v uint256.Int) uint64 { return v.Uint64() }
 
-// capPool serves any size up to cap and reverts above it, like a class-row kappa or the hub flow
-// cap the tracker does not model.
+// capPool serves any size up to cap and reverts above it, like a tighter per-pair limit the
+// tracker does not model.
 func capPool(ins []uint256.Int, capIn uint64) *pairProbe {
 	pp := &pairProbe{}
 	for k := range ins {

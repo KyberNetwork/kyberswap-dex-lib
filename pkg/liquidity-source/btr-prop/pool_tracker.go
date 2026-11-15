@@ -236,7 +236,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if err != nil {
 		return p, err
 	}
-	gd := &guard{tokens: addrs, legs: legs, rooms: rooms, now: now, window: uint64(MaxAge / time.Second)}
+	gd := &guard{tokens: addrs, legs: legs, assets: assets, base: base, rooms: rooms, now: now, window: uint64((MaxAge + InclusionAllowance) / time.Second)}
 
 	// Phase 2: the grid, pinned to the block of phase 1.
 	grids := make([]*pairProbe, 0, len(probes))
@@ -279,8 +279,7 @@ func (t *PoolTracker) GetNewPoolState(
 		okAll := gridResp.Result
 		built := make([][]Point, len(grids))
 		// Phase 3: where a ladder ended on a revert, probe inside the gap so its top is the pool's
-		// real cap. The class rows' kappa overrides and the hub flow cap are not modelled; this
-		// finds them from the pool itself.
+		// real cap. Per-pair limits the tracker does not model are found from the pool itself.
 		req = t.client.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
 		bisects := make([]*pairProbe, len(grids))
 		for k, g := range grids {
@@ -309,7 +308,11 @@ func (t *PoolTracker) GetNewPoolState(
 			}
 		}
 		for k, g := range grids {
-			if pts := gd.refine(g.from, g.to, g.hops(), built[k]); len(pts) > 0 {
+			spread := max(g.probes.maxSpread(), g.maxSpread())
+			if bisects[k] != nil {
+				spread = max(spread, bisects[k].maxSpread())
+			}
+			if pts := gd.refine(g.from, g.to, g.hops(), spread, built[k]); len(pts) > 0 {
 				extra.Ladders[g.from][g.to] = newLadder(pts)
 				extra.setHops(n, g.from, g.to, len(g.hops()))
 			}
@@ -345,6 +348,17 @@ func (pp *pairProbe) addQuoteCalls(req *ethrpc.Request, poolAddr string, tokenIn
 			Params: []any{tokenIn, tokenOut, pp.ins[k].ToBig()},
 		}, []any{pp.res[k]})
 	}
+}
+
+// maxSpread is the largest SpreadPbps over the filled quotes.
+func (pp *pairProbe) maxSpread() uint64 {
+	var m uint64
+	for k := range pp.ins {
+		if pp.ok[k] {
+			m = max(m, uint64(pp.res[k].Quote.SpreadPbps))
+		}
+	}
+	return m
 }
 
 // hops is the route of the largest filled quote, nil when none filled.
@@ -433,9 +447,9 @@ func (pp *pairProbe) ladder() []Point {
 }
 
 // bisectAmounts returns the sizes strictly between the last served sample and the first one the
-// pool refused, when the ladder ended on a revert: the pool's real cap (class-row kappa, hub
-// flow cap) lies in that gap. They are quartiles, so one extra multicall narrows the gap to a
-// quarter. Nil when the ladder ended any other way.
+// pool refused, when the ladder ended on a revert: the pool's real cap lies in that gap. They are quartiles, so one extra multicall narrows the gap to a
+// quarter. Nil when the ladder ended any other way. The probes read the quote view, so the top of
+// the ladder can still revert on a check only settlement runs.
 func (pp *pairProbe) bisectAmounts(pts []Point) []uint256.Int {
 	k := pp.stop
 	if len(pts) == 0 || k == 0 || k >= len(pp.ins) || pp.ok[k] || !pts[len(pts)-1].In.Eq(&pp.ins[k-1]) {

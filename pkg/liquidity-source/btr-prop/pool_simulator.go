@@ -265,6 +265,34 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}, nil
 }
 
+// CanSwapTo lists the tokens with a sampled ladder from the given token.
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	return s.linked(address, true)
+}
+
+// CanSwapFrom lists the tokens with a sampled ladder into the given token.
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	return s.linked(address, false)
+}
+
+func (s *PoolSimulator) linked(address string, to bool) []string {
+	k, n := s.GetTokenIndex(address), len(s.Info.Tokens)
+	if k < 0 {
+		return nil
+	}
+	var res []string
+	for o := 0; o < n; o++ {
+		l := s.ladders[o*n+k]
+		if to {
+			l = s.ladders[k*n+o]
+		}
+		if o != k && l != nil {
+			res = append(res, s.Info.Tokens[o])
+		}
+	}
+	return res
+}
+
 // CloneState deep-copies inUsed and outTaken, the slices UpdateBalance writes in
 // place. Ladders and flags are immutable.
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
