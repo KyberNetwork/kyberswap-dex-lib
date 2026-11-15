@@ -7,10 +7,7 @@ import "github.com/holiman/uint256"
 // ThresholdViolation(amount, room): the size is refused, never clamped. coverageRoom ports
 // CovLib._cap so the tracker sizes the ladder inside both caps.
 
-var (
-	covWad = uint256.NewInt(1e18)
-	covBps = uint256.NewInt(10_000)
-)
+var covWad = uint256.NewInt(1e18)
 
 // kappaBps decodes a 6-bit kappa code (CovLib.kappaBps).
 func kappaBps(code uint64) uint64 {
