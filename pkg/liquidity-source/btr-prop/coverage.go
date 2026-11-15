@@ -9,7 +9,6 @@ import "github.com/holiman/uint256"
 
 var (
 	covWad = uint256.NewInt(1e18)
-	covBps = uint256.NewInt(10_000)
 )
 
 // kappaBps decodes a 6-bit kappa code (CovLib.kappaBps).
