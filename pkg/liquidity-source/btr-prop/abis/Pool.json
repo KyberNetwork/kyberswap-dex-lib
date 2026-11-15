@@ -1,5 +1,18 @@
 [
  {
+  "inputs": [],
+  "name": "baseToken",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
   "inputs": [
    {
     "internalType": "address",
@@ -100,6 +113,54 @@
     "internalType": "struct IPool.Asset",
     "name": "",
     "type": "tuple"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "tk",
+    "type": "address"
+   }
+  ],
+  "name": "getLegMark",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "word",
+    "type": "uint256"
+   },
+   {
+    "internalType": "bool",
+    "name": "priced",
+    "type": "bool"
+   },
+   {
+    "internalType": "uint256",
+    "name": "pxWad",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "token",
+    "type": "address"
+   }
+  ],
+  "name": "getLiquidReserves",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "",
+    "type": "uint256"
    }
   ],
   "stateMutability": "view",

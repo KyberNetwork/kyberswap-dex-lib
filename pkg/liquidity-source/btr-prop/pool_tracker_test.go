@@ -166,7 +166,7 @@ func TestGridAmountsStrictlyIncreasing(t *testing.T) {
 }
 
 // capCurve is a concave body whose output stops growing at 0.98*maxIn (1e6), like
-// the live pairs where the core's ~92.7% output cap bites at 0.98-0.995 of maxIn.
+// the live pairs where the core's output cap bites at 0.98-0.995 of maxIn.
 func capCurve(x uint64) uint64 {
 	const onset = 980_000
 	x = min(x, onset)

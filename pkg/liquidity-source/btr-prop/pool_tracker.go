@@ -143,11 +143,13 @@ func (t *PoolTracker) GetNewPoolState(
 	var prev Extra
 	_ = json.Unmarshal([]byte(p.Extra), &prev)
 
-	// Phase 1: flags, balances, books, the executor's swap-gate membership and the rate probes,
-	// all in one multicall.
+	// Phase 1: flags, balances, books, leg words, liquid reserves, the base token, the executor's
+	// swap-gate membership and the rate probes, all in one multicall.
 	flags := make([]uint16, n)
 	balances := make([]*big.Int, n)
 	assets := make([]*rpcAssetResult, n)
+	marks := make([]*rpcLegMark, n)
+	liquids := make([]*big.Int, n)
 	req := t.client.NewRequest().SetContext(ctx)
 	for i := range addrs {
 		req.AddCall(&ethrpc.Call{
@@ -160,7 +162,16 @@ func (t *PoolTracker) GetNewPoolState(
 		req.AddCall(&ethrpc.Call{
 			ABI: poolABI, Target: p.Address, Method: "getAsset", Params: []any{addrs[i]},
 		}, []any{assets[i]})
+		marks[i] = new(rpcLegMark)
+		req.AddCall(&ethrpc.Call{
+			ABI: poolABI, Target: p.Address, Method: "getLegMark", Params: []any{addrs[i]},
+		}, []any{marks[i]})
+		req.AddCall(&ethrpc.Call{
+			ABI: poolABI, Target: p.Address, Method: "getLiquidReserves", Params: []any{addrs[i]},
+		}, []any{&liquids[i]})
 	}
+	var base common.Address
+	req.AddCall(&ethrpc.Call{ABI: poolABI, Target: p.Address, Method: "baseToken"}, []any{&base})
 	// Whether the executor may swap SWAP_GATED legs. Read, never assumed: the owner admits the
 	// executor to the pool's swap gate separately, and the answer flips the legs open.
 	var inGate bool
@@ -187,18 +198,43 @@ func (t *PoolTracker) GetNewPoolState(
 	if err != nil {
 		return p, err
 	}
+	legs := make([]*markLeg, n)
+	rooms := make([]*uint256.Int, n)
 	for i := range addrs {
-		if !resp.Result[3*i] {
+		k := callsPerToken * i
+		if !resp.Result[k] {
 			flags[i] = 0 // unreadable flags read as swap disabled
 		}
-		if !resp.Result[3*i+2] {
+		if !resp.Result[k+2] {
 			assets[i] = nil // unreadable book: no cap clamp, the first revert ends the ladder
 		}
+		if resp.Result[k+3] { // an unreadable word leaves legs[i] nil: every path through it is refused
+			legs[i], _ = decodeMark(marks[i].Word)
+		}
+		if resp.Result[k+4] && assets[i] != nil {
+			rooms[i] = liquidRoom(liquids[i], &assets[i].Asset)
+		}
 	}
-	gateOK, probeOK := resp.Result[3*n] && inGate, resp.Result[3*n+1:]
+	rest := resp.Result[callsPerToken*n:]
+	if rest[0] { // an unreadable base leaves every leg unexempted: stricter, never looser
+		for i := range addrs {
+			if legs[i] != nil {
+				legs[i].base = addrs[i] == base
+			}
+		}
+	}
+	gateOK, probeOK := rest[1] && inGate, rest[2:]
 	for _, pp := range probes {
 		pp.ok, probeOK = probeOK[:len(pp.ins)], probeOK[len(pp.ins):]
 	}
+
+	// The leg ages and the ladder's stamp come from the block the ladder is sampled at, not the
+	// wall clock.
+	now, err := t.client.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber).GetCurrentBlockTimestamp()
+	if err != nil {
+		return p, err
+	}
+	gd := &guard{tokens: addrs, legs: legs, rooms: rooms, now: now, window: uint64(MaxAge / time.Second)}
 
 	// Phase 2: the grid, pinned to the block of phase 1.
 	grids := make([]*pairProbe, 0, len(probes))
@@ -210,6 +246,10 @@ func (t *PoolTracker) GetNewPoolState(
 		var balOut uint256.Int
 		if balOut.SetFromBig(balances[pp.to]) {
 			continue
+		}
+		// settle pays only liquid reserves above minLiquidity: size the grid inside that room.
+		if room := rooms[pp.to]; room != nil && room.Lt(&balOut) {
+			balOut.Set(room)
 		}
 		maxIn := pp.maxIn(&balOut)
 		// Both coverage caps refuse a size past them (ThresholdViolation), so a grid sized
@@ -237,7 +277,8 @@ func (t *PoolTracker) GetNewPoolState(
 		okAll := gridResp.Result
 		for _, g := range grids {
 			g.ok, okAll = okAll[:len(g.ins)], okAll[len(g.ins):]
-			if pts := g.probes.mergeInto(g.ladder()); len(pts) > 0 {
+			pts := gd.refine(g.from, g.to, g.hops(), g.probes.mergeInto(g.ladder()))
+			if len(pts) > 0 {
 				extra.Ladders[g.from][g.to] = newLadder(pts)
 			}
 		}
@@ -258,7 +299,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if resp.BlockNumber != nil {
 		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = int64(now)
 	return p, nil
 }
 
@@ -272,6 +313,16 @@ func (pp *pairProbe) addQuoteCalls(req *ethrpc.Request, poolAddr string, tokenIn
 			Params: []any{tokenIn, tokenOut, pp.ins[k].ToBig()},
 		}, []any{pp.res[k]})
 	}
+}
+
+// hops is the route of the largest filled quote, nil when none filled.
+func (pp *pairProbe) hops() []common.Address {
+	for k := len(pp.ins) - 1; k >= 0; k-- {
+		if pp.ok[k] && len(pp.res[k].Quote.RouteHops) > 0 {
+			return pp.res[k].Quote.RouteHops
+		}
+	}
+	return nil
 }
 
 // maxIn is the tokenIn amount worth the whole tokenOut balance at the best

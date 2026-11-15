@@ -68,7 +68,7 @@ type Extra struct {
 	// the read failed (treated as swap disabled).
 	Flags []uint16 `json:"f"`
 	// GateOK is true when Pool.inSwapGate(executor) holds, which opens SWAP_GATED
-	// legs to the executor. False when unreadable or no executor is configured.
+	// legs to the executor. False when unreadable.
 	GateOK bool `json:"k,omitempty"`
 	// Ladders[from][to] is the curve for Tokens[from] -> Tokens[to]; the diagonal
 	// and pairs without a sample are empty.
