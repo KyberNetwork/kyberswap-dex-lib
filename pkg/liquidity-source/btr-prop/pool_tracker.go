@@ -146,6 +146,9 @@ func (t *PoolTracker) GetNewPoolState(
 	// Phase 1: flags, balances, books, the executor's swap-gate membership and the rate probes,
 	// sent as one JSON-RPC batch of plain eth_calls pinned to one block. Each call keeps its own
 	// gas budget; a single multicall would share one budget across ~500 calls and run out.
+	// Stamped before the reads: the simulator's MaxAge measures from this, so the grid's
+	// duration must not hide a stale snapshot.
+	fetchedAt := time.Now().Unix()
 	blockNumber, err := t.client.GetBlockNumber(ctx)
 	if err != nil {
 		return p, err
@@ -251,7 +254,7 @@ func (t *PoolTracker) GetNewPoolState(
 		}
 	}
 	p.BlockNumber = blockNumber
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = fetchedAt
 	return p, nil
 }
 
