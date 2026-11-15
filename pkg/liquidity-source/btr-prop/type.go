@@ -9,9 +9,9 @@ import (
 var (
 	// ErrBTRGated is returned when a leg is halted or swapped off.
 	ErrBTRGated = errors.New("btr: leg gated or halted")
-	// ErrBTRGatedLane is returned when SWAP_GATED is set and the executor does
-	// not hold lane 0x400: every swap reverts NotAuthorized.
-	ErrBTRGatedLane = errors.New("btr: pool is SWAP_GATED; executor needs lane 0x400")
+	// ErrBTRGatedCaller is returned when SWAP_GATED is set and the executor is not in
+	// the pool's swap gate: every swap reverts NotAuthorized.
+	ErrBTRGatedCaller = errors.New("btr: pool is SWAP_GATED; executor not in the swap gate")
 	// ErrBTRNoRoute is returned when no sampled ladder exists for the pair.
 	ErrBTRNoRoute = errors.New("btr: no sampled ladder for pair")
 	// ErrBTRNoFill is returned when a sampled quote yields zero.
@@ -67,9 +67,9 @@ type Extra struct {
 	// Flags[i] is the raw 16-bit word from Pool.getRiskFlags(Tokens[i]); 0 when
 	// the read failed (treated as swap disabled).
 	Flags []uint16 `json:"f"`
-	// LaneOK is true when registry.perms(executor) includes lane 0x400, which
-	// opens SWAP_GATED legs to the executor. False when unreadable.
-	LaneOK bool `json:"k,omitempty"`
+	// GateOK is true when Pool.inSwapGate(executor) holds, which opens SWAP_GATED
+	// legs to the executor. False when unreadable or no executor is configured.
+	GateOK bool `json:"k,omitempty"`
 	// Ladders[from][to] is the curve for Tokens[from] -> Tokens[to]; the diagonal
 	// and pairs without a sample are empty.
 	Ladders [][]Ladder `json:"l"`
@@ -89,6 +89,6 @@ type PoolMeta struct {
 	ApprovalAddress string `json:"approvalAddress"`
 	BlockNumber     uint64 `json:"blockNumber"`
 	// Gated reports whether any cached leg is closed to the executor (halted,
-	// swap disabled, or SWAP_GATED without the executor's lane).
+	// swap disabled, or SWAP_GATED with the executor outside the swap gate).
 	Gated bool `json:"gated"`
 }
