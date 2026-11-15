@@ -144,31 +144,32 @@ func (t *PoolTracker) GetNewPoolState(
 	_ = json.Unmarshal([]byte(p.Extra), &prev)
 
 	// Phase 1: flags, balances, books, the executor's swap-gate membership and the rate probes,
-	// all in one multicall.
+	// sent as one JSON-RPC batch of plain eth_calls pinned to one block. Each call keeps its own
+	// gas budget; a single multicall would share one budget across ~500 calls and run out.
+	blockNumber, err := t.client.GetBlockNumber(ctx)
+	if err != nil {
+		return p, err
+	}
+	bn := new(big.Int).SetUint64(blockNumber)
+	var batch batchReads
 	flags := make([]uint16, n)
 	balances := make([]*big.Int, n)
 	assets := make([]*rpcAssetResult, n)
-	req := t.client.NewRequest().SetContext(ctx)
+	flagOK, balOK, assetOK := make([]bool, n), make([]bool, n), make([]bool, n)
 	for i := range addrs {
-		req.AddCall(&ethrpc.Call{
-			ABI: poolABI, Target: p.Address, Method: "getRiskFlags", Params: []any{addrs[i]},
-		}, []any{&flags[i]})
-		req.AddCall(&ethrpc.Call{
-			ABI: utilabi.Erc20ABI, Target: p.Tokens[i].Address, Method: "balanceOf", Params: []any{poolAddr},
-		}, []any{&balances[i]})
 		assets[i] = new(rpcAssetResult)
-		req.AddCall(&ethrpc.Call{
-			ABI: poolABI, Target: p.Address, Method: "getAsset", Params: []any{addrs[i]},
-		}, []any{assets[i]})
+		batch.add(poolABI, p.Address, "getRiskFlags", []any{addrs[i]}, &flags[i], &flagOK[i])
+		batch.add(utilabi.Erc20ABI, p.Tokens[i].Address, "balanceOf", []any{poolAddr}, &balances[i], &balOK[i])
+		batch.add(poolABI, p.Address, "getAsset", []any{addrs[i]}, assets[i], &assetOK[i])
 	}
 	// Whether the executor may swap SWAP_GATED legs. Read, never assumed: the owner admits the
 	// executor to the pool's swap gate separately, and the answer flips the legs open.
 	var inGate bool
+	var gateOK bool
 	hasExecutor := common.IsHexAddress(t.config.Executor)
 	if hasExecutor {
-		req.AddCall(&ethrpc.Call{
-			ABI: poolABI, Target: p.Address, Method: "inSwapGate", Params: []any{common.HexToAddress(t.config.Executor)},
-		}, []any{&inGate})
+		batch.add(poolABI, p.Address, "inSwapGate",
+			[]any{common.HexToAddress(t.config.Executor)}, &inGate, &gateOK)
 	}
 	probes := make([]*pairProbe, 0, n*(n-1))
 	for i := range addrs {
@@ -180,36 +181,26 @@ func (t *PoolTracker) GetNewPoolState(
 			for _, exp := range probeExps {
 				pp.ins = append(pp.ins, unitAmount(p.Tokens[i].Decimals, exp))
 			}
-			pp.addQuoteCalls(req, p.Address, addrs[i], addrs[j])
+			pp.addQuoteCalls(&batch, p.Address, addrs[i], addrs[j])
 			probes = append(probes, pp)
 		}
 	}
-	// TryBlockAndAggregate tolerates a reverting leg; resp.Result has one
-	// success flag per call in request order.
-	resp, err := req.TryBlockAndAggregate()
-	if err != nil {
+	if err := batch.run(ctx, t.client, bn); err != nil {
 		return p, err
 	}
 	for i := range addrs {
-		if !resp.Result[3*i] {
+		if !flagOK[i] {
 			flags[i] = 0 // unreadable flags read as swap disabled
 		}
-		if !resp.Result[3*i+2] {
+		if !assetOK[i] {
 			assets[i] = nil // unreadable book: no cap clamp, the first revert ends the ladder
 		}
 	}
-	probeOK := resp.Result[3*n:]
-	gateOK := false
-	if hasExecutor {
-		gateOK, probeOK = resp.Result[3*n] && inGate, resp.Result[3*n+1:]
-	}
-	for _, pp := range probes {
-		pp.ok, probeOK = probeOK[:len(pp.ins)], probeOK[len(pp.ins):]
-	}
+	gateOK = gateOK && inGate
 
 	// Phase 2: the grid, pinned to the block of phase 1.
 	grids := make([]*pairProbe, 0, len(probes))
-	req = t.client.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	var grid batchReads
 	for _, pp := range probes {
 		if balances[pp.to] == nil {
 			continue
@@ -226,7 +217,7 @@ func (t *PoolTracker) GetNewPoolState(
 		if len(g.ins) == 0 {
 			continue
 		}
-		g.addQuoteCalls(req, p.Address, addrs[pp.from], addrs[pp.to])
+		g.addQuoteCalls(&grid, p.Address, addrs[pp.from], addrs[pp.to])
 		grids = append(grids, g)
 	}
 	extra := Extra{Flags: flags, GateOK: gateOK, Ladders: make([][]Ladder, n)}
@@ -237,13 +228,10 @@ func (t *PoolTracker) GetNewPoolState(
 		}
 	}
 	if len(grids) > 0 {
-		gridResp, err := req.TryBlockAndAggregate()
-		if err != nil {
+		if err := grid.run(ctx, t.client, bn); err != nil {
 			return p, err
 		}
-		okAll := gridResp.Result
 		for _, g := range grids {
-			g.ok, okAll = okAll[:len(g.ins)], okAll[len(g.ins):]
 			if pts := g.probes.mergeInto(g.ladder()); len(pts) > 0 {
 				extra.Ladders[g.from][g.to] = newLadder(pts)
 			}
@@ -262,22 +250,19 @@ func (t *PoolTracker) GetNewPoolState(
 			p.Reserves[i] = bal.String()
 		}
 	}
-	if resp.BlockNumber != nil {
-		p.BlockNumber = resp.BlockNumber.Uint64()
-	}
+	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 	return p, nil
 }
 
 // addQuoteCalls queues one getSwapQuote per amount in pp.ins.
-func (pp *pairProbe) addQuoteCalls(req *ethrpc.Request, poolAddr string, tokenIn, tokenOut common.Address) {
+func (pp *pairProbe) addQuoteCalls(b *batchReads, poolAddr string, tokenIn, tokenOut common.Address) {
 	pp.res = make([]*rpcSwapQuoteResult, len(pp.ins))
+	pp.ok = make([]bool, len(pp.ins))
 	for k := range pp.ins {
 		pp.res[k] = new(rpcSwapQuoteResult)
-		req.AddCall(&ethrpc.Call{
-			ABI: poolABI, Target: poolAddr, Method: "getSwapQuote",
-			Params: []any{tokenIn, tokenOut, pp.ins[k].ToBig()},
-		}, []any{pp.res[k]})
+		b.add(poolABI, poolAddr, "getSwapQuote",
+			[]any{tokenIn, tokenOut, pp.ins[k].ToBig()}, pp.res[k], &pp.ok[k])
 	}
 }
 
