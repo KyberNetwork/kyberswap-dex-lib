@@ -4,12 +4,18 @@ import "time"
 
 // Monad mainnet records (BTR pool v2, deployment records of 2026-11-13).
 //
-// The BTR Router is not a swap venue for an aggregator: the executor calls
-// Pool.swap_qe directly, so msg.sender is the executor. While any leg of a
-// swap is SWAP_GATED, swap_qe requires msg.sender to be in the pool's swap
-// gate allowlist (Pool.inSwapGate), so the executor must be listed there.
+// The BTR Router is not a swap venue for an aggregator: KyberSwap's executor calls
+// Pool.swap_qe directly, so msg.sender is the executor (the router never calls the
+// pool). While any leg of a swap is SWAP_GATED, swap_qe requires msg.sender to be in
+// the pool's swap gate allowlist (Pool.inSwapGate); the gate checks msg.sender only.
 const (
 	ChainIDMonad = 143
+
+	// DefaultExecutor is KyberSwap's executor, the same address on every chain (prism-prop and
+	// kipseli/prop key their per-taker quotes by it too). Both it and the router
+	// (0x6131B5fae19EA4f9D964eAc0408E4408b66337b5) are in the Monad pool's swap gate; only the
+	// executor is the pool's msg.sender, so only it is probed. Config.Executor overrides it.
+	DefaultExecutor = "0x8f10b468b06c6fd214b65f87778827f7d113f996"
 
 	// CreditPoolCore is BTR's single multi-asset AIMM book (tag `btr-core`), pool v2.
 	CreditPoolCore = "0xbbbbbbbd7060b1ced79c381ead40d73fcb9ae0c6"

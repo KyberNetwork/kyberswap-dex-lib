@@ -164,12 +164,9 @@ func (t *PoolTracker) GetNewPoolState(
 	// Whether the executor may swap SWAP_GATED legs. Read, never assumed: the owner admits the
 	// executor to the pool's swap gate separately, and the answer flips the legs open.
 	var inGate bool
-	hasExecutor := common.IsHexAddress(t.config.Executor)
-	if hasExecutor {
-		req.AddCall(&ethrpc.Call{
-			ABI: poolABI, Target: p.Address, Method: "inSwapGate", Params: []any{common.HexToAddress(t.config.Executor)},
-		}, []any{&inGate})
-	}
+	req.AddCall(&ethrpc.Call{
+		ABI: poolABI, Target: p.Address, Method: "inSwapGate", Params: []any{t.config.executor()},
+	}, []any{&inGate})
 	probes := make([]*pairProbe, 0, n*(n-1))
 	for i := range addrs {
 		for j := range addrs {
@@ -198,11 +195,7 @@ func (t *PoolTracker) GetNewPoolState(
 			assets[i] = nil // unreadable book: no cap clamp, the first revert ends the ladder
 		}
 	}
-	probeOK := resp.Result[3*n:]
-	gateOK := false
-	if hasExecutor {
-		gateOK, probeOK = resp.Result[3*n] && inGate, resp.Result[3*n+1:]
-	}
+	gateOK, probeOK := resp.Result[3*n] && inGate, resp.Result[3*n+1:]
 	for _, pp := range probes {
 		pp.ok, probeOK = probeOK[:len(pp.ins)], probeOK[len(pp.ins):]
 	}
