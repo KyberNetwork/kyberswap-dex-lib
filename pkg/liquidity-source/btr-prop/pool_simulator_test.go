@@ -310,3 +310,33 @@ func TestOldExtraFailsClosed(t *testing.T) {
 	}})
 	require.ErrorIs(t, err, ErrBTRBadState)
 }
+
+// Gas follows the route length: a direct edge costs DefaultGas, each extra node the pool crosses
+// (spoke to spoke) adds GasPerExtraHop; an Extra without hop data keeps DefaultGas.
+func TestGasByRouteLength(t *testing.T) {
+	var e Extra
+	require.Equal(t, int64(DefaultGas), e.gas(0, 1))
+	e.setHops(3, 0, 1, 2)
+	e.setHops(3, 0, 2, 3)
+	e.setHops(3, 2, 1, 4)
+	require.Equal(t, int64(DefaultGas), e.gas(0, 1))
+	require.Equal(t, int64(DefaultGas+GasPerExtraHop), e.gas(0, 2))
+	require.Equal(t, int64(DefaultGas+2*GasPerExtraHop), e.gas(2, 1))
+	require.Equal(t, int64(DefaultGas), e.gas(1, 0), "unrecorded pair")
+	require.Equal(t, int64(DefaultGas), e.gas(-1, 9))
+
+	raw, err := json.Marshal(Extra{Flags: []uint16{SwapEnabledBit, SwapEnabledBit}, Hops: [][]uint8{{0, 3}, {0, 0}},
+		Ladders: [][]Ladder{{{}, newLadder(pts(1000, 900, 2000, 1700))}, {{}, {}}}})
+	require.NoError(t, err)
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Address: CreditPoolCore, Exchange: DexType, Type: DexType, Extra: string(raw),
+		Tokens:   []*entity.PoolToken{{Address: usdc, Swappable: true}, {Address: wmon, Swappable: true}},
+		Reserves: entity.PoolReserves{"1000000", "1000000"},
+	}})
+	require.NoError(t, err)
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usdc, Amount: big.NewInt(1500)}, TokenOut: wmon,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(DefaultGas+GasPerExtraHop), res.Gas)
+}

@@ -26,6 +26,11 @@ const (
 	// DefaultGas covers one swap_qe at Monad's cold-access pricing: the pool
 	// call measured 155k-161k gas in Tenderly (USDC<->WMON).
 	DefaultGas = 170_000
+	// GasPerExtraHop is added per route node past the direct edge (a spoke-to-spoke route crosses
+	// the hub: a second spoke's asset, mark and exposure reads and writes at Monad's cold-access
+	// prices). Not measured: no gated sender with balance exists for cast estimate; sized from the
+	// 155k-161k hub-pair traces plus a second spoke's cold reads. Overstating only costs ranking.
+	GasPerExtraHop = 70_000
 	// MaxAge drops a stale sampled ladder rather than quoting marks the keeper
 	// has since moved. The keeper pushes about every 3 s and the tracker refreshes on its poll,
 	// so a ladder is replaced within a couple of pushes: 6 s. Every sampled output is also

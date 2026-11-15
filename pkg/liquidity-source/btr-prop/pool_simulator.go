@@ -59,7 +59,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 			}
 		}
 	}
-	extra.Ladders = nil // the simulator reads ladders only
+	extra.Ladders = nil // the simulator reads ladders and hops only
 
 	reserves := make([]*big.Int, n)
 	for k := range reserves {
@@ -261,7 +261,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI},
-		Gas:            DefaultGas,
+		Gas:            s.extra.gas(i, j),
 	}, nil
 }
 

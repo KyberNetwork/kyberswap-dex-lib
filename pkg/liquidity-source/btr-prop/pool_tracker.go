@@ -118,6 +118,8 @@ type pairProbe struct {
 	ok       []bool
 	// probes is the pair's rate probes; set on grids only.
 	probes *pairProbe
+	// stop is the index of the sample that ended ladder() (len(ins) when none did).
+	stop int
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -275,11 +277,41 @@ func (t *PoolTracker) GetNewPoolState(
 			return p, err
 		}
 		okAll := gridResp.Result
-		for _, g := range grids {
+		built := make([][]Point, len(grids))
+		// Phase 3: where a ladder ended on a revert, probe inside the gap so its top is the pool's
+		// real cap. The class rows' kappa overrides and the hub flow cap are not modelled; this
+		// finds them from the pool itself.
+		req = t.client.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+		bisects := make([]*pairProbe, len(grids))
+		for k, g := range grids {
 			g.ok, okAll = okAll[:len(g.ins)], okAll[len(g.ins):]
-			pts := gd.refine(g.from, g.to, g.hops(), g.probes.mergeInto(g.ladder()))
-			if len(pts) > 0 {
+			built[k] = g.probes.mergeInto(g.ladder())
+			if ins := g.bisectAmounts(built[k]); len(ins) > 0 {
+				bisects[k] = &pairProbe{from: g.from, to: g.to, ins: ins}
+				bisects[k].addQuoteCalls(req, p.Address, addrs[g.from], addrs[g.to])
+			}
+		}
+		if len(req.Calls) > 0 {
+			bisectResp, err := req.TryBlockAndAggregate()
+			if err != nil {
+				return p, err
+			}
+			okAll = bisectResp.Result
+			for _, bp := range bisects {
+				if bp != nil {
+					bp.ok, okAll = okAll[:len(bp.ins)], okAll[len(bp.ins):]
+				}
+			}
+			for k, bp := range bisects {
+				if bp != nil {
+					built[k] = bp.extend(built[k])
+				}
+			}
+		}
+		for k, g := range grids {
+			if pts := gd.refine(g.from, g.to, g.hops(), built[k]); len(pts) > 0 {
 				extra.Ladders[g.from][g.to] = newLadder(pts)
+				extra.setHops(n, g.from, g.to, len(g.hops()))
 			}
 		}
 	}
@@ -377,18 +409,59 @@ func (pp *pairProbe) clampToCaps(maxIn uint256.Int, balOut *uint256.Int, in, out
 // output, so a saturated sample would make the simulator overquote.
 func (pp *pairProbe) ladder() []Point {
 	var pts []Point
+	pp.stop = len(pp.ins)
 	for k := range pp.ins {
 		if !pp.ok[k] {
+			pp.stop = k
 			break
 		}
 		var out uint256.Int
 		if q := pp.res[k].Quote.AmountOut; q == nil || out.SetFromBig(q) {
+			pp.stop = k
 			break
 		}
 		if out.IsZero() && len(pts) == 0 {
 			continue // too small to fill: the simulator scales from the first sample
 		}
 		if len(pts) > 0 && !out.Gt(&pts[len(pts)-1].Out) {
+			pp.stop = k
+			break
+		}
+		pts = append(pts, Point{In: pp.ins[k], Out: out})
+	}
+	return pts
+}
+
+// bisectAmounts returns the sizes strictly between the last served sample and the first one the
+// pool refused, when the ladder ended on a revert: the pool's real cap (class-row kappa, hub
+// flow cap) lies in that gap. They are quartiles, so one extra multicall narrows the gap to a
+// quarter. Nil when the ladder ended any other way.
+func (pp *pairProbe) bisectAmounts(pts []Point) []uint256.Int {
+	k := pp.stop
+	if len(pts) == 0 || k == 0 || k >= len(pp.ins) || pp.ok[k] || !pts[len(pts)-1].In.Eq(&pp.ins[k-1]) {
+		return nil
+	}
+	lo, hi := &pp.ins[k-1], &pp.ins[k]
+	var gap, step, off uint256.Int
+	gap.Sub(hi, lo)
+	var res []uint256.Int
+	for q := uint64(1); q <= 3; q++ {
+		// gap is a token amount far below 2^192, so gap*q fits.
+		step.Div(step.Mul(&gap, off.SetUint64(q)), uint256.NewInt(4))
+		var amt uint256.Int
+		if amt.Add(lo, &step); amt.Gt(lo) && amt.Lt(hi) && (len(res) == 0 || amt.Gt(&res[len(res)-1])) {
+			res = append(res, amt)
+		}
+	}
+	return res
+}
+
+// extend appends the served bisect samples to pts, stopping at the first revert or flat output,
+// like ladder().
+func (pp *pairProbe) extend(pts []Point) []Point {
+	for k := range pp.ins {
+		var out uint256.Int
+		if !pp.ok[k] || pp.res[k].Quote.AmountOut == nil || out.SetFromBig(pp.res[k].Quote.AmountOut) || !out.Gt(&pts[len(pts)-1].Out) {
 			break
 		}
 		pts = append(pts, Point{In: pp.ins[k], Out: out})
