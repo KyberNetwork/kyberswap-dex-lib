@@ -27,8 +27,11 @@ const (
 	// call measured 155k-161k gas in Tenderly (USDC<->WMON).
 	DefaultGas = 170_000
 	// MaxAge drops a stale sampled ladder rather than quoting marks the keeper
-	// has since moved. Marks drift within seconds, so keep it well below 1 min.
-	MaxAge = 15 * time.Second
+	// has since moved. The keeper pushes about every 3 s and the tracker refreshes on its poll,
+	// so a ladder is replaced within a couple of pushes: 6 s. Every sampled output is also
+	// scaled down by the worst-case drift of the pool's staleness premium over MaxAge (see
+	// guard.refine), so a longer window costs competitiveness, a shorter one only refetches.
+	MaxAge = 6 * time.Second
 	// RPCTimeout bounds one tracker refresh.
 	RPCTimeout = 15 * time.Second
 )

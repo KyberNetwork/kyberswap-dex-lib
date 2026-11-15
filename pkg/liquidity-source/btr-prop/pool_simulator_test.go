@@ -203,7 +203,7 @@ func TestNewPoolSimulatorRejectsUntrackedPool(t *testing.T) {
 	require.Equal(t, ErrBTRBadState, err)
 }
 
-// The snapshot age bound is 15s: older ladders quote marks the keeper has moved.
+// The snapshot age bound is MaxAge: older ladders quote marks the keeper has moved.
 func TestNewPoolSimulatorStaleCheckMaxAge(t *testing.T) {
 	extra, err := json.Marshal(Extra{Flags: []uint16{SwapEnabledBit, SwapEnabledBit}})
 	require.NoError(t, err)
@@ -219,9 +219,9 @@ func TestNewPoolSimulatorStaleCheckMaxAge(t *testing.T) {
 		})
 		return err
 	}
-	require.NoError(t, build(14*time.Second, true))
-	require.Equal(t, ErrBTRBadState, build(16*time.Second, true))
-	require.NoError(t, build(16*time.Second, false)) // check is opt-in
+	require.NoError(t, build(MaxAge-time.Second, true))
+	require.Equal(t, ErrBTRBadState, build(MaxAge+2*time.Second, true))
+	require.NoError(t, build(MaxAge+2*time.Second, false)) // check is opt-in
 }
 
 // Swaps on different pairs that share a token draw on the same inventory. A

@@ -122,3 +122,81 @@ func TestGuardRefine(t *testing.T) {
 	require.Nil(t, g.refine(0, 1, hops, ladder), "TTL expires inside the window")
 	require.Len(t, mk(leg(wad, 1), uint256.NewInt(20)).refine(0, 1, hops, ladder), 2, "liquid floor cuts the top")
 }
+
+// driftPool is a synthetic pool whose quote is the base curve less the path's staleness premium
+// at block time t, the way the live quote drifts. Samples are taken at t=now.
+func driftPool(g *guard, legs []int, x, t uint64) uint64 {
+	var s uint64
+	for _, i := range legs {
+		s += g.legs[i].staleTermAt(t)
+	}
+	return x * 99 / 100 * (pbps - s) / pbps
+}
+
+// The ladder never promises more than the pool pays at any second of the window (no push in
+// between), for volatile spokes, a stable-ish leg, a fresh mark and one already well past grace.
+func TestRefineNeverOverquotesAcrossWindow(t *testing.T) {
+	a, b, hub := common.HexToAddress("0x01"), common.HexToAddress("0x02"), common.HexToAddress("0x03")
+	for _, c := range []struct {
+		name         string
+		obsA, obsB   uint64
+		sigA, sigB   uint64
+		ttl          uint64
+		wantHaircut  bool
+		maxHaircutBp uint64
+	}{
+		{"fresh volatile", 1000, 1000, 11264, 11264, 180, true, 25},
+		{"aged volatile", 970, 960, 11264, 6000, 180, true, 40},
+		{"stable-ish", 995, 995, 200, 150, 180, true, 5},
+		{"short ttl", 1000, 1000, 11264, 11264, 8, true, 25},
+	} {
+		wa, _ := decodeMark(word(c.obsA, c.sigA, c.ttl, wad, false, false, 0))
+		wb, _ := decodeMark(word(c.obsB, c.sigB, c.ttl, wad, false, false, 0))
+		wh, _ := decodeMark(word(1000, 100, c.ttl, wad, false, false, 0))
+		wh.base = true
+		g := &guard{
+			tokens: []common.Address{a, b, hub}, legs: []*markLeg{wa, wb, wh},
+			rooms: make([]*uint256.Int, 3), now: 1000, window: uint64(MaxAge.Seconds()),
+		}
+		path := []int{0, 1}
+		var raw []Point
+		for _, x := range []uint64{1e6, 1e9, 1e12} {
+			raw = append(raw, Point{In: *uint256.NewInt(x), Out: *uint256.NewInt(driftPool(g, path, x, g.now))})
+		}
+		got := g.refine(0, 1, []common.Address{a, hub, b}, raw)
+		require.Len(t, got, len(raw), c.name)
+		for k, p := range got {
+			x := p.In.Uint64()
+			for ts := g.now; ts <= g.now+g.window; ts++ {
+				require.LessOrEqual(t, p.Out.Uint64(), driftPool(g, path, x, ts), "%s x=%d t=%d", c.name, x, ts)
+			}
+			// The cost is bounded: the haircut is at most maxHaircutBp of the sampled output.
+			require.GreaterOrEqual(t, p.Out.Uint64()*10_000, raw[k].Out.Uint64()*(10_000-c.maxHaircutBp), c.name)
+		}
+	}
+}
+
+// A refreshed mark (age inside grace) has no premium to grow into the window beyond sqrt(excess)
+// of the seconds past grace; a base-only path has none at all.
+func TestRefineBaseOnlyPathUntouched(t *testing.T) {
+	a, hub := common.HexToAddress("0x01"), common.HexToAddress("0x03")
+	wa, _ := decodeMark(word(1000, 11264, 180, wad, false, false, 0))
+	wh, _ := decodeMark(word(1000, 11264, 180, wad, false, false, 0))
+	wa.base, wh.base = true, true
+	g := &guard{tokens: []common.Address{a, hub}, legs: []*markLeg{wa, wh}, rooms: make([]*uint256.Int, 2), now: 1000, window: 6}
+	in := pts(1000, 990, 2000, 1980)
+	got := g.refine(0, 1, nil, in)
+	require.Len(t, got, 2)
+	// Only the 1 PBPS rounding allowance applies.
+	require.Equal(t, uint64(990*(pbps-1)/pbps), got[0].Out.Uint64())
+}
+
+func TestStaleTermMatchesPricingLib(t *testing.T) {
+	// STALE_Z*sigma*floor(sqrt(excess))/BPS: sigma 11264 (1.13%), 100 s past grace -> 53166.
+	l, _ := decodeMark(word(900, 11264, 180, wad, false, false, 0))
+	require.Equal(t, uint64(97), l.staleExcessAt(1000), "age 100 less the 3 s grace")
+	require.Equal(t, uint64(472*11264*9/10_000), l.staleTermAt(1000))
+	require.Zero(t, l.staleTermAt(903), "inside the grace")
+	l.base = true
+	require.Zero(t, l.staleTermAt(1000))
+}

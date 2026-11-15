@@ -16,6 +16,11 @@ import (
 const (
 	depegStepBps = 250 // PoolConstantsLib.DEPEG_STEP_BPS
 	bps          = 10_000
+	pbps         = 1_000_000
+	// PricingLib staleness premium: STALE_Z*sigma*sqrt(excess)/BPS in PBPS, excess = seconds the
+	// mark is older than the keeper grace min(ttl/2, 3 s). The base and INTERNAL legs pay none.
+	staleZ        = 472
+	maxStaleGrace = 3
 )
 
 // rpcLegMark mirrors Pool.getLegMark's three outputs.
@@ -73,6 +78,23 @@ func (l *markLeg) ageAt(t uint64) uint64 {
 		return t - l.obs
 	}
 	return 0
+}
+
+// staleExcessAt is PricingLib._staleExcessOf at unix time t.
+func (l *markLeg) staleExcessAt(t uint64) uint64 {
+	grace := min(l.ttl/2, maxStaleGrace)
+	if age := l.ageAt(t); age > grace {
+		return age - grace
+	}
+	return 0
+}
+
+// staleTermAt is the leg's staleness premium in PBPS at unix time t (PricingLib._staleTerm).
+func (l *markLeg) staleTermAt(t uint64) uint64 {
+	if l.base || l.internal {
+		return 0
+	}
+	return staleZ * l.sigma * new(uint256.Int).Sqrt(uint256.NewInt(l.staleExcessAt(t))).Uint64() / bps
 }
 
 // pegTested reports whether the depeg breaker applies to the leg.
@@ -160,15 +182,47 @@ type guard struct {
 	now, window uint64
 }
 
-// refine returns the ladder of from -> to restricted to what swapExactIn would settle, or nil
-// when every size would revert: a leg on the path is halted, dead, TTL-expired by now+window or
-// outside its depeg band, or its word is unreadable. Samples whose output exceeds the output
-// leg's liquid room are cut.
+// refine returns the ladder of from -> to restricted to what swapExactIn would settle and pay
+// within the window, or nil when every size would revert: a leg on the path is halted, dead,
+// TTL-expired by now+window or outside its depeg band, or its word is unreadable. Samples whose
+// output exceeds the output leg's liquid room are cut.
+//
+// The pool's quote drifts with block time: each non-base leg's staleness premium grows with
+// sqrt(mark age) until the next push lands. The outputs are scaled by the ratio of the path's
+// premium at now+window to the one baked into the sample (both read off the legs' own words),
+// the worst case with no push in between; a push only lowers the premium.
 func (g *guard) refine(from, to int, hops []common.Address, pts []Point) []Point {
-	for _, i := range pathLegs(g.tokens, from, to, hops) {
-		if g.legs[i] == nil || !g.legs[i].tradableAt(g.now+g.window) {
+	legs := pathLegs(g.tokens, from, to, hops)
+	var s0, s1 uint64
+	for _, i := range legs {
+		l := g.legs[i]
+		if l == nil || !l.tradableAt(g.now+g.window) {
 			return nil
 		}
+		s0 += l.staleTermAt(g.now)
+		s1 += l.staleTermAt(g.now + g.window)
 	}
-	return cutAbove(pts, g.rooms[to])
+	// +1 PBPS covers the pool's flooring of each fee term.
+	s1++
+	if s1 >= pbps {
+		return nil
+	}
+	return haircut(cutAbove(pts, g.rooms[to]), pbps-s1, pbps-s0)
+}
+
+// haircut scales every output by num/den (rounded down) and keeps the ladder strictly increasing.
+func haircut(pts []Point, num, den uint64) []Point {
+	if num >= den {
+		return pts
+	}
+	res := make([]Point, 0, len(pts))
+	for _, p := range pts {
+		out := new(uint256.Int).Mul(&p.Out, uint256.NewInt(num))
+		out.Div(out, uint256.NewInt(den))
+		if out.IsZero() || (len(res) > 0 && !out.Gt(&res[len(res)-1].Out)) {
+			continue
+		}
+		res = append(res, Point{In: p.In, Out: *out})
+	}
+	return res
 }
