@@ -200,3 +200,27 @@ func TestStaleTermMatchesPricingLib(t *testing.T) {
 	l.base = true
 	require.Zero(t, l.staleTermAt(1000))
 }
+
+// getLegMark's three outputs, baseToken and getLiquidReserves must decode into the tracker's
+// targets, or every leg reads as unreadable and every pair is refused.
+func TestLegReadsUnpack(t *testing.T) {
+	w, _ := new(big.Int).SetString("627424820714972079307831745652209381336", 10)
+	raw, err := poolABI.Methods["getLegMark"].Outputs.Pack(w, true, big.NewInt(15426126662860800))
+	require.NoError(t, err)
+	var lm rpcLegMark
+	require.NoError(t, poolABI.UnpackIntoInterface(&lm, "getLegMark", raw))
+	require.Zero(t, lm.Word.Cmp(w))
+	require.True(t, lm.Priced)
+
+	raw, err = poolABI.Methods["baseToken"].Outputs.Pack(common.HexToAddress(usdc))
+	require.NoError(t, err)
+	var base common.Address
+	require.NoError(t, poolABI.UnpackIntoInterface(&base, "baseToken", raw))
+	require.Equal(t, common.HexToAddress(usdc), base)
+
+	raw, err = poolABI.Methods["getLiquidReserves"].Outputs.Pack(big.NewInt(7))
+	require.NoError(t, err)
+	var liq *big.Int
+	require.NoError(t, poolABI.UnpackIntoInterface(&liq, "getLiquidReserves", raw))
+	require.Equal(t, int64(7), liq.Int64())
+}
