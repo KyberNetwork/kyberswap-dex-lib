@@ -362,3 +362,87 @@ func TestCalcAmountOutZeroOutputReserve(t *testing.T) {
 	_, err = calc(sim, 100)
 	require.Equal(t, ErrBTRGated, err)
 }
+
+// newAgedSim is newSim with quote-time haircut inputs: a WETH-like USDC -> spoke ladder sampled at
+// block time 1000 with a fresh spoke mark, the USDC leg exempt. staleCheck is route finding.
+func newAgedSim(t *testing.T, staleCheck bool, cuts [][]PairCut) *PoolSimulator {
+	t.Helper()
+	extra, err := json.Marshal(Extra{
+		Flags:   []uint16{SwapEnabledBit, SwapEnabledBit},
+		Ladders: [][]Ladder{{{}, newLadder(pts(1_000_000, 990_000, 2_000_000, 1_900_000))}, {{}, {}}},
+		Time:    1000,
+		Stale:   []StaleLeg{{Obs: 1000, Grace: 3}, {Obs: 1000, Sigma: 4608, Grace: 3}},
+		Cuts:    cuts,
+	})
+	require.NoError(t, err)
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Address: CreditPoolCore, Exchange: DexType, Type: DexType, Extra: string(extra),
+		Tokens:   []*entity.PoolToken{{Address: usdc, Swappable: true}, {Address: wmon, Swappable: true}},
+		Reserves: entity.PoolReserves{"10000000", "10000000"},
+	}, Opts: pool.FactoryOpts{StaleCheck: staleCheck}})
+	require.NoError(t, err)
+	return sim
+}
+
+// atClock runs f with the quote clock at unix time now.
+func atClock(t *testing.T, now uint64, f func()) {
+	t.Helper()
+	prev := nowUnix
+	nowUnix = func() uint64 { return now }
+	defer func() { nowUnix = prev }()
+	f()
+}
+
+// The haircut is sized at quote time from the ladder's age plus InclusionAllowance, and a quote
+// past MaxAge is dropped. Indexing (no stale check) prices at the sample time.
+func TestCalcAmountOutHaircutByQuoteAge(t *testing.T) {
+	const den = 2*pbps - 3000
+	cuts := [][]PairCut{{{}, {Legs: []uint16{0, 1}, Den: den}}, {{}, {}}}
+	want := func(isqrt uint64) string {
+		d := 472*4608*isqrt/10_000 + 1
+		return new(big.Int).Div(big.NewInt(int64(990_000*(den-d))), big.NewInt(den)).String()
+	}
+	quote := func(sim *PoolSimulator, now uint64) (out *big.Int, err error) {
+		atClock(t, now, func() { out, err = calc(sim, 1_000_000) })
+		return
+	}
+	sim := newAgedSim(t, true, cuts)
+	for _, c := range []struct {
+		now   uint64
+		isqrt uint64
+	}{{1000, 2}, {999, 2}, {1003, 3}, {1010, 4}} {
+		out, err := quote(sim, c.now)
+		require.NoError(t, err)
+		require.Equal(t, want(c.isqrt), out.String(), "now=%d", c.now)
+	}
+	_, err := quote(sim, 1000+uint64(MaxAge/time.Second)+1)
+	require.Equal(t, ErrBTRStale, err, "past MaxAge")
+
+	out, err := quote(newAgedSim(t, false, cuts), 5000)
+	require.NoError(t, err)
+	require.Equal(t, want(2), out.String(), "indexing prices at the sample time")
+
+	_, err = quote(newAgedSim(t, true, nil), 1000)
+	require.Equal(t, ErrBTRNoRoute, err, "a sampled ladder without haircut inputs is not quoted")
+}
+
+// Split swaps along one pair still add up to at most the whole swap under the haircut.
+func TestUpdateBalanceContinuesCurveUnderHaircut(t *testing.T) {
+	sim := newAgedSim(t, true, [][]PairCut{{{}, {Legs: []uint16{0, 1}, Den: 2*pbps - 3000}}, {{}, {}}})
+	atClock(t, 1004, func() {
+		first, err := calc(sim, 1_000_000)
+		require.NoError(t, err)
+		whole, err := calc(sim, 2_000_000)
+		require.NoError(t, err)
+		cloned := sim.CloneState().(*PoolSimulator)
+		cloned.UpdateBalance(pool.UpdateBalanceParams{
+			TokenAmountIn:  pool.TokenAmount{Token: usdc, Amount: big.NewInt(1_000_000)},
+			TokenAmountOut: pool.TokenAmount{Token: wmon, Amount: first},
+		})
+		second, err := calc(cloned, 1_000_000)
+		require.NoError(t, err)
+		sum := new(big.Int).Add(first, second)
+		require.LessOrEqual(t, sum.Cmp(whole), 0)
+		require.LessOrEqual(t, new(big.Int).Sub(whole, sum).Int64(), int64(1), "rounding only")
+	})
+}

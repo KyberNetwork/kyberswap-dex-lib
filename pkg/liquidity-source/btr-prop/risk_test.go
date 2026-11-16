@@ -3,6 +3,7 @@ package btrprop
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -95,6 +96,12 @@ func TestCutAbove(t *testing.T) {
 	require.Len(t, cutAbove(p, nil), 3)
 }
 
+// refinePts is refine without the haircut inputs.
+func (g *guard) refinePts(from, to int, hops []common.Address, spread uint64, pts []Point) []Point {
+	res, _ := g.refine(from, to, hops, spread, pts)
+	return res
+}
+
 // bookOf is a getAsset result with the fields the route rule reads.
 func bookOf(anchor common.Address, lane uint8) *rpcAssetResult {
 	return &rpcAssetResult{Asset: rpcAsset{Anchor: anchor, OracleBits: lane}}
@@ -120,18 +127,18 @@ func TestGuardRefine(t *testing.T) {
 		}
 	}
 	hops := []common.Address{a, hub, b}
-	require.Len(t, mk(leg(wad, 1), nil).refine(0, 1, hops, 3000, ladder), 3)
-	require.Nil(t, mk(leg(wad*90/100, 1), nil).refine(0, 1, hops, 3000, ladder), "depegged interior hop")
-	require.Len(t, mk(leg(wad*90/100, 1), nil).refine(0, 1, nil, 3000, ladder), 3, "without a hop list only the endpoints are checked")
-	require.Nil(t, mk(nil, nil).refine(0, 1, hops, 3000, ladder), "unreadable interior word")
+	require.Len(t, mk(leg(wad, 1), nil).refinePts(0, 1, hops, 3000, ladder), 3)
+	require.Nil(t, mk(leg(wad*90/100, 1), nil).refinePts(0, 1, hops, 3000, ladder), "depegged interior hop")
+	require.Len(t, mk(leg(wad*90/100, 1), nil).refinePts(0, 1, nil, 3000, ladder), 3, "without a hop list only the endpoints are checked")
+	require.Nil(t, mk(nil, nil).refinePts(0, 1, hops, 3000, ladder), "unreadable interior word")
 	g := mk(leg(wad, 1), nil)
 	g.window = 100
-	require.Nil(t, g.refine(0, 1, hops, 3000, ladder), "TTL expires inside the window")
-	require.Len(t, mk(leg(wad, 1), uint256.NewInt(2_000_000)).refine(0, 1, hops, 3000, ladder), 2, "liquid floor cuts the top")
+	require.Nil(t, g.refinePts(0, 1, hops, 3000, ladder), "TTL expires inside the window")
+	require.Len(t, mk(leg(wad, 1), uint256.NewInt(2_000_000)).refinePts(0, 1, hops, 3000, ladder), 2, "liquid floor cuts the top")
 	g = mk(leg(wad, 1), nil)
 	g.assets[0] = nil
-	require.Nil(t, g.refine(0, 1, hops, 3000, ladder), "unreadable book cannot clear the route rule")
-	require.Nil(t, mk(leg(wad, 1), nil).refine(0, 1, []common.Address{a, common.HexToAddress("0x99"), b}, 3000, ladder), "route through an unknown node")
+	require.Nil(t, g.refinePts(0, 1, hops, 3000, ladder), "unreadable book cannot clear the route rule")
+	require.Nil(t, mk(leg(wad, 1), nil).refinePts(0, 1, []common.Address{a, common.HexToAddress("0x99"), b}, 3000, ladder), "route through an unknown node")
 }
 
 // An INTERNAL (or any) leg whose mark confidence interval exceeds the limit is refused.
@@ -189,11 +196,29 @@ func driftPool(g *guard, legs []int, x, t uint64) uint64 {
 	return gross - (gross*driftSpread(g, legs, t)+2*pbps-1)/(2*pbps)
 }
 
-// The ladder never promises more than the pool pays at any second of the window (no push in
-// between), for volatile spokes, a stable-ish leg, a fresh mark and one already well past the
-// keeper's allowance.
-func TestRefineNeverOverquotesAcrossWindow(t *testing.T) {
+// window is the haircut window of a quote age seconds after the sample.
+func window(age uint64) uint64 { return age + uint64(InclusionAllowance/time.Second) }
+
+// scaled is out*num/den rounded down, as the simulator pays it.
+func scaled(out, num, den uint64) uint64 { return out * num / den }
+
+// stales replays every leg of g.
+func stales(g *guard) []StaleLeg {
+	res := make([]StaleLeg, len(g.legs))
+	for i, l := range g.legs {
+		if l != nil {
+			res[i] = l.stale()
+		}
+	}
+	return res
+}
+
+// A quote at any age up to MaxAge never promises more than the pool pays at any second until
+// it lands (no push in between), for volatile spokes, a stable-ish leg, a fresh mark and one
+// already well past the keeper's allowance; and the haircut is sized by the quote's own age.
+func TestHaircutNeverOverquotesUntilLanding(t *testing.T) {
 	a, b, hub := common.HexToAddress("0x01"), common.HexToAddress("0x02"), common.HexToAddress("0x03")
+	maxAge := uint64(MaxAge / time.Second)
 	for _, c := range []struct {
 		name         string
 		obsA, obsB   uint64
@@ -201,10 +226,10 @@ func TestRefineNeverOverquotesAcrossWindow(t *testing.T) {
 		ttl          uint64
 		maxHaircutBp uint64
 	}{
-		{"fresh volatile", 1000, 1000, 11264, 11264, 180, 20},
+		{"fresh volatile", 1000, 1000, 11264, 11264, 180, 22},
 		{"aged volatile", 970, 960, 11264, 6000, 180, 25},
 		{"stable-ish", 995, 995, 200, 150, 180, 5},
-		{"short ttl", 1000, 1000, 11264, 11264, 20, 20},
+		{"short ttl", 1000, 1000, 11264, 11264, 20, 22},
 	} {
 		wa, _ := decodeMark(word(c.obsA, c.sigA, c.ttl, wad, false, false, 0))
 		wb, _ := decodeMark(word(c.obsB, c.sigB, c.ttl, wad, false, false, 0))
@@ -213,24 +238,55 @@ func TestRefineNeverOverquotesAcrossWindow(t *testing.T) {
 		g := &guard{
 			tokens: []common.Address{a, b, hub}, legs: []*markLeg{wa, wb, wh},
 			assets: []*rpcAssetResult{bookOf(hub, 1), bookOf(hub, 2), bookOf(common.Address{}, 0)}, base: hub,
-			rooms: make([]*uint256.Int, 3), now: 1000, window: uint64((MaxAge + InclusionAllowance).Seconds()),
+			rooms: make([]*uint256.Int, 3), now: 1000, window: window(maxAge),
 		}
 		path := []int{0, 1}
 		var raw []Point
 		for _, x := range []uint64{1e6, 1e9, 1e12} {
 			raw = append(raw, Point{In: *uint256.NewInt(x), Out: *uint256.NewInt(driftPool(g, path, x, g.now))})
 		}
-		got := g.refine(0, 1, []common.Address{a, hub, b}, driftSpread(g, path, g.now), raw)
-		require.Len(t, got, len(raw), c.name)
-		for k, p := range got {
-			x := p.In.Uint64()
-			for ts := g.now; ts <= g.now+g.window; ts++ {
-				require.LessOrEqual(t, p.Out.Uint64(), driftPool(g, path, x, ts), "%s x=%d t=%d", c.name, x, ts)
+		got, cut := g.refine(0, 1, []common.Address{a, hub, b}, driftSpread(g, path, g.now), raw)
+		require.Equal(t, raw, got, c.name)
+		require.Equal(t, []uint16{0, 1, 2}, cut.Legs, c.name)
+		prev := uint64(0)
+		for age := uint64(0); age <= maxAge; age++ {
+			num, den, ok := cut.factor(stales(g), g.now, window(age))
+			require.True(t, ok, c.name)
+			for _, p := range got {
+				x, out := p.In.Uint64(), scaled(p.Out.Uint64(), num, den)
+				for ts := g.now; ts <= g.now+window(age); ts++ {
+					require.LessOrEqual(t, out, driftPool(g, path, x, ts), "%s x=%d age=%d t=%d", c.name, x, age, ts)
+				}
+				// The cost is bounded: the haircut is at most maxHaircutBp of the sampled output.
+				require.GreaterOrEqual(t, out*10_000, p.Out.Uint64()*(10_000-c.maxHaircutBp), c.name)
 			}
-			// The cost is bounded: the haircut is at most maxHaircutBp of the sampled output.
-			require.GreaterOrEqual(t, p.Out.Uint64()*10_000, raw[k].Out.Uint64()*(10_000-c.maxHaircutBp), c.name)
+			require.GreaterOrEqual(t, den-num, prev, "%s: an older quote never pays a smaller haircut", c.name)
+			prev = den - num
 		}
 	}
+}
+
+// The haircut follows the quote's age (WETH-like leg, sigma 4608, base hub). A mark already some
+// seconds old at the sample pays less than a fresh one for the same window: the premium grows
+// with the square root of the mark's age.
+func TestHaircutByAge(t *testing.T) {
+	a, hub := common.HexToAddress("0x01"), common.HexToAddress("0x03")
+	cutAt := func(obs, w uint64) uint64 {
+		wa, _ := decodeMark(word(obs, 4608, 345, wad, false, false, 0))
+		wh, _ := decodeMark(word(1000, 208, 1020, wad, false, false, 0))
+		wh.base = true
+		g := &guard{tokens: []common.Address{a, hub}, legs: []*markLeg{wa, wh}, rooms: make([]*uint256.Int, 2), now: 1000, window: window(10)}
+		_, cut := g.refine(0, 1, nil, 3000, pts(1_000_000, 990_000))
+		num, den, ok := cut.factor(stales(g), g.now, w)
+		require.True(t, ok)
+		return den - num
+	}
+	term := func(isqrt uint64) uint64 { return 472*4608*isqrt/10_000 + 1 }
+	require.Equal(t, term(2), cutAt(1000, window(0)), "fresh mark, quote at the sample: isqrt(9-3)")
+	require.Equal(t, term(3), cutAt(1000, window(3)), "isqrt(12-3)")
+	require.Equal(t, term(4), cutAt(1000, window(10)), "at MaxAge: isqrt(19-3)")
+	require.Equal(t, term(3), cutAt(1000, 17), "the fixed 17 s window this replaces: isqrt(14)")
+	require.Equal(t, term(3)-term(1)+1, cutAt(995, window(3)), "mark 5 s old at the sample: isqrt(14)-isqrt(2)")
 }
 
 // A path of base legs only has no premium to grow; just the rounding allowance applies.
@@ -241,10 +297,14 @@ func TestRefineBaseOnlyPathUntouched(t *testing.T) {
 	wa.base, wh.base = true, true
 	g := &guard{tokens: []common.Address{a, hub}, legs: []*markLeg{wa, wh}, rooms: make([]*uint256.Int, 2), now: 1000, window: 6}
 	in := pts(1_000_000, 990_000, 2_000_000, 1_980_000)
-	got := g.refine(0, 1, nil, 3000, in)
-	require.Len(t, got, 2)
+	got, cut := g.refine(0, 1, nil, 3000, in)
+	require.Equal(t, in, got)
 	den := uint64(2*pbps - 3000)
-	require.Equal(t, uint64(990_000)*(den-1)/den, got[0].Out.Uint64())
+	for _, w := range []uint64{0, 9, 19, 1000} {
+		num, d, ok := cut.factor(stales(g), g.now, w)
+		require.True(t, ok)
+		require.Equal(t, [2]uint64{den - 1, den}, [2]uint64{num, d})
+	}
 }
 
 // A larger sampled spread gives a larger haircut for the same drift (the ratio falls as the
@@ -255,16 +315,19 @@ func TestRefineSpreadMonotone(t *testing.T) {
 	wh, _ := decodeMark(word(1000, 100, 180, wad, false, false, 0))
 	wh.base = true
 	g := &guard{tokens: []common.Address{a, hub}, legs: []*markLeg{wa, wh}, rooms: make([]*uint256.Int, 2), now: 1000, window: 8}
-	in := pts(1_000_000, 990_000)
-	lo := g.refine(0, 1, nil, 1000, in)[0].Out.Uint64()
-	hi := g.refine(0, 1, nil, 30000, in)[0].Out.Uint64()
-	require.Less(t, hi, lo)
+	share := func(spread uint64) float64 {
+		_, cut := g.refine(0, 1, nil, spread, pts(1_000_000, 990_000))
+		num, den, ok := cut.factor(stales(g), g.now, 8)
+		require.True(t, ok)
+		return float64(num) / float64(den)
+	}
+	require.Less(t, share(30000), share(1000))
 }
 
 func TestStaleTermFormula(t *testing.T) {
 	// premium = 472*sigma*floor(sqrt(excess))/10000 PBPS.
 	l, _ := decodeMark(word(900, 11264, 180, wad, false, false, 0))
-	require.Equal(t, uint64(97), l.staleExcessAt(1000), "age 100 less the 3 s allowance")
+	require.Equal(t, uint64(97), l.stale().excessAt(1000), "age 100 less the 3 s allowance")
 	require.Equal(t, uint64(472*11264*9/10_000), l.staleTermAt(1000))
 	require.Zero(t, l.staleTermAt(903), "inside the allowance")
 	l.base = true
@@ -295,8 +358,8 @@ func TestLegReadsUnpack(t *testing.T) {
 	require.Equal(t, int64(7), liq.Int64())
 }
 
-// Neither the stale-drift nor the half-spread haircut can raise a quote: over extreme spreads,
-// sigmas, ages and TTLs every refined output is at most its sampled output, and a haircut that
+// The haircut can never raise a quote: over extreme spreads, sigmas, ages and TTLs every refined
+// output is at most its sampled output, every factor is a share in (0, 1), and a haircut that
 // would reach the whole spread refuses the ladder instead of wrapping.
 func TestRefineNeverRaisesOutput(t *testing.T) {
 	a, hub := common.HexToAddress("0x01"), common.HexToAddress("0x03")
@@ -312,7 +375,14 @@ func TestRefineNeverRaisesOutput(t *testing.T) {
 					}
 					wh.base = true
 					g := &guard{tokens: []common.Address{a, hub}, legs: []*markLeg{wa, wh}, rooms: make([]*uint256.Int, 2), now: 1000, window: 8}
-					got := g.refine(0, 1, nil, spread, raw)
+					got, cut := g.refine(0, 1, nil, spread, raw)
+					if len(got) > 0 {
+						for w := uint64(0); w <= 8; w++ {
+							num, den, ok := cut.factor(stales(g), g.now, w)
+							require.True(t, ok, "a refined pair quotes at every age inside the window")
+							require.True(t, num > 0 && num < den, "sigma=%d obs=%d ttl=%d spread=%d w=%d", sigma, obs, ttl, spread, w)
+						}
+					}
 					for k, p := range got {
 						var r *Point
 						for i := range raw {
@@ -348,9 +418,9 @@ func TestRefineKeepsLadderOfClosedOutputLeg(t *testing.T) {
 	hops := []common.Address{a, hub, b}
 	g := mk(live, halted)
 	require.True(t, g.legClosed(1))
-	require.Len(t, g.refine(0, 1, hops, 3000, ladder), 2, "closed output leg keeps the ladder")
-	require.Nil(t, mk(halted, live).refine(0, 1, hops, 3000, ladder), "closed input leg refuses the ladder")
-	require.Nil(t, mk(live, nil).refine(1, 0, nil, 3000, ladder), "unreadable input leg refuses the ladder")
+	require.Len(t, g.refinePts(0, 1, hops, 3000, ladder), 2, "closed output leg keeps the ladder")
+	require.Nil(t, mk(halted, live).refinePts(0, 1, hops, 3000, ladder), "closed input leg refuses the ladder")
+	require.Nil(t, mk(live, nil).refinePts(1, 0, nil, 3000, ladder), "unreadable input leg refuses the ladder")
 }
 
 // A pair-level refusal (the route rule: A and its parent C price off one oracle lane) drops only A -> B.
@@ -368,7 +438,7 @@ func TestRefinePairRefusalKeepsOtherPairsToSameOutput(t *testing.T) {
 		rooms:  make([]*uint256.Int, 4), now: 1000, window: 10,
 	}
 	ladder := pts(1_000_000, 900_000, 2_000_000, 1_800_000)
-	require.Nil(t, g.refine(0, 2, []common.Address{a, c, hub, b}, 3000, ladder), "A->B refused: same lane")
-	require.Len(t, g.refine(1, 2, []common.Address{c, hub, b}, 3000, ladder), 2, "C->B still quotable")
+	require.Nil(t, g.refinePts(0, 2, []common.Address{a, c, hub, b}, 3000, ladder), "A->B refused: same lane")
+	require.Len(t, g.refinePts(1, 2, []common.Address{c, hub, b}, 3000, ladder), 2, "C->B still quotable")
 	require.False(t, g.legClosed(2), "B itself is open, so its reserve stays")
 }

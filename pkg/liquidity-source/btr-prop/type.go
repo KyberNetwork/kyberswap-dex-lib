@@ -3,6 +3,7 @@ package btrprop
 import (
 	"errors"
 	"math"
+	"time"
 
 	"github.com/holiman/uint256"
 )
@@ -25,6 +26,8 @@ var (
 	ErrBTRInvalidAmount = errors.New("btr: invalid amount in")
 	// ErrBTRBadState is returned when the pool state cannot be trusted.
 	ErrBTRBadState = errors.New("btr: invalid pool state")
+	// ErrBTRStale is returned when the sampled ladders are older than MaxAge at quote time.
+	ErrBTRStale = errors.New("btr: sampled state older than MaxAge")
 )
 
 // DexType is the dex-lib pool type for BTR's AIMM book.
@@ -77,6 +80,37 @@ type Extra struct {
 	// Hops[from][to] is the number of nodes on the pool's route for the pair (2 = a direct edge
 	// through the hub, more = a spoke-to-spoke route through the anchor tree); zero when unknown.
 	Hops [][]uint8 `json:"h,omitempty"`
+	// Time is the block timestamp the ladders were sampled at. Zero for a state written before
+	// the haircut moved to quote time: its ladders already carry the fixed-window haircut.
+	Time uint64 `json:"t,omitempty"`
+	// Stale[i] replays token i's staleness premium (zero when its word was unreadable).
+	Stale []StaleLeg `json:"s,omitempty"`
+	// Cuts[from][to] sizes the pair's haircut at quote time; empty without a ladder.
+	Cuts [][]PairCut `json:"c,omitempty"`
+}
+
+// setCut records the haircut inputs of from -> to in an n x n matrix.
+func (e *Extra) setCut(n, from, to int, c PairCut) {
+	if e.Cuts == nil {
+		e.Cuts = make([][]PairCut, n)
+		for i := range e.Cuts {
+			e.Cuts[i] = make([]PairCut, n)
+		}
+	}
+	e.Cuts[from][to] = c
+}
+
+// factor returns num/den, the share of the sampled ladder of from -> to that a swap quoted age
+// seconds after the sample may promise: the path's premium growth over age + InclusionAllowance.
+// An Extra without a sample time quotes its ladders as stored. ok is false without haircut data.
+func (e *Extra) factor(from, to int, age uint64) (num, den uint64, ok bool) {
+	if e.Time == 0 {
+		return 1, 1, true
+	}
+	if from < 0 || from >= len(e.Cuts) || to < 0 || to >= len(e.Cuts[from]) {
+		return 0, 0, false
+	}
+	return e.Cuts[from][to].factor(e.Stale, e.Time, age+uint64(InclusionAllowance/time.Second))
 }
 
 // setHops records the route length of from -> to in an n x n matrix.

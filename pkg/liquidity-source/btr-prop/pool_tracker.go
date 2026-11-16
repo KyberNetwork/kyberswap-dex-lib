@@ -257,7 +257,12 @@ func (t *PoolTracker) GetNewPoolState(
 		g.addQuoteCalls(&grid, p.Address, addrs[pp.from], addrs[pp.to])
 		grids = append(grids, g)
 	}
-	extra := Extra{Flags: flags, GateOK: gateOK, Ladders: make([][]Ladder, n)}
+	extra := Extra{Flags: flags, GateOK: gateOK, Ladders: make([][]Ladder, n), Time: now, Stale: make([]StaleLeg, n)}
+	for i, l := range legs {
+		if l != nil {
+			extra.Stale[i] = l.stale()
+		}
+	}
 	for i := range extra.Ladders {
 		extra.Ladders[i] = make([]Ladder, n)
 		for j := range extra.Ladders[i] {
@@ -295,9 +300,10 @@ func (t *PoolTracker) GetNewPoolState(
 			if bisects[k] != nil {
 				spread = max(spread, bisects[k].maxSpread())
 			}
-			if pts := gd.refine(g.from, g.to, g.hops(), spread, built[k]); len(pts) > 0 {
+			if pts, cut := gd.refine(g.from, g.to, g.hops(), spread, built[k]); len(pts) > 0 {
 				extra.Ladders[g.from][g.to] = newLadder(pts)
 				extra.setHops(n, g.from, g.to, len(g.hops()))
+				extra.setCut(n, g.from, g.to, cut)
 			}
 		}
 	}
