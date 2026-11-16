@@ -11,6 +11,7 @@ import (
 	"github.com/holiman/uint256"
 
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 )
 
 type int24 = int32
@@ -201,6 +202,8 @@ type ExtraUint256 struct {
 	GlobalState GlobalStateUint256 `json:"globalState"`
 	Ticks       []v3Entities.Tick  `json:"ticks"`
 	TickSpacing int24              `json:"tickSpacing"`
+
+	tickspkg.TicksBasedStateBlock
 }
 
 type Extra struct {
@@ -208,6 +211,9 @@ type Extra struct {
 	GlobalState GlobalState             `json:"globalState"`
 	Ticks       []v3EntitiesBigInt.Tick `json:"ticks"`
 	TickSpacing int24                   `json:"tickSpacing"`
+
+	// sB: the block of the tracker's read of the pool state, see tickspkg.TicksBasedStateBlock.
+	tickspkg.TicksBasedStateBlock
 }
 
 // StateUpdate should be returned instead since we won't update the state when calculating amountOut

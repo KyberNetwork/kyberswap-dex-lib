@@ -167,7 +167,8 @@ func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Poo
 		return entity.Pool{}, err
 	}
 
-	out := extraTickU256ToExtra(extra)
+	extra.Ticks = nil // replaced below
+	out := extra.ToExtra()
 	out.Ticks = toTicks(refetchedTicks)
 
 	extraBytes, err := json.Marshal(out)
@@ -182,27 +183,6 @@ func (t *Tracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Poo
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
-}
-
-// extraTickU256ToExtra carries the scalar fields of a tolerant uint256 read over to the big.Int
-// Extra this package writes. Ticks is left for the caller to fill in.
-func extraTickU256ToExtra(u ExtraTickU256) Extra {
-	out := Extra{
-		TickSpacing:        u.TickSpacing,
-		BuyRestrictedToken: u.BuyRestrictedToken,
-		MaxTxToken:         u.MaxTxToken,
-		MaxTxAmount:        u.MaxTxAmount,
-	}
-	if u.Liquidity != nil {
-		out.Liquidity = u.Liquidity.ToBig()
-	}
-	if u.SqrtPriceX96 != nil {
-		out.SqrtPriceX96 = u.SqrtPriceX96.ToBig()
-	}
-	if u.Tick != nil {
-		out.Tick = big.NewInt(int64(*u.Tick))
-	}
-	return out
 }
 
 func toTicks(ticks []tickspkg.Tick) []Tick {
@@ -486,6 +466,8 @@ func buildExtra(rpcData *FetchRPCResult, ticks []Tick) Extra {
 		BuyRestrictedToken: rpcData.BuyRestrictedToken,
 		MaxTxToken:         rpcData.MaxTxToken,
 		MaxTxAmount:        rpcData.MaxTxAmount,
+
+		TicksBasedStateBlock: rpcData.TicksBasedStateBlock,
 	}
 }
 
@@ -872,11 +854,17 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		odysGuard.AddCalls(rpcRequest)
 	}
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	resp, err := rpcRequest.TryBlockAndAggregate()
+	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
-		}).Error("failed to process tryAggregate")
+		}).Error("failed to process tryBlockAndAggregate")
 		return nil, err
+	}
+
+	var stateBlock uint64
+	if resp.BlockNumber != nil && resp.BlockNumber.IsUint64() {
+		stateBlock = resp.BlockNumber.Uint64()
 	}
 
 	slot0, err := resolveSlot0(slot0Katana, slot0Std, slot0Slip, slot0Solid)
@@ -899,6 +887,8 @@ func (t *Tracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber 
 		BuyRestrictedToken: ponsGuard.BuyRestrictedToken(),
 		MaxTxToken:         maxTxToken,
 		MaxTxAmount:        maxTxAmount,
+
+		TicksBasedStateBlock: tickspkg.TicksBasedStateBlock{StateBlock: stateBlock},
 	}, nil
 }
 
