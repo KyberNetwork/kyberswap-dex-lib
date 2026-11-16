@@ -1,0 +1,97 @@
+[
+ {
+  "inputs": [],
+  "name": "venueStatus",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "invested",
+    "type": "uint256"
+   },
+   {
+    "internalType": "uint256",
+    "name": "nav",
+    "type": "uint256"
+   },
+   {
+    "internalType": "uint256",
+    "name": "cash",
+    "type": "uint256"
+   },
+   {
+    "internalType": "uint256",
+    "name": "total",
+    "type": "uint256"
+   },
+   {
+    "internalType": "uint256",
+    "name": "withdrawableNow",
+    "type": "uint256"
+   },
+   {
+    "internalType": "uint256",
+    "name": "pendingRecall",
+    "type": "uint256"
+   },
+   {
+    "internalType": "bool",
+    "name": "distressed",
+    "type": "bool"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "market",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "aavePool",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "vault",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "morpho",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ }
+]

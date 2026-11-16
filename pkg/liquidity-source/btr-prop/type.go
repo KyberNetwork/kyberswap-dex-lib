@@ -3,6 +3,7 @@ package btrprop
 import (
 	"errors"
 	"math"
+	"math/big"
 	"time"
 
 	"github.com/holiman/uint256"
@@ -87,6 +88,42 @@ type Extra struct {
 	Stale []StaleLeg `json:"s,omitempty"`
 	// Cuts[from][to] sizes the pair's haircut at quote time; empty without a ladder.
 	Cuts [][]PairCut `json:"c,omitempty"`
+	// Cash[i] is the most of token i the pool pays from liquid cash alone (liquidRoom); an output
+	// past it makes the pool recall from the leg's hook inside the swap, which costs RecallGas[i]
+	// more. Both are empty when no leg has a usable recall.
+	Cash      []uint256.Int `json:"q,omitempty"`
+	RecallGas []int64       `json:"r,omitempty"`
+}
+
+// setRecall records, per leg with usable recall, its liquid-only room and recall gas.
+func (e *Extra) setRecall(n int, recalls []recall, liquids []*big.Int, assets []*rpcAssetResult) {
+	for i, r := range recalls {
+		if r.Gas == 0 || r.Room.IsZero() || assets[i] == nil {
+			continue
+		}
+		cash := liquidRoom(liquids[i], &assets[i].Asset)
+		if cash == nil {
+			continue
+		}
+		if e.Cash == nil {
+			e.Cash, e.RecallGas = make([]uint256.Int, n), make([]int64, n)
+		}
+		e.Cash[i], e.RecallGas[i] = *cash, r.Gas
+	}
+}
+
+// swapGas is gas plus the recall gas of the output leg when taken (earlier swaps of the route's
+// quotes) plus out reaches past its liquid cash.
+func (e *Extra) swapGas(from, to int, taken, out *uint256.Int) int64 {
+	g := e.gas(from, to)
+	if to < 0 || to >= len(e.RecallGas) || e.RecallGas[to] == 0 {
+		return g
+	}
+	var need uint256.Int
+	if _, over := need.AddOverflow(taken, out); over || need.Gt(&e.Cash[to]) {
+		g += e.RecallGas[to]
+	}
+	return g
 }
 
 // setCut records the haircut inputs of from -> to in an n x n matrix.

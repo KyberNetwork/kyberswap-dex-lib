@@ -295,6 +295,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		}
 		amountOut.Sub(&amountOut, &base)
 	}
+	// The recall decision is on what the pool pays (the sampled output), before the haircut.
+	sampled := amountOut
 	if num != den {
 		big256.MulDivDown(&amountOut, &amountOut, uint256.NewInt(num), uint256.NewInt(den))
 	}
@@ -305,7 +307,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI},
-		Gas:            s.extra.gas(i, j),
+		Gas:            s.extra.swapGas(i, j, s.taken(j), &sampled),
 	}, nil
 }
 
@@ -382,4 +384,12 @@ func (s *PoolSimulator) GetApprovalAddress(_, _ string) string { return s.Info.A
 // stale reports whether the tracker snapshot is older than MaxAge.
 func stale(timestamp int64) bool {
 	return timestamp > 0 && time.Since(time.Unix(timestamp, 0)) > MaxAge
+}
+
+// taken is the output of token j that earlier UpdateBalance calls moved, zero before any.
+func (s *PoolSimulator) taken(j int) *uint256.Int {
+	if j < len(s.outTaken) {
+		return &s.outTaken[j]
+	}
+	return new(uint256.Int)
 }
