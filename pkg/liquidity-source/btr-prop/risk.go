@@ -174,10 +174,6 @@ func cutAbove(pts []Point, room *uint256.Int) []Point {
 	return pts
 }
 
-// callsPerToken is the per-token call count of the tracker's phase-1 multicall: getRiskFlags,
-// balanceOf, getAsset, getLegMark, getLiquidReserves.
-const callsPerToken = 5
-
 // guard holds the state the settle-time checks read, for one refresh at block time now. A swap
 // quoted from the refresh may execute until now+window (MaxAge plus an inclusion allowance).
 type guard struct {
