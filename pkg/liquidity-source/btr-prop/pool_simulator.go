@@ -59,7 +59,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 			}
 		}
 	}
-	extra.Ladders = nil // the simulator reads ladders only
+	extra.Ladders = nil // the simulator reads ladders and hops only
 
 	reserves := make([]*big.Int, n)
 	for k := range reserves {
@@ -227,6 +227,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
+	// The tracker zeroes the reserve of an output leg the swap would revert on and keeps its ladder.
+	if s.Info.Reserves[j].Sign() == 0 {
+		return nil, ErrBTRGated
+	}
+
 	n := len(s.Info.Tokens)
 	ladder := s.ladders[i*n+j]
 	if ladder == nil {
@@ -261,8 +266,36 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI},
-		Gas:            DefaultGas,
+		Gas:            s.extra.gas(i, j),
 	}, nil
+}
+
+// CanSwapTo lists the tokens with a sampled ladder from the given token.
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	return s.linked(address, true)
+}
+
+// CanSwapFrom lists the tokens with a sampled ladder into the given token.
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	return s.linked(address, false)
+}
+
+func (s *PoolSimulator) linked(address string, to bool) []string {
+	k, n := s.GetTokenIndex(address), len(s.Info.Tokens)
+	if k < 0 {
+		return nil
+	}
+	var res []string
+	for o := 0; o < n; o++ {
+		l := s.ladders[o*n+k]
+		if to {
+			l = s.ladders[k*n+o]
+		}
+		if o != k && l != nil {
+			res = append(res, s.Info.Tokens[o])
+		}
+	}
+	return res
 }
 
 // CloneState deep-copies inUsed and outTaken, the slices UpdateBalance writes in

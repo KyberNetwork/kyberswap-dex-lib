@@ -166,7 +166,7 @@ func TestGridAmountsStrictlyIncreasing(t *testing.T) {
 }
 
 // capCurve is a concave body whose output stops growing at 0.98*maxIn (1e6), like
-// the live pairs where the core's ~92.7% output cap bites at 0.98-0.995 of maxIn.
+// the live pairs where the core's output cap bites at 0.98-0.995 of maxIn.
 func capCurve(x uint64) uint64 {
 	const onset = 980_000
 	x = min(x, onset)
@@ -265,3 +265,58 @@ func maxInOf(pp *pairProbe, bal *uint256.Int) uint64 {
 }
 
 func u64(v uint256.Int) uint64 { return v.Uint64() }
+
+// capPool serves any size up to cap and reverts above it, like a tighter per-pair limit the
+// tracker does not model.
+func capPool(ins []uint256.Int, capIn uint64) *pairProbe {
+	pp := &pairProbe{}
+	for k := range ins {
+		x := ins[k].Uint64()
+		pp.ins = append(pp.ins, ins[k])
+		pp.ok = append(pp.ok, x <= capIn)
+		q := new(rpcSwapQuoteResult)
+		if x <= capIn {
+			q.Quote.AmountOut = big.NewInt(int64(x - x*x/4_000_000))
+		}
+		pp.res = append(pp.res, q)
+	}
+	return pp
+}
+
+// A ladder that ends on a revert is extended into the gap, so its top lands within a quarter of
+// the gap under the pool's real cap and never above it.
+func TestBisectFindsRealCap(t *testing.T) {
+	maxIn := *uint256.NewInt(1_000_000)
+	for _, capIn := range []uint64{1_000_000, 850_000, 640_001, 210_000, 5_000} {
+		grid := capPool(gridAmounts(maxIn, nil), capIn)
+		pts := grid.ladder()
+		bis := grid.bisectAmounts(pts)
+		if capIn >= maxIn.Uint64() {
+			require.Nil(t, bis, "the top sample served: nothing to bisect")
+			continue
+		}
+		require.NotEmpty(t, bis, "cap=%d", capIn)
+		lo, hi := pts[len(pts)-1].In.Uint64(), grid.ins[grid.stop].Uint64()
+		bp := capPool(bis, capIn)
+		pts = bp.extend(pts)
+		top := pts[len(pts)-1].In.Uint64()
+		require.LessOrEqual(t, top, capIn, "never above the cap")
+		require.Greater(t, top+(hi-lo)/4+1, capIn, "cap=%d top=%d", capIn, top)
+		require.True(t, validPoints(pts))
+	}
+}
+
+// Only a revert ends the grid on a bisectable gap: a flat output or a fully served grid does not.
+func TestBisectOnlyAfterRevert(t *testing.T) {
+	flat := probe([]uint64{10, 20, 30, 40}, []int64{10, 20, 20, 20})
+	require.Nil(t, flat.bisectAmounts(flat.ladder()))
+	reverted := probe([]uint64{10, 20, 30, 40}, []int64{10, 20, -1, -1})
+	got := reverted.bisectAmounts(reverted.ladder())
+	require.Len(t, got, 3)
+	require.Equal(t, []uint64{22, 25, 27}, []uint64{got[0].Uint64(), got[1].Uint64(), got[2].Uint64()})
+	first := probe([]uint64{10, 20}, []int64{-1, -1})
+	require.Nil(t, first.bisectAmounts(first.ladder()), "no served sample to bisect from")
+	// A gap of one unit has no interior size.
+	tight := probe([]uint64{10, 11}, []int64{10, -1})
+	require.Nil(t, tight.bisectAmounts(tight.ladder()))
+}

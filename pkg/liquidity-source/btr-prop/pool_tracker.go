@@ -118,6 +118,8 @@ type pairProbe struct {
 	ok       []bool
 	// probes is the pair's rate probes; set on grids only.
 	probes *pairProbe
+	// stop is the index of the sample that ended ladder() (len(ins) when none did).
+	stop int
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -143,9 +145,10 @@ func (t *PoolTracker) GetNewPoolState(
 	var prev Extra
 	_ = json.Unmarshal([]byte(p.Extra), &prev)
 
-	// Phase 1: flags, balances, books, the executor's swap-gate membership and the rate probes,
-	// sent as one JSON-RPC batch of plain eth_calls pinned to one block. Each call keeps its own
-	// gas budget; a single multicall would share one budget across ~500 calls and run out.
+	// Phase 1: flags, balances, books, leg words, liquid reserves, the base token, the executor's
+	// swap-gate membership and the rate probes, sent as one JSON-RPC batch of plain eth_calls
+	// pinned to one block. Each call keeps its own gas budget; a single multicall would share one
+	// budget across ~500 calls and run out.
 	// Stamped before the reads: the simulator's MaxAge measures from this, so the grid's
 	// duration must not hide a stale snapshot.
 	fetchedAt := time.Now().Unix()
@@ -159,21 +162,26 @@ func (t *PoolTracker) GetNewPoolState(
 	balances := make([]*big.Int, n)
 	assets := make([]*rpcAssetResult, n)
 	flagOK, balOK, assetOK := make([]bool, n), make([]bool, n), make([]bool, n)
+	markOK, liquidOK := make([]bool, n), make([]bool, n)
+	marks := make([]*rpcLegMark, n)
+	liquids := make([]*big.Int, n)
 	for i := range addrs {
 		assets[i] = new(rpcAssetResult)
 		batch.add(poolABI, p.Address, "getRiskFlags", []any{addrs[i]}, &flags[i], &flagOK[i])
 		batch.add(utilabi.Erc20ABI, p.Tokens[i].Address, "balanceOf", []any{poolAddr}, &balances[i], &balOK[i])
 		batch.add(poolABI, p.Address, "getAsset", []any{addrs[i]}, assets[i], &assetOK[i])
+		marks[i] = new(rpcLegMark)
+		batch.add(poolABI, p.Address, "getLegMark", []any{addrs[i]}, marks[i], &markOK[i])
+		batch.add(poolABI, p.Address, "getLiquidReserves", []any{addrs[i]}, &liquids[i], &liquidOK[i])
 	}
+	var base common.Address
+	var baseOK bool
+	batch.add(poolABI, p.Address, "baseToken", nil, &base, &baseOK)
 	// Whether the executor may swap SWAP_GATED legs. Read, never assumed: the owner admits the
 	// executor to the pool's swap gate separately, and the answer flips the legs open.
 	var inGate bool
-	var gateOK bool
-	hasExecutor := common.IsHexAddress(t.config.Executor)
-	if hasExecutor {
-		batch.add(poolABI, p.Address, "inSwapGate",
-			[]any{common.HexToAddress(t.config.Executor)}, &inGate, &gateOK)
-	}
+	var gateRead bool
+	batch.add(poolABI, p.Address, "inSwapGate", []any{t.config.executor()}, &inGate, &gateRead)
 	probes := make([]*pairProbe, 0, n*(n-1))
 	for i := range addrs {
 		for j := range addrs {
@@ -191,6 +199,8 @@ func (t *PoolTracker) GetNewPoolState(
 	if err := batch.run(ctx, t.client, bn); err != nil {
 		return p, err
 	}
+	legs := make([]*markLeg, n)
+	rooms := make([]*uint256.Int, n)
 	for i := range addrs {
 		if !flagOK[i] {
 			flags[i] = 0 // unreadable flags read as swap disabled
@@ -198,8 +208,28 @@ func (t *PoolTracker) GetNewPoolState(
 		if !assetOK[i] {
 			assets[i] = nil // unreadable book: no cap clamp, the first revert ends the ladder
 		}
+		if markOK[i] { // an unreadable word leaves legs[i] nil: every path through it is refused
+			legs[i], _ = decodeMark(marks[i].Word)
+		}
+		if liquidOK[i] && assets[i] != nil {
+			rooms[i] = liquidRoom(liquids[i], &assets[i].Asset)
+		}
 	}
-	gateOK = gateOK && inGate
+	gateOK := gateRead && inGate
+	if baseOK { // an unreadable base leaves every leg unexempted: stricter, never looser
+		for i := range addrs {
+			if legs[i] != nil {
+				legs[i].base = addrs[i] == base
+			}
+		}
+	}
+
+	// The leg ages come from the block the ladder is sampled at, not the wall clock.
+	now, err := t.client.NewRequest().SetContext(ctx).SetBlockNumber(bn).GetCurrentBlockTimestamp()
+	if err != nil {
+		return p, err
+	}
+	gd := &guard{tokens: addrs, legs: legs, assets: assets, base: base, rooms: rooms, now: now, window: uint64((MaxAge + InclusionAllowance) / time.Second)}
 
 	// Phase 2: the grid, pinned to the block of phase 1.
 	grids := make([]*pairProbe, 0, len(probes))
@@ -211,6 +241,10 @@ func (t *PoolTracker) GetNewPoolState(
 		var balOut uint256.Int
 		if balOut.SetFromBig(balances[pp.to]) {
 			continue
+		}
+		// settle pays only liquid reserves above minLiquidity: size the grid inside that room.
+		if room := rooms[pp.to]; room != nil && room.Lt(&balOut) {
+			balOut.Set(room)
 		}
 		maxIn := pp.maxIn(&balOut)
 		// Both coverage caps refuse a size past them (ThresholdViolation), so a grid sized
@@ -234,9 +268,36 @@ func (t *PoolTracker) GetNewPoolState(
 		if err := grid.run(ctx, t.client, bn); err != nil {
 			return p, err
 		}
-		for _, g := range grids {
-			if pts := g.probes.mergeInto(g.ladder()); len(pts) > 0 {
+		built := make([][]Point, len(grids))
+		// Phase 3: where a ladder ended on a revert, probe inside the gap so its top is the pool's
+		// real cap. Per-pair limits the tracker does not model are found from the pool itself.
+		var bisect batchReads
+		bisects := make([]*pairProbe, len(grids))
+		for k, g := range grids {
+			built[k] = g.probes.mergeInto(g.ladder())
+			if ins := g.bisectAmounts(built[k]); len(ins) > 0 {
+				bisects[k] = &pairProbe{from: g.from, to: g.to, ins: ins}
+				bisects[k].addQuoteCalls(&bisect, p.Address, addrs[g.from], addrs[g.to])
+			}
+		}
+		if len(bisect.calls) > 0 {
+			if err := bisect.run(ctx, t.client, bn); err != nil {
+				return p, err
+			}
+			for k, bp := range bisects {
+				if bp != nil {
+					built[k] = bp.extend(built[k])
+				}
+			}
+		}
+		for k, g := range grids {
+			spread := max(g.probes.maxSpread(), g.maxSpread())
+			if bisects[k] != nil {
+				spread = max(spread, bisects[k].maxSpread())
+			}
+			if pts := gd.refine(g.from, g.to, g.hops(), spread, built[k]); len(pts) > 0 {
 				extra.Ladders[g.from][g.to] = newLadder(pts)
+				extra.setHops(n, g.from, g.to, len(g.hops()))
 			}
 		}
 	}
@@ -249,7 +310,8 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Reserves = make(entity.PoolReserves, n)
 	for i, bal := range balances {
 		p.Reserves[i] = "0"
-		if bal != nil {
+		// A leg the swap would revert on keeps its ladders but pays out nothing: zero reserve.
+		if bal != nil && !gd.legClosed(i) {
 			p.Reserves[i] = bal.String()
 		}
 	}
@@ -267,6 +329,27 @@ func (pp *pairProbe) addQuoteCalls(b *batchReads, poolAddr string, tokenIn, toke
 		b.add(poolABI, poolAddr, "getSwapQuote",
 			[]any{tokenIn, tokenOut, pp.ins[k].ToBig()}, pp.res[k], &pp.ok[k])
 	}
+}
+
+// maxSpread is the largest SpreadPbps over the filled quotes.
+func (pp *pairProbe) maxSpread() uint64 {
+	var m uint64
+	for k := range pp.ins {
+		if pp.ok[k] {
+			m = max(m, uint64(pp.res[k].Quote.SpreadPbps))
+		}
+	}
+	return m
+}
+
+// hops is the route of the largest filled quote, nil when none filled.
+func (pp *pairProbe) hops() []common.Address {
+	for k := len(pp.ins) - 1; k >= 0; k-- {
+		if pp.ok[k] && len(pp.res[k].Quote.RouteHops) > 0 {
+			return pp.res[k].Quote.RouteHops
+		}
+	}
+	return nil
 }
 
 // maxIn is the tokenIn amount worth the whole tokenOut balance at the best
@@ -321,18 +404,59 @@ func (pp *pairProbe) clampToCaps(maxIn uint256.Int, balOut *uint256.Int, in, out
 // output, so a saturated sample would make the simulator overquote.
 func (pp *pairProbe) ladder() []Point {
 	var pts []Point
+	pp.stop = len(pp.ins)
 	for k := range pp.ins {
 		if !pp.ok[k] {
+			pp.stop = k
 			break
 		}
 		var out uint256.Int
 		if q := pp.res[k].Quote.AmountOut; q == nil || out.SetFromBig(q) {
+			pp.stop = k
 			break
 		}
 		if out.IsZero() && len(pts) == 0 {
 			continue // too small to fill: the simulator scales from the first sample
 		}
 		if len(pts) > 0 && !out.Gt(&pts[len(pts)-1].Out) {
+			pp.stop = k
+			break
+		}
+		pts = append(pts, Point{In: pp.ins[k], Out: out})
+	}
+	return pts
+}
+
+// bisectAmounts returns the sizes strictly between the last served sample and the first one the
+// pool refused, when the ladder ended on a revert: the pool's real cap lies in that gap. They are quartiles, so one extra multicall narrows the gap to a
+// quarter. Nil when the ladder ended any other way. The probes read the quote view, so the top of
+// the ladder can still revert on a check only settlement runs.
+func (pp *pairProbe) bisectAmounts(pts []Point) []uint256.Int {
+	k := pp.stop
+	if len(pts) == 0 || k == 0 || k >= len(pp.ins) || pp.ok[k] || !pts[len(pts)-1].In.Eq(&pp.ins[k-1]) {
+		return nil
+	}
+	lo, hi := &pp.ins[k-1], &pp.ins[k]
+	var gap, step, off uint256.Int
+	gap.Sub(hi, lo)
+	var res []uint256.Int
+	for q := uint64(1); q <= 3; q++ {
+		// gap is a token amount far below 2^192, so gap*q fits.
+		step.Div(step.Mul(&gap, off.SetUint64(q)), uint256.NewInt(4))
+		var amt uint256.Int
+		if amt.Add(lo, &step); amt.Gt(lo) && amt.Lt(hi) && (len(res) == 0 || amt.Gt(&res[len(res)-1])) {
+			res = append(res, amt)
+		}
+	}
+	return res
+}
+
+// extend appends the served bisect samples to pts, stopping at the first revert or flat output,
+// like ladder().
+func (pp *pairProbe) extend(pts []Point) []Point {
+	for k := range pp.ins {
+		var out uint256.Int
+		if !pp.ok[k] || pp.res[k].Quote.AmountOut == nil || out.SetFromBig(pp.res[k].Quote.AmountOut) || !out.Gt(&pts[len(pts)-1].Out) {
 			break
 		}
 		pts = append(pts, Point{In: pp.ins[k], Out: out})

@@ -203,7 +203,7 @@ func TestNewPoolSimulatorRejectsUntrackedPool(t *testing.T) {
 	require.Equal(t, ErrBTRBadState, err)
 }
 
-// The snapshot age bound is 15s: older ladders quote marks the keeper has moved.
+// The snapshot age bound is MaxAge: older ladders quote marks the keeper has moved.
 func TestNewPoolSimulatorStaleCheckMaxAge(t *testing.T) {
 	extra, err := json.Marshal(Extra{Flags: []uint16{SwapEnabledBit, SwapEnabledBit}})
 	require.NoError(t, err)
@@ -219,9 +219,9 @@ func TestNewPoolSimulatorStaleCheckMaxAge(t *testing.T) {
 		})
 		return err
 	}
-	require.NoError(t, build(14*time.Second, true))
-	require.Equal(t, ErrBTRBadState, build(16*time.Second, true))
-	require.NoError(t, build(16*time.Second, false)) // check is opt-in
+	require.NoError(t, build(MaxAge-time.Second, true))
+	require.Equal(t, ErrBTRBadState, build(MaxAge+2*time.Second, true))
+	require.NoError(t, build(MaxAge+2*time.Second, false)) // check is opt-in
 }
 
 // Swaps on different pairs that share a token draw on the same inventory. A
@@ -309,4 +309,56 @@ func TestOldExtraFailsClosed(t *testing.T) {
 		Reserves: entity.PoolReserves{"1", "1"},
 	}})
 	require.ErrorIs(t, err, ErrBTRBadState)
+}
+
+// Gas follows the route length: a direct edge costs DefaultGas, each extra node the pool crosses
+// (spoke to spoke) adds GasPerExtraHop; an Extra without hop data keeps DefaultGas.
+func TestGasByRouteLength(t *testing.T) {
+	var e Extra
+	require.Equal(t, int64(DefaultGas), e.gas(0, 1))
+	e.setHops(3, 0, 1, 2)
+	e.setHops(3, 0, 2, 3)
+	e.setHops(3, 2, 1, 4)
+	require.Equal(t, int64(DefaultGas), e.gas(0, 1))
+	require.Equal(t, int64(DefaultGas+GasPerExtraHop), e.gas(0, 2))
+	require.Equal(t, int64(DefaultGas+2*GasPerExtraHop), e.gas(2, 1))
+	require.Equal(t, int64(DefaultGas), e.gas(1, 0), "unrecorded pair")
+	require.Equal(t, int64(DefaultGas), e.gas(-1, 9))
+
+	raw, err := json.Marshal(Extra{Flags: []uint16{SwapEnabledBit, SwapEnabledBit}, Hops: [][]uint8{{0, 3}, {0, 0}},
+		Ladders: [][]Ladder{{{}, newLadder(pts(1000, 900, 2000, 1700))}, {{}, {}}}})
+	require.NoError(t, err)
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Address: CreditPoolCore, Exchange: DexType, Type: DexType, Extra: string(raw),
+		Tokens:   []*entity.PoolToken{{Address: usdc, Swappable: true}, {Address: wmon, Swappable: true}},
+		Reserves: entity.PoolReserves{"1000000", "1000000"},
+	}})
+	require.NoError(t, err)
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: usdc, Amount: big.NewInt(1500)}, TokenOut: wmon,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(DefaultGas+GasPerExtraHop), res.Gas)
+}
+
+// Only tokens with a sampled ladder are offered as swap partners, in each direction.
+func TestCanSwapOnlyLadderPairs(t *testing.T) {
+	sim := newSim(t, SwapEnabledBit, pts(1000, 900, 2000, 1700)) // USDC -> WMON only
+	require.Equal(t, []string{wmon}, sim.CanSwapTo(usdc))
+	require.Empty(t, sim.CanSwapTo(wmon))
+	require.Equal(t, []string{usdc}, sim.CanSwapFrom(wmon))
+	require.Empty(t, sim.CanSwapFrom(usdc))
+	require.Nil(t, sim.CanSwapTo("0xdead"))
+}
+
+// A zero reserve on the output token (the tracker's mark for a closed output leg) refuses the
+// swap while the ladder is still stored; the same ladder quotes with a live reserve.
+func TestCalcAmountOutZeroOutputReserve(t *testing.T) {
+	sim := newSim(t, SwapEnabledBit, pts(1000, 999))
+	_, err := calc(sim, 100)
+	require.NoError(t, err)
+	sim.Info.Reserves[1] = new(big.Int)
+	require.NotNil(t, sim.ladders[1], "ladder kept")
+	_, err = calc(sim, 100)
+	require.Equal(t, ErrBTRGated, err)
 }
