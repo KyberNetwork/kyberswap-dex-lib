@@ -2,38 +2,52 @@ package btrprop
 
 import "time"
 
-// Monad mainnet records (BTR deployment records, verified 2026-10-08).
+// Monad mainnet records (BTR pool v2, deployment records of 2026-11-13).
 //
-// The BTR Router holds no swap lane, so an aggregator must NOT route through
-// Router.swap: the call reaches Pool.swap_qe with msg.sender = Router, which
-// has no lane and reverts NotAuthorized. The executor calls Pool.swap_qe
-// directly. While a token is SWAP_GATED, swap_qe requires registry.perms(caller)
-// to include lane 0x400, so the executor must hold that lane.
+// The BTR Router is not a swap venue for an aggregator: KyberSwap's executor calls
+// Pool.swap_qe directly, so msg.sender is the executor (the router never calls the
+// pool). While any leg of a swap is SWAP_GATED, swap_qe requires msg.sender to be in
+// the pool's swap gate allowlist (Pool.inSwapGate); the gate checks msg.sender only.
 const (
 	ChainIDMonad = 143
 
-	// CreditPoolCore is BTR's single multi-asset AIMM book (tag `btr-core`).
-	CreditPoolCore = "0xbbbbbbb04f5b762a4cdd1d89e341e2537e3267e4"
-	// PoolFactory mints official pools.
-	PoolFactory = "0xbbbbbbbbbd5e955e20f323ca1f95f8191fd0e0bf"
+	// DefaultExecutor is KyberSwap's executor, the same address on every chain (prism-prop and
+	// kipseli/prop key their per-taker quotes by it too). Both it and the router
+	// (0x6131B5fae19EA4f9D964eAc0408E4408b66337b5) are in the Monad pool's swap gate; only the
+	// executor is the pool's msg.sender, so only it is probed. Config.Executor overrides it.
+	DefaultExecutor = "0x8f10b468b06c6fd214b65f87778827f7d113f996"
+
+	// CreditPoolCore is BTR's single multi-asset AIMM book (tag `btr-core`), pool v2.
+	CreditPoolCore = "0xbbbbbbbd7060b1ced79c381ead40d73fcb9ae0c6"
+	// PoolFactory mints official pools (v2 factory). The updater lists the core only once
+	// the factory marks it official.
+	PoolFactory = "0xbbbbbbb16b9b5fa94ad8cd35e696bea55db9c8b0"
 
 	// DefaultGas covers one swap_qe at Monad's cold-access pricing: the pool
 	// call measured 155k-161k gas in Tenderly (USDC<->WMON).
 	DefaultGas = 170_000
+	// GasPerExtraHop is added per route node past the direct edge (a spoke-to-spoke route crosses
+	// the hub: a second spoke's asset, mark and exposure reads and writes at Monad's cold-access
+	// prices). Not measured: no gated sender with balance exists for cast estimate; sized from the
+	// 155k-161k hub-pair traces plus a second spoke's cold reads. Overstating only costs ranking.
+	GasPerExtraHop = 70_000
 	// MaxAge drops a stale sampled ladder rather than quoting marks the keeper
-	// has since moved. Marks drift within seconds, so keep it well below 1 min.
-	MaxAge = 15 * time.Second
+	// has since moved. The keeper pushes about every 3 s and the tracker refreshes on its poll,
+	// so a ladder is replaced within a couple of pushes: 6 s. Every sampled output is also
+	// scaled down by the worst-case drift of the pool's staleness premium over MaxAge plus
+	// InclusionAllowance (see guard.refine), so a longer window costs competitiveness, a shorter one only refetches.
+	MaxAge = 6 * time.Second
+	// InclusionAllowance extends the drift window past MaxAge for the time a swap takes to land.
+	InclusionAllowance = 2 * time.Second
 	// RPCTimeout bounds one tracker refresh.
 	RPCTimeout = 15 * time.Second
 )
 
-// LaneSwapBit is the registry.perms bit (0x400) that lets a caller swap a SWAP_GATED token.
-const LaneSwapBit = 10
-
-// Risk-flag bits (BTR Solidity constants).
+// Risk-flag bits (BTR Solidity constants, dex-evm PoolConstantsLib).
 const (
+	HaltBit        uint16 = 1    // HALT_BIT (HALT_MASK is this bit alone)
+	KneeBit        uint16 = 2    // KNEE_BIT (the leg's kneeBits word is live)
 	SwapEnabledBit uint16 = 16   // SWAP_ENABLED_BIT
-	SwapGatedBit   uint16 = 1024 // SWAP_GATED_BIT (swaps restricted to lane-0x400 callers)
-	HaltMask       uint16 = 5    // HALT_MASK (HALT_BIT | FEED_HALT_BIT)
-	HaltBit        uint16 = 1    // HALT_BIT
+	SwapGatedBit   uint16 = 1024 // SWAP_GATED_BIT (swaps restricted to the pool's swap gate)
+	HaltMask       uint16 = HaltBit
 )
