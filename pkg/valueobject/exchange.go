@@ -7,6 +7,7 @@ type Exchange string
 const (
 	Exchange1010Prop                    = "1010-prop"
 	ExchangeAeonV2                      = "aeon-v2"
+	ExchangeAeroCL                      = "aero-cl"
 	ExchangeAeroV2Stable                = "aero-v2-stable"
 	ExchangeAeroV2Volatile              = "aero-v2-volatile"
 	ExchangeAlienBaseStableSwap         = "alien-base-stableswap"
@@ -53,6 +54,7 @@ const (
 	ExchangeBiconomyProp                = "biconomy-prop"
 	ExchangeDaikonProp                  = "daikon-prop"
 	ExchangeDopplerAMM                  = "doppler-amm"
+	ExchangeDopplerFun                  = "doppler-fun"
 	ExchangeBeetsSS                     = "beets-ss"
 	ExchangeBeracaine                   = "beracaine"
 	ExchangeBeraSwapComposableStable    = "beraswap-composable-stable"

@@ -29,7 +29,6 @@ var (
 	ErrZeroAmountOut      = errors.New("1inch-aqua: zero amount out")
 	ErrStrategyTerminal   = errors.New("1inch-aqua: strategy is docked or inactive")
 	ErrNoWalletSnapshot   = errors.New("1inch-aqua: no maker wallet snapshot yet")
-	ErrStateMixedBlock    = errors.New("1inch-aqua: raw balances and wallet snapshot are from different blocks")
 	ErrInsufficientRaw    = fmt.Errorf("1inch-aqua: amount out exceeds the strategy balance: %w", pool.ErrNotEnoughInventory)
 	ErrInsufficientWallet = fmt.Errorf("1inch-aqua: amount out exceeds the maker wallet limit: %w", pool.ErrNotEnoughInventory)
 	ErrRawRead            = errors.New("1inch-aqua: rawBalances read failed")

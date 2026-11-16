@@ -1053,15 +1053,11 @@ func TestCaseMatrixStateGuards(t *testing.T) {
 		o    poolOpts
 		want error
 	}{
-		"live":                  {poolOpts{}, nil},
-		"docked":                {poolOpts{docked: true}, ErrStrategyTerminal},
-		"inactive":              {poolOpts{inactive: true}, ErrStrategyTerminal},
-		"docked and inactive":   {poolOpts{docked: true, inactive: true}, ErrStrategyTerminal},
-		"no wallet snapshot":    {poolOpts{rawBlock: 5, walletBlk: 0}, ErrNoWalletSnapshot},
-		"wallet snapshot only":  {poolOpts{rawBlock: 0, walletBlk: 5}, ErrStateMixedBlock},
-		"raw older than wallet": {poolOpts{rawBlock: 4, walletBlk: 5}, ErrStateMixedBlock},
-		"raw newer than wallet": {poolOpts{rawBlock: 6, walletBlk: 5}, ErrStateMixedBlock},
-		"same block":            {poolOpts{rawBlock: 5, walletBlk: 5}, nil},
+		"live":                {poolOpts{}, nil},
+		"docked":              {poolOpts{docked: true}, ErrStrategyTerminal},
+		"inactive":            {poolOpts{inactive: true}, ErrStrategyTerminal},
+		"docked and inactive": {poolOpts{docked: true, inactive: true}, ErrStrategyTerminal},
+		"not tracked yet":     {poolOpts{untracked: true}, ErrNoWalletSnapshot},
 	} {
 		for in := range 2 {
 			s := newSim(t, tc.o)
@@ -1071,9 +1067,7 @@ func TestCaseMatrixStateGuards(t *testing.T) {
 				continue
 			}
 			require.ErrorIs(t, err, tc.want, name)
-			if tc.want != ErrStateMixedBlock { // a mixed state never comes from the tracker, and publishes its snapshot
-				require.Nil(t, s.CalculateLimit(), name+": no limit keys")
-			}
+			require.Nil(t, s.CalculateLimit(), name+": no limit keys")
 		}
 	}
 

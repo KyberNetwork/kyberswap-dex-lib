@@ -213,3 +213,18 @@ func TestSequencerUp(t *testing.T) {
 	assert.False(t, sequencerUp(b(0), b(now+1), b(now+1), now))
 	assert.False(t, sequencerUp(nil, b(now-5000), b(now-5000), now))
 }
+
+// The SC quoter prices mints through the lens, so the executor-side encoder reads it from the meta.
+func TestGetMetaInfoCarriesLens(t *testing.T) {
+	extraBytes, err := json.Marshal(testExtra())
+	require.NoError(t, err)
+	sim, err := NewPoolSimulator(entity.Pool{
+		Address: testVault, Exchange: DexType, Type: DexType, Reserves: entity.PoolReserves{"0", "0"},
+		Tokens: []*entity.PoolToken{
+			{Address: testWeth, Decimals: 18, Swappable: true}, {Address: testVault, Decimals: 18, Swappable: true}},
+		Extra:       string(extraBytes),
+		StaticExtra: `{"lens":"0xfCFea8027019E8551A1f09AD91532471F5D26f61"}`,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "0xfCFea8027019E8551A1f09AD91532471F5D26f61", sim.GetMetaInfo("", "").(PoolMeta).Lens)
+}
