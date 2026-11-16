@@ -23,9 +23,11 @@ const (
 	// the factory marks it official.
 	PoolFactory = "0xbbbbbbb16b9b5fa94ad8cd35e696bea55db9c8b0"
 
-	// DefaultGas covers one swap_qe at Monad's cold-access pricing: the pool
-	// call measured 155k-161k gas in Tenderly (USDC<->WMON).
-	DefaultGas = 170_000
+	// DefaultGas is the router's per-swap gas for a direct edge. The router's total estimate is
+	// 193831 + 1.25*Gas (fixed executor/router overhead plus its 1.25 buffer). Measured on Monad in
+	// Tenderly: 14 sampled routes, direct hub-pair txs averaged 499624 total gas, so
+	// (499624-193831)/1.25 = 244635 (rounded up to the integer that floors to 499624).
+	DefaultGas = 244_635
 	// GasPerExtraHop is added per route node past the direct edge (a spoke-to-spoke route crosses
 	// the hub). Measured on Monad in Tenderly (swap_qe frame): 8 direct hub-pair swaps averaged
 	// 155746 gas, 6 spoke-to-spoke swaps 161239, so one extra hop costs 5493.
