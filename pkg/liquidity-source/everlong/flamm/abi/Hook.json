@@ -1,0 +1,15 @@
+[
+  {
+    "type": "function",
+    "name": "params",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[35]",
+        "internalType": "uint256[35]"
+      }
+    ]
+  }
+]
