@@ -88,6 +88,9 @@ func (i *Inventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddress strin
 
 func (i *Inventory) updateLimit(decreaseTokenAddress, increaseTokenAddress string,
 	decreaseDelta, increaseDelta *uint256.Int) (*uint256.Int, *uint256.Int, error) {
+	if decreaseDelta == nil || increaseDelta == nil {
+		return new(uint256.Int), new(uint256.Int), pool.ErrNotEnoughInventory
+	}
 	decreasedTokenBalance, ok := i.balance[decreaseTokenAddress]
 	if !ok {
 		return new(uint256.Int), new(uint256.Int), pool.ErrTokenNotAvailable

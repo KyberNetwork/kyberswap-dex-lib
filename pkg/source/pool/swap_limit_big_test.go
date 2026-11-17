@@ -20,7 +20,12 @@ func (f *fakeLimit) GetAllowedSenders() string           { return "" }
 func (f *fakeLimit) GetLimit(k string) *uint256.Int {
 	return f.balance[k]
 }
+
+// UpdateLimit subtracts dd. A nil dd is ignored, as SingleSwapLimit ignores its deltas.
 func (f *fakeLimit) UpdateLimit(dec, inc string, dd, id *uint256.Int) (*uint256.Int, *uint256.Int, error) {
+	if dd == nil {
+		return f.balance[dec], uint256.NewInt(0), nil
+	}
 	f.balance[dec] = new(uint256.Int).Sub(f.balance[dec], dd)
 	return f.balance[dec], uint256.NewInt(0), nil
 }
@@ -49,12 +54,13 @@ func TestAsSwapLimitBigRejectsNegativeAndOversized(t *testing.T) {
 	require.ErrorIs(t, err, ErrNotEnoughInventory, "a delta over 256 bits must be rejected")
 }
 
-// A nil delta is an unset amount (a legacy caller leaves TokenAmountOut empty). It must not panic.
-func TestAsSwapLimitBigNilDeltaDoesNotPanic(t *testing.T) {
-	legacy := AsSwapLimitBig(&fakeLimit{balance: map[string]*uint256.Int{"a": uint256.NewInt(100)}})
+// A nil delta is an unset amount. The adapter forwards it, so the inner limit decides. It must not panic here.
+func TestAsSwapLimitBigForwardsNilDelta(t *testing.T) {
+	inner := &fakeLimit{balance: map[string]*uint256.Int{"a": uint256.NewInt(100)}}
+	legacy := AsSwapLimitBig(inner)
 	require.NotPanics(t, func() {
 		_, _, err := legacy.UpdateLimit("a", "b", nil, big.NewInt(0))
-		require.ErrorIs(t, err, ErrNotEnoughInventory)
+		require.NoError(t, err)
 	})
 }
 

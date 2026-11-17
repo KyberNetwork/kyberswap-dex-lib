@@ -50,8 +50,8 @@ func (a swapLimitBigAdapter) GetAllowedSenders() string {
 
 func (a swapLimitBigAdapter) UpdateLimit(decreaseKey, increasedKey string,
 	decreasedDelta, increasedDelta *big.Int) (*big.Int, *big.Int, error) {
-	dec, ok1 := fromBig(decreasedDelta)
-	inc, ok2 := fromBig(increasedDelta)
+	dec, ok1 := fromBigOrNil(decreasedDelta)
+	inc, ok2 := fromBigOrNil(increasedDelta)
 	if !ok1 || !ok2 {
 		return nil, nil, ErrNotEnoughInventory
 	}
@@ -62,9 +62,13 @@ func (a swapLimitBigAdapter) UpdateLimit(decreaseKey, increasedKey string,
 	return toBigOrNil(after), toBigOrNil(before), nil
 }
 
-// fromBig converts a non-negative big.Int that fits 256 bits. It reports false for anything else.
-func fromBig(b *big.Int) (*uint256.Int, bool) {
-	if b == nil || b.Sign() < 0 || b.BitLen() > 256 {
+// fromBigOrNil converts a non-negative big.Int that fits 256 bits. A nil delta stays nil, because an inner limit
+// that ignores its deltas (SingleSwapLimit) must still see the update. It reports false for negative or oversized.
+func fromBigOrNil(b *big.Int) (*uint256.Int, bool) {
+	if b == nil {
+		return nil, true
+	}
+	if b.Sign() < 0 || b.BitLen() > 256 {
 		return nil, false
 	}
 	return uint256.MustFromBig(b), true
