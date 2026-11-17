@@ -1076,5 +1076,408 @@
     ],
     "stateMutability": "view",
     "type": "function"
-  }
+  },
+{
+    "name": "getTokenBaseState",
+    "type": "function",
+    "inputs": [
+        {
+            "name": "token_",
+            "type": "address",
+            "internalType": "address"
+        }
+    ],
+    "outputs": [
+        {
+            "name": "",
+            "type": "tuple",
+            "components": [
+                {
+                    "name": "floatBalance",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "maxCap",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "unaccountedBorrow",
+                    "type": "int256",
+                    "internalType": "int256"
+                },
+                {
+                    "name": "dexSupplyAtLiquidity",
+                    "type": "tuple",
+                    "components": [
+                        {
+                            "name": "modeWithInterest",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isSupplyPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isWithdrawPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "supply",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "withdrawalLimit",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "lastUpdateTimestamp",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "expandPercent",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "expandDuration",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "baseWithdrawalLimit",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "withdrawableUntilLimit",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "withdrawable",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "decayEndTimestamp",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "decayAmount",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        }
+                    ],
+                    "internalType": "struct Structs.UserSupplyData"
+                },
+                {
+                    "name": "dexBorrowAtLiquidity",
+                    "type": "tuple",
+                    "components": [
+                        {
+                            "name": "modeWithInterest",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isBorrowPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isPaybackPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "borrow",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "borrowLimit",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "lastUpdateTimestamp",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "expandPercent",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "expandDuration",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "baseBorrowLimit",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "maxBorrowLimit",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "borrowableUntilLimit",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "borrowable",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "borrowLimitUtilization",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        }
+                    ],
+                    "internalType": "struct Structs.UserBorrowData"
+                },
+                {
+                    "name": "liquidityTokenData",
+                    "type": "tuple",
+                    "components": [
+                        {
+                            "name": "borrowRate",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "supplyRate",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "fee",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "isSupplyPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isWithdrawPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isBorrowPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isPaybackPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "isPaused",
+                            "type": "bool",
+                            "internalType": "bool"
+                        },
+                        {
+                            "name": "lastStoredUtilization",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "storageUpdateThreshold",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "lastUpdateTimestamp",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "supplyExchangePrice",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "borrowExchangePrice",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "supplyRawInterest",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "supplyInterestFree",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "borrowRawInterest",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "borrowInterestFree",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "totalSupply",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "totalBorrow",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "revenue",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "maxUtilization",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        },
+                        {
+                            "name": "rateData",
+                            "type": "tuple",
+                            "components": [
+                                {
+                                    "name": "version",
+                                    "type": "uint256",
+                                    "internalType": "uint256"
+                                },
+                                {
+                                    "name": "rateDataV1",
+                                    "type": "tuple",
+                                    "components": [
+                                        {
+                                            "name": "token",
+                                            "type": "address",
+                                            "internalType": "address"
+                                        },
+                                        {
+                                            "name": "kink",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rateAtUtilizationZero",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rateAtUtilizationKink",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rateAtUtilizationMax",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        }
+                                    ],
+                                    "internalType": "struct Structs.RateDataV1Params"
+                                },
+                                {
+                                    "name": "rateDataV2",
+                                    "type": "tuple",
+                                    "components": [
+                                        {
+                                            "name": "token",
+                                            "type": "address",
+                                            "internalType": "address"
+                                        },
+                                        {
+                                            "name": "kink1",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "kink2",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rateAtUtilizationZero",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rateAtUtilizationKink1",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rateAtUtilizationKink2",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        },
+                                        {
+                                            "name": "rateAtUtilizationMax",
+                                            "type": "uint256",
+                                            "internalType": "uint256"
+                                        }
+                                    ],
+                                    "internalType": "struct Structs.RateDataV2Params"
+                                }
+                            ],
+                            "internalType": "struct Structs.RateData"
+                        }
+                    ],
+                    "internalType": "struct Structs.OverallTokenData"
+                },
+                {
+                    "name": "availableForSwapOut",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "availableForSwapOutWithdraw",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "availableForSwapOutBorrow",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "internalType": "struct TokenBaseState"
+        }
+    ],
+    "stateMutability": "view"
+}
 ]

@@ -1,9 +1,13 @@
 package pancakestable
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
+)
 
 const (
-	DexType = "pancake-stable"
+	DexType = curve.PoolTypePancakeStable
 
 	factoryMethodPairLength       = "pairLength"
 	factoryMethodSwapPairContract = "swapPairContract"

@@ -70,10 +70,9 @@ func (f *PoolFactory) DecodePoolCreated(event ethtypes.Log) (*entity.Pool, error
 	}
 
 	staticExtra, err := json.Marshal(StaticExtra{
-		FactoryAddress:     strings.ToLower(f.config.FactoryAddress),
-		PairBeacon:         strings.ToLower(f.config.PairBeacon),
-		PairImplementation: strings.ToLower(f.config.PairImplementation),
-		Gas:                f.config.Gas,
+		FactoryAddress: strings.ToLower(f.config.FactoryAddress),
+		PairBeacon:     strings.ToLower(f.config.PairBeacon),
+		Gas:            f.config.Gas,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("marshal Ammalgam static extra: %w", err)

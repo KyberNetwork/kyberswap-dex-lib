@@ -29,7 +29,13 @@ type PoolSimulator struct {
 	// USDC>cbBTC>WMON) must not restart each leg at the first sample. Nil until first use.
 	inUsed, outTaken []uint256.Int
 	gated            bool
+	// staleCheck is the route-finding mode: quotes take their age from the clock and are
+	// dropped past MaxAge. Off (indexing), a quote is priced at the sample time.
+	staleCheck bool
 }
+
+// nowUnix is the quote clock.
+var nowUnix = func() uint64 { return uint64(time.Now().Unix()) }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
@@ -59,7 +65,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 			}
 		}
 	}
-	extra.Ladders = nil // the simulator reads ladders only
+	extra.Ladders = nil // the simulator reads the ladders below, hops and haircut inputs only
 
 	reserves := make([]*big.Int, n)
 	for k := range reserves {
@@ -80,9 +86,10 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 			Reserves:    reserves,
 			BlockNumber: ep.BlockNumber,
 		},
-		extra:   extra,
-		ladders: ladders,
-		gated:   lo.SomeBy(extra.Flags, func(f uint16) bool { return gate(f, extra.LaneOK) != nil }),
+		extra:      extra,
+		ladders:    ladders,
+		gated:      lo.SomeBy(extra.Flags, func(f uint16) bool { return gate(f, extra.GateOK) != nil }),
+		staleCheck: params.Opts.StaleCheck,
 	}, nil
 }
 
@@ -101,13 +108,13 @@ func validPoints(pts []Point) bool {
 }
 
 // gate mirrors swap_qe's checks: halted or swap-disabled legs revert, and a
-// SWAP_GATED leg reverts unless the executor holds lane 0x400 (laneOK).
-func gate(flags uint16, laneOK bool) error {
+// SWAP_GATED leg reverts unless the executor is in the pool's swap gate (gateOK).
+func gate(flags uint16, gateOK bool) error {
 	if flags&HaltMask != 0 || flags&SwapEnabledBit == 0 {
 		return ErrBTRGated
 	}
-	if flags&SwapGatedBit != 0 && !laneOK {
-		return ErrBTRGatedLane
+	if flags&SwapGatedBit != 0 && !gateOK {
+		return ErrBTRGatedCaller
 	}
 	return nil
 }
@@ -156,19 +163,37 @@ func interpolate(pts []Point, x, res *uint256.Int) error {
 
 // startPoint writes into res how far along the pair's curve earlier swaps have
 // already pushed: the larger of the input already sold of tokenIn and the input
-// that would have yielded the output already taken of tokenOut.
-func (s *PoolSimulator) startPoint(pts []Point, i, j int, res *uint256.Int) {
+// that would have yielded the output already taken of tokenOut. The output taken
+// was paid at num/den of the sampled ladder, so it is scaled back up (rounded up).
+func (s *PoolSimulator) startPoint(pts []Point, i, j int, num, den uint64, res *uint256.Int) {
 	if s.inUsed == nil {
 		res.Clear()
 		return
 	}
 	res.Set(&s.inUsed[i])
 	if !s.outTaken[j].IsZero() {
-		var x uint256.Int
-		if invert(pts, &s.outTaken[j], &x); x.Gt(res) {
+		var x, y uint256.Int
+		big256.MulDivUp(&y, &s.outTaken[j], uint256.NewInt(den), uint256.NewInt(num))
+		if invert(pts, &y, &x); x.Gt(res) {
 			res.Set(&x)
 		}
 	}
+}
+
+// quoteAge is the seconds since the ladders were sampled, ErrBTRStale past MaxAge. Indexing
+// (no stale check) prices at the sample time.
+func (s *PoolSimulator) quoteAge() (uint64, error) {
+	if !s.staleCheck || s.extra.Time == 0 {
+		return 0, nil
+	}
+	var age uint64
+	if now := nowUnix(); now > s.extra.Time {
+		age = now - s.extra.Time
+	}
+	if age > uint64(MaxAge/time.Second) {
+		return 0, ErrBTRStale
+	}
+	return age, nil
 }
 
 // invert writes into res the input that interpolate maps to output y, rounded
@@ -209,7 +234,7 @@ func invert(pts []Point, y, res *uint256.Int) {
 
 // CalcAmountOut returns the BTR output for an exact-in amount, from the sampled
 // ladder. It refuses a leg the executor cannot swap: halted, disabled, or
-// SWAP_GATED without the executor's lane.
+// SWAP_GATED with the executor outside the swap gate.
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenOut
 	i, j := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
@@ -220,11 +245,16 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if amt := params.TokenAmountIn.Amount; amt == nil || amt.Sign() <= 0 || amountIn.SetFromBig(amt) {
 		return nil, ErrBTRInvalidAmount
 	}
-	if err := gate(s.extra.Flags[i], s.extra.LaneOK); err != nil {
+	if err := gate(s.extra.Flags[i], s.extra.GateOK); err != nil {
 		return nil, err
 	}
-	if err := gate(s.extra.Flags[j], s.extra.LaneOK); err != nil {
+	if err := gate(s.extra.Flags[j], s.extra.GateOK); err != nil {
 		return nil, err
+	}
+
+	// The tracker zeroes the reserve of an output leg the swap would revert on and keeps its ladder.
+	if s.Info.Reserves[j].Sign() == 0 {
+		return nil, ErrBTRGated
 	}
 
 	n := len(s.Info.Tokens)
@@ -233,10 +263,21 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrBTRNoRoute
 	}
 
-	// Output for this swap = f(x0+in) - f(x0), where x0 is the point on the
+	// The pool's staleness premium grows from the sample until the swap lands: the ladder is
+	// scaled by num/den, sized from this quote's age plus the landing allowance.
+	age, err := s.quoteAge()
+	if err != nil {
+		return nil, err
+	}
+	num, den, ok := s.extra.factor(i, j, age)
+	if !ok {
+		return nil, ErrBTRNoRoute
+	}
+
+	// Output for this swap = (f(x0+in) - f(x0)) * num/den, where x0 is the point on the
 	// pair's curve already consumed by earlier swaps.
 	var amountOut, x0 uint256.Int
-	s.startPoint(ladder, i, j, &x0)
+	s.startPoint(ladder, i, j, num, den, &x0)
 	if x0.IsZero() {
 		if err := interpolate(ladder, &amountIn, &amountOut); err != nil {
 			return nil, err
@@ -254,6 +295,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		}
 		amountOut.Sub(&amountOut, &base)
 	}
+	// The recall decision is on what the pool pays (the sampled output), before the haircut.
+	sampled := amountOut
+	if num != den {
+		big256.MulDivDown(&amountOut, &amountOut, uint256.NewInt(num), uint256.NewInt(den))
+	}
 	if amountOut.IsZero() {
 		return nil, ErrBTRNoFill
 	}
@@ -261,8 +307,36 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI},
-		Gas:            DefaultGas,
+		Gas:            s.extra.swapGas(i, j, s.taken(j), &sampled),
 	}, nil
+}
+
+// CanSwapTo lists the tokens with a sampled ladder from the given token.
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	return s.linked(address, true)
+}
+
+// CanSwapFrom lists the tokens with a sampled ladder into the given token.
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	return s.linked(address, false)
+}
+
+func (s *PoolSimulator) linked(address string, to bool) []string {
+	k, n := s.GetTokenIndex(address), len(s.Info.Tokens)
+	if k < 0 {
+		return nil
+	}
+	var res []string
+	for o := 0; o < n; o++ {
+		l := s.ladders[o*n+k]
+		if to {
+			l = s.ladders[k*n+o]
+		}
+		if o != k && l != nil {
+			res = append(res, s.Info.Tokens[o])
+		}
+	}
+	return res
 }
 
 // CloneState deep-copies inUsed and outTaken, the slices UpdateBalance writes in
@@ -310,4 +384,12 @@ func (s *PoolSimulator) GetApprovalAddress(_, _ string) string { return s.Info.A
 // stale reports whether the tracker snapshot is older than MaxAge.
 func stale(timestamp int64) bool {
 	return timestamp > 0 && time.Since(time.Unix(timestamp, 0)) > MaxAge
+}
+
+// taken is the output of token j that earlier UpdateBalance calls moved, zero before any.
+func (s *PoolSimulator) taken(j int) *uint256.Int {
+	if j < len(s.outTaken) {
+		return &s.outTaken[j]
+	}
+	return new(uint256.Int)
 }

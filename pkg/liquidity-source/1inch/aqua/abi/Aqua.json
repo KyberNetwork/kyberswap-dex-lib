@@ -1,0 +1,50 @@
+[
+  {
+    "type": "function",
+    "name": "rawBalances",
+    "stateMutability": "view",
+    "inputs": [
+      {"name": "maker", "type": "address"},
+      {"name": "app", "type": "address"},
+      {"name": "strategyHash", "type": "bytes32"},
+      {"name": "token", "type": "address"}
+    ],
+    "outputs": [
+      {"name": "balance", "type": "uint256"},
+      {"name": "tokensCount", "type": "uint256"}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "Shipped",
+    "anonymous": false,
+    "inputs": [
+      {"name": "maker", "type": "address", "indexed": false},
+      {"name": "app", "type": "address", "indexed": false},
+      {"name": "strategyHash", "type": "bytes32", "indexed": false},
+      {"name": "strategy", "type": "bytes", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "Pushed",
+    "anonymous": false,
+    "inputs": [
+      {"name": "maker", "type": "address", "indexed": false},
+      {"name": "app", "type": "address", "indexed": false},
+      {"name": "strategyHash", "type": "bytes32", "indexed": false},
+      {"name": "token", "type": "address", "indexed": false},
+      {"name": "amount", "type": "uint256", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "Docked",
+    "anonymous": false,
+    "inputs": [
+      {"name": "maker", "type": "address", "indexed": false},
+      {"name": "app", "type": "address", "indexed": false},
+      {"name": "strategyHash", "type": "bytes32", "indexed": false}
+    ]
+  }
+]

@@ -22,6 +22,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -137,6 +138,9 @@ func (d *PoolTracker) BootstrapPoolState(
 		VolatilityOracle: rpcData.VolatilityOracle,
 		SlidingFee:       rpcData.SlidingFee,
 		DynamicFee:       rpcData.DynamicFee,
+		NamiFee:          rpcData.NamiFee,
+
+		TicksBasedStateBlock: stateBlock(rpcData, nil),
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -151,7 +155,15 @@ func (d *PoolTracker) BootstrapPoolState(
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+	if rpcData.NamiFee != nil {
+		block, err := namiSnapshotBlock(rpcData.BlockNumber, p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+		if err != nil {
+			return entity.Pool{}, err
+		}
+		p.BlockNumber = block
+	} else {
+		p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(param.Logs).BlockNumber)
+	}
 
 	l.WithFields(logger.Fields{
 		"lastFee": rpcData.State.LastFee,
@@ -246,6 +258,24 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	res.VolatilityOracle = volatilityOracleData
 	res.DynamicFee = dynamicFeeData
 	res.SlidingFee = slidingFeeData
+	if d.config.UseNamiPlugin || d.config.DexID == "nami-v4" {
+		if result.BlockNumber == nil || result.BlockNumber.Sign() <= 0 {
+			return res, errors.New("invalid Nami snapshot block")
+		}
+		// Use the actual snapshot block time, not activity time or fetch time.
+		header, headerErr := d.EthrpcClient.GetETHClient().HeaderByNumber(ctx, result.BlockNumber)
+		if headerErr != nil {
+			return res, headerErr
+		}
+		res.NamiFee, err = nami.Fetch(ctx, d.EthrpcClient, plugin, result.BlockNumber, overrides, uint32(header.Time))
+		if err != nil {
+			return res, err
+		}
+		res.NamiFee.SnapshotTimestamp = header.Time
+		if res.DynamicFee == nil || res.VolatilityOracle == nil {
+			return res, errors.New("nami plugin missing dynamic fee or volatility oracle")
+		}
+	}
 	res.BlockNumber = result.BlockNumber
 
 	return res, nil
@@ -705,6 +735,9 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		VolatilityOracle: rpcState.VolatilityOracle,
 		DynamicFee:       rpcState.DynamicFee,
 		SlidingFee:       rpcState.SlidingFee,
+		NamiFee:          rpcState.NamiFee,
+
+		TicksBasedStateBlock: stateBlock(rpcState, overrides),
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -720,7 +753,15 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		rpcState.Reserve0.String(),
 		rpcState.Reserve1.String(),
 	}
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+	if rpcState.NamiFee != nil {
+		block, err := namiSnapshotBlock(rpcState.BlockNumber, p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+		if err != nil {
+			return p, err
+		}
+		p.BlockNumber = block
+	} else {
+		p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(logs).BlockNumber)
+	}
 
 	return p, nil
 }
@@ -943,4 +984,21 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 	}
 
 	return result, nil
+}
+
+// stateBlock is the block R of the multicall that read rpc. It is 0 when R is unknown or the read ran
+// under eth_call overrides, as that state exists at no block.
+func stateBlock(rpc *FetchRPCResult, overrides map[common.Address]gethclient.OverrideAccount) tickspkg.TicksBasedStateBlock {
+	if len(overrides) > 0 || rpc.BlockNumber == nil || !rpc.BlockNumber.IsUint64() {
+		return tickspkg.TicksBasedStateBlock{}
+	}
+	return tickspkg.TicksBasedStateBlock{StateBlock: rpc.BlockNumber.Uint64()}
+}
+
+// namiSnapshotBlock rejects stale RPC snapshots rather than assigning them a newer log block.
+func namiSnapshotBlock(snapshot *big.Int, previous, lastLog uint64) (uint64, error) {
+	if snapshot == nil || !snapshot.IsUint64() || snapshot.Sign() <= 0 || snapshot.Uint64() < max(previous, lastLog) {
+		return 0, errors.New("invalid or stale Nami snapshot block")
+	}
+	return snapshot.Uint64(), nil
 }

@@ -2,6 +2,7 @@ package integral
 
 import (
 	"context"
+	"math/big"
 	"os"
 	"testing"
 
@@ -36,4 +37,24 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 	got, err := d.BootstrapPoolState(context.Background(), thenaEp, pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
 	t.Log(string(lo.Must(json.Marshal(got))))
+}
+
+func TestNamiSnapshotBlock(t *testing.T) {
+	for _, tc := range []struct {
+		snapshot      *big.Int
+		previous, log uint64
+		want          uint64
+		invalid       bool
+	}{
+		{big.NewInt(101), 100, 101, 101, false}, {nil, 0, 0, 0, true}, {big.NewInt(0), 0, 0, 0, true},
+		{big.NewInt(99), 100, 98, 0, true}, {big.NewInt(99), 98, 100, 0, true},
+	} {
+		got, err := namiSnapshotBlock(tc.snapshot, tc.previous, tc.log)
+		if tc.invalid {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+		}
+	}
 }

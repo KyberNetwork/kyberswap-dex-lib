@@ -3,6 +3,7 @@ package erc4626
 import (
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -39,6 +40,10 @@ type (
 
 	StaticExtra struct {
 		IsNativeAsset bool `json:"isNativeAsset,omitempty"`
+		// BalanceKey is the hex storage key of balanceOf[AddrDummy] found by the maxRedeem cap probe, see probe.go.
+		BalanceKey string `json:"bK,omitempty"`
+		// NoBalanceKey marks a vault probed without finding the key; it is not probed again.
+		NoBalanceKey bool `json:"nbK,omitempty"`
 	}
 
 	Meta struct {
@@ -64,5 +69,17 @@ type (
 		RedeemRates  []*big.Int
 
 		BlockNumber uint64
+
+		// Cap probe, see probe.go. BalanceOf is the balanceOf(AddrDummy) read-back, nil without a probe.
+		BalanceOf *big.Int
+		// CapKnown: the marker read back, so MaxRedeem is the real cap. Slot is the probe outcome to persist
+		// when SlotChanged.
+		CapKnown, SlotChanged bool
+		Slot                  BalanceSlot
 	}
 )
+
+// BalanceSlot is the cached cap-probe outcome.
+func (s StaticExtra) BalanceSlot() BalanceSlot {
+	return BalanceSlot{Key: common.HexToHash(s.BalanceKey), None: s.NoBalanceKey}
+}

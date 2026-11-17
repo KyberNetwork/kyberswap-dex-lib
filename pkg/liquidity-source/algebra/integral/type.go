@@ -8,6 +8,9 @@ import (
 	"github.com/KyberNetwork/int256"
 	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 )
 
 type Metadata struct {
@@ -114,6 +117,7 @@ type FetchRPCResult struct {
 	DynamicFee       *DynamicFeeConfig
 	SlidingFee       *SlidingFeeConfig
 	BlockNumber      *big.Int
+	NamiFee          *nami.Config
 }
 
 type Timepoint struct {
@@ -175,6 +179,10 @@ type Extra struct {
 	VolatilityOracle *VolatilityOraclePlugin `json:"vo,omitempty"`
 	DynamicFee       *DynamicFeeConfig       `json:"dF,omitempty"`
 	SlidingFee       *SlidingFeeConfig       `json:"sF,omitempty"`
+	NamiFee          *nami.Config            `json:"namiFee,omitempty"`
+
+	// sB: the block of the tracker's read of the pool state, see tickspkg.TicksBasedStateBlock.
+	tickspkg.TicksBasedStateBlock
 }
 
 type ExtraTimepoint struct {
@@ -225,14 +233,17 @@ type StaticExtra struct {
 
 // StateUpdate to be returned instead of updating state when calculating amountOut
 type StateUpdate struct {
-	Liquidity *uint256.Int
-	Price     *uint256.Int
-	Tick      int32
+	Liquidity     *uint256.Int
+	Price         *uint256.Int
+	Tick          int32
+	NamiTimepoint *NamiTimepointUpdate
 }
 
 type PoolMeta struct {
 	BlockNumber uint64       `json:"blockNumber"`
 	PriceLimit  *uint256.Int `json:"priceLimit"`
+
+	tickspkg.TicksBasedStateBlock
 }
 
 type PriceMovementCache struct {
@@ -244,4 +255,10 @@ type PriceMovementCache struct {
 	feeAmount     uint256.Int // The total amount of fee earned within a current step
 
 	nextTick int32 // The tick till the current step goes
+}
+
+type NamiTimepointUpdate struct {
+	Index     uint16
+	Timestamp uint32
+	Timepoint Timepoint
 }

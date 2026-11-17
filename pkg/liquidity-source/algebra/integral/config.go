@@ -12,4 +12,5 @@ type Config struct {
 	TickLensAddress   string
 
 	UseBasePluginV2 bool `json:"useBasePluginV2"`
+	UseNamiPlugin   bool `json:"useNamiPlugin"`
 }

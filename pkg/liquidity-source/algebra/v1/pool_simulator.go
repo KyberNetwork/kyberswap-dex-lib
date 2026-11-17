@@ -13,6 +13,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -25,6 +26,11 @@ type PoolSimulator struct {
 	tickMin     int
 	tickMax     int
 	tickSpacing int
+
+	// stateBlock is Extra.StateBlock. It stays out of the msgpack encoding (a positional array, so a new
+	// encoded field would break snapshots written by another version): a decoded simulator has no
+	// StateBlock and its meta falls back to BlockNumber.
+	stateBlock tickspkg.TicksBasedStateBlock `msgpack:"-"`
 }
 
 var _ = pool.RegisterFactory0(DexTypeAlgebraV1, NewPoolSimulator)
@@ -68,6 +74,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tickMin:     tickMin,
 		tickMax:     tickMax,
 		tickSpacing: int(extra.TickSpacing),
+		stateBlock:  extra.TicksBasedStateBlock,
 	}, nil
 }
 
@@ -188,6 +195,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	return PoolMeta{
 		PriceLimit:  &priceLimit,
 		BlockNumber: p.Info.BlockNumber,
+
+		TicksBasedStateBlock: p.stateBlock.ForMeta(p.Info.BlockNumber),
 	}
 }
 

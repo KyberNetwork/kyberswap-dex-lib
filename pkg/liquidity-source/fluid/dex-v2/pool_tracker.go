@@ -2,12 +2,13 @@ package dexv2
 
 import (
 	"context"
-	"encoding/binary"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -16,15 +17,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-v2/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
-	config        *Config
-	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphqlpkg.Client
+	config       *Config
+	ethrpcClient *ethrpc.Client
 }
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
@@ -32,12 +31,11 @@ var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
 func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *graphqlpkg.Client,
+	_ *graphqlpkg.Client,
 ) *PoolTracker {
 	return &PoolTracker{
-		config:        config,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		config:       config,
+		ethrpcClient: ethrpcClient,
 	}
 }
 
@@ -82,6 +80,9 @@ func (t *PoolTracker) fetchRPCData(
 	}
 
 	var token0ExchangePricesAndConfig, token1ExchangePricesAndConfig, tokenReserves *big.Int
+	var tokenBase [2]struct{ State TokenBaseState }
+	var liquidityStatus *big.Int
+	var userSupply, userBorrow [2]*big.Int
 
 	token0 := lo.Ternary(
 		staticExtra.IsNative[0],
@@ -132,7 +133,32 @@ func (t *PoolTracker) fetchRPCData(
 		Params: []any{tokenReserveSlot},
 	}, []any{&tokenReserves})
 
-	if _, err := req.Aggregate(); err != nil {
+	if staticExtra.TrackLiquidityLimits {
+		req.AddCall(&ethrpc.Call{ABI: abis.LiquidityABI, Target: t.config.Liquidity, Method: "readFromStorage", Params: []any{common.BigToHash(big.NewInt(1))}}, []any{&liquidityStatus})
+		for i, token := range []common.Address{token0, token1} {
+			for j, slot := range []uint64{8, 9} {
+				outer := calculateMappingStorageSlot(slot, common.HexToAddress(t.config.Dex))
+				inner := crypto.Keccak256Hash(common.LeftPadBytes(token.Bytes(), 32), outer.Bytes())
+				dst := &userSupply[i]
+				if j == 1 {
+					dst = &userBorrow[i]
+				}
+				req.AddCall(&ethrpc.Call{ABI: abis.LiquidityABI, Target: t.config.Liquidity, Method: "readFromStorage", Params: []any{inner}}, []any{dst})
+			}
+			req.AddCall(&ethrpc.Call{ABI: abis.ResolverABI, Target: t.config.Resolver,
+				Method: "getTokenBaseState", Params: []any{token}}, []any{&tokenBase[i]})
+		}
+	}
+
+	response, err := req.Aggregate()
+	if err != nil {
+		return Extra{}, err
+	}
+	if response.BlockNumber == nil {
+		return Extra{}, fmt.Errorf("missing snapshot block")
+	}
+	timestamp, err := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(response.BlockNumber).GetCurrentBlockTimestamp()
+	if err != nil {
 		return Extra{}, err
 	}
 
@@ -146,8 +172,41 @@ func (t *PoolTracker) fetchRPCData(
 		Token1ExchangePricesAndConfig: token1ExchangePricesAndConfig,
 
 		TokenReserves: tokenReserves,
+		SnapshotBlock: response.BlockNumber.Uint64(), SnapshotTimestamp: timestamp,
+		SupplyOnlySettlement: t.config.SupplyOnlySettlement,
 	}
 
+	if staticExtra.TrackLiquidityLimits {
+		extra.FloatBalance = [2]*big.Int{tokenBase[0].State.FloatBalance, tokenBase[1].State.FloatBalance}
+		extra.MaxCap = [2]*big.Int{tokenBase[0].State.MaxCap, tokenBase[1].State.MaxCap}
+		extra.UnaccountedBorrow = [2]*big.Int{tokenBase[0].State.UnaccountedBorrow, tokenBase[1].State.UnaccountedBorrow}
+		extra.SwapOutWithdraw = [2]*big.Int{tokenBase[0].State.AvailableForSwapOutWithdraw, tokenBase[1].State.AvailableForSwapOutWithdraw}
+		extra.SwapOutBorrow = [2]*big.Int{tokenBase[0].State.AvailableForSwapOutBorrow, tokenBase[1].State.AvailableForSwapOutBorrow}
+		if liquidityStatus == nil {
+			return Extra{}, ErrUnsupportedLiquidityState
+		}
+		for i := range tokenBase {
+			b := tokenBase[i].State
+			config := token0ExchangePricesAndConfig
+			if i == 1 {
+				config = token1ExchangePricesAndConfig
+			}
+			allowed, permissionErr := liquidityPermissions(b, userSupply[i], userBorrow[i], config, liquidityStatus, timestamp)
+			if permissionErr != nil {
+				return Extra{}, permissionErr
+			}
+			extra.LiquidityDebt[i] = b.DexBorrowAtLiquidity.Borrow
+			extra.WithdrawPaused[i] = b.DexSupplyAtLiquidity.IsPaused || b.DexSupplyAtLiquidity.IsWithdrawPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsWithdrawPaused
+			extra.SupplyPaused[i] = b.DexSupplyAtLiquidity.IsPaused || b.DexSupplyAtLiquidity.IsSupplyPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsSupplyPaused
+			extra.PaybackPaused[i] = b.DexBorrowAtLiquidity.IsPaused || b.DexBorrowAtLiquidity.IsPaybackPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsPaybackPaused
+			extra.BorrowPaused[i] = b.DexBorrowAtLiquidity.IsPaused || b.DexBorrowAtLiquidity.IsBorrowPaused || b.LiquidityTokenData.IsPaused || b.LiquidityTokenData.IsBorrowPaused
+			var limitErr error
+			extra.LiquidityLimits[i], limitErr = liquidityLimitsFromRPC(b, allowed)
+			if limitErr != nil {
+				return Extra{}, limitErr
+			}
+		}
+	}
 	return extra, nil
 }
 
@@ -164,11 +223,12 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	ticks, err := t.fetchPoolTicksFromSubgraph(ctx, p)
+	ticks, err := t.fetchPoolTicksFromBitmap(ctx, p, extra.SnapshotBlock)
 	if err != nil {
 		return entity.Pool{}, err
 	}
 	extra.Ticks = ticks
+	extra.TicksBlock = extra.SnapshotBlock
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -176,11 +236,11 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = max(p.Timestamp, int64(lo.LastOrEmpty(params.Logs).BlockTimestamp))
-	p.BlockNumber = max(p.BlockNumber, lo.LastOrEmpty(params.Logs).BlockNumber)
+	p.BlockNumber = extra.SnapshotBlock
+	p.Timestamp = int64(extra.SnapshotTimestamp)
 
 	reserve0Adjusted, reserve1Adjusted := extractTokenReserves(extra.TokenReserves)
-	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig)
+	c, err := _calculateVars(extra.DexVariables2, extra.Token0ExchangePricesAndConfig, extra.Token1ExchangePricesAndConfig, extra.SnapshotTimestamp)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -196,54 +256,4 @@ func (t *PoolTracker) getNewPoolState(
 	logger.Infof("[%s] Finish getting new state of pool %v", t.config.DexID, p.Address)
 
 	return p, nil
-}
-
-func (t *PoolTracker) fetchPoolTicksFromSubgraph(
-	ctx context.Context,
-	p entity.Pool,
-) ([]Tick, error) {
-	dexId, dexType := parseFluidDexV2PoolAddress(p.Address)
-
-	dexTypeBytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(dexTypeBytes, dexType)
-
-	dexIdBytes := common.Hex2Bytes(dexId[2:])
-
-	poolIdBytes := append(dexIdBytes, dexTypeBytes...)
-	poolId := "0x" + common.Bytes2Hex(poolIdBytes)
-
-	lastTickIdx := 0
-	var ticks []TickResp
-
-	for {
-		req := graphqlpkg.NewRequest(getPoolTicksQuery(poolId, lastTickIdx))
-
-		var resp struct {
-			Ticks []TickResp `json:"ticks"`
-		}
-
-		if err := t.graphqlClient.Run(ctx, req, &resp); err != nil {
-			return nil, err
-		}
-
-		if len(resp.Ticks) == 0 {
-			break
-		}
-
-		ticks = append(ticks, resp.Ticks...)
-
-		if len(resp.Ticks) < graphFirstLimit {
-			break
-		}
-
-		lastTickIdx = resp.Ticks[len(resp.Ticks)-1].Tick
-	}
-
-	return lo.Map(ticks, func(tick TickResp, _ int) Tick {
-		return Tick{
-			Index:          tick.Tick,
-			LiquidityNet:   bignumber.NewBig10(tick.LiquidityNet),
-			LiquidityGross: bignumber.NewBig10(tick.LiquidityGross),
-		}
-	}), nil
 }

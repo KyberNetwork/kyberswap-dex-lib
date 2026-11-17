@@ -40,8 +40,10 @@ type Quote struct {
 }
 
 type MetaInfo struct {
-	Market      string `json:"market"`
-	Pool        string `json:"pool"`
-	QuoteAsset  string `json:"quoteAsset"`
-	BlockNumber uint64 `json:"blockNumber"`
+	Market string `json:"market"`
+	// ApprovalAddress is the market: the executor approves it before buyFromPoolExactQuote.
+	ApprovalAddress string `json:"approvalAddress"`
+	Pool            string `json:"pool"`
+	QuoteAsset      string `json:"quoteAsset"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }

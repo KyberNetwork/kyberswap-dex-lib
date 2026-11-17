@@ -701,6 +701,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		PriceLimit:        priceLimit,
 		PoolManager:       p.poolManager(),
 		TokenWrapMetadata: wrapMetadata,
+
+		TicksBasedStateBlock: p.StateBlockMeta(),
 	}
 }
 
