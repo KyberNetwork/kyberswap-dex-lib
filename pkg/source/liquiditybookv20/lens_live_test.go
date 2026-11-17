@@ -25,7 +25,7 @@ import (
 // lens holds every bin getBin reports for those ids at the same block and adds up to the reserves,
 // a gas cap that forces paging reads the same set, a stored set missing a bin gets it back where
 // reading the stored ids again cannot, and a pair without state gets its bins whole from its first
-// update. Each chain runs with the multicall its production config names. Run with any of:
+// update. Each chain runs with its own multicall. Run with any of:
 //
 //	LIQUIDITYBOOK_V20_AVALANCHE_RPC_URL=https://... LIQUIDITYBOOK_V20_ARBITRUM_RPC_URL=https://... \
 //	LIQUIDITYBOOK_V20_BASE_RPC_URL=https://... go test ./pkg/source/liquiditybookv20/ -run LiveLens -v

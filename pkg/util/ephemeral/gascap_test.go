@@ -121,7 +121,7 @@ func TestGasCapPerKindOfNode(t *testing.T) {
 		gas  uint64
 	}{
 		"caps at 50M (geth's default)":    {&fakeNode{limit: 50_000_000}, Cap{Gas: 50_000_000}, 50_000_000},
-		"caps at 550M (Alchemy)":          {&fakeNode{limit: 550_000_000}, Cap{Gas: 550_000_000}, CallGasCeiling},
+		"caps at 550M":                    {&fakeNode{limit: 550_000_000}, Cap{Gas: 550_000_000}, CallGasCeiling},
 		"refuses above 150M (Monad)":      {&fakeNode{limit: 150_000_000, refuses: true}, Cap{Gas: 150_000_000}, CallGasCeiling},
 		"no limit (MegaETH, Linea)":       {&fakeNode{}, Cap{Unlimited: true}, CallGasCeiling},
 		"caps at 30M (HyperEVM)":          {&fakeNode{limit: 30_000_000}, Cap{Gas: 30_000_000}, 30_000_000},

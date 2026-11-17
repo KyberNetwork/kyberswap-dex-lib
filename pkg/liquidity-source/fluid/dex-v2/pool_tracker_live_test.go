@@ -21,7 +21,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// liveConfig is the polygon/fluid-dex-v2 exchange as production runs it.
+// liveConfig is the config of the polygon/fluid-dex-v2 exchange.
 var liveConfig = Config{
 	DexID:     "fluid-dex-v2",
 	ChainID:   valueobject.ChainIDPolygon,

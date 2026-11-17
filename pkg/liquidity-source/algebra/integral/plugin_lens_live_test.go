@@ -27,7 +27,7 @@ import (
 )
 
 // pluginLiveDex is a deployment whose plugin reads TestPluginLensLive checks, at pools known to be
-// live, with the multicall and plugin settings production reads it with.
+// live, with the multicall and plugin settings of its deployment.
 type pluginLiveDex struct {
 	dexID           string
 	rpcEnv          string
