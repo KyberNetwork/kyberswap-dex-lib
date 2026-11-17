@@ -41,18 +41,18 @@ func TestStatelessPoolsAreScheduled(t *testing.T) {
 		UseLens:   true,
 		LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}, nil, nil)
 	before := time.Now().Unix()
-	at := tracker.NextUpdateAt(fromFactory)
+	at := tracker.NextBootstrapAt(fromFactory)
 	assert.GreaterOrEqual(t, at, before)
 	assert.LessOrEqual(t, at, time.Now().Unix(), "a pool not tried yet is due at once")
 
 	_, _ = tracker.lensGuard.Try(t.Context(), fromFactory.Address,
 		func(context.Context) error { return errors.New("failed") })
-	at = tracker.NextUpdateAt(fromFactory)
+	at = tracker.NextBootstrapAt(fromFactory)
 	assert.GreaterOrEqual(t, at, before+30)
 	assert.LessOrEqual(t, at, time.Now().Unix()+30, "a pool just tried waits out its cooldown")
-	assert.Zero(t, tracker.NextUpdateAt(tracked))
+	assert.Zero(t, tracker.NextBootstrapAt(tracked))
 
-	assert.Zero(t, NewPoolTracker(&Config{}, nil, nil).NextUpdateAt(fromFactory))
+	assert.Zero(t, NewPoolTracker(&Config{}, nil, nil).NextBootstrapAt(fromFactory))
 }
 
 // TestResetPoolState: with the lens a reset drops what the logs built and keeps the hook's state,

@@ -851,12 +851,12 @@ func (t *Tracker) bootstrapWithoutLens(ctx context.Context, p entity.Pool,
 	return t.refetchTicks(ctx, p)
 }
 
-var _ poolpkg.IPoolTrackerWithSchedule = (*Tracker)(nil)
+var _ poolpkg.IPoolTrackerWithBootstrap = (*Tracker)(nil)
 
-// NextUpdateAt asks for a pool still without state, its lens read declined by the guard, to be
-// updated again as soon as the guard would take it: it may see no log for a long time, and only an
-// update gives it its state. Every other pool needs no update without an event.
-func (t *Tracker) NextUpdateAt(p entity.Pool) int64 {
+// NextBootstrapAt is when the guard would take the lens read of a pool still without state, its read
+// declined or failed: it may see no log for a long time, and only an update gives it its state.
+// 0 for a pool with its state, or with the lens off.
+func (t *Tracker) NextBootstrapAt(p entity.Pool) int64 {
 	if t.config.UseLens && !tickspkg.HasState(p) {
 		return t.lensGuard.ReadyAt(p.Address, time.Now()).Unix()
 	}

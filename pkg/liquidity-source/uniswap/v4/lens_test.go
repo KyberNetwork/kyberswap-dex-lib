@@ -29,8 +29,8 @@ func TestHasState(t *testing.T) {
 	}
 }
 
-// TestStatelessPoolsAreScheduled: a pool whose lens read the guard declined comes back as soon as
-// the guard would take it, at once if it was not tried, after the cooldown if it was, since nothing
+// TestStatelessPoolsAreScheduled: a pool whose lens read the guard declined is bootstrapped as soon
+// as the guard would take it, at once if it was not tried, after the cooldown if it was, since nothing
 // else may update it for a long time; a pool with state, or a tracker without the lens, schedules
 // nothing of its own.
 func TestStatelessPoolsAreScheduled(t *testing.T) {
@@ -42,18 +42,19 @@ func TestStatelessPoolsAreScheduled(t *testing.T) {
 		UseLens:   true,
 		LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}, nil, nil)
 	before := NowFn()
-	at := lens.NextUpdateAt(fromFactory)
+	at := lens.NextBootstrapAt(fromFactory)
 	assert.GreaterOrEqual(t, at, before)
 	assert.LessOrEqual(t, at, NowFn(), "a pool not tried yet is due at once")
 
 	_, _ = lens.lensGuard.Try(t.Context(), fromFactory.Address,
 		func(context.Context) error { return errors.New("failed") })
-	at = lens.NextUpdateAt(fromFactory)
+	at = lens.NextBootstrapAt(fromFactory)
 	assert.GreaterOrEqual(t, at, before+30)
 	assert.LessOrEqual(t, at, NowFn()+30, "a pool just tried waits out its cooldown")
-	assert.Zero(t, lens.NextUpdateAt(tracked))
+	assert.Zero(t, lens.NextBootstrapAt(tracked))
+	assert.Zero(t, lens.NextUpdateAt(fromFactory), "the hook's schedule is apart from the lens's")
 
-	assert.Zero(t, NewPoolTracker(&Config{}, nil, nil).NextUpdateAt(fromFactory))
+	assert.Zero(t, NewPoolTracker(&Config{}, nil, nil).NextBootstrapAt(fromFactory))
 }
 
 // TestWithStateTakesTheHooksExchange: the hook names the pool's exchange, and the pool withState

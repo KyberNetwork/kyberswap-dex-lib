@@ -27,16 +27,16 @@ func TestStatelessPoolsAreScheduled(t *testing.T) {
 		UseLens:   true,
 		LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}, nil, nil)
 	before := time.Now().Unix()
-	at := tr.NextUpdateAt(entity.Pool{Extra: `{}`})
+	at := tr.NextBootstrapAt(entity.Pool{Extra: `{}`})
 	assert.GreaterOrEqual(t, at, before)
 	assert.LessOrEqual(t, at, time.Now().Unix(), "a pool not tried yet is due at once")
 
 	_, _ = tr.lensGuard.Try(t.Context(), "", func(context.Context) error { return nil })
-	at = tr.NextUpdateAt(entity.Pool{Extra: `{}`})
+	at = tr.NextBootstrapAt(entity.Pool{Extra: `{}`})
 	assert.GreaterOrEqual(t, at, before+30, "a pool just tried waits out its cooldown")
-	assert.Zero(t, tr.NextUpdateAt(entity.Pool{Extra: `{"liquidity":0,"sqrtPriceX96":1}`}))
+	assert.Zero(t, tr.NextBootstrapAt(entity.Pool{Extra: `{"liquidity":0,"sqrtPriceX96":1}`}))
 
-	assert.Zero(t, NewPoolTracker(&Config{}, nil, nil).NextUpdateAt(entity.Pool{Extra: `{}`}))
+	assert.Zero(t, NewPoolTracker(&Config{}, nil, nil).NextBootstrapAt(entity.Pool{Extra: `{}`}))
 }
 
 // TestResetPoolState: with the lens a reset pool is one without state, read whole on its next
@@ -50,7 +50,7 @@ func TestResetPoolState(t *testing.T) {
 	assert.True(t, ok)
 	assert.False(t, tickspkg.HasState(got))
 	assert.Equal(t, uint64(100), tickspkg.LensDue(got))
-	assert.NotZero(t, lens.NextUpdateAt(got), "it is due for its lens read")
+	assert.NotZero(t, lens.NextBootstrapAt(got), "it is due for its lens read")
 
 	got, ok = NewPoolTracker(&Config{}, nil, nil).ResetPoolState(p, 100)
 	assert.False(t, ok)

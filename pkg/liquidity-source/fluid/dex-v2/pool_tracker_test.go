@@ -204,6 +204,6 @@ func TestResetPoolState(t *testing.T) {
 	assert.Empty(t, got.Ticks)
 	assert.Zero(t, got.LensBlock)
 	assert.Zero(t, got.TokenReserves.Cmp(start.TokenReserves), "the rest of the state is kept")
-	assert.NotZero(t, tracker.NextUpdateAt(reset), "a pool without state is updated again")
-	assert.Zero(t, tracker.NextUpdateAt(p))
+	assert.NotZero(t, tracker.NextBootstrapAt(reset), "a pool without state is updated again")
+	assert.Zero(t, tracker.NextBootstrapAt(p))
 }

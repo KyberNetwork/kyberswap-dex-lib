@@ -100,14 +100,14 @@ func TestResetPoolStateKeepsTheMachimaHalf(t *testing.T) {
 	assert.False(t, ok, "without the lens nothing reads the pool whole, so it is kept")
 }
 
-// TestNextUpdateAtAsksOnlyForPoolsWithoutState: the schedule only brings back a pool still without
+// TestNextBootstrapAtAsksOnlyForPoolsWithoutState: the schedule only brings back a pool still without
 // state, and only with the lens on.
-func TestNextUpdateAtAsksOnlyForPoolsWithoutState(t *testing.T) {
+func TestNextBootstrapAtAsksOnlyForPoolsWithoutState(t *testing.T) {
 	stateless := entity.Pool{Address: "0xd4829d181e93059ae602ce5a5b59ff4d6736a4a8",
 		Extra: `{"liquidity":null,"tickSpacing":200}`}
-	assert.Positive(t, newLensTracker(t, true).NextUpdateAt(stateless))
-	assert.Zero(t, newLensTracker(t, true).NextUpdateAt(trackedPool(t)))
-	assert.Zero(t, newLensTracker(t, false).NextUpdateAt(stateless))
+	assert.Positive(t, newLensTracker(t, true).NextBootstrapAt(stateless))
+	assert.Zero(t, newLensTracker(t, true).NextBootstrapAt(trackedPool(t)))
+	assert.Zero(t, newLensTracker(t, false).NextBootstrapAt(stateless))
 }
 
 // TestSetExtraClearsWhatExtraLeavesOut: a price floor gone back to nil, which Extra omits, is

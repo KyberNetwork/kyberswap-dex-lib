@@ -215,19 +215,19 @@ func TestStatelessPoolsAreScheduled(t *testing.T) {
 		LensGuard: ephemeral.GuardConfig{CooldownSecs: 30}}, nil, nil)
 	require.NoError(t, err)
 	before := time.Now().Unix()
-	at := tr.NextUpdateAt(entity.Pool{Extra: `{}`})
+	at := tr.NextBootstrapAt(entity.Pool{Extra: `{}`})
 	assert.GreaterOrEqual(t, at, before)
 	assert.LessOrEqual(t, at, time.Now().Unix(), "a pool not tried yet is due at once")
 
 	_, _ = tr.lensGuard.Try(t.Context(), "", func(context.Context) error { return nil })
-	at = tr.NextUpdateAt(entity.Pool{Extra: `{}`})
+	at = tr.NextBootstrapAt(entity.Pool{Extra: `{}`})
 	assert.GreaterOrEqual(t, at, before+30)
 	assert.LessOrEqual(t, at, time.Now().Unix()+30, "a pool just tried waits out its cooldown")
-	assert.Zero(t, tr.NextUpdateAt(entity.Pool{Extra: `{"liquidity":0,"sqrtPriceX96":1}`}))
+	assert.Zero(t, tr.NextBootstrapAt(entity.Pool{Extra: `{"liquidity":0,"sqrtPriceX96":1}`}))
 
 	plain, err := NewTracker(&Config{}, nil, nil)
 	require.NoError(t, err)
-	assert.Zero(t, plain.NextUpdateAt(entity.Pool{Extra: `{}`}))
+	assert.Zero(t, plain.NextBootstrapAt(entity.Pool{Extra: `{}`}))
 }
 
 // TestLogsAtOrBelowTheLensBlockAreLate: a Mint at or below the lens snapshot's block is late, read
@@ -279,7 +279,7 @@ func TestResetPoolState(t *testing.T) {
 	got, ok := lens.ResetPoolState(p, 100)
 	assert.True(t, ok)
 	assert.False(t, tickspkg.HasState(got))
-	assert.NotZero(t, lens.NextUpdateAt(got), "it is due for its lens read")
+	assert.NotZero(t, lens.NextBootstrapAt(got), "it is due for its lens read")
 
 	plain, err := NewTracker(&Config{}, nil, nil)
 	require.NoError(t, err)

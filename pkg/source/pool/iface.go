@@ -60,6 +60,15 @@ type IPoolTrackerWithReset interface {
 // unix time even with no event. 0 = no scheduled update.
 type IPoolTrackerWithSchedule interface{ NextUpdateAt(p entity.Pool) int64 }
 
+// IPoolTrackerWithBootstrap is implemented by trackers that may leave a pool without its state, for
+// a later update to read it whole, as a lens tracker does when its guard declines the read. Such a
+// pool may see no log for a long time, so its update must be scheduled.
+type IPoolTrackerWithBootstrap interface {
+	// NextBootstrapAt is the unix time the tracker can next read p's state whole. 0 = p has its
+	// state, or the tracker does not read it whole.
+	NextBootstrapAt(p entity.Pool) int64
+}
+
 type IPoolSimulator interface {
 	// CalcAmountOut amountOut, fee, gas
 	// the required params is TokenAmountIn and TokenOut.

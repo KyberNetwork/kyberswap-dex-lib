@@ -128,13 +128,13 @@ func TestResetPoolState(t *testing.T) {
 
 	lensTracker := NewPoolTracker(&Config{
 		UseLens: true}, nil, nil)
-	assert.Zero(t, lensTracker.NextUpdateAt(p), "a pair with bins waits for its events")
+	assert.Zero(t, lensTracker.NextBootstrapAt(p), "a pair with bins waits for its events")
 	got, ok := lensTracker.ResetPoolState(p, 100)
 	assert.True(t, ok)
 	assert.False(t, hasState(got))
 	assert.Contains(t, got.Extra, `"lensDue":120`, "the due block never goes back")
 	assert.Contains(t, got.Extra, `"activeBinId":8388608`, "the rest of the Extra is kept")
-	assert.NotZero(t, lensTracker.NextUpdateAt(got), "it is due for its lens read")
+	assert.NotZero(t, lensTracker.NextBootstrapAt(got), "it is due for its lens read")
 	got, _ = lensTracker.ResetPoolState(p, 150)
 	assert.Contains(t, got.Extra, `"lensDue":150`)
 
@@ -142,7 +142,7 @@ func TestResetPoolState(t *testing.T) {
 	got, ok = plain.ResetPoolState(p, 100)
 	assert.False(t, ok)
 	assert.Equal(t, p, got)
-	assert.Zero(t, plain.NextUpdateAt(entity.Pool{}))
+	assert.Zero(t, plain.NextBootstrapAt(entity.Pool{}))
 }
 
 // TestFetchPoolTicksWithLensKeepsThePair: the lens read the bins with the state, so reading them

@@ -832,12 +832,12 @@ func (t *PoolTracker) readAllBins(ctx context.Context, poolID string, block uint
 	return merged
 }
 
-var _ poolpkg.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
+var _ poolpkg.IPoolTrackerWithBootstrap = (*PoolTracker)(nil)
 
-// NextUpdateAt asks for a pool still without bins, its lens read declined by the guard, to be
-// updated again as soon as the guard would take it: it may see no log for a long time, and only an
-// update gives it its bins. Every other pool needs no update without an event.
-func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
+// NextBootstrapAt is when the guard would take the lens read of a pool still without bins, its read
+// declined or failed: it may see no log for a long time, and only an update gives it its bins.
+// 0 for a pool with its bins, or with the lens off.
+func (t *PoolTracker) NextBootstrapAt(p entity.Pool) int64 {
 	if t.config.UseLens && !hasState(p) {
 		return t.lensGuard.ReadyAt(p.Address, time.Now()).Unix()
 	}

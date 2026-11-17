@@ -499,14 +499,20 @@ func (t *PoolTracker) GetNewPoolStateWithOverrides(ctx context.Context, p entity
 	return t.getNewPoolState(ctx, p, params.Logs, nil, params.Overrides)
 }
 
-// NextUpdateAt returns the unix time the hook wants the pool updated again, or 0. No RPC.
-//
-// A pool still without state, its lens read declined by the guard, is due again as soon as the
-// guard would take it: it may see no log for a long time, and only an update gives it its state.
-func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
+var _ poolpkg.IPoolTrackerWithBootstrap = (*PoolTracker)(nil)
+
+// NextBootstrapAt is when the guard would take the lens read of a pool still without state, its read
+// declined or failed: it may see no log for a long time, and only an update gives it its state.
+// 0 for a pool with its state, or with the lens off.
+func (t *PoolTracker) NextBootstrapAt(p entity.Pool) int64 {
 	if t.config.UseLens && !tickspkg.HasState(p) {
 		return t.lensGuard.ReadyAt(p.Address, time.Unix(NowFn(), 0)).Unix()
 	}
+	return 0
+}
+
+// NextUpdateAt returns the unix time the hook wants the pool updated again, or 0. No RPC.
+func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
 	hook, hookParam, _ := t.newHook(&p, nil)
 	if h, ok := hook.(HookWithSchedule); ok {
 		return h.NextTrackAt(hookParam)

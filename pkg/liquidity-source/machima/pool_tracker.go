@@ -140,8 +140,8 @@ func taxBlock(hadState bool, p entity.Pool, logs []ethtypes.Log) uint64 {
 }
 
 var (
-	_ poolpkg.IPoolTrackerWithReset    = (*PoolTracker)(nil)
-	_ poolpkg.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
+	_ poolpkg.IPoolTrackerWithReset     = (*PoolTracker)(nil)
+	_ poolpkg.IPoolTrackerWithBootstrap = (*PoolTracker)(nil)
 )
 
 // ResetPoolState is the UniV3 layer's: it drops the ticks and liquidity for the lens to read them
@@ -150,10 +150,10 @@ func (t *PoolTracker) ResetPoolState(p entity.Pool, block uint64) (entity.Pool, 
 	return t.v3.ResetPoolState(p, block)
 }
 
-// NextUpdateAt is the UniV3 layer's: a pool without state whose lens read was declined is updated
-// again as soon as the guard would take it.
-func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
-	return t.v3.NextUpdateAt(p)
+// NextBootstrapAt is the UniV3 layer's: a pool without state whose lens read was declined is due
+// as soon as the guard would take it.
+func (t *PoolTracker) NextBootstrapAt(p entity.Pool) int64 {
+	return t.v3.NextBootstrapAt(p)
 }
 
 // refreshStateKeepingTicks re-reads slot0, liquidity and reserves at latest while leaving the tick

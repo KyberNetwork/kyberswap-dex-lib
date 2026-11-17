@@ -237,11 +237,11 @@ func TestResetPoolState(t *testing.T) {
 // TestStatelessPoolsAreScheduled: a pool without state is due when the guard would take it.
 func TestStatelessPoolsAreScheduled(t *testing.T) {
 	tr := NewPoolTracker(&Config{UseLens: true}, nil, nil)
-	if at := tr.NextUpdateAt(entity.Pool{Address: "0xpool"}); at == 0 {
+	if at := tr.NextBootstrapAt(entity.Pool{Address: "0xpool"}); at == 0 {
 		t.Error("pool without state not scheduled")
 	}
 	extra, _ := json.Marshal(Extra{Liquidity: big.NewInt(7)})
-	if at := tr.NextUpdateAt(entity.Pool{Address: "0xpool", Extra: string(extra)}); at != 0 {
+	if at := tr.NextBootstrapAt(entity.Pool{Address: "0xpool", Extra: string(extra)}); at != 0 {
 		t.Error("pool with state scheduled")
 	}
 }

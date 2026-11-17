@@ -136,7 +136,7 @@ func TestLensLive(t *testing.T) {
 		assert.False(t, ticks.HasState(declined))
 		assert.Equal(t, uint64(createdAtBlock), ticks.LensDue(declined))
 		assert.NotZero(t, mustExtra(t, declined).PoolDeploymentTime)
-		assert.Positive(t, fresh.NextUpdateAt(declined), "it is scheduled for when the guard takes it")
+		assert.Positive(t, fresh.NextBootstrapAt(declined), "it is scheduled for when the guard takes it")
 
 		// Without the lens the interval gives it a liquidity and no ticks, after which it reads as
 		// a pool with state.

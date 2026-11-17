@@ -565,12 +565,12 @@ func (t *PoolTracker) refetchAllBins(ctx context.Context, p *entity.Pool, binsFr
 	return t.fetchAllBins(ctx, p, binsFromLogs, blockNumber)
 }
 
-var _ pool.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
+var _ pool.IPoolTrackerWithBootstrap = (*PoolTracker)(nil)
 
-// NextUpdateAt asks for a pair still without bins, its lens read declined by the guard, to be
-// updated again as soon as the guard would take it: it may see no log for a long time, and only an
-// update gives it its bins. Every other pair needs no update without an event.
-func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
+// NextBootstrapAt is when the guard would take the lens read of a pair still without bins, its read
+// declined or failed: it may see no log for a long time, and only an update gives it its bins.
+// 0 for a pair with its bins, or with the lens off.
+func (t *PoolTracker) NextBootstrapAt(p entity.Pool) int64 {
 	if t.cfg.UseLens && !hasState(p) {
 		return t.lensGuard.ReadyAt(p.Address, time.Now()).Unix()
 	}
