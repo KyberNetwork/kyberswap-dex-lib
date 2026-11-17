@@ -2,15 +2,12 @@ package prop
 
 import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/titan"
 )
 
-// Extra is ladder.Extra plus SO, the Titan state override the ladder was
-// probed against (pamm variant only). It is stored so a quote can be replayed
-// against the same state; the simulator reads only the "l" field.
+// Extra holds the probed ladders. Titan state overrides are not stored:
+// router-service fetches its own snapshot for build-time simulation.
 type Extra struct {
-	Ladders [2][]ladder.Point    `json:"l"`
-	SO      titan.StateOverrides `json:"so,omitempty"`
+	Ladders [2][]ladder.Point `json:"l"`
 }
 
 type StaticExtra struct {

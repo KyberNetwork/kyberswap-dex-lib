@@ -2,6 +2,8 @@ package pooltypes
 
 import (
 	prop1010 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1010-prop"
+	oneinchaqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/aqua"
+	lo1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/1inch/lo"
 	aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3/lazy"
 	algebraintegral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
@@ -68,6 +70,8 @@ import (
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	dodogsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/gsp"
+	efraprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/efra-prop"
+	doppleramm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/doppler-amm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
@@ -127,7 +131,6 @@ import (
 	liquidityparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/liquidity-party"
 	listastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lista/stake"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunarbase"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya"
 	lunyafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lunya-fun"
@@ -521,8 +524,11 @@ type Types struct {
 	AltFun                     string
 	FlywheelFun                string
 	Prop1010                   string
+	OneInchAqua                string
+	DopplerAMM                 string
 	BiconomyProp               string
 	DaikonProp                 string
+	EfraProp                   string
 	FermiProp                  string
 	Machima                    string
 	MetronomeSwap              string
@@ -793,8 +799,11 @@ var (
 		AltFun:                     altfun.DexType,
 		FlywheelFun:                flywheelfun.DexType,
 		Prop1010:                   prop1010.DexType,
+		OneInchAqua:                oneinchaqua.DexType,
+		DopplerAMM:                 doppleramm.DexType,
 		BiconomyProp:               biconomyprop.DexType,
 		DaikonProp:                 daikonprop.DexType,
+		EfraProp:                   efraprop.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
 		MetronomeSwap:              metronomeswap.DexType,

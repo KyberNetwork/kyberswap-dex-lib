@@ -2,6 +2,7 @@ package btrprop
 
 import (
 	"errors"
+	"math"
 
 	"github.com/holiman/uint256"
 )
@@ -9,9 +10,9 @@ import (
 var (
 	// ErrBTRGated is returned when a leg is halted or swapped off.
 	ErrBTRGated = errors.New("btr: leg gated or halted")
-	// ErrBTRGatedLane is returned when SWAP_GATED is set and the executor does
-	// not hold lane 0x400: every swap reverts NotAuthorized.
-	ErrBTRGatedLane = errors.New("btr: pool is SWAP_GATED; executor needs lane 0x400")
+	// ErrBTRGatedCaller is returned when SWAP_GATED is set and the executor is not in
+	// the pool's swap gate: every swap reverts NotAuthorized.
+	ErrBTRGatedCaller = errors.New("btr: pool is SWAP_GATED; executor not in the swap gate")
 	// ErrBTRNoRoute is returned when no sampled ladder exists for the pair.
 	ErrBTRNoRoute = errors.New("btr: no sampled ladder for pair")
 	// ErrBTRNoFill is returned when a sampled quote yields zero.
@@ -67,12 +68,35 @@ type Extra struct {
 	// Flags[i] is the raw 16-bit word from Pool.getRiskFlags(Tokens[i]); 0 when
 	// the read failed (treated as swap disabled).
 	Flags []uint16 `json:"f"`
-	// LaneOK is true when registry.perms(executor) includes lane 0x400, which
-	// opens SWAP_GATED legs to the executor. False when unreadable.
-	LaneOK bool `json:"k,omitempty"`
+	// GateOK is true when Pool.inSwapGate(executor) holds, which opens SWAP_GATED
+	// legs to the executor. False when unreadable.
+	GateOK bool `json:"k,omitempty"`
 	// Ladders[from][to] is the curve for Tokens[from] -> Tokens[to]; the diagonal
 	// and pairs without a sample are empty.
 	Ladders [][]Ladder `json:"l"`
+	// Hops[from][to] is the number of nodes on the pool's route for the pair (2 = a direct edge
+	// through the hub, more = a spoke-to-spoke route through the anchor tree); zero when unknown.
+	Hops [][]uint8 `json:"h,omitempty"`
+}
+
+// setHops records the route length of from -> to in an n x n matrix.
+func (e *Extra) setHops(n, from, to, hops int) {
+	if e.Hops == nil {
+		e.Hops = make([][]uint8, n)
+		for i := range e.Hops {
+			e.Hops[i] = make([]uint8, n)
+		}
+	}
+	e.Hops[from][to] = uint8(min(hops, math.MaxUint8))
+}
+
+// gas is the swap_qe gas estimate for from -> to: DefaultGas for a direct edge, more for every
+// extra node the route crosses.
+func (e *Extra) gas(from, to int) int64 {
+	if from < 0 || from >= len(e.Hops) || to < 0 || to >= len(e.Hops[from]) {
+		return DefaultGas
+	}
+	return DefaultGas + int64(max(int(e.Hops[from][to])-2, 0))*GasPerExtraHop
 }
 
 // ladder returns the points for Tokens[from] -> Tokens[to], or nil.
@@ -89,6 +113,6 @@ type PoolMeta struct {
 	ApprovalAddress string `json:"approvalAddress"`
 	BlockNumber     uint64 `json:"blockNumber"`
 	// Gated reports whether any cached leg is closed to the executor (halted,
-	// swap disabled, or SWAP_GATED without the executor's lane).
+	// swap disabled, or SWAP_GATED with the executor outside the swap gate).
 	Gated bool `json:"gated"`
 }

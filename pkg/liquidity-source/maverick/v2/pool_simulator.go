@@ -83,7 +83,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	newState := p.state.Clone(true)
 	amountOut, binCrossed, err := swap(newState, scaledAmountIn, tokenInIndex == 0, false)
 	if err != nil {
-		return nil, fmt.Errorf("can not get amount out, err: %v", err)
+		return nil, fmt.Errorf("can not get amount out, err: %w", err)
 	}
 
 	// scale back to token amount
@@ -124,7 +124,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	newState := p.state.Clone(true)
 	amountIn, binCrossed, err := swap(newState, scaledAmountOut, tokenInIndex == 0, true)
 	if err != nil {
-		return nil, fmt.Errorf("can not get amount out, err: %v", err)
+		return nil, fmt.Errorf("can not get amount out, err: %w", err)
 	}
 
 	// scale back to token amount
@@ -186,15 +186,10 @@ func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return pool.MetaInfo{BlockNumber: p.Info.BlockNumber}
 }
 
-// pastMaxTick checks if we've reached the tick limit and zeros out excess if so
+// pastMaxTick checks if we've reached the tick limit
 // This is equivalent to MaverickDeltaMath.pastMaxTick() in TypeScript
 func pastMaxTick(delta *Delta, activeTick, tickLimit int32) bool {
-	swappedToMaxPrice := delta.TokenAIn == (tickLimit < activeTick)
-	if swappedToMaxPrice {
-		delta.Excess = big256.U0 // CRITICAL: Zero out excess to terminate main loop
-		delta.SkipCombine = true
-	}
-	return swappedToMaxPrice
+	return delta.TokenAIn == (tickLimit < activeTick)
 }
 
 // Helper functions for swap implementation
@@ -245,8 +240,7 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 
 	// Check if we've reached the tick limit - equivalent to TypeScript pastMaxTick function
 	if pastMaxTick(delta, activeTick, tickLimit) {
-		state.ActiveTick += lo.Ternary[int32](tokenAIn, -1, 1)
-		return delta, true, nil
+		return nil, true, ErrInsufficientLiquidity
 	}
 
 	// Find next tick with liquidity
@@ -264,8 +258,7 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 
 		// Check again if we've reached the tick limit after moving
 		if pastMaxTick(delta, activeTick, tickLimit) {
-			state.ActiveTick += lo.Ternary[int32](tokenAIn, -1, 1)
-			return delta, true, nil
+			return nil, true, ErrInsufficientLiquidity
 		}
 	}
 

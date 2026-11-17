@@ -1,6 +1,7 @@
 package ezeth
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -63,5 +64,48 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, bignumber.NewBig("944981911348085675"), result.TokenAmountOut.Amount)
+	})
+}
+
+func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
+
+	t.Run("deposit adds the collateral value to totalTVL and the minted ezETH to totalSupply", func(t *testing.T) {
+		poolSimulator := initPoolSim()
+		tvlBefore := new(big.Int).Set(poolSimulator.totalTVL)
+		supplyBefore := new(big.Int).Set(poolSimulator.totalSupply)
+
+		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{
+				Token:  "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+				Amount: bignumber.NewBig("1000000000000000000"),
+			},
+			TokenOut: "0xbf5495efe5db9ce00f80364c8b423567e58d2110",
+		})
+		require.NoError(t, err)
+
+		poolSimulator.UpdateBalance(poolpkg.UpdateBalanceParams{
+			TokenAmountIn:  poolpkg.TokenAmount{Token: "0xae7ab96520de3a18e5e111b5eaab095312d7fe84", Amount: bignumber.NewBig("1000000000000000000")},
+			TokenAmountOut: *result.TokenAmountOut,
+			SwapInfo:       result.SwapInfo,
+		})
+
+		assert.Equal(t, new(big.Int).Add(tvlBefore, bignumber.NewBig("1000000000000000000")), poolSimulator.totalTVL)
+		assert.Equal(t, new(big.Int).Add(supplyBefore, result.TokenAmountOut.Amount), poolSimulator.totalSupply)
+	})
+
+	t.Run("CloneState is isolated from later UpdateBalance calls", func(t *testing.T) {
+		poolSimulator := initPoolSim()
+		tvlBefore := new(big.Int).Set(poolSimulator.totalTVL)
+		supplyBefore := new(big.Int).Set(poolSimulator.totalSupply)
+
+		cloned := poolSimulator.CloneState().(*PoolSimulator)
+		cloned.UpdateBalance(poolpkg.UpdateBalanceParams{
+			TokenAmountOut: poolpkg.TokenAmount{Amount: bignumber.NewBig("1000")},
+			SwapInfo:       SwapInfo{TVLAdded: bignumber.NewBig("2000")},
+		})
+
+		assert.Equal(t, tvlBefore, poolSimulator.totalTVL)
+		assert.Equal(t, supplyBefore, poolSimulator.totalSupply)
 	})
 }

@@ -17,7 +17,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -81,6 +80,7 @@ func (t *PoolTracker) getNewPoolState(
 		_ = json.Unmarshal([]byte(p.Extra), &extra)
 		vaultCfg.Gas = GasCfg(extra.Gas)
 	}
+	vaultCfg.Balance = LoadBalanceSlot(&p)
 	_, state, err := FetchAssetAndState(ctx, t.ethrpcClient, vaultAddr, vaultCfg, false, overrides)
 	if err != nil {
 		lg.WithFields(logger.Fields{
@@ -115,6 +115,9 @@ func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 		return errors.WithMessage(err, "json.Marshal extra")
 	}
 
+	if err = SaveBalanceSlot(p, state); err != nil {
+		return errors.WithMessage(err, "save balance slot")
+	}
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = Reserves(vaultCfg, state)
 	p.Extra = string(extraBytes)
@@ -124,6 +127,21 @@ func UpdateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 
 func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr string, vaultCfg VaultCfg,
 	fetchAsset bool, overrides map[common.Address]gethclient.OverrideAccount) (common.Address, *PoolState, error) {
+	assetToken, state, err := fetchAssetAndState(ctx, ethrpcClient, vaultAddr, vaultCfg, fetchAsset, overrides)
+	if err != nil || !state.NeedsCleanRead() {
+		return assetToken, state, err
+	}
+	vaultCfg.Balance = BalanceSlot{None: true}
+	slot := state.Slot
+	assetToken, state, err = fetchAssetAndState(ctx, ethrpcClient, vaultAddr, vaultCfg, fetchAsset, overrides)
+	if err == nil {
+		state.Slot, state.SlotChanged = slot, true
+	}
+	return assetToken, state, err
+}
+
+func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr string, vaultCfg VaultCfg,
+	fetchAsset bool, overrides map[common.Address]gethclient.OverrideAccount) (common.Address, *PoolState, error) {
 	var (
 		assetToken common.Address
 		poolState  = PoolState{
@@ -132,7 +150,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		}
 	)
 
-	req := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
+	req := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(vaultCfg.WithBalanceProbe(vaultAddr, overrides))
 	if fetchAsset {
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
@@ -178,6 +196,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			Method: Erc4626MethodTotalSupply,
 		}, []any{&poolState.TotalSupply})
 	}
+	AddBalanceProbeCalls(func(c *ethrpc.Call, out []any) { req.AddCall(c, out) }, vaultAddr, vaultCfg, &poolState)
 	if vaultCfg.Gas.Redeem > 0 {
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
@@ -214,13 +233,7 @@ func FetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	if poolState.MinDeposit != nil && poolState.MinDeposit.Sign() == 0 {
 		poolState.MinDeposit = nil
 	}
-	if vaultCfg.Gas.Redeem == 0 { // redeem unsupported: totalSupply is read only for the deposit conversion
-		poolState.MaxRedeem = nil
-	} else if poolState.MaxRedeem == nil || poolState.MaxRedeem.Sign() == 0 {
-		poolState.MaxRedeem = poolState.TotalSupply // fallback to a sensible value
-	} else if poolState.MaxRedeem.Cmp(bignumber.MaxUint128) > 0 {
-		poolState.MaxRedeem = nil // no limit
-	}
+	poolState.ResolveMaxRedeem(vaultCfg)
 
 	if resp.BlockNumber != nil {
 		poolState.BlockNumber = resp.BlockNumber.Uint64()

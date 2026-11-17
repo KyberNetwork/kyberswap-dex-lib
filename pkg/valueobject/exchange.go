@@ -7,6 +7,7 @@ type Exchange string
 const (
 	Exchange1010Prop                    = "1010-prop"
 	ExchangeAeonV2                      = "aeon-v2"
+	ExchangeAeroCL                      = "aero-cl"
 	ExchangeAeroV2Stable                = "aero-v2-stable"
 	ExchangeAeroV2Volatile              = "aero-v2-volatile"
 	ExchangeAlienBaseStableSwap         = "alien-base-stableswap"
@@ -52,6 +53,8 @@ const (
 	ExchangeBeethovenXWeighted          = "beethovenx-weighted"
 	ExchangeBiconomyProp                = "biconomy-prop"
 	ExchangeDaikonProp                  = "daikon-prop"
+	ExchangeDopplerAMM                  = "doppler-amm"
+	ExchangeDopplerFun                  = "doppler-fun"
 	ExchangeBeetsSS                     = "beets-ss"
 	ExchangeBeracaine                   = "beracaine"
 	ExchangeBeraSwapComposableStable    = "beraswap-composable-stable"
@@ -118,6 +121,7 @@ const (
 	ExchangeEtherFieBTC                 = "etherfi-ebtc"
 	ExchangeEtherfiEETH                 = "etherfi-eeth"
 	ExchangeEtherfiLiquid               = "etherfi-liquid"
+	ExchangeEfraProp                    = "efra-prop"
 	ExchangeEtherfiVampire              = "etherfi-vampire"
 	ExchangeEtherfiWEETH                = "etherfi-weeth"
 	ExchangeEtherVista                  = "ether-vista"
@@ -228,6 +232,7 @@ const (
 	ExchangeOmniBin                     = "omni-bin"
 	ExchangeOmniCL                      = "omni-cl"
 	ExchangeOndoUSDY                    = "ondo-usdy"
+	ExchangeOneInchAqua                 = "1inch-aqua"
 	ExchangeOneSwap                     = "oneswap"
 	ExchangeOvernightUsdp               = "overnight-usdp"
 	ExchangePancake                     = "pancake"
@@ -513,6 +518,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeBiconomyProp:       {},
 	ExchangeDaikonProp:         {},
 	ExchangeStelaxisProp:       {},
+	ExchangeEfraProp:           {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
