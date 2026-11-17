@@ -17,11 +17,9 @@ import (
 func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 	factory := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	beacon := common.HexToAddress("0x2222222222222222222222222222222222222222")
-	implementation := common.HexToAddress("0x3333333333333333333333333333333333333333")
 	snapshot := trackerSnapshot{
-		BlockNumber:    10,
-		Beacon:         beacon,
-		Implementation: implementation,
+		BlockNumber: 10,
+		Beacon:      beacon,
 		Storage: pairStorage{
 			ReserveX:            big.NewInt(1_000),
 			ReserveY:            big.NewInt(2_000),
@@ -67,7 +65,6 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(got.StaticExtra), &staticExtra))
 	require.Equal(t, "0x1111111111111111111111111111111111111111", staticExtra.FactoryAddress)
 	require.Equal(t, "0x2222222222222222222222222222222222222222", staticExtra.PairBeacon)
-	require.Equal(t, "0x3333333333333333333333333333333333333333", staticExtra.PairImplementation)
 }
 
 func TestResolveSwapStateAccruesAnyElapsedLendingTime(t *testing.T) {
@@ -116,12 +113,10 @@ func TestDecodePairStorageV110(t *testing.T) {
 func TestUpdatePoolFromSnapshotDoesNotOverwriteNewerBlock(t *testing.T) {
 	factory := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	beacon := common.HexToAddress("0x2222222222222222222222222222222222222222")
-	implementation := common.HexToAddress("0x3333333333333333333333333333333333333333")
 	want := entity.Pool{BlockNumber: 11, Timestamp: 99, Reserves: entity.PoolReserves{"7", "8"}, Extra: `{"kept":true}`}
 	got, err := updatePoolFromSnapshot(want, &Config{FactoryAddress: factory.Hex()}, StaticExtra{}, trackerSnapshot{
-		BlockNumber:    10,
-		Beacon:         beacon,
-		Implementation: implementation,
+		BlockNumber: 10,
+		Beacon:      beacon,
 	}, 100, want.Timestamp)
 	require.NoError(t, err)
 	require.Equal(t, want, got)
@@ -130,9 +125,8 @@ func TestUpdatePoolFromSnapshotDoesNotOverwriteNewerBlock(t *testing.T) {
 func TestUpdatePoolFromSnapshotScheduledRefreshPreservesActivityTimestamp(t *testing.T) {
 	factory := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	beacon := common.HexToAddress("0x2222222222222222222222222222222222222222")
-	implementation := common.HexToAddress("0x3333333333333333333333333333333333333333")
 	snapshot := trackerSnapshot{
-		BlockNumber: 10, Beacon: beacon, Implementation: implementation,
+		BlockNumber: 10, Beacon: beacon,
 		Storage: pairStorage{ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000)},
 		References: referenceReservesRPC{
 			ReferenceReserveX: big.NewInt(900), ReferenceReserveY: big.NewInt(1_800),
@@ -167,14 +161,12 @@ func TestPoolTrackerActivityTimestampIgnoresScheduledZeroLog(t *testing.T) {
 func TestReconcileTrackerMetadataLearnsBlankValuesAndRejectsMismatch(t *testing.T) {
 	factory := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	beacon := common.HexToAddress("0x2222222222222222222222222222222222222222")
-	implementation := common.HexToAddress("0x3333333333333333333333333333333333333333")
 	other := common.HexToAddress("0x4444444444444444444444444444444444444444")
 
-	got, err := reconcileTrackerMetadata(&Config{FactoryAddress: factory.Hex()}, StaticExtra{}, beacon, implementation)
+	got, err := reconcileTrackerMetadata(&Config{FactoryAddress: factory.Hex()}, StaticExtra{}, beacon)
 	require.NoError(t, err)
 	require.Equal(t, factory.Hex(), got.FactoryAddress)
 	require.Equal(t, beacon.Hex(), got.PairBeacon)
-	require.Equal(t, implementation.Hex(), got.PairImplementation)
 
 	for name, tc := range map[string]struct {
 		config *Config
@@ -191,30 +183,12 @@ func TestReconcileTrackerMetadataLearnsBlankValuesAndRejectsMismatch(t *testing.
 			config: &Config{FactoryAddress: factory.Hex()},
 			static: StaticExtra{PairBeacon: other.Hex()},
 		},
-		"configured implementation": {
-			config: &Config{FactoryAddress: factory.Hex(), PairImplementation: other.Hex()},
-		},
-		"stored implementation upgrade": {
-			config: &Config{FactoryAddress: factory.Hex()},
-			static: StaticExtra{PairImplementation: other.Hex()},
-		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			_, err := reconcileTrackerMetadata(tc.config, tc.static, beacon, implementation)
+			_, err := reconcileTrackerMetadata(tc.config, tc.static, beacon)
 			require.Error(t, err)
 		})
 	}
-}
-
-func TestNewPoolTrackerRequiresPinnedImplementationForStorageLayout(t *testing.T) {
-	_, err := NewPoolTracker(&Config{}, nil)
-	require.Error(t, err)
-
-	tracker, err := NewPoolTracker(&Config{
-		PairImplementation: "0x3333333333333333333333333333333333333333",
-	}, nil)
-	require.NoError(t, err)
-	require.NotNil(t, tracker)
 }
 
 func TestPoolTrackerNextUpdateAt(t *testing.T) {
@@ -243,4 +217,17 @@ func TestTrackerABIMultiReturnDecodeShape(t *testing.T) {
 	require.NoError(t, pairABI.UnpackIntoInterface(&totals, "totalAssetsAndShares", totalsData))
 	require.Equal(t, int64(5), totals.AllAssets[4].Int64())
 	require.Equal(t, int64(9), totals.AllShares[2].Int64())
+}
+
+// A beacon implementation upgrade must not stop updates, and pools stored with
+// the retired pairImplementation field must still decode and update.
+func TestOldPairImplementationFieldIgnored(t *testing.T) {
+	factory := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	beacon := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	var staticExtra StaticExtra
+	require.NoError(t, json.Unmarshal([]byte(
+		`{"factoryAddress":"`+factory.Hex()+`","pairBeacon":"`+beacon.Hex()+
+			`","pairImplementation":"0x4c48819118171a2f907e8218a9aee7df5971fbca","g":1}`), &staticExtra))
+	_, err := reconcileTrackerMetadata(&Config{FactoryAddress: factory.Hex()}, staticExtra, beacon)
+	require.NoError(t, err)
 }
