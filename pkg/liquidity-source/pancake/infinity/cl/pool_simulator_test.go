@@ -19,6 +19,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
@@ -214,4 +215,38 @@ func pickRandomPools(pools []entity.Pool, n int) []entity.Pool {
 		}
 	}
 	return selected
+}
+
+// emptyTicksHook allows a pool without ticks, as the stable hook does.
+type emptyTicksHook struct{ *BaseHook }
+
+func (*emptyTicksHook) AllowEmptyTicks() bool { return true }
+
+var emptyTicksHookAddr = common.HexToAddress("0x00000000000000000000000000000000000e0071")
+
+var _ = RegisterHooksFactory(func(param *HookParam) Hook {
+	return &emptyTicksHook{NewBaseHook(valueobject.ExchangePancakeInfinityCL, param)}
+}, emptyTicksHookAddr)
+
+// TestPoolResetForTheLensIsNotSimulated: a pool reset for the lens keeps its tick and price but not
+// its liquidity until its next read. Its hook allows empty ticks, so only the missing liquidity
+// keeps the simulator from being built on it, and it fails rather than panics.
+func TestPoolResetForTheLensIsNotSimulated(t *testing.T) {
+	cfg := &Config{}
+	cfg.UseLens = true
+	tracker := &PoolTracker{config: cfg}
+
+	p := entity.Pool{
+		Address: "0xpool", SwapFee: 3000, Reserves: entity.PoolReserves{"0", "0"},
+		Tokens:      []*entity.PoolToken{{Address: "0x1", Decimals: 18}, {Address: "0x2", Decimals: 18}},
+		StaticExtra: `{"hooks":"` + emptyTicksHookAddr.Hex() + `","fee":3000,"tS":60}`,
+		Extra:       `{"liquidity":1,"sqrtPriceX96":79228162514264337593543950336,"tickSpacing":60,"tick":0,"ticks":[]}`,
+	}
+	_, err := NewPoolSimulator(p, 56)
+	require.NoError(t, err, "the hook lets a pool without ticks be simulated")
+
+	reset, ok := tracker.ResetPoolState(p, 100)
+	require.True(t, ok)
+	_, err = NewPoolSimulator(reset, 56)
+	require.ErrorIs(t, err, uniswapv3.ErrNoState)
 }

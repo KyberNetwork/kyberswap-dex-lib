@@ -1,6 +1,10 @@
 package algebrav1
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
+)
 
 type Config struct {
 	DexID              string
@@ -12,4 +16,11 @@ type Config struct {
 
 	AlwaysUseTickLens bool
 	TickLensAddress   string
+
+	// UseLens reads pools through AlgebraV1Lens: their state and every tick from
+	// one block in one eth_call, or a few when the ticks do not fit. A bootstrap then asks no
+	// subgraph, a pool without state gets its state on its first update, and ticks accumulated from
+	// logs that turn out invalid are replaced by the lens's set, which finds a tick the stored set
+	// lacked, rather than refetched index by index.
+	ephemeral.LensConfig
 }

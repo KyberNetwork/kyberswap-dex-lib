@@ -1,0 +1,132 @@
+{
+  "pkg/liquidity-source/algebra/integral/abis/lens.json": {
+    "contract": "AlgebraIntegralLens",
+    "sha256": "03e3e52902453e86742a2508a96875af3f0652285cbe7696b5b04a2c040a263a",
+    "sources": {
+      "pkg/util/ephemeral/contracts/algebra/integral/AlgebraIntegralLens.sol": "270a18c0dcc15ee7a2ddc28cfd41dea1a35d9af44911ddcb83568dc6e0dd8346",
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/AlgebraPool.sol": "d5624ecf9f7f7911c2f3ae196a3570ede3702971af79750c6350de72e6e55be3",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
+      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
+      "pkg/util/ephemeral/contracts/libraries/TickBitmap.sol": "f5a51032a37505e620a1fe5696b962f89fe0fe985fdd195d9011d36a81789b54"
+    }
+  },
+  "pkg/liquidity-source/algebra/integral/abis/plugin.json": {
+    "contract": "AlgebraIntegralPluginLens",
+    "sha256": "7a69b130546a0b09dbfd36105c9d07e32dcf2d675bb0a269cfa2aa2d24c25ada",
+    "sources": {
+      "pkg/util/ephemeral/contracts/algebra/integral/AlgebraIntegralPluginLens.sol": "5cd0bc30454cd01081021cbd4c06c4f461446f30bf28257bf70fafdc77549c31",
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/AlgebraPlugin.sol": "9897ee5ecaa9803fd760aaf12a252eb7087765004dbbc29ccba9c59e09c91386",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
+      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1"
+    }
+  },
+  "pkg/liquidity-source/algebra/v1/abis/lens.json": {
+    "contract": "AlgebraV1Lens",
+    "sha256": "0a4d66a5b4529d2faf861be09cb36492ae7dc437171e28d3ac98e015eaa8bd76",
+    "sources": {
+      "pkg/util/ephemeral/contracts/algebra/v1/AlgebraV1Lens.sol": "3f9304616ff7388d608f668eccf26f3ef92bd7a74503947197e62a5864a72ab4",
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/AlgebraPool.sol": "d5624ecf9f7f7911c2f3ae196a3570ede3702971af79750c6350de72e6e55be3",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
+      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
+      "pkg/util/ephemeral/contracts/libraries/TickBitmap.sol": "f5a51032a37505e620a1fe5696b962f89fe0fe985fdd195d9011d36a81789b54"
+    }
+  },
+  "pkg/liquidity-source/euler-swap/v2/abis/lens.json": {
+    "contract": "EulerSwapV2Lens",
+    "sha256": "cf657b21fe2bd513d76e0f73110dd4e1ce94c7687f2173be57057cfa6e4654d6",
+    "sources": {
+      "pkg/util/ephemeral/contracts/euler-swap/v2/EulerSwapV2Lens.sol": "14d6df6dd2b499b4d8f4c2fd6e931d14d2974e564d7ece1b6f232f0a131dfc44",
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea"
+    }
+  },
+  "pkg/liquidity-source/fluid/dex-v2/abis/lens.json": {
+    "contract": "FluidDexV2Lens",
+    "sha256": "33a7bed683f989ca92baa47cbb1d5058d350d67912b2edd7d22566a092f35b4b",
+    "sources": {
+      "pkg/util/ephemeral/contracts/fluid/dex-v2/FluidDexV2Lens.sol": "fd7eaa7d47f93ff5328b1c807f493441ee41347b83c619d1d5f340724f813bc2",
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
+      "pkg/util/ephemeral/contracts/libraries/FluidDexV2.sol": "a4319c7e22492fe498ec253e65e2651c5b00ec3ca71b79bf71b4cd574768c3b4",
+      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
+      "pkg/util/ephemeral/contracts/libraries/TickBitmap.sol": "f5a51032a37505e620a1fe5696b962f89fe0fe985fdd195d9011d36a81789b54"
+    }
+  },
+  "pkg/liquidity-source/pancake/infinity/bin/abi/lens.json": {
+    "contract": "PancakeInfinityBinLens",
+    "sha256": "bc3e97f3eac94fb71b0658e0dd64907d44345da3eab3c250e91631d166d2d2a4",
+    "sources": {
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/BinPoolManager.sol": "abe93aca48efbed326ec12ae437e31be2e9a675714abd6646afbb1f378ec5778",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
+      "pkg/util/ephemeral/contracts/libraries/GasPrice.sol": "3c3ff4dd9c1a40f0356b3581a916c49c9fd8c11b84796bdcb8fbe178c85057a5",
+      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
+      "pkg/util/ephemeral/contracts/pancake/infinity/bin/PancakeInfinityBinLens.sol": "6ba8fc8c7134bbe97e5eb2d12cdc211bc8f93d12ca19c2d5139896b03e240aba"
+    }
+  },
+  "pkg/liquidity-source/pancake/infinity/cl/abi/lens.json": {
+    "contract": "PancakeInfinityCLLens",
+    "sha256": "e156f3ad1aef1cdcc95ce26999297ac4a3edfdae85b423366129816cd4e55beb",
+    "sources": {
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/CLPoolManager.sol": "c238702ea7272f66a0225f192784c1054d91c2c66582a76a9e986998e29d6937",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
+      "pkg/util/ephemeral/contracts/libraries/PoolManagerStorage.sol": "310c67b0761c9f04280219319fab270e1240864d9c0a273dd1f3411bf727ccb6",
+      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
+      "pkg/util/ephemeral/contracts/libraries/TickBitmap.sol": "f5a51032a37505e620a1fe5696b962f89fe0fe985fdd195d9011d36a81789b54",
+      "pkg/util/ephemeral/contracts/pancake/infinity/cl/PancakeInfinityCLLens.sol": "1f7cb5fe13802a18452a05ea193567442873b3ec4781075462b7b77e93b11dfa"
+    }
+  },
+  "pkg/liquidity-source/uniswap/v3/abis/lens.json": {
+    "contract": "V3Lens",
+    "sha256": "2505e8722248c97d0630dc3def257d262e1f63fdfddd2f9117cbf212dd602d2a",
+    "sources": {
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
+      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
+      "pkg/util/ephemeral/contracts/libraries/TickBitmap.sol": "f5a51032a37505e620a1fe5696b962f89fe0fe985fdd195d9011d36a81789b54",
+      "pkg/util/ephemeral/contracts/libraries/V3Pool.sol": "2d8c0988435913b4ae32d6888bb23b31a5a413f148410f80ec0af0035f6b59b4",
+      "pkg/util/ephemeral/contracts/uniswap/v3/V3Lens.sol": "3977af872875adc8a7d0aa9ec5d42ad787f887eebb9b60ec19d34a05bfc06f50"
+    }
+  },
+  "pkg/liquidity-source/uniswap/v4/abi/lens.json": {
+    "contract": "V4Lens",
+    "sha256": "4e42a1a94942b762d58f9f238bb8641be7df6491856e4a2ff53f7e5e147282e9",
+    "sources": {
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
+      "pkg/util/ephemeral/contracts/libraries/PoolManagerStorage.sol": "310c67b0761c9f04280219319fab270e1240864d9c0a273dd1f3411bf727ccb6",
+      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
+      "pkg/util/ephemeral/contracts/libraries/TickBitmap.sol": "f5a51032a37505e620a1fe5696b962f89fe0fe985fdd195d9011d36a81789b54",
+      "pkg/util/ephemeral/contracts/libraries/V4StateView.sol": "1720f662a153d7b77ecdb12e0f6a4b019eeef05e3ec1a0bafe94675dae2f703b",
+      "pkg/util/ephemeral/contracts/uniswap/v4/V4Lens.sol": "77791a9de11019ec094cb2a33c8f512089e005df634048b0250b4f50de18455b"
+    }
+  },
+  "pkg/source/liquiditybookv20/abis/lens.json": {
+    "contract": "LiquidityBookV20Lens",
+    "sha256": "c52943825793be1086ec46f3f8f292efb7b489d672ee942552d6ad9d9de92ca1",
+    "sources": {
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
+      "pkg/util/ephemeral/contracts/libraries/GasPrice.sol": "3c3ff4dd9c1a40f0356b3581a916c49c9fd8c11b84796bdcb8fbe178c85057a5",
+      "pkg/util/ephemeral/contracts/libraries/LBPairV20.sol": "06fcf9062295a817eae9ab08448c56f34a8b2569183467165368293c8ea1410f",
+      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
+      "pkg/util/ephemeral/contracts/liquiditybook/v20/LiquidityBookV20Lens.sol": "079b742f2d7edf252ced15b2914dd62d95f6d0da9e3db4e926aaefe1dd87b379"
+    }
+  },
+  "pkg/source/liquiditybookv21/abis/lens.json": {
+    "contract": "LiquidityBookV21Lens",
+    "sha256": "74dd77c29348a62721119b16b34f0246fb2000e2ea2ccde67117e6fda6b2e5d3",
+    "sources": {
+      "pkg/util/ephemeral/contracts/foundry.toml": "bd03126b1f48821cef861a346d2c4ac11244bfda19e52d68ca770ccafff83a7e",
+      "pkg/util/ephemeral/contracts/libraries/ChainBlock.sol": "f104f44e024d35102f10fe092a290e7740ca69053d032ff81a1bfa3770b6a0ea",
+      "pkg/util/ephemeral/contracts/libraries/GasPrice.sol": "3c3ff4dd9c1a40f0356b3581a916c49c9fd8c11b84796bdcb8fbe178c85057a5",
+      "pkg/util/ephemeral/contracts/libraries/LBPair.sol": "5b49b65b8129934ea8a6c12a61005805b048d94b38c6777e605590cf452e43fa",
+      "pkg/util/ephemeral/contracts/libraries/ReturnGas.sol": "28eb4669ec8cf62940bbb2b1fc0cbd3508981317a1b59754694063fd1b4ae0f1",
+      "pkg/util/ephemeral/contracts/liquiditybook/v21/LiquidityBookV21Lens.sol": "5e292bd67ed6ed0277c9a9cdb2069504ae61d921444477cb73dcaf7acb633d6f"
+    }
+  }
+}

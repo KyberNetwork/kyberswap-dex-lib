@@ -91,6 +91,8 @@ type FetchRPCResult struct {
 	HookExtra   json.RawMessage     `json:"hX,omitempty"`
 	TrackedAt   int64               `json:"lv,omitempty"`
 	FewReserves []*big.Int          `json:"fwR,omitempty"`
+	// LensBlock is the block the ticks were last read whole at through the lens, 0 if never.
+	LensBlock uint64 `json:"-"`
 	// StateBlock is the block R the slot0/liquidity read ran at, 0 under eth_call overrides. Hook
 	// state is read at R only by hooks that pass HookParam.BlockNumber to their calls. ToExtra copies
 	// it to the Extra.
@@ -103,12 +105,12 @@ type FetchRPCResult struct {
 func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
 	extra := Extra{
 		Extra: &uniswapv3.Extra{
-			Liquidity:    r.Liquidity,
-			TickSpacing:  uint64(r.TickSpacing),
-			SqrtPriceX96: r.Slot0.SqrtPriceX96,
-			Tick:         r.Slot0.Tick,
-			Ticks:        ticks,
-
+			Liquidity:            r.Liquidity,
+			TickSpacing:          uint64(r.TickSpacing),
+			SqrtPriceX96:         r.Slot0.SqrtPriceX96,
+			Tick:                 r.Slot0.Tick,
+			Ticks:                ticks,
+			LensBlock:            r.LensBlock,
 			TicksBasedStateBlock: r.TicksBasedStateBlock,
 		},
 		HookExtra:   r.HookExtra,

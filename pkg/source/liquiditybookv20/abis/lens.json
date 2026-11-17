@@ -1,0 +1,102 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "pair",
+          "type": "address"
+        },
+        {
+          "internalType": "uint24",
+          "name": "startId",
+          "type": "uint24"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "pair",
+          "type": "address"
+        },
+        {
+          "internalType": "uint24",
+          "name": "startId",
+          "type": "uint24"
+        }
+      ],
+      "name": "getSnapshot",
+      "outputs": [
+        {
+          "internalType": "uint24",
+          "name": "activeId",
+          "type": "uint24"
+        },
+        {
+          "internalType": "uint128",
+          "name": "reserveX",
+          "type": "uint128"
+        },
+        {
+          "internalType": "uint128",
+          "name": "reserveY",
+          "type": "uint128"
+        },
+        {
+          "internalType": "uint256",
+          "name": "blockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint24",
+          "name": "nextId",
+          "type": "uint24"
+        },
+        {
+          "internalType": "bool",
+          "name": "done",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint24",
+              "name": "id",
+              "type": "uint24"
+            },
+            {
+              "internalType": "uint128",
+              "name": "reserveX",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "reserveY",
+              "type": "uint128"
+            }
+          ],
+          "internalType": "struct LiquidityBookV20Lens.PopulatedBin[]",
+          "name": "bins",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ReserveOverflow",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "UnexpectedPairResponse",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x6080601f6103e038819003918201601f19168301916001600160401b0383118484101761034e57808492604094855283398101031261034a578051906001600160a01b038216820361034a57602001519062ffffff8216820361034a575a604051630d82dc1f60e11b81529290606084600481865afa15610341573d9284519160606040602088015197015195106102fb578260801c1580610336575b156102e1575a81039081116102c457612af881111561032c578061ea60029061ea608204036102c457612af89004945b6040805161012081018252945f939091846100e96104fe8b610362565b935b845a1061031557630157d2d160e31b5f5262ffffff8116908160045260405f602481885afa1561030a573d5f51604060205192106102fb578060801c15806102f0575b156102e1576001600160801b03908116911681158015906102d8575b61022f575b505061015b818661036f565b9290921590811561021f575b5061017257506100eb565b93505050506101209596975062ffffff91506001925b5f905f60643b6101f8575b156101f0575b606086029661010088018a528460208b019b168b5260018060801b031660408a015260018060801b0316606089015260808801521660a0860152151560c085015260e0808501526101008401528201016040525190fd5b439150610199565b50905063a3b1b31d60e01b5f5260205f6004816064614e20fa60203d1416905f5191610193565b905062ffffff831611155f610167565b906101809160608b949b028d019185610120840152610140830152610160820152016040525f1981146102c4576001019683881461026f575b5f8061014f565b9450604083018093116102c457826060810290808204606014901517156102c4576101000180610100116102c4576102b86102be91601f0160051c80800260091c906006020190565b8c610362565b94610268565b634e487b7160e01b5f52601160045260245ffd5b5080151561014a565b63446c8cc960e01b5f5260045ffd5b508160801c1561012e565b63276b14a360e21b5f5260045ffd5b6040513d5f823e3d90fd5b92509390506101209697985062ffffff9250610188565b5061ea60946100cc565b508560801c1561009c565b833d5f823e3d90fd5b5f80fd5b634e487b7160e01b5f52604160045260245ffd5b919082018092116102c457565b5f604462ffffff93602093604051958692638f919a8360e01b84521660048301528360248301525afa90811590816103c3575b503d5f51916103ba576020116102fb5762ffffff1691565b5050505f905f90565b3d5f823e6310d64861815160e01c1460043d14166103a2573d90fdfe"
+}

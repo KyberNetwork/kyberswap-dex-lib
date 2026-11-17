@@ -73,6 +73,8 @@ type Extra struct {
 	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
+	// LensBlock is the block the ticks were last read whole at through the lens, 0 if never.
+	LensBlock uint64 `json:"lensBlock,omitempty"`
 
 	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"` // for pons-fun
 
@@ -91,6 +93,7 @@ type ExtraTickU256 struct {
 	TickSpacing  uint64       `json:"tickSpacing"`
 	Tick         *int         `json:"tick"`
 	Ticks        []TickU256   `json:"ticks"`
+	LensBlock    uint64       `json:"lensBlock,omitempty"`
 
 	BuyRestrictedToken string   `json:"buyRestrictedToken,omitempty"`
 	MaxTxToken         string   `json:"maxTxToken,omitempty"`
@@ -105,6 +108,7 @@ type ExtraTickU256 struct {
 func (u ExtraTickU256) ToExtra() Extra {
 	out := Extra{
 		TickSpacing:          u.TickSpacing,
+		LensBlock:            u.LensBlock,
 		BuyRestrictedToken:   u.BuyRestrictedToken,
 		MaxTxToken:           u.MaxTxToken,
 		MaxTxAmount:          u.MaxTxAmount,

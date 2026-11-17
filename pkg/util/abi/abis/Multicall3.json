@@ -78,5 +78,112 @@
         ]
       }
     ]
+  },
+  {
+    "name": "aggregate",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "name": "calls",
+        "internalType": "struct Multicall3.Call[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "target",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "callData",
+            "internalType": "bytes",
+            "type": "bytes"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "blockNumber",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "returnData",
+        "internalType": "bytes[]",
+        "type": "bytes[]"
+      }
+    ]
+  },
+  {
+    "name": "tryBlockAndAggregate",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "name": "requireSuccess",
+        "internalType": "bool",
+        "type": "bool"
+      },
+      {
+        "name": "calls",
+        "internalType": "struct Multicall3.Call[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "target",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "callData",
+            "internalType": "bytes",
+            "type": "bytes"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "blockNumber",
+        "internalType": "uint256",
+        "type": "uint256"
+      },
+      {
+        "name": "blockHash",
+        "internalType": "bytes32",
+        "type": "bytes32"
+      },
+      {
+        "name": "returnData",
+        "internalType": "struct Multicall3.Result[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "success",
+            "internalType": "bool",
+            "type": "bool"
+          },
+          {
+            "name": "returnData",
+            "internalType": "bytes",
+            "type": "bytes"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "getCurrentBlockTimestamp",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "timestamp",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ]
   }
 ]
