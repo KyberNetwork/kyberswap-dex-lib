@@ -96,6 +96,19 @@ func CalculateSwapFee(protocolFee, lpFee FeeAmount) FeeAmount {
 	return protocolFee + lpFee - protocolFee*lpFee/1_000_000
 }
 
+// DirectionalSwapFee is the fee PoolManager.swap charges on a tracked pool in the given direction.
+// SwapFee is the zeroForOne fee; oneForZero combines slot0's LP fee with the oneForZero protocol
+// fee from Extra.pF. Without pF it is SwapFee in both directions.
+func DirectionalSwapFee(p *entity.Pool, zeroForOne bool) FeeAmount {
+	var extra struct {
+		Fees uint64 `json:"pF"`
+	}
+	if zeroForOne || p.Extra == "" || json.Unmarshal([]byte(p.Extra), &extra) != nil || extra.Fees == 0 {
+		return FeeAmount(p.SwapFee)
+	}
+	return CalculateSwapFee(directionalProtocolFee(uint32(extra.Fees&0xffffff), false), FeeAmount(extra.Fees>>24))
+}
+
 // directionalProtocolFee is ProtocolFeeLibrary.getZeroForOneFee / getOneForZeroFee.
 func directionalProtocolFee(protocolFee uint32, zeroForOne bool) FeeAmount {
 	if zeroForOne {
