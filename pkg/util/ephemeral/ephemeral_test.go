@@ -456,6 +456,49 @@ func TestGuardNeverWaits(t *testing.T) {
 	assert.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
+// TestGuardBacksOffAFailingKey: a key's cooldown doubles with each attempt that fails in a row, up
+// to the longest, and is back to the base after one that succeeds.
+func TestGuardBacksOffAFailingKey(t *testing.T) {
+	g := NewGuard(GuardConfig{Burst: 1000})
+	failed := errors.New("read failed")
+	attemptAgain := func(err error) time.Duration {
+		t.Helper()
+		if a, ok := g.last["pool"]; ok {
+			a.at = a.at.Add(-time.Hour) // past any cooldown
+			g.last["pool"] = a
+		}
+		ran, _ := g.Try(t.Context(), "pool", func(context.Context) error { return err })
+		require.True(t, ran)
+		a := g.last["pool"]
+		assert.Equal(t, a.at.Add(a.wait), g.ReadyAt("pool", a.at))
+		return a.wait
+	}
+
+	for i, want := range []time.Duration{12, 24, 30, 30} {
+		assert.Equal(t, want*time.Second, attemptAgain(failed), "failure %d", i+1)
+	}
+	assert.Equal(t, 12*time.Second, attemptAgain(nil), "back to the base after a success")
+	assert.Equal(t, 12*time.Second, attemptAgain(failed), "a failure after a success starts again")
+	for range 100 {
+		attemptAgain(failed)
+	}
+	assert.Equal(t, 30*time.Second, g.last["pool"].wait, "no overflow however long it fails")
+
+	g = NewGuard(GuardConfig{Burst: 1000, CooldownSecs: 60, MaxCooldownSecs: 30})
+	_, _ = g.Try(t.Context(), "pool", func(context.Context) error { return failed })
+	assert.Equal(t, time.Minute, g.last["pool"].wait, "the longest cooldown is never below the base")
+
+	g = NewGuard(GuardConfig{Burst: 1000})
+	inside, release := make(chan struct{}), make(chan struct{})
+	go func() {
+		_, _ = g.Try(t.Context(), "slow", func(context.Context) error { close(inside); <-release; return nil })
+	}()
+	<-inside
+	ran, _ := g.Try(t.Context(), "slow", func(context.Context) error { return nil })
+	assert.False(t, ran, "the same key while its attempt runs")
+	close(release)
+}
+
 func TestCheckBins(t *testing.T) {
 	bin := func(id uint32, x, y int64) Bin { return Bin{ID: id, ReserveX: big.NewInt(x), ReserveY: big.NewInt(y)} }
 	bins := []Bin{bin(10, 0, 5), bin(11, 3, 2), bin(12, 4, 0)}
