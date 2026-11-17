@@ -32,14 +32,18 @@ const (
 	// the hub). Measured on Monad in Tenderly (swap_qe frame): 8 direct hub-pair swaps averaged
 	// 155746 gas, 6 spoke-to-spoke swaps 161239, so one extra hop costs 5493.
 	GasPerExtraHop = 5_493
-	// MaxAge drops a stale sampled ladder rather than quoting marks the keeper
-	// has since moved. The keeper pushes about every 3 s and the tracker refreshes on its poll,
-	// so a ladder is replaced within a few pushes: 15 s. Every sampled output is also
-	// scaled down by the worst-case drift of the pool's staleness premium over MaxAge plus
-	// InclusionAllowance (see guard.refine), so a longer window costs competitiveness, a shorter one only refetches.
-	MaxAge = 15 * time.Second
-	// InclusionAllowance extends the drift window past MaxAge for the time a swap takes to land.
-	InclusionAllowance = 2 * time.Second
+	// MaxAge drops a sampled ladder older than this at quote time rather than quoting marks the
+	// keeper has since moved. It is a drop rule only: the haircut is sized from the quote's actual
+	// age (see Extra.factor). Kyber's route snapshots of the pool measured 2.1 to 7.3 s old
+	// (median 4.0 s, 360 routes, 2026-11-16), so 10 s drops none of them.
+	MaxAge = 10 * time.Second
+	// InclusionAllowance is the time a routed swap takes to land, added to the quote's age when
+	// sizing the haircut. Measured on Monad over the 7 days to 2026-11-16 (5061 KyberSwap router
+	// swaps, ClientData build timestamp to landing block): p50 5 s, 75% within 9 s, p90 18 s. The
+	// pool's premium resets on every keeper push, so a swap landing later is short of the haircut
+	// only when no push happened in between: replayed on 24 h of pushes, under 1.5% of fills on
+	// the volatile legs. Mark moves over the delay are the trader's slippage, as on any venue.
+	InclusionAllowance = 9 * time.Second
 	// RPCTimeout bounds one tracker refresh.
 	RPCTimeout = 60 * time.Second
 )

@@ -126,6 +126,66 @@
     "type": "address"
    }
   ],
+  "name": "getAssetHook",
+  "outputs": [
+   {
+    "components": [
+     {
+      "internalType": "address",
+      "name": "target",
+      "type": "address"
+     },
+     {
+      "internalType": "uint32",
+      "name": "flags",
+      "type": "uint32"
+     },
+     {
+      "internalType": "uint32",
+      "name": "lastCreditAt",
+      "type": "uint32"
+     },
+     {
+      "internalType": "uint32",
+      "name": "creditBookCode",
+      "type": "uint32"
+     }
+    ],
+    "internalType": "struct IPool.HookSlot",
+    "name": "",
+    "type": "tuple"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "tk",
+    "type": "address"
+   }
+  ],
+  "name": "getInvested",
+  "outputs": [
+   {
+    "internalType": "uint128",
+    "name": "",
+    "type": "uint128"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "tk",
+    "type": "address"
+   }
+  ],
   "name": "getLegMark",
   "outputs": [
    {
