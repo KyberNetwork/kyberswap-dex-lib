@@ -13,18 +13,13 @@ import urllib.request
 
 PROXY = '0x80c74517bcc2d67ffe02d3ed886796272f647210'
 PAGE = '0x6a7373d6' + '0' * 64 + f'{28:064x}'
-ISSUERS = {'0x' + x for x in (
-    '90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48', 'a753a7395cae905cd615da0b82a53e0560f250af',
-    '8d512a03600981b8e86556fd5c0fbdd726fe1821', '299c95eb52bfd5bc98d924bce17197b64864589b',
-    'c845b2894dbddd03858fd2d643b4ef725fe0849d', '8ad3c73f833d3f9a523ab01476625f269aeb7cf0',
-    '68fa48b1c2fe52b3d776e1953e0e782b5044ce28', 'f6a873bae4ba1b304e45df52a4b7d176e1c6a8c4',
-    '58100046a4afcd4ee4fadbd4244f3f895a341c56')}
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CODE = bytes.fromhex((ROOT / 'abi/ThogSnapshotLens.bin').read_text().strip())
 
 
 def request(url, payload, timeout):
-    req = urllib.request.Request(url, json.dumps(payload).encode(), {'Content-Type': 'application/json'})
+    # Some public endpoints reject urllib's default User-Agent.
+    req = urllib.request.Request(url, json.dumps(payload).encode(), {'Content-Type': 'application/json', 'User-Agent': 'thog-prop-probe'})
     with urllib.request.urlopen(req, timeout=timeout) as response:
         return json.load(response)
 
@@ -71,20 +66,23 @@ def run_read(url, design, timeout):
         assert (number, fee, parent) == (int(header['number'], 16), int(header['baseFeePerGas'], 16), header['parentHash'])
     if design != 'hash':
         block = hex(number)
+    # Per token: the pool's storedMultiplier(token), then the token's sharesOf(pool).
+    # Only tokens with a nonzero multiplier are share-based; other tokens may fail sharesOf.
     batch = []
     for token in tokens:
-        if token in ISSUERS:
-            batch.extend([call(token, '0xf5eb42dc' + PROXY[2:].rjust(64, '0'), block), call(PROXY, '0xf59bc74a' + token[2:].rjust(64, '0'), block)])
+        batch.extend([call(PROXY, '0xf59bc74a' + token[2:].rjust(64, '0'), block), call(token, '0xf5eb42dc' + PROXY[2:].rjust(64, '0'), block)])
     # The page-first reader confirms the same page in the share/multiplier batch.
     if design == 'page':
         batch.append(call(PROXY, PAGE, block))
     for i, item in enumerate(batch):
         item['id'] = i
-    replies = request(url, batch, timeout)
-    results = {item['id']: checked(item) for item in replies}
-    assert len(results) == len(batch)
+    replies = {item['id']: item for item in request(url, batch, timeout)}
+    assert len(replies) == len(batch)
+    for i in range(len(tokens)):
+        if int(checked(replies[2 * i]), 16):
+            checked(replies[2 * i + 1])
     if design == 'page':
-        assert results[len(batch) - 1] == raw, 'page changed at pinned number'
+        assert checked(replies[len(batch) - 1]) == raw, 'page changed at pinned number'
     return None
 
 

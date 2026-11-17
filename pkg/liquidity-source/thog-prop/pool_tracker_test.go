@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"maps"
 	"math/big"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -34,13 +35,25 @@ func TestSnapshotRejectsIncompleteOrIncompatibleImages(t *testing.T) {
 		_, err := snapshotState(p, sample.ShareBalances)
 		require.Error(t, err)
 	}
+	// Share holdings must belong to listed tokens, carry the nonzero multiplier
+	// that marks a token share-based, and value to the page's reported balance.
 	p := fixturePage(t, sample)
-	_, err := snapshotState(p, nil)
-	require.Error(t, err)
-	shares := maps.Clone(sample.ShareBalances)
-	shares[f.Proxy] = ShareBalance{}
-	_, err = snapshotState(p, shares)
-	require.Error(t, err)
+	require.NotEmpty(t, sample.ShareBalances)
+	token := slices.Sorted(maps.Keys(sample.ShareBalances))[0]
+	for _, mutate := range []func(map[string]ShareBalance){
+		func(shares map[string]ShareBalance) { shares[f.Proxy] = ShareBalance{Multiplier: u(1)} },
+		func(shares map[string]ShareBalance) { shares[token] = ShareBalance{Shares: shares[token].Shares} },
+		func(shares map[string]ShareBalance) {
+			holding := shares[token]
+			holding.Shares.AddUint64(&holding.Shares, 1_000_000_000_000)
+			shares[token] = holding
+		},
+	} {
+		shares := maps.Clone(sample.ShareBalances)
+		mutate(shares)
+		_, err := snapshotState(p, shares)
+		require.Error(t, err)
+	}
 }
 func TestTrackerSchedulesUpdatesWithoutMakerEvents(t *testing.T) {
 	tracker := &PoolTracker{}

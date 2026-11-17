@@ -59,6 +59,11 @@ func decodeSnapshot(data []byte) (poolData, error) {
 	err := thogAMMABI.UnpackIntoInterface(&out, methodGetPoolData, data)
 	return out.Data, err
 }
+
+// snapshotState builds the quote state from one getPoolData page and the pool's
+// share-based holdings, keyed by lowercase token address. A reader must have asked
+// the pool for every listed token's stored multiplier; tokens absent from shares
+// are ordinary ERC-20s.
 func snapshotState(p poolData, shares map[string]ShareBalance) (s State, err error) {
 	n := int(p.TokenCount)
 	categories := int(p.CategoryCount)
@@ -112,13 +117,15 @@ func snapshotState(p poolData, shares map[string]ShareBalance) (s State, err err
 			return s, ErrInvalidState
 		}
 	}
-	expectedShares := 0
-	for _, t := range s.Tokens {
-		if isXStock(t.Address) {
-			expectedShares++
+	// Every holding belongs to a listed token and carries the nonzero multiplier
+	// that marks it share-based.
+	held := 0
+	for i := range s.Tokens {
+		if s.shareBased(i) {
+			held++
 		}
 	}
-	if len(shares) != expectedShares {
+	if len(shares) != held {
 		return s, ErrInvalidState
 	}
 	if err != nil {

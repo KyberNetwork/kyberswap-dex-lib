@@ -31,7 +31,7 @@ func TestPackedFieldsMatchIntegerMask(t *testing.T) {
 }
 
 func TestShareConversionsPreserveExactIdentityAndDustBoundaries(t *testing.T) {
-	state := State{Tokens: []Token{{Address: xStocks[0]}}}
+	state := State{Tokens: []Token{{Address: "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48"}}}
 	for _, multiplier := range []uint256.Int{
 		u(1), powers[18], u(2_000_000_000_000_000_000),
 		u(2_000_000_000_000_000_001), u(3_100_000_000_000_000_001), maxInventory,
@@ -62,8 +62,13 @@ func TestShareConversionsPreserveExactIdentityAndDustBoundaries(t *testing.T) {
 	require.Equal(t, maxUint, state.amountForUnits(&identityMath, 0, maxUint))
 	require.Equal(t, maxUint, state.transferUnits(&identityMath, 0, maxUint))
 	require.NoError(t, identityMath.err)
+	// A zero multiplier is the pool's marker for an ordinary ERC-20: amounts are
+	// units and transfers need no rounding allowance.
 	state.Shares[0].Multiplier.Clear()
-	m := arithmetic{}
-	state.transferUnits(&m, 0, u(1))
-	require.ErrorIs(t, m.err, ErrOverflow, "zero multiplier must still reject division")
+	ordinary := arithmetic{}
+	require.False(t, state.shareBased(0))
+	require.Equal(t, u(7), state.amountForUnits(&ordinary, 0, u(7)))
+	require.Equal(t, u(7), state.transferUnits(&ordinary, 0, u(7)))
+	require.True(t, new(state.transferDust(&ordinary, 0)).IsZero())
+	require.NoError(t, ordinary.err)
 }

@@ -128,7 +128,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		units uint256.Int
 	}{{swap.InputIndex, swap.InputUnits}, {swap.OutputIndex, swap.OutputUnits}} {
 		s.state.setAccountedUnits(endpoint.index, endpoint.units)
-		if isXStock(s.state.Tokens[endpoint.index].Address) {
+		if s.state.shareBased(endpoint.index) {
 			s.state.Shares[endpoint.index].Shares = endpoint.units
 		}
 	}

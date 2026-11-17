@@ -52,14 +52,13 @@ func (s *State) validate() error {
 		return ErrInvalidState
 	}
 	for i, t := range s.Tokens {
-		holding := s.Shares[i]
-		if isXStock(t.Address) {
+		if s.shareBased(i) {
+			// The page reports a share-based token at the pool's stored multiplier.
 			m := arithmetic{}
-			balance := s.amountForUnits(&m, i, holding.Shares)
-			if holding.Multiplier.IsZero() || m.err != nil || balance != s.Balances[i] {
+			if balance := s.amountForUnits(&m, i, s.Shares[i].Shares); m.err != nil || balance != s.Balances[i] {
 				return ErrInvalidState
 			}
-		} else if holding != (ShareBalance{}) {
+		} else if !s.Shares[i].Shares.IsZero() {
 			return ErrInvalidState
 		}
 		catalogID := int(s.small(9+i/3, i%3*75, 5))
