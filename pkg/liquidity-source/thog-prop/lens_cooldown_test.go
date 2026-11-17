@@ -29,7 +29,7 @@ func multicallReply(t *testing.T, sample contractSnapshot, blockTime uint64) str
 			continue
 		}
 		results = append(results, tryResult{Success: true, ReturnData: encodedWords(holding.Shares)},
-			tryResult{Success: true, ReturnData: encodedWords(holding.Multiplier, u(0), u(0))})
+			tryResult{Success: true, ReturnData: encodedWords(holding.Multiplier)})
 	}
 	out, err := abipkg.Multicall3ABI.Methods[abipkg.Multicall3TryAggregate].Outputs.Pack(results)
 	require.NoError(t, err)

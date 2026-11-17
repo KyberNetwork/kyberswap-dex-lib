@@ -188,6 +188,9 @@ func (s *State) prepareWithAgeCheck(i, o int, block uint64, checkAge bool) (c cu
 			}
 		}
 		for category := 0; category < s.CategoryCount; category++ {
+			if diff[category] == 0 {
+				continue // This category's exposure was not evaluated and contributes zero.
+			}
 			c.gradient = m.ia(c.gradient, m.id(m.im(exposure[category], si(diff[category])), si(1000000000)))
 		}
 	}
@@ -250,14 +253,19 @@ func (s *State) checkInventory(c *curve, input, output uint256.Int, quote bool) 
 		if t.Address == wmon {
 			balance = m.add(balance, s.NativeBalance)
 		}
-		beforeValue = m.add(beforeValue, m.md(balance, s.price(i, false), powers[t.Decimals], false))
+		price := s.price(i, false)
+		tokenValue := m.md(balance, price, powers[t.Decimals], false)
+		beforeValue = m.add(beforeValue, tokenValue)
 		if i == c.input {
 			balance = m.add(balance, input)
 		}
 		if i == c.output {
 			balance = m.sub(balance, output)
 		}
-		value = m.add(value, m.md(balance, s.price(i, false), powers[t.Decimals], false))
+		if i == c.input || i == c.output {
+			tokenValue = m.md(balance, price, powers[t.Decimals], false)
+		}
+		value = m.add(value, tokenValue)
 	}
 	categoryLimit := max(capLimit(&m, s.packed(104, int(category), 24, 10), quote), beforeValue)
 	if m.err != nil {

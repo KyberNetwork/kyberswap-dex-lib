@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Select unchanged contract observations from the full external capture directory.
 
-Usage: python3 testdata/select_fixtures.py /path/to/full/fixtures
+Usage: python3 testdata/select_fixtures.py /path/to/full/fixtures [fixture-name ...]
 No expected quote is calculated by this script.
 """
 import gzip
@@ -15,15 +15,22 @@ destination = Path(__file__).resolve().parent
 # Both directions: same-category stablecoins, cross-category ordinary tokens,
 # ordinary/xStock, and xStock/xStock. The one-block corpus covers all live pairs.
 pairs = {(0, 1), (1, 0), (0, 7), (7, 0), (0, 8), (8, 0), (8, 9), (9, 8)}
-for name in ['deployed-v8', 'boundaries-v8', 'execution-model3', 'deployed-model3', 'one-block-model3']:
+names = sys.argv[2:] or ['deployed-v8', 'boundaries-v8', 'execution-model3', 'deployed-model3', 'one-block-model3', 'deployed-stored-multipliers']
+for name in names:
     path = source / (name + '.json.gz')
     original = path.read_bytes()
     fixture = json.loads(gzip.decompress(original))
     total = sum(len(s['cases']) for s in fixture['snapshots'])
     for snapshot in fixture['snapshots']:
         cases = snapshot['cases']
+        selected_pairs = pairs
+        if name == 'deployed-stored-multipliers':
+            # All nine stocks against USDC in both directions, new-stock crosses,
+            # and ordinary-token controls. Keep raw outputs and source indices.
+            selected_pairs = {(0, i) for i in range(8, 17)} | {(i, 0) for i in range(8, 17)}
+            selected_pairs |= {(0, 1), (1, 0), (0, 4), (4, 0), (13, 14), (14, 13), (15, 16), (16, 15)}
         chosen = {i for i, c in enumerate(cases)
-                  if name == 'one-block-model3' or (c['inputIndex'], c['outputIndex']) in pairs}
+                  if name == 'one-block-model3' or (c['inputIndex'], c['outputIndex']) in selected_pairs}
         if name == 'execution-model3':
             # Preserve the largest measured successful Sell in each category class.
             raw = bytes.fromhex(snapshot['snapshot'][2:])

@@ -196,7 +196,7 @@ type tryResult struct {
 
 // readSnapshotMulticall is the fallback for providers that refuse the lens's
 // creation call. One Multicall3.tryAggregate at "latest" runs getPoolData, the
-// block timestamp and every catalog issuer's sharesOf/getCurrentMultiplier in one
+// block timestamp, every catalog issuer's sharesOf and the pool's storedMultiplier in one
 // EVM state, so nothing is pinned by hash or number. Unlisted catalog issuers may
 // revert; the page selects which issuer results are required.
 var multicall3Address = common.HexToAddress(multicall3)
@@ -205,7 +205,7 @@ var multicall3Address = common.HexToAddress(multicall3)
 const multicallCallCount = 2 + 2*len(xStocks)
 
 // multicallRequest encodes Multicall3.tryAggregate(false, [getPoolData(0, 28),
-// getCurrentBlockTimestamp, then sharesOf(proxy) and getCurrentMultiplier per issuer]).
+// getCurrentBlockTimestamp, then sharesOf(proxy) and storedMultiplier(token) per stock]).
 func multicallRequest(proxy common.Address) ([]byte, error) {
 	pageData, err := thogAMMABI.Pack(methodGetPoolData, uint8(0), uint8(maxTokens))
 	if err != nil {
@@ -215,16 +215,16 @@ func multicallRequest(proxy common.Address) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	multiplierData, err := thogAMMABI.Pack("getCurrentMultiplier")
-	if err != nil {
-		return nil, err
-	}
 	calls := make([]tryCall, 0, multicallCallCount)
 	calls = append(calls, tryCall{Target: proxy, CallData: pageData},
 		tryCall{Target: multicall3Address, CallData: common.FromHex(selectorGetCurrentBlockTimestamp)})
 	for _, token := range xStocks {
 		issuer := common.HexToAddress(token)
-		calls = append(calls, tryCall{Target: issuer, CallData: sharesData}, tryCall{Target: issuer, CallData: multiplierData})
+		multiplierData, err := thogAMMABI.Pack("storedMultiplier", issuer)
+		if err != nil {
+			return nil, err
+		}
+		calls = append(calls, tryCall{Target: issuer, CallData: sharesData}, tryCall{Target: proxy, CallData: multiplierData})
 	}
 	return abipkg.Multicall3ABI.Pack(abipkg.Multicall3TryAggregate, false, calls)
 }
@@ -270,15 +270,18 @@ func readSnapshotMulticall(ctx context.Context, client *rpc.Client, request []by
 			continue
 		}
 		sharesOf, multiplier := results[2+2*i], results[3+2*i]
-		if !sharesOf.Success || !multiplier.Success {
+		if !sharesOf.Success {
 			return State{}, 0, refreshFailure("issuer", "multicall issuer", fmt.Errorf("issuer %s: read reverted", issuer))
 		}
-		if len(sharesOf.ReturnData) != 32 || len(multiplier.ReturnData) != 96 {
-			return State{}, 0, refreshFailure("validation", "issuer result", ErrInvalidState)
+		if !multiplier.Success {
+			return State{}, 0, refreshFailure("contract", "multicall stored multiplier", fmt.Errorf("stock %s: read reverted", issuer))
+		}
+		if len(sharesOf.ReturnData) != 32 || len(multiplier.ReturnData) != 32 {
+			return State{}, 0, refreshFailure("validation", "share/multiplier result", ErrInvalidState)
 		}
 		var holding ShareBalance
 		holding.Shares.SetBytes(sharesOf.ReturnData)
-		holding.Multiplier.SetBytes(multiplier.ReturnData[:32])
+		holding.Multiplier.SetBytes(multiplier.ReturnData)
 		shares[issuer] = holding
 	}
 	state, err := snapshotState(page, shares)

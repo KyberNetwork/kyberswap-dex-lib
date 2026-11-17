@@ -16,7 +16,9 @@ world tests the three strict gas-price thresholds and warm AuctionHandler.
 `deployed-model3.json.gz` was captured at mainnet block **117211724** with the
 public guide's `tools/capture_quotes.py`. It records the canonical block hash,
 actual implementation address/code SHA-256, raw page, and issuer shares/multipliers.
-To reproduce the full source (archive RPC access required):
+To reproduce this historical source, use the guide at revision `d4e93c6`
+(the current capture tool targets the upgraded stored-multiplier ABI). Archive
+RPC access is required:
 
 ```sh
 python3 /path/to/thog-amm-integration-guide/tools/capture_quotes.py \
@@ -77,3 +79,36 @@ python3 pkg/liquidity-source/thog-prop/testdata/capture_lens_age.py \
 
 The capture tool refuses non-local endpoints. It uses read-only `eth_call` state
 and block overrides, and broadcasts no transactions.
+
+
+`deployed-stored-multipliers.json.gz` selects **312 of 3,264** contract observations
+from block **122916130**, with the current implementation
+`0xb108a1daf3c9ba52778b97a15ebdfa3f6f59b506` (17 tokens, 14 categories, nine xStocks).
+The full public file has SHA-256
+`62f526e3cef3402d43f2ff8c69f6c4b567a510cd8248bb54e9fd23ae88439a4c`.
+It captures issuer `sharesOf(proxy)` and **pool `storedMultiplier(token)`** in the
+same state. The excerpt covers USDC against all nine stocks in both directions,
+new-stock crosses, and ordinary-token controls. Recreate only this excerpt with:
+
+```sh
+python3 pkg/liquidity-source/thog-prop/testdata/select_fixtures.py \
+  /path/to/thog-amm-integration-guide/fixtures deployed-stored-multipliers
+```
+
+`lens-stored-multipliers.json.gz` captures the rebuilt lens at block **122921791**.
+The capture also repeats the same call at the same canonical block hash with
+all nine stock contracts overridden to return their observed shares and revert
+on every other selector. The updated lens returns identical bytes; the original
+lens at `a6db4e4a3e4edb36ca4e74a4408faf5cbbe23067` fails with `ReadFailed` at the
+issuer `getCurrentMultiplier()` selector. The archive records the original and
+isolated responses, both lens hashes, and the exact overrides. Reproduce against
+a current deployment (or an archive endpoint by adapting the selected header):
+
+```sh
+python3 pkg/liquidity-source/thog-prop/testdata/capture_stored_lens.py \
+  --rpc "$MONAD_RPC" \
+  --legacy-ref a6db4e4a3e4edb36ca4e74a4408faf5cbbe23067 \
+  --output /tmp/lens-stored-multipliers.json.gz
+```
+
+These overrides exist only inside read-only `eth_call`; no transaction is sent.

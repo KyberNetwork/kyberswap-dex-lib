@@ -2,13 +2,13 @@
 
 ThogAMM is a portfolio-inventory AMM on Monad (chain ID 143). Integrate the proxy
 `0x80c74517bcc2d67ffe02d3ed886796272f647210`. The implementation observed at block
-117211724 is `0xd84cb12d870344195f23c0a5faf70e3221bdbd9e`. Pool ID:
+122916130 is `0xb108a1daf3c9ba52778b97a15ebdfa3f6f59b506`. Pool ID:
 `0xce389e78282dedac7b18ba7f775b7602d2ab3ab171bbd6711eb0239be6ef4dcc`.
 
 [Integration guide and integer specification](https://github.com/thogard785/thog-amm-integration-guide/blob/main/THOGAMM_AGGREGATOR_INTEGRATION.md)
 · [Proxy on Monadscan](https://monadscan.com/address/0x80c74517bcc2d67ffe02d3ed886796272f647210)
-· [Implementation](https://monadscan.com/address/0xd84cb12d870344195f23c0a5faf70e3221bdbd9e)
-· [Reference Rust model](https://github.com/thogard785/thog-amm-poll-sdk/tree/v0.5.0/model)
+· [Implementation](https://monadscan.com/address/0xb108a1daf3c9ba52778b97a15ebdfa3f6f59b506)
+· [Reference Rust model](https://github.com/thogard785/thog-amm-poll-sdk/tree/v0.6.1/model)
 
 ## Live quote age
 
@@ -95,9 +95,9 @@ account accesses, approvals, deadline and minimum output.
 Discovery reads `getPoolIds` and `getTokens`. By default the tracker runs
 [`ThogSnapshotLens.sol`](abi/ThogSnapshotLens.sol) as a never-deployed constructor
 through one creation `eth_call` at `latest`. The lens reads `getPoolData(0,28)`
-and `sharesOf` / `getCurrentMultiplier` for the **listed** xStocks in that same
-EVM state. Its tagged revert carries the page, issuer state, block number, and
-block timestamp. The Go reader applies the existing schema and balance validation.
+and issuer `sharesOf(proxy)` / pool `storedMultiplier(token)` for the **listed**
+xStocks in that same EVM state. Its tagged revert carries the page, share state,
+block number, and block timestamp. The Go reader applies the existing schema and balance validation.
 Both reader paths use nonzero simulation `gasPrice` to preserve `BASEFEE` on
 clients that zero it for zero-price calls. It is unrelated to the swap gas price.
 
@@ -105,9 +105,12 @@ A provider that explicitly rejects creation calls or the lens gas budget uses
 the Multicall3 reader; `disableLens=true` selects it directly. That reader sends
 one `Multicall3.tryAggregate(false, …)` `eth_call` at `latest` to the canonical
 Multicall3 (`0xcA11…CA11`). It runs `getPoolData(0,28)`, `getCurrentBlockTimestamp()`
-and `sharesOf` / `getCurrentMultiplier` for **every** catalog issuer in one EVM
-state, so it is atomic like the lens and needs no block pin of any kind. Unlisted
-catalog issuers may revert; the page decides which issuer results are required.
+and issuer `sharesOf(proxy)` / pool `storedMultiplier(token)` for **every**
+catalog stock in one EVM state, so it is atomic like the lens. Unlisted catalog
+entries may revert; the page decides which results are required. The stored
+multiplier getter returns one `uint256`; issuer `getCurrentMultiplier()` is not
+used. Stored multipliers are part of the pool's published pricing state and can
+differ from the issuer's current multiplier.
 It rejects a zero `BASEFEE` (the node ignored `gasPrice`). The returned block
 timestamp feeds the same capture-time clamp as the lens.
 
@@ -133,11 +136,14 @@ Configuration fields (zero selects the default):
 
 The page includes all 126 logical words, native MON, physical ERC-20 balances,
 accounted inventory and dynamic token/category metadata. Schema / wire / model
-**8 / 8 / 3** is required. The observed registry has 13 tokens and 10 categories;
+**8 / 8 / 3** is required. The observed registry has **17 tokens and 14 categories**;
 up to 28 tokens are supported. A refresh can replace or reorder the registry.
-The deployed catalog identifies which tokens use issuer shares, while the page
-identifies active listings. Native MON contributes to risk but does not create
-spendable WMON output inventory.
+The nine active xStocks are SPYx, QQQx, EWYx, NVDAx, TSLAx, SMHx, SPCXx, MUx, and
+SKHYx. SMHx, SPCXx, MUx, and SKHYx expand the prior 13-token registry; their addresses
+were already present in the catalog, so discovery needs no new hardcoded list.
+The deployed catalog identifies share tokens, while the page identifies active
+listings. See the integration guide for the complete address/decimals table.
+Native MON contributes to risk but does not create spendable WMON output inventory.
 
 The tracker requests another refresh after one second even without pool events;
 head-driven refreshes can run sooner. `entity.Pool.Timestamp` records attempt-start
@@ -180,31 +186,66 @@ The model-3 execution harness measures up to 202,019 and 397,888 with some state
 pre-warmed, so tests check those against the estimates. Remeasure after changes to
 token code, the registry or policy.
 
+## Local quote performance
+
+The quote path extracts narrow packed fields directly from their uint256 limbs,
+reuses unchanged token valuations when checking category inventory, skips zero
+covariance contributions, and handles unit share multipliers / common dust values
+with exact identities. No mutable prepared-state cache is added.
+
+Against `a6db4e4a3e4edb36ca4e74a4408faf5cbbe23067`, the current-registry benchmarks
+measured the following medians on Apple M1 Max, darwin/arm64, Go 1.27.2, one CPU.
+Twelve old/new pairs alternated execution order with a one-second benchmark time;
+both binaries used the same block-122916130 fixture, inputs and quote block.
+
+| Pair | Before | After | Median reduction | benchstat p-value |
+| --- | ---: | ---: | ---: | ---: |
+| USDC → WETH | 6.945 µs | 6.199 µs | 10.7% | 0.052 |
+| WETH → USDC | 6.514 µs | 5.960 µs | 8.5% | 0.033 |
+| USDC → SMHx | 7.183 µs | 5.270 µs | 26.6% | <0.001 |
+| MUx → USDC | 6.274 µs | 5.241 µs | 16.5% | 0.014 |
+| MUx → SKHYx | 7.005 µs | 6.355 µs | 9.3% | 0.114 |
+
+The geometric mean decreased 14.6%. USDC → WETH and MUx → SKHYx are not
+statistically significant at 5% in this run, so their medians are descriptive.
+Every quote remains **368 B / 7 allocations**. These measurements cover local
+simulation CPU, not RPC, transaction inclusion, or production end-to-end latency.
+[Before](testdata/bench-current-before.txt) and
+[after](testdata/bench-current-after.txt) samples are included for `benchstat`.
+
+```sh
+GOTOOLCHAIN=go1.27.2 go test ./pkg/liquidity-source/thog-prop -run '^$' \
+  -bench '^BenchmarkCurrentRegistry$' -benchmem -cpu 1 -benchtime 1s -count 12
+benchstat pkg/liquidity-source/thog-prop/testdata/bench-current-{before,after}.txt
+```
+
 ## Verification
 
-The full external corpus was checked before selecting the committed excerpts:
+The full published corpus passes 61,920 contract comparisons after the reader and
+math changes: 29,397 exact successes and 32,523 matching rejections. The committed
+fixtures are selected observations with unchanged expected outputs:
 
 | Corpus | Full cases | Exact successes | Matching rejections | Committed cases |
 | --- | ---: | ---: | ---: | ---: |
 | Historical schema-8 read-only snapshot | 1,872 | 954 | 918 | 96 |
 | Historical curve/share/cap/age boundaries | 24,024 | 9,982 | 14,042 | 1,232 |
 | Model-3 local-fork execution contexts | 32,760 | 16,428 | 16,332 | 1,692 |
-| Deployed model-3 snapshot, block 117211724 | 1,872 | 1,121 | 751 | 96 |
-| Deployed model-3 one-block and age-cutoff cases | 320 | 291 | 29 | 320 |
-| **Total** | **60,848** | **28,776** | **32,072** | **3,436** |
+| Current 17-token stored-multiplier snapshot, block 122916130 | 3,264 | 2,033 | 1,231 | 312 |
+| **Total** | **61,920** | **29,397** | **32,523** | **3,332** |
+
+The current full capture covers all 272 directed token pairs. Its excerpt includes
+both USDC directions for all nine stocks, new-stock crosses, and ordinary-token
+controls. Its implementation runtime SHA-256 is
+`b74a0429501ae2dd11695b67a74243c6b4554f254c924b129b87327bb8c30846`.
 
 Historical model-2 read-only fixtures remain useful because model 3 changes the
 conditional execution charge, not the read-only curve. The test helper changes
 only their identity byte to model 3; runtime snapshots never receive that change.
-The execution corpus used a locally compiled model-3 implementation on a Monad
-fork before deployment. The two new model-3 read-only corpora use the actual
-deployed implementation bytecode, whose SHA-256 is
-`92d7605501570cc4871368ad54f764215d0016c6eb159ad3fd7aa0598a657449`.
-
-The one-block corpus tests both $1 and $100 in every directed live pair, plus
-maximum-age/first-stale-block cases. Anvil overrides only the evaluation block
-number while keeping the captured state fixed. The router is compared directly
-with those EVM outputs and its spread increment is checked to equal 50.
+The execution corpus uses a locally compiled model-3 implementation on a Monad
+fork. Additional committed regression fixtures retain 96 older deployed-model-3
+cases and 320 one-block/age-cutoff cases. The latter tests $1 and $100 in every
+then-live pair plus maximum-age/first-stale-block cases; only the evaluation block
+changes, and the router's spread increment must equal 50.
 
 `TestVerification` (manual; needs `THOG_PROP_RPC_URL` and
 `THOG_PROP_TENDERLY_{ACCOUNT,PROJECT,ACCESS_KEY}`) checks the live pool end to end:
@@ -218,24 +259,30 @@ SPYx); every later hop is quoted on a clone after `UpdateBalance` and all 48 hop
 matched (42 exact, 6 SPYx +1 wei). `TestCloneStateConcurrentRoutesAreIsolated` replays
 such routes on 16 clones in parallel under `-race`.
 
-A live atomic-lens capture from October 29 is committed as `testdata/lens-monad.json.gz`.
-It verifies decoding the compiled lens result, nonzero base fee, all 13 listed
-tokens, and all five listed issuer states. A second 32-case corpus uses the same
-deployed bytecode on an isolated Monad fork with only `CONTROL.maxAge=15` and the
-evaluation block overridden. It covers every modeled execution age through the
-cutoff for USDC→WMON and USDC→xStock: 30 exact outputs and two stale rejections.
-The compiled bytecode is reproducible:
+The live stored-multiplier lens capture at block **122921791** verifies all 17
+listed tokens and nine share holdings. Read-only token-code overrides keep
+`sharesOf` identical and make every other issuer selector revert. The updated
+lens returns the identical snapshot; the prior lens fails at
+`getCurrentMultiplier()`. The capture records both responses, code hashes, and
+overrides. The older lens fixture remains for the historical 32-case age-cutoff
+test (30 exact outputs and two stale rejections).
+
+Both real Go readers also returned identical state and timestamp at block
+**122924036**, pinned by canonical block hash. This manual check is reproducible:
 
 ```sh
+THOG_PROP_READER_RPC_URL="$MONAD_RPC" GOTOOLCHAIN=go1.27.2 go test \
+  ./pkg/liquidity-source/thog-prop -run '^TestLiveSnapshotReadersAgree$' -v
 python3 pkg/liquidity-source/thog-prop/testdata/build_lens.py --solc /path/to/solc-0.8.25 --check
 ```
 
 Additional tests cover fee thresholds at odd/zero/max-uint256 base fees, snapshot
-validation, the Multicall3 fallback (one `latest` call, unlisted-issuer reverts,
-zero base fee, typed failures), catalog equality across Go and the lens bytecode, refreshes
-without events, quote purity, clone isolation, share/accounted inventory updates,
-and Msgpack serialization. A live tracker → JSON → simulator smoke test passed at
-block 117214675 with all 13 tokens.
+validation, the Multicall3 reader (one atomic `latest` call, exact multiplier
+getter target/argument/return shape, typed failures), catalog equality across Go
+and the lens, refreshes without events, quote purity, clone isolation,
+share/accounted inventory updates, and Msgpack serialization. Packed-field tests
+compare every valid width/offset with a reference integer mask; share conversion
+tests cover unit multipliers, dust thresholds, and rounding boundaries.
 
 The [fixture notes](testdata/README.md) describe provenance and reproduction.
 Fixtures use a nested module and `os.ReadFile`, so downstream module downloads
@@ -246,45 +293,26 @@ GOTOOLCHAIN=go1.27.2 go test ./pkg/liquidity-source/thog-prop -race
 GOTOOLCHAIN=go1.27.2 go vet ./pkg/liquidity-source/thog-prop
 GOTOOLCHAIN=go1.27.2 go test ./pkg/liquidity-source/thog-prop -run '^$' -bench . -benchmem
 # Optional: use complete captures instead of the selected excerpts.
-THOGAMM_FIXTURES=/path/to/full/fixtures GOTOOLCHAIN=go1.27.2 go test ./pkg/liquidity-source/thog-prop -v
+THOGAMM_FIXTURES=/path/to/thog-amm-integration-guide/fixtures GOTOOLCHAIN=go1.27.2 go test \
+  ./pkg/liquidity-source/thog-prop -v \
+  -run '^(TestHistoricalReadOnlyContractParity|TestHistoricalBoundaryParity|TestModel3ExecutionParity|TestStoredMultiplierSeventeenTokenParity)$'
 ```
 
-## Provider probe and rollout
+## Refreshing an existing integration
 
-The local October 29 probe ran six successful reads per design on
-`rpc.monad.xyz`: median complete-read latency was **149 ms** with a header/hash,
-**136 ms** with a header/number, **122 ms** page-first, and **61 ms** through the
-lens. These are small samples without retries, not reliability estimates.
-On November 3, 20 alternating reads on Kyber's production Monad RPC took
-**93 ms** (lens) and **86 ms** (Multicall3 fallback) on average, 20/20 each;
-reads that landed on the same block decoded identical state and timestamp.
+Rebuild the adapter and refresh stored pool rows after the upgrade so their share
+multipliers and registry come from the current pool. The proxy, pool ID, schema,
+wire format, model version, quote APIs, and configuration are unchanged. Maximum
+price age and widening continue to come from the published on-chain control word.
+The local quote optimizations do not change freshness checks, retries, fees, caps,
+rounding, or quote rejection rules.
 
-A subsequent independent review supplied these additional live lens checks:
-
-| Endpoint | Successful lens checks | Reported latency |
-| --- | --- | --- |
-| `rpc.monad.xyz` | Success; page matched a same-block direct read, five issuers decoded | 72 ms |
-| `rpc1.monad.xyz` | 3/3 | Not reported |
-| `rpc-mainnet.monadinfra.com` | 3/3 | Not reported |
-| Ankr | 3/3 | Not reported |
-| dRPC | 3/3 | Not reported |
-
-The reviewer supplied these results separately from the local probe. Earlier
-HTTP 403s in the local environment did not test RPC support; the subsequent
-successful checks establish lens compatibility on those providers. Kyber can
-run the committed probe against its own provider URLs:
+The read-only provider probe accepts explicitly supplied endpoints:
 
 ```sh
 python3 pkg/liquidity-source/thog-prop/testdata/refresh_probe.py \
-  --rpc https://rpc.monad.xyz --count 20 --output /tmp/thog-refresh-probe.json
+  --rpc "$MONAD_RPC" --count 20 --output /tmp/thog-refresh-probe.json
 ```
-
-Before re-enabling the source, verify that the **on-chain** control word contains
-the intended maximum age of 15. Updating takerbot's YAML alone does not establish
-that it has published that policy. Then rebuild/refresh stored pool state with
-this adapter. The captured October 29 lens fixture still has a maximum age of 5;
-the adapter must honor it. After rollout, inspect `ErrStaleSnapshot` and classified
-refresh-error rates, as well as the served snapshot/quote blocks.
 
 Integration requests for Kyber:
 

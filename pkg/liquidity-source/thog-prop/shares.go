@@ -2,7 +2,8 @@ package thogprop
 
 import "github.com/holiman/uint256"
 
-// ShareBalance is issuer state captured at the same block as getPoolData.
+// ShareBalance holds physical shares and the pool's storedMultiplier(token),
+// captured at the same block as getPoolData. The issuer's multiplier may differ.
 // Ordinary tokens have an empty entry; xStocks require a nonzero multiplier.
 type ShareBalance struct {
 	Shares     uint256.Int `json:"shares"`
@@ -57,14 +58,14 @@ func (s *State) physicalUnits(index int) uint256.Int {
 }
 
 func (s *State) amountForUnits(m *arithmetic, index int, units uint256.Int) uint256.Int {
-	if isXStock(s.Tokens[index].Address) {
+	if isXStock(s.Tokens[index].Address) && s.Shares[index].Multiplier != powers[18] {
 		return m.md(units, s.Shares[index].Multiplier, powers[18], false)
 	}
 	return units
 }
 
 func (s *State) transferUnits(m *arithmetic, index int, amount uint256.Int) uint256.Int {
-	if isXStock(s.Tokens[index].Address) {
+	if isXStock(s.Tokens[index].Address) && s.Shares[index].Multiplier != powers[18] {
 		return m.md(amount, powers[18], s.Shares[index].Multiplier, false)
 	}
 	return amount
@@ -72,6 +73,10 @@ func (s *State) transferUnits(m *arithmetic, index int, amount uint256.Int) uint
 
 func (s *State) transferDust(m *arithmetic, index int) uint256.Int {
 	if isXStock(s.Tokens[index].Address) {
+		// max(2, ceil(multiplier / 1e18)) is exactly two throughout this range.
+		if s.Shares[index].Multiplier.CmpUint64(2_000_000_000_000_000_000) <= 0 {
+			return u(2)
+		}
 		return max(u(2), m.md(s.Shares[index].Multiplier, u(1), powers[18], true))
 	}
 	return uint256.Int{}

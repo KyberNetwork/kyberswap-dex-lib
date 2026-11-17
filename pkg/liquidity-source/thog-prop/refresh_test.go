@@ -22,12 +22,74 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	abipkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
+
+// Opt-in read-only check against an explicitly supplied RPC. Pin both real reader
+// calls to the same canonical block so changing prices cannot mask a mismatch.
+func TestLiveSnapshotReadersAgree(t *testing.T) {
+	url := os.Getenv("THOG_PROP_READER_RPC_URL")
+	if url == "" {
+		t.Skip("set THOG_PROP_READER_RPC_URL to compare both readers on chain")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	upstream, err := rpc.DialContext(ctx, url)
+	require.NoError(t, err)
+	defer upstream.Close()
+	var header struct {
+		Hash   common.Hash    `json:"hash"`
+		Number hexutil.Uint64 `json:"number"`
+	}
+	require.NoError(t, upstream.CallContext(ctx, &header, "eth_getBlockByNumber", "latest", false))
+	require.NotZero(t, header.Hash)
+	block := rpc.BlockNumberOrHashWithHash(header.Hash, true)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request rpcRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&request))
+		require.Equal(t, "eth_call", request.Method)
+		require.Len(t, request.Params, 2)
+		var result json.RawMessage
+		err := upstream.CallContext(ctx, &result, request.Method, request.Params[0], block)
+		reply := map[string]any{"jsonrpc": "2.0", "id": request.ID}
+		if err == nil {
+			reply["result"] = result
+		} else {
+			var rpcErr rpc.Error
+			require.ErrorAs(t, err, &rpcErr)
+			failure := map[string]any{"code": rpcErr.ErrorCode(), "message": err.Error()}
+			var dataErr rpc.DataError
+			if errors.As(err, &dataErr) {
+				failure["data"] = dataErr.ErrorData()
+			}
+			reply["error"] = failure
+		}
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(reply))
+	}))
+	defer srv.Close()
+	client, err := rpc.DialContext(ctx, srv.URL)
+	require.NoError(t, err)
+	defer client.Close()
+	proxy := common.HexToAddress(verifyProxy)
+	initCode, err := lensInitCode(proxy)
+	require.NoError(t, err)
+	lens, lensTime, err := readSnapshotLens(ctx, client, proxy, initCode)
+	require.NoError(t, err)
+	request, err := multicallRequest(proxy)
+	require.NoError(t, err)
+	multi, multiTime, err := readSnapshotMulticall(ctx, client, request)
+	require.NoError(t, err)
+	require.Equal(t, uint64(header.Number), lens.BlockNumber)
+	require.Equal(t, lens, multi)
+	require.Equal(t, lensTime, multiTime)
+	t.Logf("lens and Multicall3 agree at block %d with %d tokens", lens.BlockNumber, len(lens.Tokens))
+}
 
 func lensPayload(t *testing.T) (contractFixture, State, []byte) {
 	t.Helper()
@@ -49,31 +111,46 @@ func lensPayload(t *testing.T) (contractFixture, State, []byte) {
 }
 
 func TestSnapshotLensLiveCapture(t *testing.T) {
-	compressed, err := os.ReadFile("testdata/lens-monad.json.gz")
+	compressed, err := os.ReadFile("testdata/lens-stored-multipliers.json.gz")
 	require.NoError(t, err)
 	z, err := gzip.NewReader(bytes.NewReader(compressed))
 	require.NoError(t, err)
 	defer func() { require.NoError(t, z.Close()) }()
 	data, err := io.ReadAll(z)
 	require.NoError(t, err)
+	type lensResponse struct {
+		Error struct {
+			Data string `json:"data"`
+		} `json:"error"`
+	}
 	var capture struct {
-		Proxy      string `json:"proxy"`
-		LensSha256 string `json:"lensSha256"`
-		Response   struct {
-			Error struct {
-				Data string `json:"data"`
-			} `json:"error"`
-		} `json:"response"`
+		Proxy                 string       `json:"proxy"`
+		LensSha256            string       `json:"lensSha256"`
+		Response              lensResponse `json:"response"`
+		IssuerGetterIsolation struct {
+			Overrides map[string]struct {
+				Code string `json:"code"`
+			} `json:"overrides"`
+			Response       lensResponse `json:"response"`
+			LegacyResponse lensResponse `json:"legacyResponse"`
+		} `json:"issuerGetterIsolation"`
 	}
 	require.NoError(t, json.Unmarshal(data, &capture))
 	digest := sha256.Sum256(snapshotLensCode)
 	require.Equal(t, hex.EncodeToString(digest[:]), capture.LensSha256)
+	require.Len(t, capture.IssuerGetterIsolation.Overrides, 9)
+	require.Equal(t, capture.Response.Error.Data, capture.IssuerGetterIsolation.Response.Error.Data,
+		"issuer getters reverting must not change the pool-stored multiplier snapshot")
+	_, _, legacyErr := decodeSnapshotLens(raw(t, capture.IssuerGetterIsolation.LegacyResponse.Error.Data), common.HexToAddress(capture.Proxy))
+	require.Error(t, legacyErr)
+	require.Equal(t, "issuer", classifyRefreshError(legacyErr))
+	require.Contains(t, legacyErr.Error(), "2b63c300", "old lens must fail at getCurrentMultiplier")
 	s, timestamp, err := decodeSnapshotLens(raw(t, capture.Response.Error.Data), common.HexToAddress(capture.Proxy))
 	require.NoError(t, err)
 	require.Greater(t, s.BlockNumber, uint64(117_000_000))
 	require.Positive(t, timestamp)
 	require.False(t, s.BaseFee.IsZero(), "nonzero simulation gas price must preserve BASEFEE")
-	require.Len(t, s.Tokens, 13)
+	require.Len(t, s.Tokens, 17)
 	count := 0
 	for i, token := range s.Tokens {
 		if isXStock(token.Address) {
@@ -81,7 +158,7 @@ func TestSnapshotLensLiveCapture(t *testing.T) {
 			require.False(t, s.Shares[i].Multiplier.IsZero())
 		}
 	}
-	require.Equal(t, 5, count)
+	require.Equal(t, 9, count)
 	t.Logf("Live lens: block %d, timestamp %d, base fee %s, %d tokens, %d issuers", s.BlockNumber, timestamp, s.BaseFee.Dec(), len(s.Tokens), count)
 }
 
@@ -159,7 +236,13 @@ func TestTrackerUsesOneAtomicCallAndRetriesWholeRead(t *testing.T) {
 }
 
 func TestMulticallFallbackReadsOneStateAtLatest(t *testing.T) {
-	f := fixture(t, "execution-model3.json.gz")
+	for _, file := range []string{"execution-model3.json.gz", "deployed-stored-multipliers.json.gz"} {
+		t.Run(file, func(t *testing.T) { testMulticallReadsSnapshot(t, file) })
+	}
+}
+
+func testMulticallReadsSnapshot(t *testing.T, file string) {
+	f := fixture(t, file)
 	sample := f.Snapshots[0]
 	expected := stateFrom(t, sample)
 	proxy := common.HexToAddress(f.Proxy)
@@ -167,12 +250,10 @@ func TestMulticallFallbackReadsOneStateAtLatest(t *testing.T) {
 	require.NoError(t, err)
 	sharesData, err := thogAMMABI.Pack("sharesOf", proxy)
 	require.NoError(t, err)
-	multiplierData, err := thogAMMABI.Pack("getCurrentMultiplier")
-	require.NoError(t, err)
 	method := abipkg.Multicall3ABI.Methods[abipkg.Multicall3TryAggregate]
 	const blockTime = 1793310000
 	for _, mode := range []string{"success", "lens_gas", "unlisted_issuer_reverts", "page_reverts", "issuer_reverts",
-		"short_issuer", "wrong_balance", "zero_base_fee", "no_timestamp", "short_reply", "lag"} {
+		"short_issuer", "multiplier_reverts", "issuer_multiplier_abi", "wrong_balance", "zero_base_fee", "no_timestamp", "short_reply", "lag"} {
 		t.Run(mode, func(t *testing.T) {
 			var calls atomic.Int32
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -214,7 +295,9 @@ func TestMulticallFallbackReadsOneStateAtLatest(t *testing.T) {
 				listed := false
 				for i, token := range xStocks {
 					require.Equal(t, tryCall{Target: common.HexToAddress(token), CallData: sharesData}, requested[2+2*i])
-					require.Equal(t, tryCall{Target: common.HexToAddress(token), CallData: multiplierData}, requested[3+2*i])
+					multiplierData, err := thogAMMABI.Pack("storedMultiplier", common.HexToAddress(token))
+					require.NoError(t, err)
+					require.Equal(t, tryCall{Target: proxy, CallData: multiplierData}, requested[3+2*i])
 					holding, ok := sample.ShareBalances[token]
 					if !ok {
 						results = append(results, tryResult{Success: mode != "unlisted_issuer_reverts"}, tryResult{})
@@ -230,8 +313,15 @@ func TestMulticallFallbackReadsOneStateAtLatest(t *testing.T) {
 					if !listed && mode == "short_issuer" {
 						sharesResult.ReturnData = nil
 					}
+					multiplierResult := tryResult{Success: true, ReturnData: encodedWords(holding.Multiplier)}
+					if !listed && mode == "multiplier_reverts" {
+						multiplierResult.Success = false
+					}
+					if !listed && mode == "issuer_multiplier_abi" {
+						multiplierResult.ReturnData = encodedWords(holding.Multiplier, u(0), u(0))
+					}
 					listed = true
-					results = append(results, sharesResult, tryResult{Success: true, ReturnData: encodedWords(holding.Multiplier, u(0), u(0))})
+					results = append(results, sharesResult, multiplierResult)
 				}
 				if mode == "short_reply" {
 					results = results[:len(results)-1]
@@ -258,7 +348,7 @@ func TestMulticallFallbackReadsOneStateAtLatest(t *testing.T) {
 				return
 			}
 			require.Error(t, err)
-			kind := map[string]string{"page_reverts": "contract", "issuer_reverts": "issuer", "lag": "provider_lag"}[mode]
+			kind := map[string]string{"page_reverts": "contract", "issuer_reverts": "issuer", "multiplier_reverts": "contract", "lag": "provider_lag"}[mode]
 			if kind == "" {
 				kind = "validation"
 			}
@@ -277,7 +367,7 @@ func TestIssuerCatalogMatchesQuotePathAndLens(t *testing.T) {
 		// The lens hard-codes the same catalog as address literals.
 		require.True(t, bytes.Contains(snapshotLensCode, common.FromHex(token)), "lens bytecode lacks %s", token)
 	}
-	for _, file := range []string{"execution-model3.json.gz", "deployed-model3.json.gz", "one-block-model3.json.gz"} {
+	for _, file := range []string{"execution-model3.json.gz", "deployed-model3.json.gz", "one-block-model3.json.gz", "deployed-stored-multipliers.json.gz"} {
 		for _, sample := range fixture(t, file).Snapshots {
 			for _, token := range fixturePage(t, sample).Tokens {
 				address := hexutil.Encode(token.Token[:])

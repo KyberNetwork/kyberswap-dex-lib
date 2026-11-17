@@ -74,8 +74,8 @@ def run_read(url, design, timeout):
     batch = []
     for token in tokens:
         if token in ISSUERS:
-            batch.extend([call(token, '0xf5eb42dc' + PROXY[2:].rjust(64, '0'), block), call(token, '0x2b63c300', block)])
-    # The deployed page-first reader confirms the same page in the issuer batch.
+            batch.extend([call(token, '0xf5eb42dc' + PROXY[2:].rjust(64, '0'), block), call(PROXY, '0xf59bc74a' + token[2:].rjust(64, '0'), block)])
+    # The page-first reader confirms the same page in the share/multiplier batch.
     if design == 'page':
         batch.append(call(PROXY, PAGE, block))
     for i, item in enumerate(batch):

@@ -303,3 +303,10 @@ func TestRouterQuotesMatchOneBlockEVM(t *testing.T) {
 func (s *PoolSimulator) quoteAtCapture(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	return s.calcAmountOut(params, s.capturedAtMs)
 }
+
+func TestStoredMultiplierSeventeenTokenParity(t *testing.T) {
+	f := fixture(t, "deployed-stored-multipliers.json.gz")
+	require.Len(t, stateFrom(t, f.Snapshots[0]).Tokens, 17)
+	require.Len(t, f.Snapshots[0].ShareBalances, 9)
+	checkReadOnly(t, "deployed-stored-multipliers.json.gz")
+}

@@ -45,9 +45,10 @@ interface IThogSnapshot {
         uint256[] portfolioBalances;
     }
     function getPoolData(uint8 start, uint8 count) external view returns (PoolData memory);
+    function storedMultiplier(address token) external view returns (uint256);
 }
 
-/// @notice Never deployed. Read the page and its listed xStock issuers in one EVM state.
+/// @notice Never deployed. Read the page, physical shares and pool-stored multipliers in one EVM state.
 /// @dev solc 0.8.25, shanghai, viaIR, optimizer 200, metadata bytecodeHash none.
 /// Successful reads revert with abi.encode(bytes4("THG8"), block.number, block.timestamp,
 /// rawGetPoolDataResult, issuers, shares, multipliers). All failure payloads are distinct.
@@ -75,7 +76,7 @@ contract ThogSnapshotLens {
             if (!isXStock(token)) continue;
             issuers[cursor] = token;
             shares[cursor] = abi.decode(read(token, abi.encodeWithSignature("sharesOf(address)", proxy)), (uint256));
-            (multipliers[cursor],,) = abi.decode(read(token, abi.encodeWithSignature("getCurrentMultiplier()")), (uint256, uint256, uint256));
+            multipliers[cursor] = abi.decode(read(proxy, abi.encodeCall(IThogSnapshot.storedMultiplier, (token))), (uint256));
             ++cursor;
         }
         bytes memory result = abi.encode(bytes4("THG8"), block.number, block.timestamp, page, issuers, shares, multipliers);
