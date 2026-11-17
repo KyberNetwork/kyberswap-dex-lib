@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/big"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/KyberNetwork/logger"
@@ -34,11 +33,19 @@ type PoolSimulator struct {
 	tickMin int32
 	tickMax int32
 
-	timepoints         *TimepointStorage
-	volatilityOracle   *VolatilityOraclePlugin
-	dynamicFee         *DynamicFeeConfig
-	slidingFee         *SlidingFeeConfig
-	writeTimePointOnce *sync.Once
+	timepoints       *TimepointStorage
+	volatilityOracle *VolatilityOraclePlugin
+	dynamicFee       *DynamicFeeConfig
+	slidingFee       *SlidingFeeConfig
+	// pending is the timepoint, oracle and last fee the plugin writes at the simulator's first swap,
+	// computed when the pool is built, at that time, and shared by its clones. A quote prices with it and
+	// never writes: a host quotes its shared base simulator and clones it for other requests, so a quote
+	// that wrote would change theirs. The first UpdateBalance stores it and sets pending to nil. It is
+	// nil from the start when the swap's plugin path writes no timepoint.
+	pending *pendingWrite
+	// The timepoints are never written once a simulator holds them: every write goes into a new
+	// copy-on-write overlay (TimepointStorage.clone), so clones share them. A host clones a simulator
+	// before it calls UpdateBalance, so nothing quotes or clones a simulator while it is updated.
 
 	// swapFeeFactors are the fee factors the next swap takes on a pool priced by its fee factors: the
 	// plugin's stored factors, moved by the price change since its last timepoint, whose tick and time
@@ -128,18 +135,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
 		},
-		globalState:        extra.GlobalState,
-		liquidity:          extra.Liquidity,
-		ticks:              ticks,
-		tickMin:            int32(tickMin),
-		tickMax:            int32(tickMax),
-		timepoints:         NewTimepointStorage(extra.Timepoints),
-		volatilityOracle:   extra.VolatilityOracle,
-		dynamicFee:         extra.DynamicFee,
-		slidingFee:         extra.SlidingFee,
-		writeTimePointOnce: new(sync.Once),
-		useBasePluginV2:    staticExtra.UseBasePluginV2,
-		namiFee:            extra.NamiFee,
+		globalState:      extra.GlobalState,
+		liquidity:        extra.Liquidity,
+		ticks:            ticks,
+		tickMin:          int32(tickMin),
+		tickMax:          int32(tickMax),
+		timepoints:       NewTimepointStorage(extra.Timepoints),
+		volatilityOracle: extra.VolatilityOracle,
+		dynamicFee:       extra.DynamicFee,
+		slidingFee:       extra.SlidingFee,
+		useBasePluginV2:  staticExtra.UseBasePluginV2,
+		namiFee:          extra.NamiFee,
 	}
 	if p.usesFeeFactors() && p.volatilityOracle != nil {
 		p.lastTick = p.getLastTick()
@@ -148,6 +154,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			return nil, err
 		}
 	}
+	p.pending = newPendingWrite(p, blockTimestamp())
 	return p, nil
 }
 
@@ -221,10 +228,13 @@ type swapOutcome struct {
 	tick          int32
 	gas           int64
 	namiTimepoint *NamiTimepointUpdate
+	write         *pendingWrite // the pending write the quote priced with, for UpdateBalance to store
+	writeFee      uint16
 }
 
 func (o *swapOutcome) stateUpdate() StateUpdate {
-	return StateUpdate{Liquidity: &o.liquidity, Price: &o.price, Tick: o.tick, NamiTimepoint: o.namiTimepoint}
+	return StateUpdate{Liquidity: &o.liquidity, Price: &o.price, Tick: o.tick, NamiTimepoint: o.namiTimepoint,
+		write: o.write, writeFee: o.writeFee}
 }
 
 // calcAmountOutBacking holds everything a CalcAmountOut result points to, so a quote costs one
@@ -258,16 +268,23 @@ func (p *PoolSimulator) swap(tokenIn, tokenOut string, amtRequired *uint256.Int,
 	}
 
 	zeroForOne := tokenInIndex == 0
+	v := quoteView{oracle: p.volatilityOracle, timepoints: p.timepoints, lastFee: p.globalState.LastFee,
+		pending: p.pending}
+	if v.pending != nil {
+		v.oracle, v.timepoints = v.pending.oracle, v.pending.timepoints
+	}
 	var overrideFee, pluginFee uint32
 	var err error
 	if p.namiFee != nil {
+		// A Nami swap writes its own timepoint (namiTimepoint), never the pending one.
+		v.pending = nil
 		overrideFee, o.namiTimepoint, err = p.beforeNamiSwap(zeroForOne)
 	} else if p.slidingFee != nil && p.slidingFee.SlidingFeeEnabled {
-		overrideFee, pluginFee, err = p.beforeSwapSliding(zeroForOne)
+		overrideFee, pluginFee, err = p.beforeSwapSliding(&v, zeroForOne)
 	} else if p.useBasePluginV2 && p.slidingFee != nil && p.slidingFee.FeeType {
-		overrideFee, pluginFee, err = p.beforeSwapV2(zeroForOne)
+		overrideFee, pluginFee, err = p.beforeSwapV2(&v, zeroForOne)
 	} else {
-		overrideFee, pluginFee, err = p.beforeSwapV1(zeroForOne)
+		overrideFee, pluginFee, err = p.beforeSwapV1(&v, zeroForOne)
 	}
 	if err != nil {
 		return err
@@ -277,14 +294,14 @@ func (p *PoolSimulator) swap(tokenIn, tokenOut string, amtRequired *uint256.Int,
 	if err = p.sqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
 		return err
 	}
-	return p.calculateSwap(overrideFee, pluginFee, zeroForOne, amtRequired, &priceLimit, o)
+	o.write, o.writeFee = v.pending, v.lastFee
+	return p.calculateSwap(overrideFee, pluginFee, v.lastFee, zeroForOne, amtRequired, &priceLimit, o)
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.liquidity = p.liquidity.Clone()
 	cloned.globalState.Price = p.globalState.Price.Clone()
-	cloned.writeTimePointOnce = new(sync.Once)
 	return &cloned
 }
 
@@ -297,9 +314,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	if p.swapFeeFactors != nil {
 		// The swap stored the factors it took, and wrote a timepoint at the tick it started from,
-		// unless the plugin had written one in that second already.
-		if now := blockTimestamp(); now != p.lastTimepointTs {
-			p.lastTick, p.lastTimepointTs = p.globalState.Tick, now
+		// unless the plugin had written one in that second already. The swap's time is the one its
+		// timepoint write took, once per simulator: a route's swaps share one block, as on-chain,
+		// however the wall clock moves between them.
+		p.applyWrite(si.write, si.writeFee)
+		if o := p.volatilityOracle; o != nil && o.LastTimepointTimestamp != p.lastTimepointTs {
+			p.lastTick, p.lastTimepointTs = p.globalState.Tick, o.LastTimepointTimestamp
 		}
 		next, err := p.nextFeeFactors(p.swapFeeFactors, si.Tick)
 		if err != nil {
@@ -308,6 +328,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		}
 		p.swapFeeFactors = next
 	}
+	if p.swapFeeFactors == nil {
+		p.applyWrite(si.write, si.writeFee)
+	}
 	p.liquidity = si.Liquidity.Clone()
 	p.globalState.Price = si.Price.Clone()
 	p.globalState.Tick = si.Tick
@@ -315,13 +338,13 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		oracle := *p.volatilityOracle
 		oracle.TimepointIndex = si.NamiTimepoint.Index
 		oracle.LastTimepointTimestamp = si.NamiTimepoint.Timestamp
-		p.volatilityOracle = &oracle
-		p.timepoints = p.timepoints.clone()
+		timepoints := p.timepoints.clone()
 		point := si.NamiTimepoint.Timepoint
 		if point.VolatilityCumulative != nil {
 			point.VolatilityCumulative = point.VolatilityCumulative.Clone()
 		}
-		p.timepoints.set(si.NamiTimepoint.Index, point)
+		timepoints.set(si.NamiTimepoint.Index, point)
+		p.volatilityOracle, p.timepoints = &oracle, timepoints
 	}
 }
 
@@ -362,33 +385,49 @@ func (p *PoolSimulator) sqrtPriceLimit(zeroForOne bool, sqrtPriceX96Limit *uint2
 
 var blockTimestamp = func() uint32 { return uint32(time.Now().Unix()) }
 
-// writeTimepoint locks and writes timepoint only once, triggering onWrite only if said write happened.
-// By right we should re-update the timepoint every new second, but the difference should be small enough, and
-// new pool should have already been created and used in replacement of this pool.
-func (p *PoolSimulator) writeTimepoint(onWrite func() error) (err error) {
-	p.writeTimePointOnce.Do(func() {
-		if volatilityOracle := p.volatilityOracle; volatilityOracle != nil { // plugin uses volatility oracle
-			if !volatilityOracle.IsInitialized {
-				err = ErrNotInitialized
-				return
-			}
-			volatilityOracle.LastTimepointTimestamp = blockTimestamp()
-			volatilityOracle.TimepointIndex, _, err = p.timepoints.write(
-				volatilityOracle.TimepointIndex, volatilityOracle.LastTimepointTimestamp, p.globalState.Tick)
-		}
-		if err != nil || onWrite == nil {
-			return
-		}
-		err = onWrite()
-	})
-	return err
+// pendingWrite is what the plugin's beforeSwap writes at a simulator's first swap, at time ts: the
+// oracle and an overlay of the timepoints holding the new timepoint, and, for the dynamic fee of
+// beforeSwapV1, the last fee of each direction. It depends only on the state the pool was built with,
+// so a simulator computes it once and its clones share it until they swap.
+type pendingWrite struct {
+	oracle     *VolatilityOraclePlugin
+	timepoints *TimepointStorage
+	err        error     // the timepoint write's
+	fee        [2]uint16 // the last fee after beforeSwapV1, zeroForOne first
+	feeErr     [2]error
 }
 
-func (p *PoolSimulator) beforeSwapV1(zeroForOne bool) (uint32, uint32, error) {
-	if p.globalState.PluginConfig&BEFORE_SWAP_FLAG == 0 || p.dynamicFee == nil {
-		return 0, 0, nil
+// newPendingWrite is p's pendingWrite at ts, or nil when p's swaps write no timepoint: beforeSwapV1
+// writes only with the before-swap flag and a dynamic fee, the sliding and V2 plugins always. A Nami
+// pool's swap writes its own timepoint (beforeNamiSwap), so it has none here either.
+func newPendingWrite(p *PoolSimulator, ts uint32) *pendingWrite {
+	if p.namiFee != nil {
+		return nil
 	}
-	return 0, 0, p.writeTimepoint(func() error {
+	v1Fee := p.globalState.PluginConfig&BEFORE_SWAP_FLAG != 0 && p.dynamicFee != nil
+	sliding := p.slidingFee != nil && p.slidingFee.SlidingFeeEnabled
+	v2 := !sliding && p.useBasePluginV2 && p.slidingFee != nil && p.slidingFee.FeeType
+	if !sliding && !v2 && !v1Fee {
+		return nil
+	}
+	w := &pendingWrite{oracle: p.volatilityOracle, timepoints: p.timepoints}
+	if o := p.volatilityOracle; o != nil { // the plugin keeps an oracle
+		if !o.IsInitialized {
+			w.err = ErrNotInitialized
+			return w
+		}
+		oracle := *o
+		w.oracle, w.timepoints = &oracle, p.timepoints.clone()
+		oracle.LastTimepointTimestamp = ts
+		if oracle.TimepointIndex, _, w.err = w.timepoints.write(o.TimepointIndex, ts, p.globalState.Tick); w.err != nil {
+			return w
+		}
+	}
+	w.fee = [2]uint16{p.globalState.LastFee, p.globalState.LastFee}
+	if !v1Fee || v2 {
+		return w
+	}
+	for d, zeroForOne := range [2]bool{true, false} {
 		var newFee uint16
 		if p.dynamicFee.ZeroToOne != 0 || p.dynamicFee.OneToZero != 0 {
 			// https://berascan.com/address/0x2393BcDBB298A4905f9885109B19834c50c8038F#code
@@ -396,44 +435,84 @@ func (p *PoolSimulator) beforeSwapV1(zeroForOne bool) (uint32, uint32, error) {
 		} else if p.dynamicFee.Alpha1 == 0 && p.dynamicFee.Alpha2 == 0 {
 			newFee = p.dynamicFee.BaseFee
 		} else {
-			volatilityLast, err := p.getAverageVolatilityLast()
+			volatilityLast, err := p.getAverageVolatilityLast(w.oracle, w.timepoints)
 			if err != nil {
-				return err
+				w.feeErr[d] = err
+				continue
 			}
 			newFee = getFee(volatilityLast, p.dynamicFee)
 		}
 		if newFee != 0 {
-			p.globalState.LastFee = newFee
+			w.fee[d] = newFee
 		}
-		return nil
-	})
+	}
+	return w
+}
+
+// quoteView is what a swap prices with: the simulator's oracle, timepoints and last fee, or, before its
+// first swap, those of its pending write.
+type quoteView struct {
+	oracle     *VolatilityOraclePlugin
+	timepoints *TimepointStorage
+	lastFee    uint16
+	pending    *pendingWrite
+}
+
+// applyWrite stores w, the pending write a swap priced with, and fee, the last fee it took. w's
+// timepoints are an overlay over the ones the simulator was built with, and nothing writes into it
+// once it is built, so the simulator and its clones take it as their own.
+func (p *PoolSimulator) applyWrite(w *pendingWrite, fee uint16) {
+	if p.pending == nil || w == nil || w.err != nil {
+		return
+	}
+	if w.oracle != nil {
+		oracle := *w.oracle
+		p.volatilityOracle, p.timepoints = &oracle, w.timepoints
+	}
+	p.globalState.LastFee = fee
+	p.pending = nil
+}
+
+func (p *PoolSimulator) beforeSwapV1(v *quoteView, zeroForOne bool) (uint32, uint32, error) {
+	if p.globalState.PluginConfig&BEFORE_SWAP_FLAG == 0 || p.dynamicFee == nil || v.pending == nil {
+		return 0, 0, nil
+	}
+	if v.pending.err != nil {
+		return 0, 0, v.pending.err
+	}
+	d := lo.Ternary(zeroForOne, 0, 1)
+	if err := v.pending.feeErr[d]; err != nil {
+		return 0, 0, err
+	}
+	v.lastFee = v.pending.fee[d]
+	return 0, 0, nil
 }
 
 // beforeSwapSliding prices a swap as the base plugins of Camelot, Cypher and Sheriff do: the dynamic
 // fee when that is on, else s_baseFee, scaled by the fee factor of the swap's direction.
-func (p *PoolSimulator) beforeSwapSliding(zeroToOne bool) (uint32, uint32, error) {
+func (p *PoolSimulator) beforeSwapSliding(v *quoteView, zeroToOne bool) (uint32, uint32, error) {
 	if p.swapFeeFactors == nil {
 		return 0, 0, ErrNotInitialized
 	}
 	baseFee := p.slidingFee.BaseFee
 	if p.slidingFee.DynamicFeeEnabled {
-		if _, _, err := p.beforeSwapV1(zeroToOne); err != nil {
+		if _, _, err := p.beforeSwapV1(v, zeroToOne); err != nil {
 			return 0, 0, err
 		}
-		baseFee = p.globalState.LastFee
+		baseFee = v.lastFee
 	}
-	if err := p.writeTimepoint(nil); err != nil {
-		return 0, 0, err
+	if v.pending != nil && v.pending.err != nil {
+		return 0, 0, v.pending.err
 	}
 	return uint32(scaleFee(zeroToOne, p.swapFeeFactors, baseFee)), 0, nil
 }
 
-func (p *PoolSimulator) beforeSwapV2(zeroToOne bool) (uint32, uint32, error) {
+func (p *PoolSimulator) beforeSwapV2(v *quoteView, zeroToOne bool) (uint32, uint32, error) {
 	if p.swapFeeFactors == nil {
 		return 0, 0, ErrNotInitialized
 	}
-	if err := p.writeTimepoint(nil); err != nil {
-		return 0, 0, err
+	if v.pending != nil && v.pending.err != nil {
+		return 0, 0, v.pending.err
 	}
 	return uint32(scaleFee(zeroToOne, p.swapFeeFactors, p.slidingFee.BaseFee)), 0, nil
 }
@@ -474,16 +553,16 @@ func (p *PoolSimulator) getLastTick() int32 {
 	return lastTimepoint.Tick
 }
 
-func (p *PoolSimulator) getAverageVolatilityLast() (*uint256.Int, error) {
-	if p.volatilityOracle == nil {
+func (p *PoolSimulator) getAverageVolatilityLast(oracle *VolatilityOraclePlugin, timepoints *TimepointStorage) (*uint256.Int, error) {
+	if oracle == nil {
 		return nil, ErrNotInitialized
 	}
-	currentTimestamp := p.volatilityOracle.LastTimepointTimestamp
+	currentTimestamp := oracle.LastTimepointTimestamp
 	tick := p.globalState.Tick
-	lastTimepointIndex := p.volatilityOracle.TimepointIndex
-	oldestIndex := p.timepoints.getOldestIndex(lastTimepointIndex)
+	lastTimepointIndex := oracle.TimepointIndex
+	oldestIndex := timepoints.getOldestIndex(lastTimepointIndex)
 
-	volatilityAverage, err := p.timepoints.getAverageVolatility(currentTimestamp, tick, lastTimepointIndex, oldestIndex)
+	volatilityAverage, err := timepoints.getAverageVolatility(currentTimestamp, tick, lastTimepointIndex, oldestIndex)
 	if err != nil {
 		return nil, err
 	}
@@ -491,7 +570,7 @@ func (p *PoolSimulator) getAverageVolatilityLast() (*uint256.Int, error) {
 	return volatilityAverage, nil
 }
 
-func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne bool, amountRequired,
+func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, lastFee uint16, zeroToOne bool, amountRequired,
 	limitSqrtPrice *uint256.Int, o *swapOutcome) error {
 	if amountRequired.IsZero() {
 		return ErrZeroAmountRequired
@@ -506,7 +585,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	}
 	currentTick := p.globalState.Tick
 
-	fee := uint64(lo.Ternary(overrideFee != 0, overrideFee, uint32(p.globalState.LastFee)) + pluginFee)
+	fee := uint64(lo.Ternary(overrideFee != 0, overrideFee, uint32(lastFee)) + pluginFee)
 	if fee >= 1e6 {
 		return ErrIncorrectPluginFee
 	}

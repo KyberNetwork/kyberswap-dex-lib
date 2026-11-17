@@ -606,3 +606,12 @@ func TestProtocolStateSurvivesUniswapV3Rewrite(t *testing.T) {
 	assert.NotContains(t, asMap, "Extra")
 	assert.NotContains(t, asMap, "ProtocolState")
 }
+
+// TestEmptyWordGasIsTheUnmeasuredEstimate pins the gas charged for a tick-bitmap word a machima swap walks without
+// crossing an initialized tick. uniswap v3's CrossEmptyWordGas is the value measured on v3 pools (7,400); it has not
+// been measured for machima, so machima keeps the earlier estimate of 2,500 and its quoted gas does not follow v3's.
+func TestEmptyWordGasIsTheUnmeasuredEstimate(t *testing.T) {
+	assert.EqualValues(t, 2500, defaultGas.CrossEmptyWordGas)
+	assert.NotEqual(t, int64(uniswapv3.CrossEmptyWordGas), defaultGas.CrossEmptyWordGas,
+		"machima must not take v3's measured per-word gas until it is measured here")
+}

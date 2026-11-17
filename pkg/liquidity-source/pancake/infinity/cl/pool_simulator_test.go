@@ -19,6 +19,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
@@ -214,4 +215,13 @@ func pickRandomPools(pools []entity.Pool, n int) []entity.Pool {
 		}
 	}
 	return selected
+}
+
+// TestEmptyWordGasIsTheUnmeasuredEstimate pins the gas charged for a tick-bitmap word a pancake infinity CL swap walks without
+// crossing an initialized tick. uniswap v3's CrossEmptyWordGas is the value measured on v3 pools (7,400); it has not
+// been measured for pancake infinity CL, so pancake infinity CL keeps the earlier estimate of 2,500 and its quoted gas does not follow v3's.
+func TestEmptyWordGasIsTheUnmeasuredEstimate(t *testing.T) {
+	assert.EqualValues(t, 2500, defaultGas.CrossEmptyWordGas)
+	assert.NotEqual(t, int64(uniswapv3.CrossEmptyWordGas), defaultGas.CrossEmptyWordGas,
+		"pancake infinity CL must not take v3's measured per-word gas until it is measured here")
 }

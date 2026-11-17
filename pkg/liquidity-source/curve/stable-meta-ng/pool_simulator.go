@@ -273,11 +273,11 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// update balance from the meta swap component
 	metaInfo := swapInfo.Meta
 	t.Reserves[metaInfo.TokenInIndex].Add(&t.Reserves[metaInfo.TokenInIndex], &metaInfo.AmountIn)
-	number.FillBig(&t.Reserves[metaInfo.TokenInIndex], t.Info.Reserves[metaInfo.TokenInIndex])
+	t.Info.Reserves[metaInfo.TokenInIndex] = t.Reserves[metaInfo.TokenInIndex].ToBig()
 
 	t.Reserves[metaInfo.TokenOutIndex].Sub(&t.Reserves[metaInfo.TokenOutIndex],
 		number.Add(&metaInfo.AmountOut, &metaInfo.AdminFee))
-	number.FillBig(&t.Reserves[metaInfo.TokenOutIndex], t.Info.Reserves[metaInfo.TokenOutIndex])
+	t.Info.Reserves[metaInfo.TokenOutIndex] = t.Reserves[metaInfo.TokenOutIndex].ToBig()
 
 	// if output coin is from base pool
 	withdraw := swapInfo.Withdraw

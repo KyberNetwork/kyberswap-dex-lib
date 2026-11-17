@@ -1,7 +1,9 @@
 package v2
 
 import (
+	"context"
 	"math/big"
+	"regexp"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -9,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2/hooks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -107,4 +110,33 @@ func TestPoolSimulator_WhitelistHookDisabledByTracker(t *testing.T) {
 		TokenOut:      entityPool.Tokens[0].Address,
 	})
 	assert.ErrorIs(t, err, hooks.ErrPoolDisabled)
+}
+
+// A borrow the simulator cannot price is refused, as on chain, where the vault prices the liability
+// with its oracle: state the old tracker stored with every price at 0, or a quote that failed.
+// cloneStatePoolData's swaps of 10% of a reserve borrow; with its debt prices at 0 they are refused.
+func TestBorrowWithoutDebtPrice(t *testing.T) {
+	t.Parallel()
+	zeroed := regexp.MustCompile(`\\"dP\\":\\"[0-9]+\\"`).ReplaceAllString(cloneStatePoolData, `\"dP\":\"0\"`)
+	require.NotEqual(t, cloneStatePoolData, zeroed)
+
+	for _, tc := range []struct {
+		data string
+		err  error
+	}{{cloneStatePoolData, nil}, {zeroed, shared.ErrInsolvency}} {
+		var ep entity.Pool
+		require.NoError(t, json.Unmarshal([]byte(tc.data), &ep))
+		sim, err := NewPoolSimulator(ep)
+		require.NoError(t, err)
+		for i := range 2 {
+			in := pool.TokenAmount{Token: ep.Tokens[i].Address,
+				Amount: new(big.Int).Div(sim.GetReserves()[i], big.NewInt(10))}
+			_, err := pool.CalcAmountOut(context.Background(), sim, in, ep.Tokens[1-i].Address, nil)
+			if tc.err == nil {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, tc.err)
+			}
+		}
+	}
 }

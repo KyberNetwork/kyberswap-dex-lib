@@ -76,7 +76,7 @@ func (t *PoolTracker) getNewPoolState(
 	d := newRPCData(numTokens, numDepCoins)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
-	addRPCCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, d)
+	addRPCCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, twocryptong.PreviousPolicy(p.Extra), d)
 
 	res, err := calls.TryBlockAndAggregate()
 	if err != nil {
@@ -92,8 +92,10 @@ func (t *PoolTracker) getNewPoolState(
 
 type rpcData struct {
 	d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
-	xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply                         *big.Int
+	xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply, rebalancingParams      *big.Int
 	math, policy                                                                                  common.Address
+	v21d                                                                                          twocryptong.V21dRPC
+	v3                                                                                            twocryptong.V3RPC
 	balances, priceScales, priceOracles, lastPrices                                               []*big.Int
 }
 
@@ -106,7 +108,7 @@ func newRPCData(numTokens, numDepCoins int) *rpcData {
 	}
 }
 
-func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData) {
+func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, previousPolicy string, d *rpcData) {
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodD}, []any{&d.d})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodFeeGamma}, []any{&d.feeGamma})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodMidFee}, []any{&d.midFee})
@@ -120,8 +122,11 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodAllowedExtraProfit}, []any{&d.allowedExtraProfit})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodAdjustmentStep}, []any{&d.adjustmentStep})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
+	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodPackedRebalancingParams}, []any{&d.rebalancingParams})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodMath}, []any{&d.math})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodPolicy}, []any{&d.policy})
+	twocryptong.AddV21dCalls(addFn, poolAddress, &d.v21d)
+	twocryptong.AddV3Calls(addFn, poolAddress, previousPolicy, &d.v3)
 	for i := range d.balances {
 		addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
 	}
@@ -151,6 +156,16 @@ func buildPoolState(ctx context.Context, t *PoolTracker, lg logger.Logger, p ent
 		AllowedExtraProfit: number.SetFromBig(d.allowedExtraProfit),
 		AdjustmentStep:     number.SetFromBig(d.adjustmentStep),
 		UseCustomMath:      twocryptong.UseCustomMath(d.math),
+		PolicyAddress:      twocryptong.PolicyHex(d.policy),
+	}
+	d.v21d.Apply(&extra)
+	d.v3.Apply(&extra, d.rebalancingParams)
+	now := time.Now().Unix()
+	if d.rebalancingParams != nil {
+		if maTime := twocryptong.MaTimeFromRebalancingParams(d.rebalancingParams); !maTime.IsZero() {
+			extra.MaTime = maTime
+			extra.PriceOracleTimestamp = now
+		}
 	}
 	if d.policy != (common.Address{}) {
 		var err error
@@ -178,7 +193,7 @@ func buildPoolState(ctx context.Context, t *PoolTracker, lg logger.Logger, p ent
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = now
 	p.Reserves = reserves
 
 	return p, nil

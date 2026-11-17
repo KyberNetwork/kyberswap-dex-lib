@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -324,4 +325,143 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 			Limit:         nil,
 		})
 	}
+}
+
+// Chain quotes below come from an anvil fork of Ethereum at block 26307080: get_dy(probe), then a real
+// exchange(tiny), then get_dy(probe) again. They pin what the pool quotes after a trade, which depends on
+// price_oracle as the contract computes it at the trade's time.
+
+// XBEN/WETH/USDT last traded days before the fork block, so price_oracle() has fully converged on
+// last_prices while the state read four days earlier still holds an older value.
+const idlePoolEntity = `{"address":"0x181a7464554e68333193a71719eb164e0db7c038","exchange":"curve-tricrypto-ng","type":"curve-tricrypto-ng","timestamp":1793002214,"reserves":["65030304283067395006853","101233597497079","235078"],"tokens":[{"address":"0xa49bf1560119e2df3316885d7ddb4a248b773e34","symbol":"XBEN","decimals":18,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","symbol":"WETH","decimals":18,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"InitialA\":\"2700000\",\"InitialGamma\":\"1300000000000\",\"InitialAGammaTime\":0,\"FutureA\":\"2700000\",\"FutureGamma\":\"1300000000000\",\"FutureAGammaTime\":0,\"D\":\"195139619610630919631441\",\"PriceScale\":[\"664587765160418965337897373\",\"267574311111688644481757\"],\"PriceOracle\":[\"656978986867205835049796140\",\"270530966474470559802612\"],\"LastPrices\":[\"642738502607373715579967548\",\"276486663100919303243535\"],\"PriceOracleTimestamp\":1793002214,\"MaTime\":\"865\",\"FeeGamma\":\"350000000000000\",\"MidFee\":\"2999999\",\"OutFee\":\"80000000\",\"LpSupply\":\"1132717387292003582\",\"XcpProfit\":\"1021424979903121036\",\"VirtualPrice\":\"1021183321544013788\",\"AllowedExtraProfit\":\"100000000000\",\"AdjustmentStep\":\"100000000000\"}","staticExtra":"{\"IsNativeCoins\":[false,false,false]}","blockNumber":26275577}`
+
+// crvUSD/tBTC/wstETH as the tracker reads it at the fork block, with price_oracle still on its way to
+// last_prices. MaTime 866 is packed_rebalancing_params; the ma_time() view says 601.
+const convergingPoolEntity = `{"address":"0x2889302a794da87fbf1d6db415c1492194663d13","exchange":"curve-tricrypto-ng","type":"curve-tricrypto-ng","timestamp":1793585990,"reserves":["1426847083933437585734103","18455901695458957243","504486581918630834702"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0x18084fba666a33d37592fa2633fd49a74dd93a88","symbol":"tBTC","decimals":18,"swappable":true},{"address":"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0","symbol":"wstETH","decimals":18,"swappable":true}],"extra":"{\"InitialA\":\"1707629\",\"InitialGamma\":\"11809167828997\",\"InitialAGammaTime\":1705051559,\"FutureA\":\"540000\",\"FutureGamma\":\"80500000000000\",\"FutureAGammaTime\":1705537322,\"D\":\"4262998684971501993579040\",\"PriceScale\":[\"77483838002402501097865\",\"2787263116562429934396\"],\"PriceOracle\":[\"77451240317304208904803\",\"2795358358963973264794\"],\"LastPrices\":[\"77437919521269141718975\",\"2798021746139515972416\"],\"PriceOracleTimestamp\":1793381475,\"MaTime\":\"866\",\"FeeGamma\":\"400000000000000\",\"MidFee\":\"1000000\",\"OutFee\":\"140000000\",\"LpSupply\":\"2268022205913350776207\",\"XcpProfit\":\"1078985732841659025\",\"VirtualPrice\":\"1044279960688415810\",\"AllowedExtraProfit\":\"100000000\",\"AdjustmentStep\":\"100000000000\"}","staticExtra":"{\"IsNativeCoins\":[false,false,false]}","blockNumber":26307082}`
+
+func quoteAfterTrade(t *testing.T, p entity.Pool, in, out int, probe, tiny string) (pre, post *big.Int) {
+	t.Helper()
+	sim, err := NewPoolSimulator(p)
+	require.NoError(t, err)
+	tokenIn, tokenOut := sim.Info.Tokens[in], sim.Info.Tokens[out]
+	quote := func(s *PoolSimulator, amount *big.Int) *pool.CalcAmountOutResult {
+		res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amount},
+			TokenOut:      tokenOut,
+		})
+		require.NoError(t, err)
+		return res
+	}
+	probeAmount, _ := new(big.Int).SetString(probe, 10)
+	tinyAmount, _ := new(big.Int).SetString(tiny, 10)
+
+	pre = quote(sim, probeAmount).TokenAmountOut.Amount
+	clone := sim.CloneState().(*PoolSimulator)
+	trade := quote(clone, tinyAmount)
+	clone.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: tinyAmount},
+		TokenAmountOut: *trade.TokenAmountOut,
+		SwapInfo:       trade.SwapInfo,
+	})
+	post = quote(clone, probeAmount).TokenAmountOut.Amount
+
+	assert.Equal(t, pre.String(), quote(sim, probeAmount).TokenAmountOut.Amount.String(),
+		"the trade on the clone must not move the original")
+	return pre, post
+}
+
+func TestPriceOracleCarriedForward_IdlePool(t *testing.T) {
+	var p entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(idlePoolEntity), &p))
+	for _, tc := range []struct {
+		name        string
+		in, out     int
+		probe, tiny string
+		pre, post   string
+	}{
+		{"XBEN to WETH", 0, 1, "650303042830673950", "650303042830673", "1005491386", "1006128262"},
+		{"WETH to XBEN", 1, 0, "1012335974", "1012335", "646648899036478407", "647118633085104470"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			pre, post := quoteAfterTrade(t, p, tc.in, tc.out, tc.probe, tc.tiny)
+			assert.Equal(t, tc.pre, pre.String(), "get_dy before the trade")
+			assert.Equal(t, tc.post, post.String(), "get_dy after the trade")
+		})
+	}
+}
+
+// The trade lands 300 s after the read, about a third of the EMA's time constant, so the simulator has to
+// carry the oracle part of the way with the pool's true constant.
+func TestPriceOracleCarriedForward_PartWay(t *testing.T) {
+	var p entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(convergingPoolEntity), &p))
+	defer func(f func() int64) { nowUnix = f }(nowUnix)
+	nowUnix = func() int64 { return 1793381775 }
+
+	pre, post := quoteAfterTrade(t, p, 0, 1, "14268470839334375857", "14268470839334375")
+	assert.Equal(t, "183797572098291", pre.String(), "get_dy before the trade")
+	assert.Equal(t, "183834889757060", post.String(), "get_dy after the trade")
+}
+
+// A state written before this change has neither field and keeps quoting from the stored oracle.
+func TestPriceOracleNotCarriedForward_OldState(t *testing.T) {
+	var p entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(idlePoolEntity), &p))
+	var extra Extra
+	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
+	extra.MaTime, extra.PriceOracleTimestamp = nil, 0
+	b, err := json.Marshal(extra)
+	require.NoError(t, err)
+	p.Extra = string(b)
+
+	_, post := quoteAfterTrade(t, p, 0, 1, "650303042830673950", "650303042830673")
+	assert.Equal(t, "1005679663", post.String())
+}
+
+func TestPriceOracleAt(t *testing.T) {
+	var p entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(convergingPoolEntity), &p))
+	sim, err := NewPoolSimulator(p)
+	require.NoError(t, err)
+	readAt := sim.Extra.PriceOracleTimestamp
+	stored, last := sim.Extra.PriceOracle, sim.Extra.LastPrices
+
+	at := func(s *PoolSimulator, timestamp int64) ([]uint256.Int, int64) {
+		out := make([]uint256.Int, NumTokens-1)
+		got, err := s.priceOracleAt(timestamp, out)
+		require.NoError(t, err)
+		return out, got
+	}
+
+	t.Run("at or before the read, the stored value", func(t *testing.T) {
+		for _, timestamp := range []int64{readAt - 100, readAt} {
+			out, got := at(sim, timestamp)
+			assert.Equal(t, readAt, got)
+			assert.Equal(t, stored, out)
+		}
+	})
+	t.Run("after the read, between the stored value and last_prices", func(t *testing.T) {
+		out, got := at(sim, readAt+300)
+		assert.Equal(t, readAt+300, got)
+		assert.True(t, out[0].Lt(&stored[0]) && out[0].Gt(&last[0]), "oracle 0 moves down toward last_prices")
+		assert.True(t, out[1].Gt(&stored[1]) && out[1].Lt(&last[1]), "oracle 1 moves up toward last_prices")
+	})
+	t.Run("long after the read, last_prices", func(t *testing.T) {
+		out, _ := at(sim, readAt+100*866)
+		assert.Equal(t, last, out)
+	})
+	t.Run("does not write to the stored value", func(t *testing.T) {
+		before := append([]uint256.Int(nil), sim.Extra.PriceOracle...)
+		at(sim, readAt+300)
+		assert.Equal(t, before, sim.Extra.PriceOracle)
+	})
+}
+
+func TestMaTimeFromRebalancingParams(t *testing.T) {
+	allowedExtraProfit, adjustmentStep := big.NewInt(100000000), big.NewInt(100000000000)
+	packed := new(big.Int).Lsh(allowedExtraProfit, 128)
+	packed.Or(packed, new(big.Int).Lsh(adjustmentStep, 64))
+	packed.Or(packed, big.NewInt(866))
+	assert.Equal(t, uint64(866), MaTimeFromRebalancingParams(packed).Uint64())
+	assert.True(t, MaTimeFromRebalancingParams(new(big.Int)).IsZero())
 }

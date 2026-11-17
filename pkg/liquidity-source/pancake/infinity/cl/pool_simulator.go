@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	defaultGas = uniswapv3.Gas{BaseGas: 75000, CrossInitTickGas: 21000, CrossEmptyWordGas: uniswapv3.CrossEmptyWordGas}
+	defaultGas = uniswapv3.Gas{BaseGas: 75000, CrossInitTickGas: 21000, CrossEmptyWordGas: uniswapv3.UnmeasuredCrossEmptyWordGas}
 )
 
 type PoolSimulator struct {

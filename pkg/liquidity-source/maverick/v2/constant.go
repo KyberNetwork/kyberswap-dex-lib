@@ -19,6 +19,9 @@ const (
 
 	GasSwap     = 125000
 	GasCrossBin = 20000
+	// GasEmptyTick is the gas per tick without liquidity that a swap walks over: 2,541-2,650 gas per tick on
+	// the ezETH/WETH pool 0x707e…f171 at block 26299905, measured on a fork with bounded tick limits.
+	GasEmptyTick = 2600
 )
 
 var (

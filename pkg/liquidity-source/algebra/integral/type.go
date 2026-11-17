@@ -233,6 +233,8 @@ type StateUpdate struct {
 	Price         *uint256.Int
 	Tick          int32
 	NamiTimepoint *NamiTimepointUpdate
+	write         *pendingWrite // the timepoint and oracle the swap priced with (applyWrite)
+	writeFee      uint16        // and the last fee it took
 }
 
 type PoolMeta struct {

@@ -1,0 +1,128 @@
+tick0 zfo=true out=true 1 => fee 3000 ds 1 du 0 gas 248527 next 79228162514264337593543950336
+tick0 zfo=true out=true 1000 => fee 3000 ds 1000 du -996 gas 248527 next 79228162514232749299801543840
+tick0 zfo=true out=true 100000 => fee 3000 ds 100000 du -99699 gas 248527 next 79228162511105508219427983937
+tick0 zfo=true out=true 10000000 => fee 3000 ds 10000000 du -9969999 gas 248527 next 79228162198381401428779324643
+tick0 zfo=true out=true 1000000000 => fee 3000 ds 1000000000 du -996999602 gas 248527 next 79228130925983189432253685962
+tick0 zfo=true out=true 100000000000 => err invalid amount out
+tick0 zfo=true out=true 10000000000000 => err invalid amount out
+tick0 zfo=true out=true 1000000000000000 => err invalid amount out
+tick0 zfo=true out=false 1 => fee 3000 ds 3 du -1 gas 248527 next 79228162514264305910200176595
+tick0 zfo=true out=false 1000 => fee 3000 ds 1005 du -1000 gas 248527 next 79228162514232654249770210024
+tick0 zfo=true out=false 100000 => fee 3000 ds 100302 du -100000 gas 248527 next 79228162511096003216169919214
+tick0 zfo=true out=false 10000000 => fee 3000 ds 10030092 du -10000000 gas 248527 next 79228162197430899856140838192
+tick0 zfo=true out=false 1000000000 => err invalid amount out
+tick0 zfo=true out=false 100000000000 => err invalid amount out
+tick0 zfo=true out=false 10000000000000 => err invalid amount out
+tick0 zfo=true out=false 1000000000000000 => err invalid amount out
+tick0 zfo=false out=true 1 => fee 3000 ds 1 du 0 gas 248527 next 79228162514264337593543950336
+tick0 zfo=false out=true 1000 => fee 3000 ds 1000 du -996 gas 248527 next 79228162514295925887286369426
+tick0 zfo=false out=true 100000 => fee 3000 ds 100000 du -99699 gas 248527 next 79228162517423166967785859364
+tick0 zfo=false out=true 10000000 => fee 3000 ds 10000000 du -9969999 gas 248527 next 79228162830147275017734853143
+tick0 zfo=false out=true 1000000000 => fee 3000 ds 1000000000 du -996999602 gas 248527 next 79228194102558080012634231080
+tick0 zfo=false out=true 100000000000 => err invalid amount out
+tick0 zfo=false out=true 10000000000000 => err invalid amount out
+tick0 zfo=false out=true 1000000000000000 => err invalid amount out
+tick0 zfo=false out=false 1 => fee 3000 ds 3 du -1 gas 248527 next 79228162514264369276887724077
+tick0 zfo=false out=false 1000 => fee 3000 ds 1005 du -1000 gas 248527 next 79228162514296020937317703318
+tick0 zfo=false out=false 100000 => fee 3000 ds 100302 du -100000 gas 248527 next 79228162517432671971044683156
+tick0 zfo=false out=false 10000000 => fee 3000 ds 10030092 du -10000000 gas 248527 next 79228162831097776597964048415
+tick0 zfo=false out=false 1000000000 => err invalid amount out
+tick0 zfo=false out=false 100000000000 => err invalid amount out
+tick0 zfo=false out=false 10000000000000 => err invalid amount out
+tick0 zfo=false out=false 1000000000000000 => err invalid amount out
+low zfo=true out=true 1 => fee 3000 ds 1 du 0 gas 248527 next 79204394065510058292265887150
+low zfo=true out=true 1000 => fee 3000 ds 1000 du -996 gas 248527 next 79204394065454798914391811552
+low zfo=true out=true 100000 => fee 3000 ds 100000 du -99640 gas 248527 next 79204394059984120505240006029
+low zfo=true out=true 10000000 => fee 3000 ds 10000000 du -9964018 gas 248527 next 79204393512916283406464544138
+low zfo=true out=true 1000000000 => fee 3000 ds 1000000000 du -996401194 gas 248527 next 79204338806170737553197082053
+low zfo=true out=true 100000000000 => err invalid amount out
+low zfo=true out=true 10000000000000 => err invalid amount out
+low zfo=true out=true 1000000000000000 => err invalid amount out
+low zfo=true out=false 1 => fee 3000 ds 3 du -1 gas 248527 next 79204394065510002833340684701
+low zfo=true out=false 1000 => fee 3000 ds 1005 du -1000 gas 248527 next 79204394065454599367063438907
+low zfo=true out=false 100000 => fee 3000 ds 100363 du -100000 gas 248527 next 79204394059964165772021062923
+low zfo=true out=false 10000000 => fee 3000 ds 10036112 du -10000000 gas 248527 next 79204393510920806267783464482
+low zfo=true out=false 1000000000 => err invalid amount out
+low zfo=true out=false 100000000000 => err invalid amount out
+low zfo=true out=false 10000000000000 => err invalid amount out
+low zfo=true out=false 1000000000000000 => err invalid amount out
+low zfo=false out=true 1 => fee 3000 ds 1 du 0 gas 248527 next 79204394065510058292265887150
+low zfo=false out=true 1000 => fee 3000 ds 1000 du -997 gas 248527 next 79204394065565350840692728047
+low zfo=false out=true 100000 => fee 3000 ds 100000 du -99759 gas 248527 next 79204394071039313134949976903
+low zfo=false out=true 10000000 => fee 3000 ds 10000000 du -9975984 gas 248527 next 79204394618435542560674862549
+low zfo=false out=true 1000000000 => fee 3000 ds 1000000000 du -997597772 gas 248527 next 79204449358058485133163427057
+low zfo=false out=true 100000000000 => err invalid amount out
+low zfo=false out=true 10000000000000 => err invalid amount out
+low zfo=false out=true 1000000000000000 => err invalid amount out
+low zfo=false out=false 1 => fee 3000 ds 2 du -1 gas 248527 next 79204394065510113717920725781
+low zfo=false out=false 1000 => fee 3000 ds 1004 du -1000 gas 248527 next 79204394065565483947104555978
+low zfo=false out=false 100000 => fee 3000 ds 100242 du -100000 gas 248527 next 79204394071052623776516748980
+low zfo=false out=false 10000000 => fee 3000 ds 10024074 du -10000000 gas 248527 next 79204394619766610557143081082
+low zfo=false out=false 1000000000 => err invalid amount out
+low zfo=false out=false 100000000000 => err invalid amount out
+low zfo=false out=false 10000000000000 => err invalid amount out
+low zfo=false out=false 1000000000000000 => err invalid amount out
+high zfo=true out=true 1 => fee 3000 ds 1 du 0 gas 248527 next 79251930963018616894822013521
+high zfo=true out=true 1000 => fee 3000 ds 1000 du -997 gas 248527 next 79251930962963298281433636975
+high zfo=true out=true 100000 => fee 3000 ds 100000 du -99759 gas 248527 next 79251930957486755556366626837
+high zfo=true out=true 10000000 => fee 3000 ds 10000000 du -9975982 gas 248527 next 79251930409832486871963044043
+high zfo=true out=true 1000000000 => fee 3000 ds 1000000000 du -997597593 gas 248527 next 79251875644443841379235053402
+high zfo=true out=true 100000000000 => err invalid amount out
+high zfo=true out=true 10000000000000 => err invalid amount out
+high zfo=true out=true 1000000000000000 => err invalid amount out
+high zfo=true out=false 1 => fee 3000 ds 2 du -1 gas 248527 next 79251930963018561443029485501
+high zfo=true out=false 1000 => fee 3000 ds 1004 du -1000 gas 248527 next 79251930962963165102293993907
+high zfo=true out=false 100000 => fee 3000 ds 100242 du -100000 gas 248527 next 79251930957473437642020052174
+high zfo=true out=false 10000000 => fee 3000 ds 10024076 du -10000000 gas 248527 next 79251930408500691614625878839
+high zfo=true out=false 1000000000 => err invalid amount out
+high zfo=true out=false 100000000000 => err invalid amount out
+high zfo=true out=false 10000000000000 => err invalid amount out
+high zfo=true out=false 1000000000000000 => err invalid amount out
+high zfo=false out=true 1 => fee 3000 ds 1 du 0 gas 248527 next 79251930963018616894822013521
+high zfo=false out=true 1000 => fee 3000 ds 1000 du -996 gas 248527 next 79251930963073902331972449075
+high zfo=false out=true 100000 => fee 3000 ds 100000 du -99640 gas 248527 next 79251930968547160609865568983
+high zfo=false out=true 10000000 => fee 3000 ds 10000000 du -9964020 gas 248527 next 79251931515872988399177559798
+high zfo=false out=true 1000000000 => fee 3000 ds 1000000000 du -996401374 gas 248527 next 79251986248455767330376641291
+high zfo=false out=true 100000000000 => err invalid amount out
+high zfo=false out=true 10000000000000 => err invalid amount out
+high zfo=false out=true 1000000000000000 => err invalid amount out
+high zfo=false out=false 1 => fee 3000 ds 3 du -1 gas 248527 next 79251930963018672379890607719
+high zfo=false out=false 1000 => fee 3000 ds 1005 du -1000 gas 248527 next 79251930963074101963416250120
+high zfo=false out=false 100000 => fee 3000 ds 100363 du -100000 gas 248527 next 79251930968567123754630245306
+high zfo=false out=false 10000000 => fee 3000 ds 10036110 du -10000000 gas 248527 next 79251931517869306721364650175
+high zfo=false out=false 1000000000 => err invalid amount out
+high zfo=false out=false 100000000000 => err invalid amount out
+high zfo=false out=false 10000000000000 => err invalid amount out
+high zfo=false out=false 1000000000000000 => err invalid amount out
+outside zfo=true out=true 1 => fee 3000 ds 1 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=true out=true 1000 => fee 3000 ds 1000 du -3987 gas 248527 next 158456325028275918288297267334
+outside zfo=true out=true 100000 => fee 3000 ds 100000 du -398799 gas 248527 next 158456325003252985312016025614
+outside zfo=true out=true 10000000 => fee 3000 ds 10000000 du -39879999 gas 248527 next 158456322500959727594487810110
+outside zfo=true out=true 1000000000 => fee 3000 ds 1000000000 du -3987993638 gas 248527 next 158456072272033061164611201870
+outside zfo=true out=true 100000000000 => err invalid amount out
+outside zfo=true out=true 10000000000000 => err invalid amount out
+outside zfo=true out=true 1000000000000000 => err invalid amount out
+outside zfo=true out=false 1 => fee 3000 ds 2 du -1 gas 248527 next 158456325028528611807725114554
+outside zfo=true out=false 1000 => fee 3000 ds 252 du -1000 gas 248527 next 158456325028465295824301783190
+outside zfo=true out=false 100000 => fee 3000 ds 25077 du -100000 gas 248527 next 158456325022190738908476152520
+outside zfo=true out=false 10000000 => fee 3000 ds 2507524 du -10000000 gas 248527 next 158456324394735047325913085479
+outside zfo=true out=false 1000000000 => fee 3000 ds 250752358 du -1000000000 gas 248527 next 158456261649165889069606381385
+outside zfo=true out=false 100000000000 => err invalid amount out
+outside zfo=true out=false 10000000000000 => err invalid amount out
+outside zfo=true out=false 1000000000000000 => err invalid amount out
+outside zfo=false out=true 1 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=true 1000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=true 100000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=true 10000000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=true 1000000000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=true 100000000000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=true 10000000000000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=true 1000000000000000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=false 1 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=false 1000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=false 100000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=false 10000000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=false 1000000000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=false 100000000000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=false 10000000000000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672
+outside zfo=false out=false 1000000000000000 => fee 3000 ds 0 du 0 gas 248527 next 158456325028528675187087900672

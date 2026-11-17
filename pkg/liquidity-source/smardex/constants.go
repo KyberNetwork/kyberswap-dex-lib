@@ -29,6 +29,8 @@ const (
 	pairGetPairFeesMethod        = "getPairFees"
 	pairGetFeeToAmountsMethod    = "getFeeToAmounts"
 	pairGetFeesMethod            = "getFees"
+	factoryFeeToMethod           = "feeTo"
+	pairFactoryMethod            = "factory"
 	pairGetFictiveReservesMethod = "getFictiveReserves"
 	pairGetPriceAverageMethod    = "getPriceAverage"
 	pairGetReservesMethod        = "getReserves"

@@ -225,6 +225,19 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.bins = newBins
 }
 
+// CloneState is a typed copy. bins are shared: UpdateBalance replaces the slice with bins of new big.Ints and never
+// writes the old ones. Info.Reserves get big.Ints of their own, since UpdateBalance adds into them in place.
+// feeParams and activeBinID are values. Without CloneState, pathfinder-lib's DefaultClonePool cloned this simulator
+// with go-clone's Slowly, which stores pointers without GC write barriers.
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.Info.Reserves = make([]*big.Int, len(p.Info.Reserves))
+	for i, r := range p.Info.Reserves {
+		cloned.Info.Reserves[i] = new(big.Int).Set(r)
+	}
+	return &cloned
+}
+
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return pool.MetaInfo{BlockNumber: t.Info.BlockNumber}
 }

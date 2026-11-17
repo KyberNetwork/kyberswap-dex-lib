@@ -1,6 +1,7 @@
 package platypus
 
 import (
+	"maps"
 	"math/big"
 	"strings"
 
@@ -111,6 +112,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Token:  tokenOut,
 			Amount: hairCut,
 		}, Gas: p.gas.Swap}, nil
+}
+
+// CloneState copies the asset map: UpdateBalance stores new Asset values into it, and every big.Int it holds is
+// replaced, never changed in place.
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.AssetByToken = maps.Clone(p.AssetByToken)
+	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(

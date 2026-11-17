@@ -2,6 +2,7 @@ package poe
 
 import (
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -210,6 +211,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
+	cloned.Info.Reserves = slices.Clone(s.Info.Reserves) // UpdateBalance assigns into its slots
 	cloned.reserveX = new(uint256.Int).Set(s.reserveX)
 	cloned.reserveY = new(uint256.Int).Set(s.reserveY)
 

@@ -299,7 +299,9 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	collatVal := p.collateralValue.Clone()
 	if debt.Sign() > 0 {
 		debtVault := p.BorrowVault[debtVaultIdx]
-		if debtVault == nil {
+		if debtVault == nil || debtVault.DebtPrice == nil || debtVault.DebtPrice.IsZero() {
+			// No vault, or a liability the oracle did not price: the vault would price it, so the
+			// check cannot pass on a value of 0.
 			return nil, shared.ErrInsolvency
 		}
 

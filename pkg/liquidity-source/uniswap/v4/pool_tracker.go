@@ -22,6 +22,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -482,16 +483,29 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 	})
 
 	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return nil, errors.New("failed to unmarshal pool extra")
+	if p.Extra != "" { // a pool the lister just added has no extra yet
+		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal pool extra: %w", err)
+		}
+	}
+	if extra.Extra == nil {
+		extra.Extra = &uniswapv3.Extra{}
 	}
 
-	changedTicks := ticklens.GetChangedTicks(param.Logs)
+	changedTicks, err := changedTicksFromLogs(common.HexToHash(p.Address), param.Logs)
+	if err != nil {
+		return nil, err
+	}
 	l.Infof("Fetch changed ticks %v", changedTicks)
 
+	// A bootstrap (no logs), a pool with no stored ticks to patch, or more changed ticks than are worth reading
+	// one by one reads every initialized tick. Logs that change no tick keep the stored ticks.
 	changedTicksCount := len(changedTicks)
-	if changedTicksCount == 0 || changedTicksCount > maxChangedTicks {
-		return nil, ErrTooManyChangedTicks
+	switch {
+	case len(param.Logs) == 0 || len(extra.Ticks) == 0 || changedTicksCount > maxChangedTicks:
+		return t.readTicksFromStateView(ctx, p)
+	case changedTicksCount == 0:
+		return storedTickResps(extra.Ticks), nil
 	}
 
 	rpcRequest := t.ethrpcClient.NewRequest()
@@ -514,7 +528,7 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 
 	resp, err := rpcRequest.Aggregate()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read %d changed ticks: %w", changedTicksCount, err)
 	}
 	if t.useExtsload() {
 		for i := range stateViewTicks {
@@ -529,29 +543,27 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 
 	combined := make([]ticklens.TickResp, 0, len(changedTicks)+len(extra.Ticks))
 	for _, t := range extra.Ticks {
-		tIdx := int64(t.Index)
-		if slices.Contains(changedTicks, tIdx) {
-			tick := resTicks[tIdx]
-			if tick.LiquidityNet == nil || tick.LiquidityNet.Sign() == 0 {
-				// some changed ticks might be consumed entirely, delete them
-				logger.Debugf("deleted tick %v %v", p.Address, t)
-				continue
-			}
-
-			// changed, use new value
-			combined = append(combined, ticklens.TickResp{
-				TickIdx:        strconv.FormatInt(tIdx, 10),
-				LiquidityGross: tick.LiquidityGross.String(),
-				LiquidityNet:   tick.LiquidityNet.String(),
-			})
-		} else {
-			// use old value
+		if !slices.Contains(changedTicks, int64(t.Index)) { // unchanged, use old value
 			combined = append(combined, ticklens.TickResp{
 				TickIdx:        strconv.Itoa(t.Index),
 				LiquidityGross: t.LiquidityGross.String(),
 				LiquidityNet:   t.LiquidityNet.String(),
 			})
 		}
+	}
+	for _, tIdx := range changedTicks {
+		tick := resTicks[tIdx]
+		if tick.LiquidityNet == nil || tick.LiquidityNet.Sign() == 0 {
+			// a changed tick consumed entirely (or never initialized) is dropped
+			logger.Debugf("deleted tick %v %v", p.Address, tIdx)
+			continue
+		}
+		// changed or newly initialized, use the read value
+		combined = append(combined, ticklens.TickResp{
+			TickIdx:        strconv.FormatInt(tIdx, 10),
+			LiquidityGross: tick.LiquidityGross.String(),
+			LiquidityNet:   tick.LiquidityNet.String(),
+		})
 	}
 
 	// Sort the ticks because function NewTickListDataProvider needs

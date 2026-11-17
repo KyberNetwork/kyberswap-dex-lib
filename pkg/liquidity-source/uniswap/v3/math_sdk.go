@@ -433,8 +433,11 @@ const q96 = 0x1p96 // 2^96, the Q96 denominator
 // before it verifies against TickMath: 20x the worst combined error.
 const tickAtSqrtRatioMargin = 1e-4
 
+// GetTickAtSqrtRatio is TickMath.getTickAtSqrtRatio: it takes MIN_SQRT_RATIO <= sqrtPX96 <
+// MAX_SQRT_RATIO (MaxSqrtRatioU256P1 here; MaxSqrtRatioU256 is MAX_SQRT_RATIO - 1, the highest price
+// limit a swap accepts, so it must convert too).
 func GetTickAtSqrtRatio(sqrtPX96 *uint256.Int) (int, error) {
-	if sqrtPX96.Lt(MinSqrtRatioU256) || !sqrtPX96.Lt(MaxSqrtRatioU256) {
+	if sqrtPX96.Lt(MinSqrtRatioU256) || !sqrtPX96.Lt(MaxSqrtRatioU256P1) {
 		return 0, errInvalidSqrtRatio
 	}
 

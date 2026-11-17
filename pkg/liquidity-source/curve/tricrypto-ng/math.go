@@ -2,7 +2,6 @@ package tricryptong
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -819,7 +818,7 @@ func (t *PoolSimulator) _A_gamma_inplace(A, gamma *uint256.Int) {
 	var t1 = t.Extra.FutureAGammaTime
 	A.Set(t.Extra.FutureA)
 	gamma.Set(t.Extra.FutureGamma)
-	var now = time.Now().Unix()
+	var now = nowUnix()
 	if now < t1 {
 		var A0 = t.Extra.InitialA
 		var gamma0 = t.Extra.InitialGamma

@@ -90,8 +90,8 @@ func (t *PoolTracker) getNewPoolState(
 
 type rpcData struct {
 	d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
-	xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply                         *big.Int
-	balances, priceScales, priceOracles, lastPrices                                                []*big.Int
+	xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply, rebalancingParams      *big.Int
+	balances, priceScales, priceOracles, lastPrices                                               []*big.Int
 }
 
 func newRPCData(numTokens, numDepCoins int) *rpcData {
@@ -117,6 +117,7 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData
 	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodAllowedExtraProfit}, []any{&d.allowedExtraProfit})
 	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodAdjustmentStep}, []any{&d.adjustmentStep})
 	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodPackedRebalancingParams}, []any{&d.rebalancingParams})
 	for i := range d.balances {
 		addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
 	}
@@ -145,6 +146,13 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 		AllowedExtraProfit: number.SetFromBig(d.allowedExtraProfit),
 		AdjustmentStep:     number.SetFromBig(d.adjustmentStep),
 	}
+	now := time.Now().Unix()
+	if d.rebalancingParams != nil {
+		if maTime := tricryptong.MaTimeFromRebalancingParams(d.rebalancingParams); !maTime.IsZero() {
+			extra.MaTime = maTime
+			extra.PriceOracleTimestamp = now
+		}
+	}
 	extra.PriceScale = make([]uint256.Int, len(d.priceScales))
 	lo.ForEach(d.priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })
 	extra.PriceOracle = make([]uint256.Int, len(d.priceOracles))
@@ -164,7 +172,7 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = now
 	p.Reserves = reserves
 
 	return p, nil

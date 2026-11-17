@@ -1,12 +1,14 @@
 package smardex
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -25,7 +27,9 @@ var (
 	feesLP                   = uint256.NewInt(500)
 	feesPool                 = uint256.NewInt(200)
 
-	expectedResT0       = parseString("14847062709278699999")
+	expectedResT0 = parseString("14847062709278699999")
+	// the pair's reserve: balance less feeToAmount, one floor of the pool fee; the library's own is 1 wei lower
+	expectedPairResT0   = parseString("14847062709278700000")
 	expectedResT1       = parseString("112484184376480628646478")
 	expectedResFicT0    = parseString("8094353523617659658")
 	expectedResFicT1    = parseString("51232857537391979202756")
@@ -100,17 +104,17 @@ func TestCalcAmountOut(t *testing.T) {
 	if !ok {
 		t.Fatal(`Swapinfo is nil`)
 	}
-	if newState.newReserveIn.Cmp(new(uint256.Int).Sub(expectedResT0, newState.feeToAmount0)) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newReserveIn, expectedResT0)
+	if newState.newReserve0.Cmp(expectedPairResT0) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newReserve0, expectedPairResT0)
 	}
-	if newState.newReserveOut.Cmp(expectedResT1) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newReserveOut, expectedResT1)
+	if newState.newReserve1.Cmp(expectedResT1) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newReserve1, expectedResT1)
 	}
-	if newState.newFictiveReserveIn.Cmp(expectedResFicT0) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newFictiveReserveIn, expectedResFicT0)
+	if newState.newFictiveReserve0.Cmp(expectedResFicT0) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newFictiveReserve0, expectedResFicT0)
 	}
-	if newState.newFictiveReserveOut.Cmp(expectedResFicT1) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newFictiveReserveOut, expectedResFicT1)
+	if newState.newFictiveReserve1.Cmp(expectedResFicT1) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newFictiveReserve1, expectedResFicT1)
 	}
 }
 
@@ -345,11 +349,232 @@ func TestUpdateBalance(t *testing.T) {
 	})
 	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve0.Cmp(expectedResFicT0), 0)
 	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve1.Cmp(expectedResFicT1), 0)
-	assert.Equal(t,
-		poolSimulator.Info.Reserves[0].Cmp(new(uint256.Int).Sub(expectedResT0, poolSimulator.FeeToAmount.Fees0).ToBig()), 0)
-	assert.Equal(t,
-		poolSimulator.Info.Reserves[1].Cmp(new(uint256.Int).Sub(expectedResT1, poolSimulator.FeeToAmount.Fees1).ToBig()), 0)
+	// getReserves leaves feeToAmount out already: the input less one pool fee in, getAmountOut's output out
+	assert.Equal(t, poolSimulator.Info.Reserves[0].Cmp(expectedPairResT0.ToBig()), 0)
+	assert.Equal(t, poolSimulator.Info.Reserves[1].Cmp(expectedResT1.ToBig()), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverage0.Cmp(priceAvT0), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverage1.Cmp(priceAvT1), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverageLastTimestamp.Cmp(uint256.NewInt(uint64(TIMESTAMP_JAN_2020))), 0)
+}
+
+// The WETH/USDT pair at block 26329765 warped to backTime, 2,338 s after its last trade, and what the pair did on a
+// fork of that block (forge, storage read after each swap): 0.2 WETH in, then 500 USDT back at the same timestamp.
+// The swap back crosses the price average, so the pair runs it as two legs.
+const (
+	backTime  = 1793656605
+	backPair  = "0x9fcf8f5bd54db123470c96620441ca5c342a8bd4"
+	backExtra = `{"PairFee":{"FeesLP":"5","FeesPool":"2","FeesBase":"10000"},` +
+		`"FictiveReserve":{"FictiveReserve0":"1373596388601278951","FictiveReserve1":"3094586360"},` +
+		`"PriceAverage":{"PriceAverage0":"1375769401236588899","PriceAverage1":"3089511082","PriceAverageLastTimestamp":"1793654267"},` +
+		`"FeeToAmount":{"Fees0":"3708471625987616","Fees1":"8999569"}}`
+	afterAExtra = `{"PairFee":{"FeesLP":"5","FeesPool":"2","FeesBase":"10000"},` +
+		`"FictiveReserve":{"FictiveReserve0":"1607392492532892891","FictiveReserve1":"2776538479"},` +
+		`"PriceAverage":{"PriceAverage0":"1373596388601278951","PriceAverage1":"3094586360","PriceAverageLastTimestamp":"1793656605"},` +
+		`"FeeToAmount":{"Fees0":"3748471625987616","Fees1":"8999569"}}`
+)
+
+func backSimulator(t *testing.T, reserve0, reserve1, extra string) *PoolSimulator {
+	t.Helper()
+	s, err := NewPoolSimulator(entity.Pool{
+		Address: backPair, Exchange: DexTypeSmardex, Type: DexTypeSmardex,
+		Reserves: entity.PoolReserves{reserve0, reserve1},
+		Tokens:   []*entity.PoolToken{{Address: liveWETH, Decimals: 18}, {Address: liveUSDT, Decimals: 6}},
+		Extra:    extra,
+	})
+	require.NoError(t, err)
+	return s
+}
+
+func atTime(t *testing.T, unix int64) {
+	t.Helper()
+	prev := now
+	now = func() time.Time { return time.Unix(unix, 0) }
+	t.Cleanup(func() { now = prev })
+}
+
+// The pair runs the second leg whenever the first one does not take the whole input (SmardexLibrary.getAmountOut).
+func TestBackSwapRunsBothLegs(t *testing.T) {
+	atTime(t, backTime)
+	s := backSimulator(t, "2782911624945216931", "6413619964", backExtra)
+	state := func() []string {
+		return []string{s.Info.Reserves[0].String(),
+			s.FictiveReserve.FictiveReserve0.String(), s.FictiveReserve.FictiveReserve1.String(),
+			s.PriceAverage.PriceAverage0.String(), s.PriceAverage.PriceAverage1.String(),
+			s.PriceAverage.PriceAverageLastTimestamp.String(), s.FeeToAmount.Fees0.String(), s.FeeToAmount.Fees1.String()}
+	}
+
+	require.Equal(t, "394277511", liveSwap(t, s, liveWETH, liveUSDT, "200000000000000000"))
+	require.Equal(t, "6019342453", s.Info.Reserves[1].String())
+	require.Equal(t, []string{"2982871624945216931", "1607392492532892891", "2776538479",
+		"1373596388601278951", "3094586360", "1793656605", "3748471625987616", "8999569"}, state())
+
+	require.Equal(t, "245106512054878313", liveSwap(t, s, liveUSDT, liveWETH, "500000000"))
+	require.Equal(t, []string{"2737765112890338618", "1330647478097017393", "3205159841",
+		"1373596388601278951", "3094586360", "1793656605", "3748471625987616", "9099569"}, state())
+}
+
+// The pair's reserves are its balances less feeToAmount, so the input side of a swap moves by the input less
+// one floor of the pool fee: reserve + feeToAmount grows by the whole input, for any input and any number of legs.
+func TestReserveInPlusFeeTakesTheWholeInput(t *testing.T) {
+	atTime(t, backTime)
+
+	t.Run("pair's value after the two legs", func(t *testing.T) {
+		s := backSimulator(t, "2982871624945216931", "6019342453", afterAExtra)
+		liveSwap(t, s, liveUSDT, liveWETH, "500000000")
+		require.Equal(t, "6519242453", s.Info.Reserves[1].String())
+	})
+
+	for _, tc := range []struct {
+		name, in, out string
+		i             int
+		amounts       []string
+	}{
+		{"usdt in", liveUSDT, liveWETH, 1, []string{"1", "4999", "12345", "12345678", "500000000", "500000001"}},
+		{"weth in", liveWETH, liveUSDT, 0, []string{"4999", "12345", "200000000000000001", "1234567890123456789"}},
+	} {
+		for _, amount := range tc.amounts {
+			t.Run(tc.name+" "+amount, func(t *testing.T) {
+				s := backSimulator(t, "2982871624945216931", "6019342453", afterAExtra)
+				before := new(big.Int).Set(s.Info.Reserves[tc.i])
+				fee := func() *big.Int {
+					if tc.i == 0 {
+						return s.FeeToAmount.Fees0.ToBig()
+					}
+					return s.FeeToAmount.Fees1.ToBig()
+				}
+				feeBefore := fee()
+				liveSwap(t, s, tc.in, tc.out, amount)
+				in, ok := new(big.Int).SetString(amount, 10)
+				require.True(t, ok)
+				got := new(big.Int).Sub(s.Info.Reserves[tc.i], before)
+				got.Add(got, new(big.Int).Sub(fee(), feeBefore))
+				require.Equal(t, in.String(), got.String())
+			})
+		}
+	}
+}
+
+// SmardexLibrary.getUpdatedPriceAverage in the pair's verified source. Inside its 300 s window the new price
+// average is the time-weighted mean, ((300-dt) * paOut * fIn / paIn + dt * fOut) / 300, with dt = min(elapsed, 300);
+// at the pair's own timestamp it stays as stored.
+func TestUpdatedPriceAverageMatchesThePairsFormula(t *testing.T) {
+	fIn, fOut := big.NewInt(1373596388601278951), big.NewInt(3094586360)
+	paIn, paOut := big.NewInt(1375769401236588899), big.NewInt(3089511082)
+	const last = 1793654267
+
+	solidity := func(elapsed int64) (in, out *big.Int) {
+		if elapsed == 0 {
+			return paIn, paOut
+		}
+		dt := min(elapsed, 300)
+		out = new(big.Int).Mul(big.NewInt(300-dt), paOut)
+		out.Mul(out, fIn).Quo(out, paIn)
+		out.Add(out, new(big.Int).Mul(big.NewInt(dt), fOut))
+		return fIn, out.Quo(out, big.NewInt(300))
+	}
+
+	for _, elapsed := range []int64{0, 1, 100, 299, 300, 2338} {
+		wantIn, wantOut := solidity(elapsed)
+		in, out, err := getUpdatedPriceAverage(uint256.MustFromBig(fIn), uint256.MustFromBig(fOut),
+			uint256.NewInt(last), uint256.MustFromBig(paIn), uint256.MustFromBig(paOut),
+			uint256.NewInt(uint64(last+elapsed)))
+		require.NoError(t, err)
+		require.Equal(t, wantIn.String(), in.String(), "elapsed %d", elapsed)
+		require.Equal(t, wantOut.String(), out.String(), "elapsed %d", elapsed)
+	}
+}
+
+// The same fork warped to withinTime, 100 s after the pair's last trade, so swap A updates the price average inside
+// its window. The values are forge reads of the pair on a mainnet fork.
+const withinTime = 1793654367
+
+func pairState(s *PoolSimulator) []string {
+	return []string{s.Info.Reserves[0].String(), s.Info.Reserves[1].String(),
+		s.FictiveReserve.FictiveReserve0.String(), s.FictiveReserve.FictiveReserve1.String(),
+		s.PriceAverage.PriceAverage0.String(), s.PriceAverage.PriceAverage1.String(),
+		s.PriceAverage.PriceAverageLastTimestamp.String(), s.FeeToAmount.Fees0.String(), s.FeeToAmount.Fees1.String()}
+}
+
+// The price average fix on the chain's numbers: the quote and the price average the swap stores. Reserve0 follows the input reserve fix, checked below.
+func TestSwapWithinTheWindowMatchesThePair(t *testing.T) {
+	atTime(t, withinTime)
+	s := backSimulator(t, "2782911624945216931", "6413619964", backExtra)
+	require.Equal(t, "394258918", liveSwap(t, s, liveWETH, liveUSDT, "200000000000000000"))
+	require.Equal(t, []string{"6019361046", "1607446233976928452", "2776514403",
+		"1373596388601278951", "3087949608", "1793654367", "3748471625987616", "8999569"}, pairState(s)[1:])
+}
+
+// All three fixes together: both swaps, wei for wei, the swap back running two legs against that stored price average.
+func TestBackSwapWithinTheWindowMatchesThePair(t *testing.T) {
+	atTime(t, withinTime)
+	s := backSimulator(t, "2782911624945216931", "6413619964", backExtra)
+	liveSwap(t, s, liveWETH, liveUSDT, "200000000000000000")
+	require.Equal(t, []string{"2982871624945216931", "6019361046", "1607446233976928452", "2776514403",
+		"1373596388601278951", "3087949608", "1793654367", "3748471625987616", "8999569"}, pairState(s))
+	require.Equal(t, "245112510658742292", liveSwap(t, s, liveUSDT, liveWETH, "500000000"))
+	require.Equal(t, []string{"2737759114286474639", "6519261046", "1329148118412164447", "3201810627",
+		"1373596388601278951", "3087949608", "1793654367", "3748471625987616", "9099569"}, pairState(s))
+}
+
+// The WETH/USDT pair 0x9fcf8f5bd54db123470c96620441ca5c342a8bd4 on Ethereum at block 26320030 (timestamp
+// 1793537411), and what the pair did on a fork of that block: one swap, then a second in the same direction
+// or a swap back. Its feeToAmount (3698290308571691 WETH) is larger than its USDT reserve.
+const (
+	liveWETH  = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+	liveUSDT  = "0xdac17f958d2ee523a2206206994597c13d831ec7"
+	liveTime  = 1793537411
+	liveExtra = `{"PairFee":{"FeesLP":"5","FeesPool":"2","FeesBase":"10000"},` +
+		`"FictiveReserve":{"FictiveReserve0":"1373845172096677391","FictiveReserve1":"3106315442"},` +
+		`"PriceAverage":{"PriceAverage0":"1374834110173688166","PriceAverage1":"3104325840","PriceAverageLastTimestamp":"1793536943"},` +
+		`"FeeToAmount":{"Fees0":"3698290308571691","Fees1":"8977894"}}`
+)
+
+func newLiveSimulator(t *testing.T) *PoolSimulator {
+	t.Helper()
+	s, err := NewPoolSimulator(entity.Pool{
+		Address: "0x9fcf8f5bd54db123470c96620441ca5c342a8bd4", Exchange: DexTypeSmardex, Type: DexTypeSmardex,
+		Reserves: entity.PoolReserves{"2779542133377466939", "6421126753"},
+		Tokens:   []*entity.PoolToken{{Address: liveWETH, Decimals: 18}, {Address: liveUSDT, Decimals: 6}},
+		Extra:    liveExtra,
+	})
+	require.NoError(t, err)
+	return s
+}
+
+func liveSwap(t *testing.T, s *PoolSimulator, in, out, amount string) string {
+	t.Helper()
+	a, _ := new(big.Int).SetString(amount, 10)
+	r, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: poolpkg.TokenAmount{Token: in, Amount: a}, TokenOut: out})
+	require.NoError(t, err)
+	s.UpdateBalance(poolpkg.UpdateBalanceParams{TokenAmountIn: poolpkg.TokenAmount{Token: in, Amount: a},
+		TokenAmountOut: *r.TokenAmountOut, Fee: *r.Fee, SwapInfo: r.SwapInfo})
+	return r.TokenAmountOut.Amount.String()
+}
+
+// After a swap the simulator holds the pair's reserves in token order (balances less feeToAmount, as
+// getReserves returns them), so the next swap, in either direction, returns what the pair returned.
+func TestUpdateBalanceMatchesThePair(t *testing.T) {
+	defer func(f func() time.Time) { now = f }(now)
+	now = func() time.Time { return time.Unix(liveTime, 0) }
+
+	for _, tc := range []struct {
+		name, in, out, a, outA, res0, res1, b, outB, back, outBack string
+	}{
+		{"weth in", liveWETH, liveUSDT, "10000000000000000", "22434964", "2789540133377466939", "6398691789",
+			"50000000000000000", "107582912", "100000000", "43433582686221945"},
+		{"usdt in", liveUSDT, liveWETH, "20000000", "8782843803129020", "2770759289574337919", "6441122753",
+			"100000000", "42283159516666707", "50000000000000000", "110448642"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := newLiveSimulator(t)
+			require.Equal(t, tc.outA, liveSwap(t, s, tc.in, tc.out, tc.a))
+			require.Equal(t, tc.res0, s.GetReserves()[0].String(), "token0's reserve")
+			require.Equal(t, tc.res1, s.GetReserves()[1].String(), "token1's reserve")
+			require.Equal(t, tc.outB, liveSwap(t, s, tc.in, tc.out, tc.b), "a second swap in the same direction")
+
+			s = newLiveSimulator(t)
+			liveSwap(t, s, tc.in, tc.out, tc.a)
+			require.Equal(t, tc.outBack, liveSwap(t, s, tc.out, tc.in, tc.back), "a swap back")
+		})
+	}
 }
