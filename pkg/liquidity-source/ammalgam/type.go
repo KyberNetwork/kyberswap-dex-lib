@@ -12,10 +12,9 @@ type Extra struct {
 
 // StaticExtra holds metadata that does not change with a quote.
 type StaticExtra struct {
-	FactoryAddress     string `json:"factoryAddress,omitempty"`
-	PairBeacon         string `json:"pairBeacon,omitempty"`
-	PairImplementation string `json:"pairImplementation,omitempty"`
-	Gas                int64  `json:"g,omitempty"`
+	FactoryAddress string `json:"factoryAddress,omitempty"`
+	PairBeacon     string `json:"pairBeacon,omitempty"`
+	Gas            int64  `json:"g,omitempty"`
 }
 
 // SwapInfo carries the full post-swap pair reserves, so UpdateBalance does not

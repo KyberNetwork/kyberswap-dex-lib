@@ -30,14 +30,14 @@ func TestCalcAmountOut(t *testing.T) {
 	testutil.TestCalcAmountOut(t, poolSim, map[int]map[int]map[string]string{
 		0: {
 			1: {
-				"12936925243928912": "14420",
-				"13145039951151962": "14650",
+				"12936925243928912": "14463",
+				"13145039951151962": "14693",
 			},
 		},
 		1: {
 			0: {
-				"14650": "12734915516792294",
-				"14885": "12936925243928912",
+				"14650": "12772482627788675",
+				"14885": "12975070946497165",
 			},
 		},
 	})
@@ -55,7 +55,7 @@ func Test_CloneState_UpdateBalance(t *testing.T) {
 		TokenOut:      tokenOut,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("14420"), result.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("14463"), result.TokenAmountOut.Amount)
 	cloned.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmountIn,
 		TokenAmountOut: *result.TokenAmountOut,
@@ -68,12 +68,28 @@ func Test_CloneState_UpdateBalance(t *testing.T) {
 		TokenOut:      tokenOut,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("14420"), result.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("14463"), result.TokenAmountOut.Amount)
 
 	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: tokenAmountIn,
 		TokenOut:      tokenOut,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("14143"), result.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("14185"), result.TokenAmountOut.Amount)
+}
+
+// Fork-verified (Base, PoolManager protocol fee 500 oneForZero / 1000 zeroForOne set by the controller,
+// same-block V4Quoter): DeliHook charges its own fee = slot0 lpFee in both directions and overrides
+// the pool's LP fee to 0, so the pool adds only the protocol fee. Pool.SwapFee (1999 here) is the
+// zeroForOne LP+protocol combined fee and must not be used as the hook fee.
+func TestCalcAmountOut_ProtocolFee(t *testing.T) {
+	t.Parallel()
+	var p entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(`{"address":"0x386b66a4321dc97d30edc35539bbdd21d0f93901ec236b48a763fc835f7e5c4c","swapFee":3997,"exchange":"uniswap-v4","type":"uniswap-v4","reserves":["20834531081572559788472","13118192221937"],"tokens":[{"address":"0x4e74d4db6c0726ccded4656d0bce448876bb4c7a","decimals":18,"swappable":true},{"address":"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913","decimals":6,"swappable":true}],"extra":"{\"liquidity\":208203852788,\"sqrtPriceX96\":54691323945550318420652,\"tickSpacing\":60,\"tick\":-283737,\"ticks\":[{\"index\":-887220,\"liquidityGross\":208203852788,\"liquidityNet\":208203852788},{\"index\":887220,\"liquidityGross\":208203852788,\"liquidityNet\":-208203852788}],\"pF\":50333697000}","staticExtra":"{\"0x0\":[false,false],\"fee\":8388608,\"tS\":60,\"hooks\":\"0xc384b99a6e5cd1a800b2d83ab71bab7bd712b0cc\"}"}`), &p))
+	sim, err := uniswapv4.NewPoolSimulator(p, 8453)
+	require.NoError(t, err)
+	testutil.TestCalcAmountOut(t, sim, map[int]map[int]map[string]string{
+		0: {1: {"10000000000000007": "4594", "3333333333333333": "1564"}},
+		1: {0: {"20001": "36700006597634574", "7777": "15424829741935851"}},
+	})
 }

@@ -165,7 +165,11 @@ func (t *PoolTracker) GetNewPoolState(
 	markOK, liquidOK := make([]bool, n), make([]bool, n)
 	marks := make([]*rpcLegMark, n)
 	liquids := make([]*big.Int, n)
+	hooks := make([]*hookReads, n)
 	for i := range addrs {
+		hooks[i] = new(hookReads)
+		batch.add(poolABI, p.Address, "getAssetHook", []any{addrs[i]}, &hooks[i].slot, &hooks[i].slotOK)
+		batch.add(poolABI, p.Address, "getInvested", []any{addrs[i]}, &hooks[i].invested, &hooks[i].investedOK)
 		assets[i] = new(rpcAssetResult)
 		batch.add(poolABI, p.Address, "getRiskFlags", []any{addrs[i]}, &flags[i], &flagOK[i])
 		batch.add(utilabi.Erc20ABI, p.Tokens[i].Address, "balanceOf", []any{poolAddr}, &balances[i], &balOK[i])
@@ -199,8 +203,28 @@ func (t *PoolTracker) GetNewPoolState(
 	if err := batch.run(ctx, t.client, bn); err != nil {
 		return p, err
 	}
+	// Phase 1b: the hooks of the legs that recall inside the swap, their withdrawable amount and
+	// kind, at the same block.
+	var hookBatch batchReads
+	for _, h := range hooks {
+		if !h.slotOK || h.slot.Slot.Target == (common.Address{}) || h.slot.Slot.Flags&HookPreOutflow == 0 {
+			continue
+		}
+		hk := h.slot.Slot.Target.Hex()
+		hookBatch.add(hookABI, hk, "venueStatus", nil, &h.status, &h.statusOK)
+		hookBatch.add(hookABI, hk, "market", nil, &h.market, &h.marketOK)
+		hookBatch.add(hookABI, hk, "aavePool", nil, &h.aave, &h.aaveOK)
+		hookBatch.add(hookABI, hk, "vault", nil, &h.vault, &h.vaultOK)
+		hookBatch.add(hookABI, hk, "morpho", nil, &h.morpho, &h.morphoOK)
+	}
+	if len(hookBatch.calls) > 0 {
+		if err := hookBatch.run(ctx, t.client, bn); err != nil {
+			return p, err
+		}
+	}
 	legs := make([]*markLeg, n)
 	rooms := make([]*uint256.Int, n)
+	recalls := make([]recall, n)
 	for i := range addrs {
 		if !flagOK[i] {
 			flags[i] = 0 // unreadable flags read as swap disabled
@@ -212,7 +236,8 @@ func (t *PoolTracker) GetNewPoolState(
 			legs[i], _ = decodeMark(marks[i].Word)
 		}
 		if liquidOK[i] && assets[i] != nil {
-			rooms[i] = liquidRoom(liquids[i], &assets[i].Asset)
+			recalls[i] = hooks[i].recall()
+			rooms[i] = roomWithRecall(liquids[i], &assets[i].Asset, &recalls[i].Room)
 		}
 	}
 	gateOK := gateRead && inGate
@@ -242,7 +267,9 @@ func (t *PoolTracker) GetNewPoolState(
 		if balOut.SetFromBig(balances[pp.to]) {
 			continue
 		}
-		// settle pays only liquid reserves above minLiquidity: size the grid inside that room.
+		// The grid base is the pool's holdings plus what its hook recalls inside the swap; settle
+		// pays only that above minLiquidity: size the grid inside that room.
+		balOut.Add(&balOut, &recalls[pp.to].Room)
 		if room := rooms[pp.to]; room != nil && room.Lt(&balOut) {
 			balOut.Set(room)
 		}
@@ -257,7 +284,13 @@ func (t *PoolTracker) GetNewPoolState(
 		g.addQuoteCalls(&grid, p.Address, addrs[pp.from], addrs[pp.to])
 		grids = append(grids, g)
 	}
-	extra := Extra{Flags: flags, GateOK: gateOK, Ladders: make([][]Ladder, n)}
+	extra := Extra{Flags: flags, GateOK: gateOK, Ladders: make([][]Ladder, n), Time: now, Stale: make([]StaleLeg, n)}
+	for i, l := range legs {
+		if l != nil {
+			extra.Stale[i] = l.stale()
+		}
+	}
+	extra.setRecall(n, recalls, liquids, assets)
 	for i := range extra.Ladders {
 		extra.Ladders[i] = make([]Ladder, n)
 		for j := range extra.Ladders[i] {
@@ -295,9 +328,10 @@ func (t *PoolTracker) GetNewPoolState(
 			if bisects[k] != nil {
 				spread = max(spread, bisects[k].maxSpread())
 			}
-			if pts := gd.refine(g.from, g.to, g.hops(), spread, built[k]); len(pts) > 0 {
+			if pts, cut := gd.refine(g.from, g.to, g.hops(), spread, built[k]); len(pts) > 0 {
 				extra.Ladders[g.from][g.to] = newLadder(pts)
 				extra.setHops(n, g.from, g.to, len(g.hops()))
+				extra.setCut(n, g.from, g.to, cut)
 			}
 		}
 	}
@@ -312,7 +346,7 @@ func (t *PoolTracker) GetNewPoolState(
 		p.Reserves[i] = "0"
 		// A leg the swap would revert on keeps its ladders but pays out nothing: zero reserve.
 		if bal != nil && !gd.legClosed(i) {
-			p.Reserves[i] = bal.String()
+			p.Reserves[i] = new(big.Int).Add(bal, recalls[i].Room.ToBig()).String()
 		}
 	}
 	p.BlockNumber = blockNumber

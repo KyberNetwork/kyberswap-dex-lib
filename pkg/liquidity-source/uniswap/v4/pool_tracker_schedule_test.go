@@ -53,11 +53,11 @@ func aggregateStubAt(t *testing.T, calls *atomic.Int32, block *atomic.Uint64) *h
 	liq, err := stateViewABI.Methods["getLiquidity"].Outputs.Pack(big.NewInt(1e18))
 	require.NoError(t, err)
 	sqrtPrice, _ := new(big.Int).SetString("79228162514264337593543950336", 10)
-	slot0, err := stateViewABI.Methods["getSlot0"].Outputs.Pack(sqrtPrice, big.NewInt(0), uint32(0), uint32(3000))
-	require.NoError(t, err)
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
+		slot0, err := stateViewABI.Methods["getSlot0"].Outputs.Pack(sqrtPrice, big.NewInt(0), testProtocolFee, uint32(3000))
+		require.NoError(t, err)
 		ret, err := outs.Pack(new(big.Int).SetUint64(block.Load()), [][]byte{liq, slot0})
 		require.NoError(t, err)
 		var req struct {

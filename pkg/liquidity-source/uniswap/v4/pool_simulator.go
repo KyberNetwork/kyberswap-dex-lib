@@ -53,6 +53,11 @@ type PoolSimulator struct {
 	exchange  string              `msgpack:"-"` // hook exchange with the fork dexID
 	tokens    []string            `msgpack:"-"`
 	canSwapTo map[string][]string `msgpack:"-"`
+
+	// protocolFee is slot0's packed protocol fee and lpFee the LP fee it applies on top of
+	// (slot0.lpFee, or the pool's SwapFee while the protocol fee is off).
+	protocolFee uint32
+	lpFee       FeeAmount
 }
 
 var _ = pool.RegisterFactory(DexType, func(params pool.FactoryParams) (*PoolSimulator, error) {
@@ -137,6 +142,13 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 		}
 	}
 
+	// Without pF (protocol fee off, or an Extra written before pF existed) SwapFee is the fee for
+	// both directions, as before.
+	lpFee, protocolFee := v3PoolSimulator.V3Pool.Fee, uint32(0)
+	if extra.Fees != 0 {
+		lpFee, protocolFee = FeeAmount(extra.Fees>>24), uint32(extra.Fees&0xffffff)
+	}
+
 	p := &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
@@ -146,6 +158,8 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 		tokenWrappers: tokenWrappers,
 		fewReserves:   fewReserves,
 		fewWrapperIdx: fewWrapperIdx,
+		protocolFee:   protocolFee,
+		lpFee:         lpFee,
 	}
 	p.tokens = p.computeTokens()
 	p.canSwapTo = make(map[string][]string, len(p.tokens))
@@ -167,6 +181,37 @@ func (p *PoolSimulator) unwrapFew(idx int, amount *big.Int) (*uint256.Int, error
 		return nil, ErrFewUnwrapExceeded
 	}
 	return amt.Sub(p.fewReserves[idx], amt), nil
+}
+
+// swapFee is the fee PoolManager.swap charges in the given direction: the LP fee (a dynamic-fee
+// pool's BeforeSwap override when the hook returns one, else slot0.lpFee) combined with that
+// direction's protocol fee via ProtocolFeeLibrary.calculateSwapFee.
+func (p *PoolSimulator) swapFee(zeroForOne bool, beforeSwapResult *BeforeSwapResult) (FeeAmount, error) {
+	lpFee := p.lpFee
+	if beforeSwapResult != nil && shared.IsDynamicFee(p.staticExtra.Fee) { // ignore if not dynamic fee
+		if fee, ok := lpFeeOverride(beforeSwapResult.SwapFee); fee >= FeeMax {
+			return 0, ErrInvalidFee
+		} else if ok {
+			lpFee = fee
+		}
+	}
+	if protocolFee := directionalProtocolFee(p.protocolFee, zeroForOne); protocolFee != 0 {
+		return CalculateSwapFee(protocolFee, lpFee), nil
+	}
+	return lpFee, nil
+}
+
+// withSwapFee returns the v3 simulator to quote with, a shallow clone when fee differs from the
+// pool's stored fee.
+func (p *PoolSimulator) withSwapFee(fee FeeAmount) *uniswapv3.PoolSimulator {
+	if fee == p.V3Pool.Fee {
+		return p.PoolSimulator
+	}
+	cloned := *p.PoolSimulator
+	clonedV3Pool := *p.V3Pool
+	clonedV3Pool.Fee = fee
+	cloned.V3Pool = &clonedV3Pool
+	return &cloned
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult, err error) {
@@ -253,14 +298,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 		unwrapIdx = p.fewWrapperIdx
 	}
 
-	// If no hooks, just do swap
-	poolSim := p.PoolSimulator
-	if p.hook == nil {
-		return p.PoolSimulator.CalcAmountOut(param)
-	}
-
 	tokenIn := param.TokenAmountIn.Token
 	zeroForOne := p.GetTokenIndex(tokenIn) == 0
+
+	// If no hooks, just do swap
+	if p.hook == nil {
+		swapFee, _ := p.swapFee(zeroForOne, nil)
+		return p.withSwapFee(swapFee).CalcAmountOut(param)
+	}
+
 	amountIn := new(big.Int).Set(param.TokenAmountIn.Amount)
 
 	if p.hook.CanBeforeSwap(p.staticExtra.HooksAddress) {
@@ -278,20 +324,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 		if amountIn.Sub(amountIn, beforeSwapResult.DeltaSpecified).Sign() < 0 {
 			return nil, ErrInvalidAmountIn
 		}
-
-		if !shared.IsDynamicFee(p.staticExtra.Fee) { // ignore if not dynamic fee
-		} else if beforeSwapResult.SwapFee >= FeeMax {
-			return nil, ErrInvalidFee
-		} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
-			cloned := *poolSim
-			clonedV3Pool := *poolSim.V3Pool
-			cloned.V3Pool = &clonedV3Pool
-			cloned.V3Pool.Fee = beforeSwapResult.SwapFee
-			poolSim = &cloned
-		}
 	}
 
-	if swapResult, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+	swapFee, err := p.swapFee(zeroForOne, beforeSwapResult)
+	if err != nil {
+		return nil, err
+	}
+
+	if swapResult, err = p.withSwapFee(swapFee).CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: amountIn,
@@ -409,14 +449,15 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 		}
 	}
 
-	poolSim := p.PoolSimulator
+	tokenOut := param.TokenAmountOut.Token
+	zeroForOne := p.GetTokenIndex(tokenOut) == 1
+
 	if p.hook == nil {
-		swapResult, err = poolSim.CalcAmountIn(param)
+		swapFee, _ := p.swapFee(zeroForOne, nil)
+		swapResult, err = p.withSwapFee(swapFee).CalcAmountIn(param)
 		return
 	}
 
-	tokenOut := param.TokenAmountOut.Token
-	zeroForOne := p.GetTokenIndex(tokenOut) == 1
 	amountOut := new(big.Int).Set(param.TokenAmountOut.Amount)
 
 	if p.hook.CanBeforeSwap(p.staticExtra.HooksAddress) {
@@ -434,20 +475,14 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 		if amountOut.Add(amountOut, beforeSwapResult.DeltaSpecified).Sign() < 0 {
 			return nil, ErrInvalidAmountOut
 		}
-
-		if !shared.IsDynamicFee(p.staticExtra.Fee) { // ignore if not dynamic fee
-		} else if beforeSwapResult.SwapFee >= FeeMax {
-			return nil, ErrInvalidFee
-		} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
-			cloned := *poolSim
-			clonedV3Pool := *poolSim.V3Pool
-			cloned.V3Pool = &clonedV3Pool
-			cloned.V3Pool.Fee = beforeSwapResult.SwapFee
-			poolSim = &cloned
-		}
 	}
 
-	if swapResult, err = poolSim.CalcAmountIn(pool.CalcAmountInParams{
+	swapFee, err := p.swapFee(zeroForOne, beforeSwapResult)
+	if err != nil {
+		return nil, err
+	}
+
+	if swapResult, err = p.withSwapFee(swapFee).CalcAmountIn(pool.CalcAmountInParams{
 		TokenAmountOut: pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: amountOut,

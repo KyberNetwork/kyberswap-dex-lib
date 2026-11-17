@@ -1,6 +1,7 @@
 package btrprop
 
 import (
+	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -85,21 +86,66 @@ func (l *markLeg) ageAt(t uint64) uint64 {
 	return 0
 }
 
-// staleExcessAt is the seconds the mark is stale past the keeper's allowance at unix time t.
-func (l *markLeg) staleExcessAt(t uint64) uint64 {
-	allow := min(l.ttl/2, maxStaleAllowance)
-	if age := l.ageAt(t); age > allow {
-		return age - allow
+// stale is the leg's staleness premium inputs. The base and INTERNAL legs pay none: sigma 0.
+func (l *markLeg) stale() StaleLeg {
+	s := StaleLeg{Obs: l.obs, Grace: min(l.ttl/2, maxStaleAllowance)}
+	if !l.base && !l.internal {
+		s.Sigma = l.sigma
+	}
+	return s
+}
+
+// staleTermAt is the leg's staleness premium in PBPS at unix time t.
+func (l *markLeg) staleTermAt(t uint64) uint64 { return l.stale().termAt(t) }
+
+// StaleLeg replays one leg's staleness premium at any block time: the mark's observation time,
+// its sigma in PBPS (0 when the leg pays no premium) and the keeper's allowance in seconds.
+type StaleLeg struct {
+	Obs   uint64 `json:"o"`
+	Sigma uint64 `json:"s,omitempty"`
+	Grace uint64 `json:"g,omitempty"`
+}
+
+// excessAt is the seconds the mark is stale past the keeper's allowance at unix time t.
+func (l StaleLeg) excessAt(t uint64) uint64 {
+	if t > l.Obs && t-l.Obs > l.Grace {
+		return t - l.Obs - l.Grace
 	}
 	return 0
 }
 
-// staleTermAt is the leg's staleness premium in PBPS at unix time t.
-func (l *markLeg) staleTermAt(t uint64) uint64 {
-	if l.base || l.internal {
+// termAt is the premium in PBPS at unix time t: staleZ*sigma*isqrt(excess)/bps.
+func (l StaleLeg) termAt(t uint64) uint64 {
+	if l.Sigma == 0 {
 		return 0
 	}
-	return staleZ * l.sigma * new(uint256.Int).Sqrt(uint256.NewInt(l.staleExcessAt(t))).Uint64() / bps
+	// excess < 2^52, so the float root is exact (floor of the true root).
+	return staleZ * l.Sigma * uint64(math.Sqrt(float64(l.excessAt(t)))) / bps
+}
+
+// PairCut sizes a pair's haircut at quote time: Legs are the token indices the pool prices the
+// pair through, Den is 2e6 less the largest spread sampled on the pair.
+type PairCut struct {
+	Legs []uint16 `json:"m,omitempty"`
+	Den  uint64   `json:"d,omitempty"`
+}
+
+// factor returns num/den, the share of a quote sampled at block time t0 that the pool still pays
+// w seconds later with no push in between: the pool charges half the spread on the output,
+// out = gross*(2e6 - spread)/2e6, so a spread that grows by d PBPS scales the output by
+// (2e6 - spread - d)/(2e6 - spread). d is the path's premium growth over w, plus 1 PBPS for the
+// pool rounding its fee up. ok is false when the growth reaches the whole spread.
+func (c PairCut) factor(legs []StaleLeg, t0, w uint64) (num, den uint64, ok bool) {
+	d := uint64(1)
+	for _, i := range c.Legs {
+		if int(i) < len(legs) {
+			d += legs[i].termAt(t0+w) - legs[i].termAt(t0)
+		}
+	}
+	if d >= c.Den {
+		return 0, 0, false
+	}
+	return c.Den - d, c.Den, true
 }
 
 // pegTested reports whether the depeg breaker applies to the leg.
@@ -175,7 +221,7 @@ func cutAbove(pts []Point, room *uint256.Int) []Point {
 }
 
 // guard holds the state the settle-time checks read, for one refresh at block time now. A swap
-// quoted from the refresh may execute until now+window (MaxAge plus an inclusion allowance).
+// quoted from the refresh may execute until now+window (MaxAge plus InclusionAllowance).
 type guard struct {
 	tokens []common.Address
 	legs   []*markLeg // nil = unreadable word
@@ -251,60 +297,41 @@ func routeIndices(tokens []common.Address, hops []common.Address) ([]int, bool) 
 }
 
 // refine returns the ladder of from -> to restricted to what swap_qe would settle and pay within
-// the window, or nil when every size would revert: a leg on the path (other than the output leg,
-// whose reserve the tracker zeroes so the ladder survives) is halted, dead, uncertain,
-// TTL-expired by now+window or outside its depeg band, its word is unreadable, or the route
-// prices two legs off one feed. Samples whose output exceeds the output leg's liquid room are cut.
+// the window, with the pair's haircut inputs, or nil when every size would revert: a leg on the
+// path (other than the output leg, whose reserve the tracker zeroes so the ladder survives) is
+// halted, dead, uncertain, TTL-expired by now+window or outside its depeg band, its word is
+// unreadable, or the route prices two legs off one feed. Samples whose output exceeds the output
+// leg's liquid room are cut.
 //
 // The pool's quote drifts with block time: each non-base leg's staleness premium, part of the
-// quoted spread, grows with the square root of its mark's age until the next push. The pool
-// charges half the spread on the output, out = gross*(2e6 - spread)/2e6, so a spread that grows
-// by d PBPS scales the output by (2e6 - spread - d)/(2e6 - spread). spread is the sampled quote's
-// own SpreadPbps (the largest over the pair's samples: the ratio falls as spread grows) and d the
-// path's premium at now+window less the premium at now, read off the legs' words: the worst case
-// with no push in between, since a push only lowers the premium.
-func (g *guard) refine(from, to int, hops []common.Address, spread uint64, pts []Point) []Point {
+// quoted spread, grows with the square root of its mark's age until the next push. The ladder is
+// stored as sampled; the simulator scales it by the premium's growth from the sample to the
+// quote's age plus InclusionAllowance (PairCut.factor), the worst case with no push in between,
+// since a push only lowers the premium. spread is the largest SpreadPbps over the pair's samples
+// (the ratio falls as spread grows). A pair whose growth over the whole window would reach the
+// spread is refused.
+func (g *guard) refine(from, to int, hops []common.Address, spread uint64, pts []Point) ([]Point, PairCut) {
 	legs := pathLegs(g.tokens, from, to, hops)
-	var s0, s1 uint64
+	cut := PairCut{Legs: make([]uint16, 0, len(legs)), Den: 2*pbps - min(spread, 2*pbps)}
+	stale := make([]StaleLeg, len(g.tokens))
 	for _, i := range legs {
 		if g.legClosed(i) {
 			if i == to {
 				continue // the output leg's reserve is zeroed instead: the ladder is kept
 			}
-			return nil
+			return nil, PairCut{}
 		}
-		l := g.legs[i]
-		s0 += l.staleTermAt(g.now)
-		s1 += l.staleTermAt(g.now + g.window)
+		stale[i] = g.legs[i].stale()
+		cut.Legs = append(cut.Legs, uint16(i))
 	}
 	if len(hops) > 0 {
 		route, ok := routeIndices(g.tokens, hops)
 		if !ok || !g.distinctFeeds(route) {
-			return nil
+			return nil, PairCut{}
 		}
 	}
-	// -1 PBPS covers the pool rounding its fee up.
-	den := 2*pbps - min(spread, 2*pbps)
-	d := s1 - s0 + 1
-	if d >= den {
-		return nil
+	if _, _, ok := cut.factor(stale, g.now, g.window); !ok {
+		return nil, PairCut{}
 	}
-	return haircut(cutAbove(pts, g.rooms[to]), den-d, den)
-}
-
-// haircut scales every output by num/den (rounded down) and keeps the ladder strictly increasing.
-func haircut(pts []Point, num, den uint64) []Point {
-	if num >= den {
-		return pts
-	}
-	res := make([]Point, 0, len(pts))
-	for _, p := range pts {
-		out := new(uint256.Int).Mul(&p.Out, uint256.NewInt(num))
-		out.Div(out, uint256.NewInt(den))
-		if out.IsZero() || (len(res) > 0 && !out.Gt(&res[len(res)-1].Out)) {
-			continue
-		}
-		res = append(res, Point{In: p.In, Out: *out})
-	}
-	return res
+	return cutAbove(pts, g.rooms[to]), cut
 }
