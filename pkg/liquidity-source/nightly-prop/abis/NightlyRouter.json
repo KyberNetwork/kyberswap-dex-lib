@@ -1,0 +1,15 @@
+[
+  {
+    "type": "function",
+    "name": "getRoutes",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "pools",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

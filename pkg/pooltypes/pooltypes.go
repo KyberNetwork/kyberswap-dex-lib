@@ -156,6 +156,7 @@ import (
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	nemoprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nemo-prop"
 	netstaking "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/net-staking"
+	nightlyprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nightly-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -543,6 +544,7 @@ type Types struct {
 	BTRProp                    string
 	KuruOB                     string
 	KuruOBV2                   string
+	NightlyProp                string
 }
 
 var (
@@ -819,5 +821,6 @@ var (
 		BTRProp:                    btrprop.DexType,
 		KuruOB:                     kuruob.DexType,
 		KuruOBV2:                   kuruobv2.DexType,
+		NightlyProp:                nightlyprop.DexType,
 	}
 )
