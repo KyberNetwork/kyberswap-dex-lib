@@ -302,7 +302,7 @@ func unmarshalExtra(raw string) (Extra, error) {
 // writes some of its own into Extra outside its Extra type, such as lensDue, the block a lens read
 // of a pool without state must reach; dropping one would let that read land below logs the pool
 // has already seen. A key extra models but leaves out, as it omits a price floor gone back to nil,
-// is cleared.
+// is cleared. Without such a key to keep, extra is written as it marshals, its keys in its order.
 func setExtra(p *entity.Pool, extra Extra) error {
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -310,16 +310,18 @@ func setExtra(p *entity.Pool, extra Extra) error {
 	}
 
 	var kept map[string]json.RawMessage
-	if p.Extra == "" || json.Unmarshal([]byte(p.Extra), &kept) != nil || len(kept) == 0 {
+	if p.Extra != "" && json.Unmarshal([]byte(p.Extra), &kept) == nil {
+		for _, key := range modeledKeys {
+			delete(kept, key)
+		}
+	}
+	if len(kept) == 0 {
 		p.Extra = string(extraBytes)
 		return nil
 	}
 	var written map[string]json.RawMessage
 	if err = json.Unmarshal(extraBytes, &written); err != nil {
 		return errors.WithMessage(err, "remarshal extra")
-	}
-	for _, key := range modeledKeys {
-		delete(kept, key)
 	}
 	maps.Copy(kept, written)
 	if extraBytes, err = json.Marshal(kept); err != nil {
