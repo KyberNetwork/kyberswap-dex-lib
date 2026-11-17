@@ -431,7 +431,7 @@ func seedsOf(decimals int, capIn *big.Int, last *Ladder, fresh, rungs int) []*bi
 	if capIn != nil {
 		ceil = bignumber.Min(capIn, maxAsk)
 	}
-	floor := bignumber.Min(bignumber.TenPowInt(max(decimals-3, 0)), ceil)
+	floor := new(big.Int).Set(bignumber.Min(bignumber.TenPowInt(max(decimals-3, 0)), ceil)) // not the shared power
 	from, to, n := floor, bignumber.Min(bignumber.TenPowInt(decimals+9), ceil), fresh
 	var below *big.Int
 	if last != nil && len(last.Points) != 0 {
@@ -828,8 +828,8 @@ func geometric(lo, hi *big.Int, n int) []*big.Int {
 	if hi.Cmp(lo) <= 0 || n < 2 {
 		return []*big.Int{new(big.Int).Set(lo)}
 	}
-	lf, _ := new(big.Float).SetInt(lo).Float64()
-	hf, _ := new(big.Float).SetInt(hi).Float64()
+	lf, _ := lo.Float64()
+	hf, _ := hi.Float64()
 	step := math.Log(hf/lf) / float64(n-1)
 	out := []*big.Int{new(big.Int).Set(lo)}
 	for k := 1; k < n; k++ {
