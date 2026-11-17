@@ -136,6 +136,7 @@ func (t *PoolTracker) refreshStateKeepingTicks(ctx context.Context, p entity.Poo
 	extra.Tick = rpcData.Slot0.Tick
 	extra.SqrtPriceX96 = rpcData.Slot0.SqrtPriceX96
 	extra.Liquidity = rpcData.Liquidity
+	extra.TicksBasedStateBlock = rpcData.TicksBasedStateBlock
 	if rpcData.TickSpacing != nil && rpcData.TickSpacing.Sign() > 0 {
 		extra.TickSpacing = rpcData.TickSpacing.Uint64()
 	}
@@ -252,28 +253,8 @@ func unmarshalExtra(raw string) (Extra, error) {
 		return Extra{}, errors.WithMessage(err, "unmarshal extra")
 	}
 
+	extra.Extra = u256.ToExtra()
 	extra.ProtocolState = u256.ProtocolState
-	extra.TickSpacing = u256.TickSpacing
-	extra.BuyRestrictedToken = u256.BuyRestrictedToken
-	if u256.Liquidity != nil {
-		extra.Liquidity = u256.Liquidity.ToBig()
-	}
-	if u256.SqrtPriceX96 != nil {
-		extra.SqrtPriceX96 = u256.SqrtPriceX96.ToBig()
-	}
-	if u256.Tick != nil {
-		extra.Tick = big.NewInt(int64(*u256.Tick))
-	}
-	if len(u256.Ticks) > 0 {
-		extra.Ticks = make([]uniswapv3.Tick, len(u256.Ticks))
-		for i, tick := range u256.Ticks {
-			extra.Ticks[i] = uniswapv3.Tick{
-				Index:          tick.Index,
-				LiquidityGross: tick.LiquidityGross.ToBig(),
-				LiquidityNet:   tick.LiquidityNet.ToBig(),
-			}
-		}
-	}
 
 	return extra, nil
 }

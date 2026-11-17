@@ -45,12 +45,15 @@ func newRealBalanceTestVault(t *testing.T, realBalances, tokenBalances string) *
 "secondaryPriceFeedVersion":2,
 "priceFeeds":{"A0":{"roundId":1,"answer":69050000,"answers":{"1":69050000}},"A2":{"roundId":1,"answer":196345780000,"answers":{"1":196345780000}},"A10":{"roundId":1,"answer":74353248,"answers":{"1":74353248}}}},
 "usdm":{"address":"0x533403a3346cA31D67c380917ffaF185c24e7333","totalSupply":3389201190535341442726377}}}`,
-		tokenBalances, realBalances, time.Now().Unix())
+		tokenBalances, realBalances, testPriceUpdatedAt)
 
 	var e Extra
 	require.NoError(t, json.Unmarshal([]byte(extra), &e))
 	return e.Vault
 }
+
+// testPriceUpdatedAt is shared by every test vault, so two vaults built a second apart are still equal.
+var testPriceUpdatedAt = time.Now().Unix()
 
 const (
 	// poolAmounts of the fixture, the healthy state has the vault holding exactly that

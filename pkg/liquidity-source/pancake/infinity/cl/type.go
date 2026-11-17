@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	factory "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/abi"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 )
 
@@ -67,6 +68,10 @@ type FetchRPCResult struct {
 	Reserves    entity.PoolReserves `json:"reserves,omitempty"`
 	SwapFee     uint32              `json:"swapFee"`
 	HookExtra   json.RawMessage     `json:"hX,omitempty"`
+
+	// StateBlock is the block R of the multicall that read the slot0 and liquidity, 0 if unknown. The hook
+	// reads are pinned at it. The tracker copies it to the Extra.
+	tickspkg.TicksBasedStateBlock
 }
 
 type TicksResp struct {
@@ -88,4 +93,6 @@ type PoolMetaInfo struct {
 	HookData    []byte         `json:"hookData"`
 	PriceLimit  *uint256.Int   `json:"priceLimit"`
 	SwapFee     uint64         `json:"swapFee"`
+
+	tickspkg.TicksBasedStateBlock
 }

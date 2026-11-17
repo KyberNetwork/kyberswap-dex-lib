@@ -80,7 +80,7 @@ func (t *PoolTracker) fetchOnchainState(
 	hookParam := &HookParam{Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p, BlockNumber: bBlockNumber}
 	hook, _ := GetHook(hookAddress, hookParam)
 
-	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(bBlockNumber).AddCall(&ethrpc.Call{
+	res, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(bBlockNumber).AddCall(&ethrpc.Call{
 		ABI:    shared.CLPoolManagerABI,
 		Target: t.config.CLPoolManagerAddress,
 		Method: shared.CLPoolManagerMethodGetLiquidity,
@@ -90,8 +90,17 @@ func (t *PoolTracker) fetchOnchainState(
 		Target: t.config.CLPoolManagerAddress,
 		Method: shared.CLPoolManagerMethodGetSlot0,
 		Params: []any{common.HexToHash(p.Address)},
-	}, []any{&result.Slot0}).Aggregate(); err != nil {
+	}, []any{&result.Slot0}).Aggregate()
+	if err != nil {
 		return result, hook, hookParam, err
+	}
+	if res.BlockNumber != nil && res.BlockNumber.IsUint64() && res.BlockNumber.Sign() > 0 {
+		result.StateBlock = res.BlockNumber.Uint64()
+		// With no block asked for, the hook reads below get the block of the state read above. A hook
+		// that does not pass HookParam.BlockNumber to its own calls still reads at latest.
+		if blockNumber == 0 {
+			hookParam.BlockNumber = res.BlockNumber
+		}
 	}
 
 	protocolFee, lpFee := uint64(result.Slot0.ProtocolFee&_MASK12), uint64(result.Slot0.LpFee)
@@ -245,6 +254,8 @@ func (t *PoolTracker) BootstrapPoolState(
 			SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
 			Tick:         rpcData.Slot0.Tick,
 			Ticks:        ticks,
+
+			TicksBasedStateBlock: rpcData.TicksBasedStateBlock,
 		},
 		HookExtra: rpcData.HookExtra,
 	})
@@ -754,6 +765,8 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 			TickSpacing:  rpcState.TickSpacing,
 			Tick:         rpcState.Slot0.Tick,
 			Ticks:        entityPoolTicks,
+
+			TicksBasedStateBlock: rpcState.TicksBasedStateBlock,
 		},
 		HookExtra: rpcState.HookExtra,
 	})
