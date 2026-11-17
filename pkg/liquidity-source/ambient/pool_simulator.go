@@ -180,7 +180,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves[indexOut] = new(big.Int).Sub(p.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 	p.state.Curve = swapInfo.nextCurve
 
-	if limit := params.SwapLimit; limit != nil {
+	if limit := params.SwapLimitBig; limit != nil {
 		if _, _, err := limit.UpdateLimit(p.ambientToken(indexOut), p.ambientToken(indexIn),
 			params.TokenAmountOut.Amount, params.TokenAmountIn.Amount); err != nil {
 			logger.Errorf("unable to update ambient limit, error: %v", err)

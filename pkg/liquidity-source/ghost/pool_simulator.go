@@ -298,7 +298,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	p.Info.Reserves[idxOut] = new(big.Int).Sub(p.Info.Reserves[idxOut], amountOutBig)
 
-	if limit := params.SwapLimit; limit != nil {
+	if limit := params.SwapLimitBig; limit != nil {
 		_, _, _ = limit.UpdateLimit(
 			params.TokenAmountOut.Token, params.TokenAmountIn.Token,
 			amountOutBig, params.TokenAmountIn.Amount,

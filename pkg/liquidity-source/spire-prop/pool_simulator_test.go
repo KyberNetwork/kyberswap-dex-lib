@@ -143,7 +143,7 @@ func TestInventoryAndFailurePurity(t *testing.T) {
 	quote, err := s.CalcAmountOut(params)
 	require.NoError(t, err)
 	old := new(big.Int).Set(limit.GetLimit(s.limitKey(quoteToken)))
-	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: quote.SwapInfo, SwapLimit: limit})
+	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: quote.SwapInfo, SwapLimitBig: limit})
 	require.Equal(t, new(big.Int).Sub(old, big.NewInt(25000000)), limit.GetLimit(s.limitKey(quoteToken)))
 	params = quoteParams(1, "25000000")
 	params.Limit = swaplimit.NewInventory(DexType, map[string]*big.Int{})
@@ -249,7 +249,7 @@ func TestAdditionalBaseScaleAndSharedQuoteInventory(t *testing.T) {
 	firstParams.Limit = limit
 	first, err := weth.CalcAmountOut(firstParams)
 	require.NoError(t, err)
-	weth.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: first.SwapInfo, SwapLimit: limit})
+	weth.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: first.SwapInfo, SwapLimitBig: limit})
 	require.Zero(t, limit.GetLimit(other.limitKey(quoteToken)).Sign())
 	// The second base has its own cursor but must not spend the same USDC twice.
 	params.Limit = limit

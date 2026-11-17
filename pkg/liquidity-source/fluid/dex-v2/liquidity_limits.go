@@ -97,7 +97,7 @@ func (p *PoolSimulator) liquidityKey(i, field int) string {
 	return p.liquidityKeys[i] + liquidityFieldNames[field]
 }
 
-func (p *PoolSimulator) liquidityValues(i int, limit pool.SwapLimit) ([liquidityFieldCount]uint256.Int, error) {
+func (p *PoolSimulator) liquidityValues(i int, limit pool.SwapLimitBig) ([liquidityFieldCount]uint256.Int, error) {
 	v := p.liquidityLimits[i].values()
 	if limit != nil {
 		for field := range v {
@@ -179,7 +179,7 @@ func addLiquidityTotal(v *uint256.Int, amount *uint256.Int) error {
 	return nil
 }
 
-func (p *PoolSimulator) quoteLiquidity(limit pool.SwapLimit, in, out int, dexType uint32, amountIn, amountOut, fee *uint256.Int) (usage [2]liquidityUsage, err error) {
+func (p *PoolSimulator) quoteLiquidity(limit pool.SwapLimitBig, in, out int, dexType uint32, amountIn, amountOut, fee *uint256.Int) (usage [2]liquidityUsage, err error) {
 	if !p.staticExtra.TrackLiquidityLimits {
 		return
 	}
@@ -336,7 +336,7 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	return result
 }
 
-func updateLiquidityLimit(limit pool.SwapLimit, key string, amount *uint256.Int, increase bool) {
+func updateLiquidityLimit(limit pool.SwapLimitBig, key string, amount *uint256.Int, increase bool) {
 	if limit == nil || amount.IsZero() {
 		return
 	}
@@ -352,7 +352,7 @@ func updateLiquidityLimit(limit pool.SwapLimit, key string, amount *uint256.Int,
 	}
 }
 
-func (p *PoolSimulator) applyLiquidity(usage [2]liquidityUsage, limit pool.SwapLimit) {
+func (p *PoolSimulator) applyLiquidity(usage [2]liquidityUsage, limit pool.SwapLimitBig) {
 	if !p.staticExtra.TrackLiquidityLimits {
 		return
 	}

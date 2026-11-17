@@ -95,7 +95,7 @@ func goldenTrace(t *testing.T) string {
 				fmt.Fprintf(&sb, "%s chain[%d] dir=%d in=%d err=%v\n", s.name, i, step.dir, step.amount, err)
 				continue
 			}
-			chain.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: in, TokenAmountOut: *q.TokenAmountOut, SwapInfo: q.SwapInfo, SwapLimit: limit})
+			chain.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: in, TokenAmountOut: *q.TokenAmountOut, SwapInfo: q.SwapInfo, SwapLimitBig: limit})
 			fmt.Fprintf(&sb, "%s chain[%d] dir=%d in=%d out=%s gas=%d reserves=%s,%s tick=%d sqrt=%s liq=%s dyn=%s limits=%s\n",
 				s.name, i, step.dir, step.amount, q.TokenAmountOut.Amount, q.Gas,
 				chain.tokenReserves[0].Dec(), chain.tokenReserves[1].Dec(), chain.V3Pool.TickCurrent, chain.V3Pool.SqrtRatioX96, chain.V3Pool.Liquidity,

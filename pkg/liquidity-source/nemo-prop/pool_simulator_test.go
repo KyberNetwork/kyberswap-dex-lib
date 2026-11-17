@@ -27,7 +27,7 @@ func quote(sim pool.IPoolSimulator, dir int, amountIn *big.Int) (*big.Int, error
 }
 
 func quoteResult(sim pool.IPoolSimulator, dir int, amountIn *big.Int,
-	limit pool.SwapLimit) (*pool.CalcAmountOutResult, error) {
+	limit pool.SwapLimitBig) (*pool.CalcAmountOutResult, error) {
 	tokens := sim.GetTokens()
 	return sim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: tokens[dir], Amount: amountIn},
@@ -183,7 +183,7 @@ func TestPoolSimulator_RouteConsumptionAndSharedInventory(t *testing.T) {
 	route := sim.CloneState()
 	route.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut,
-		SwapInfo: res.SwapInfo, SwapLimit: inventory,
+		SwapInfo: res.SwapInfo, SwapLimitBig: inventory,
 	})
 
 	// ...which leaves 500 deliverable USDC for the other market.

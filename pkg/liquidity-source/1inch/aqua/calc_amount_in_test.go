@@ -59,7 +59,7 @@ func refMinAmountIn(prog []Instruction, balIn, balOut, target *big.Int, inLt boo
 	return hi, failed, true
 }
 
-func inParams(s *PoolSimulator, in int, target *uint256.Int, limit pool.SwapLimit) pool.CalcAmountInParams {
+func inParams(s *PoolSimulator, in int, target *uint256.Int, limit pool.SwapLimitBig) pool.CalcAmountInParams {
 	return pool.CalcAmountInParams{
 		TokenAmountOut: pool.TokenAmount{Token: s.Info.Tokens[1-in], Amount: target.ToBig()},
 		TokenIn:        s.Info.Tokens[in], Limit: limit,
@@ -69,7 +69,7 @@ func inParams(s *PoolSimulator, in int, target *uint256.Int, limit pool.SwapLimi
 // verifyAmountIn runs CalcAmountIn and checks everything the contract says, against CalcAmountOut and against
 // the independent oracle: the result is the smallest amountIn, its quote is the CalcAmountOut quote of it,
 // nothing is mutated, and an error is only returned where the exact-in direction has no answer either.
-func verifyAmountIn(t testing.TB, s *PoolSimulator, in int, target *uint256.Int, limit pool.SwapLimit) (*pool.CalcAmountInResult, error) {
+func verifyAmountIn(t testing.TB, s *PoolSimulator, in int, target *uint256.Int, limit pool.SwapLimitBig) (*pool.CalcAmountInResult, error) {
 	t.Helper()
 	before := snapOf(s)
 	res, err := s.CalcAmountIn(inParams(s, in, target, limit))
@@ -522,7 +522,7 @@ func TestCalcAmountInCaps(t *testing.T) {
 	// Wallet, shared limit: the key replaces the snapshot; a missing key and a negative one hold nothing.
 	s := newSim(t, poolOpts{program: program, raw: raw})
 	key := s.limitKeys[1]
-	inv := func(v *big.Int) pool.SwapLimit {
+	inv := func(v *big.Int) pool.SwapLimitBig {
 		m := map[string]*big.Int{}
 		if v != nil {
 			m[key] = v
@@ -616,7 +616,7 @@ func TestCalcAmountInProtocolFee(t *testing.T) {
 
 	// Wallet short of the fee through the shared limit: the tokenIn key decides the fee, the tokenOut key the cap.
 	s := newSim(t, poolOpts{program: feeProgram})
-	inv := func(in, out *big.Int) pool.SwapLimit {
+	inv := func(in, out *big.Int) pool.SwapLimitBig {
 		return swaplimit.NewInventory(DexType, map[string]*big.Int{s.limitKeys[0]: in, s.limitKeys[1]: out})
 	}
 	res, err = verifyAmountIn(t, s, 0, target, inv(big.NewInt(0), e18(1000).ToBig()))
@@ -938,9 +938,9 @@ func TestCalcAmountInUpdateBalance(t *testing.T) {
 				require.Equal(t, resOut.SwapInfo, resIn.SwapInfo)
 				byIn.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: *resIn.TokenAmountIn,
 					TokenAmountOut: pool.TokenAmount{Token: byIn.Info.Tokens[1-step.in], Amount: resOut.TokenAmountOut.Amount},
-					Fee:            *resIn.Fee, SwapInfo: resIn.SwapInfo, SwapLimit: invA})
+					Fee:            *resIn.Fee, SwapInfo: resIn.SwapInfo, SwapLimitBig: invA})
 				byOut.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: pool.TokenAmount{Token: byOut.Info.Tokens[step.in], Amount: amountIn.ToBig()},
-					TokenAmountOut: *resOut.TokenAmountOut, Fee: *resOut.Fee, SwapInfo: resOut.SwapInfo, SwapLimit: invB})
+					TokenAmountOut: *resOut.TokenAmountOut, Fee: *resOut.Fee, SwapInfo: resOut.SwapInfo, SwapLimitBig: invB})
 				require.Equal(t, snapOf(byOut), snapOf(byIn), "%s hop %d", ls.name, hop)
 				for _, k := range byIn.limitKeys {
 					require.Equal(t, invB.GetLimit(k), invA.GetLimit(k), "%s hop %d limit", ls.name, hop)

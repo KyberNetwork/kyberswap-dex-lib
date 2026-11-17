@@ -37,7 +37,7 @@ func (i *InventoryWithAllowedSenders) UpdateLimit(
 	return i.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)
 }
 
-func (i *InventoryWithAllowedSenders) Clone() pool.SwapLimit {
+func (i *InventoryWithAllowedSenders) Clone() pool.SwapLimitBig {
 	return &InventoryWithAllowedSenders{
 		exchange:       i.exchange,
 		lock:           &sync.RWMutex{},

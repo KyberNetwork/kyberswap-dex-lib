@@ -729,7 +729,7 @@ func TestPoolSimulator_SharedMakerLimit(t *testing.T) {
 	limit := swaplimit.NewInventory(valueobject.ExchangeHanji, limits)
 
 	wxtz, weth := first.Info.Tokens[0], first.Info.Tokens[1]
-	quote := func(sim *PoolSimulator, amount string, limit pool.SwapLimit) (pool.TokenAmount,
+	quote := func(sim *PoolSimulator, amount string, limit pool.SwapLimitBig) (pool.TokenAmount,
 		*pool.CalcAmountOutResult, error) {
 		tokenAmountIn := pool.TokenAmount{Token: wxtz, Amount: bignumber.NewBig10(amount)}
 		result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: tokenAmountIn, TokenOut: weth,
@@ -740,7 +740,7 @@ func TestPoolSimulator_SharedMakerLimit(t *testing.T) {
 		tokenAmountIn, result, err := quote(sim, amount, limit)
 		if err == nil {
 			sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: tokenAmountIn,
-				TokenAmountOut: *result.TokenAmountOut, Fee: *result.Fee, SwapInfo: result.SwapInfo, SwapLimit: limit})
+				TokenAmountOut: *result.TokenAmountOut, Fee: *result.Fee, SwapInfo: result.SwapInfo, SwapLimitBig: limit})
 		}
 		return err
 	}

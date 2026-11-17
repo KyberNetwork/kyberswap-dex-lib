@@ -123,7 +123,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		}
 	}
 
-	if limit := params.SwapLimit; limit != nil {
+	if limit := params.SwapLimitBig; limit != nil {
 		_, _, _ = limit.UpdateLimit(
 			params.TokenAmountOut.Token,
 			params.TokenAmountIn.Token,

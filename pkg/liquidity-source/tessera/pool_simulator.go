@@ -196,7 +196,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		}
 	}
 
-	if limit := params.SwapLimit; limit != nil {
+	if limit := params.SwapLimitBig; limit != nil {
 		_, _, err := limit.UpdateLimit(tokenOut, tokenIn, amtOut, amtIn)
 		if err != nil {
 			log.Err(err).Msg("tessera.UpdateBalance failed")

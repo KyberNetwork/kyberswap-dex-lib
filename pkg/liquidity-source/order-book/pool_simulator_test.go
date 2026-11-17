@@ -152,7 +152,7 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			poolSimulator, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool})
 			require.NoError(t, err)
 
-			var limit pool.SwapLimit
+			var limit pool.SwapLimitBig
 			if !errors.Is(tt.expectedErr, ErrNoSwapLimit) {
 				limit = swaplimit.NewInventory("pmm-1", poolSimulator.CalculateLimit())
 			}
@@ -291,7 +291,7 @@ func TestPoolSimulator_MultiSwap(t *testing.T) {
 					TokenAmountOut: pool.TokenAmount{},
 					Fee:            pool.TokenAmount{},
 					SwapInfo:       nil,
-					SwapLimit:      limit,
+					SwapLimitBig:   limit,
 				})
 			}
 

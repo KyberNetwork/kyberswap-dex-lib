@@ -955,7 +955,7 @@ func TestCaseMatrixCaps(t *testing.T) {
 	amount := e18(1)
 	huge := e18(1_000_000_000)
 
-	// Own snapshot (no SwapLimit): min(balance, allowance).
+	// Own snapshot (no SwapLimitBig): min(balance, allowance).
 	for name, tc := range map[string]struct {
 		wallet, allowance *uint256.Int
 		want              error

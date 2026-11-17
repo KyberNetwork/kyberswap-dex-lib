@@ -114,7 +114,7 @@ func newSim(t testing.TB, o poolOpts) *PoolSimulator {
 	return s
 }
 
-func quoteOut(s *PoolSimulator, in int, amount *uint256.Int, limit pool.SwapLimit) (*pool.CalcAmountOutResult, error) {
+func quoteOut(s *PoolSimulator, in int, amount *uint256.Int, limit pool.SwapLimitBig) (*pool.CalcAmountOutResult, error) {
 	return s.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[in], Amount: amount.ToBig()},
 		TokenOut:      s.Info.Tokens[1-in],
@@ -122,7 +122,7 @@ func quoteOut(s *PoolSimulator, in int, amount *uint256.Int, limit pool.SwapLimi
 	})
 }
 
-func swapOnce(s *PoolSimulator, in int, amount *uint256.Int, limit pool.SwapLimit) (*pool.CalcAmountOutResult, error) {
+func swapOnce(s *PoolSimulator, in int, amount *uint256.Int, limit pool.SwapLimitBig) (*pool.CalcAmountOutResult, error) {
 	res, err := quoteOut(s, in, amount, limit)
 	if err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func swapOnce(s *PoolSimulator, in int, amount *uint256.Int, limit pool.SwapLimi
 		TokenAmountOut: *res.TokenAmountOut,
 		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
-		SwapLimit:      limit,
+		SwapLimitBig:   limit,
 	})
 	return res, nil
 }
@@ -622,12 +622,12 @@ func TestFeeDebitClamp(t *testing.T) {
 	// A missing in key: the credit creates it, so the debit finds it; with no in key and no credit the
 	// debit is skipped without error.
 	s3 := newSim(t, poolOpts{program: program, allowance: [2]*uint256.Int{e18(1), nil}})
-	swap100 := func(limit pool.SwapLimit) {
+	swap100 := func(limit pool.SwapLimitBig) {
 		s3.UpdateBalance(pool.UpdateBalanceParams{
 			TokenAmountIn:  pool.TokenAmount{Token: s3.Info.Tokens[0], Amount: e18(100).ToBig()},
 			TokenAmountOut: pool.TokenAmount{Token: s3.Info.Tokens[1], Amount: big.NewInt(1)},
 			SwapInfo:       &SwapInfo{AmountIn: *e18(100), AmountOut: *uint256.NewInt(1), FeeIn: *fee},
-			SwapLimit:      limit,
+			SwapLimitBig:   limit,
 		})
 	}
 	inv3 := swaplimit.NewInventory(DexType, map[string]*big.Int{s3.limitKeys[1]: e18(900).ToBig()})
@@ -665,10 +665,10 @@ func TestMetaAndApproval(t *testing.T) {
 
 func decOf(z uint256.Int) string { return z.Dec() }
 
-// limitWithoutKeys is a SwapLimit that accepts every update and holds no key.
+// limitWithoutKeys is a SwapLimitBig that accepts every update and holds no key.
 type limitWithoutKeys struct{ updates int }
 
-func (l *limitWithoutKeys) Clone() pool.SwapLimit           { return l }
+func (l *limitWithoutKeys) Clone() pool.SwapLimitBig        { return l }
 func (l *limitWithoutKeys) GetExchange() string             { return DexType }
 func (l *limitWithoutKeys) GetLimit(string) *big.Int        { return nil }
 func (l *limitWithoutKeys) GetSwapped() map[string]*big.Int { return nil }
@@ -686,7 +686,7 @@ func TestUpdateBalanceLimitWithoutKey(t *testing.T) {
 		TokenAmountIn:  pool.TokenAmount{Token: s.Info.Tokens[0], Amount: big.NewInt(100)},
 		TokenAmountOut: pool.TokenAmount{Token: s.Info.Tokens[1], Amount: big.NewInt(1)},
 		SwapInfo:       &SwapInfo{AmountIn: *uint256.NewInt(100), AmountOut: *uint256.NewInt(1), FeeIn: *uint256.NewInt(1)},
-		SwapLimit:      limit,
+		SwapLimitBig:   limit,
 	})
 	require.Equal(t, 1, limit.updates, "no debit when the limit holds no key for tokenIn")
 }
@@ -716,7 +716,7 @@ type q struct {
 	err error
 }
 
-func quoteAll(s *PoolSimulator, limit func() pool.SwapLimit) []q {
+func quoteAll(s *PoolSimulator, limit func() pool.SwapLimitBig) []q {
 	var r []q
 	for in := range 2 {
 		for _, a := range raceAmounts {
@@ -731,7 +731,7 @@ func quoteAll(s *PoolSimulator, limit func() pool.SwapLimit) []q {
 	return r
 }
 
-func newInv(s *PoolSimulator) pool.SwapLimit {
+func newInv(s *PoolSimulator) pool.SwapLimitBig {
 	return swaplimit.NewInventory(DexType, map[string]*big.Int{s.limitKeys[0]: e18(3).ToBig(), s.limitKeys[1]: e18(400).ToBig()})
 }
 
@@ -740,9 +740,9 @@ func newInv(s *PoolSimulator) pool.SwapLimit {
 func TestRaceCalcAmountOutCloneState(t *testing.T) {
 	for _, s := range raceSims(t) {
 		base := snapOf(s)
-		noLimit := func() pool.SwapLimit { return nil }
+		noLimit := func() pool.SwapLimitBig { return nil }
 		wantNil := quoteAll(s, noLimit)
-		wantInv := quoteAll(s, func() pool.SwapLimit { return newInv(s) })
+		wantInv := quoteAll(s, func() pool.SwapLimitBig { return newInv(s) })
 		var wg sync.WaitGroup
 		for g := range 16 {
 			wg.Go(func() {
@@ -751,7 +751,7 @@ func TestRaceCalcAmountOutCloneState(t *testing.T) {
 					case 0:
 						assert.Equal(t, wantNil, quoteAll(s, noLimit))
 					case 1:
-						assert.Equal(t, wantInv, quoteAll(s, func() pool.SwapLimit { return newInv(s) }))
+						assert.Equal(t, wantInv, quoteAll(s, func() pool.SwapLimitBig { return newInv(s) }))
 					case 2: // clone, swap the clone (and a clone of the clone) both ways
 						c := s.CloneState().(*PoolSimulator)
 						inv := newInv(s)
@@ -788,7 +788,7 @@ type qIn struct {
 }
 
 // quoteAllIn is quoteAll for CalcAmountIn: every direction and target.
-func quoteAllIn(s *PoolSimulator, limit func() pool.SwapLimit) []qIn {
+func quoteAllIn(s *PoolSimulator, limit func() pool.SwapLimitBig) []qIn {
 	var r []qIn
 	for in := range 2 {
 		for _, a := range raceAmounts {
@@ -808,9 +808,9 @@ func quoteAllIn(s *PoolSimulator, limit func() pool.SwapLimit) []qIn {
 func TestRaceCalcAmountIn(t *testing.T) {
 	for _, s := range raceSims(t) {
 		base := snapOf(s)
-		noLimit := func() pool.SwapLimit { return nil }
+		noLimit := func() pool.SwapLimitBig { return nil }
 		wantNil := quoteAllIn(s, noLimit)
-		wantInv := quoteAllIn(s, func() pool.SwapLimit { return newInv(s) })
+		wantInv := quoteAllIn(s, func() pool.SwapLimitBig { return newInv(s) })
 		wantOut := quoteAll(s, noLimit)
 		var wg sync.WaitGroup
 		for g := range 16 {
@@ -820,7 +820,7 @@ func TestRaceCalcAmountIn(t *testing.T) {
 					case 0:
 						assert.Equal(t, wantNil, quoteAllIn(s, noLimit))
 					case 1:
-						assert.Equal(t, wantInv, quoteAllIn(s, func() pool.SwapLimit { return newInv(s) }))
+						assert.Equal(t, wantInv, quoteAllIn(s, func() pool.SwapLimitBig { return newInv(s) }))
 					case 2:
 						assert.Equal(t, wantOut, quoteAll(s, noLimit))
 						c := s.CloneState().(*PoolSimulator)

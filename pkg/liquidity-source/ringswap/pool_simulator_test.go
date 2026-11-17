@@ -21,7 +21,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	testCases := []struct {
 		name              string
 		poolSimulator     PoolSimulator
-		swapLimit         poolpkg.SwapLimit
+		swapLimit         poolpkg.SwapLimitBig
 		tokenAmountIn     poolpkg.TokenAmount
 		tokenOut          string
 		expectedAmountOut *big.Int
@@ -291,7 +291,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	testCases := []struct {
 		name             string
 		poolSimulator    PoolSimulator
-		swapLimit        poolpkg.SwapLimit
+		swapLimit        poolpkg.SwapLimitBig
 		tokenAmountOut   poolpkg.TokenAmount
 		tokenIn          string
 		expectedAmountIn *big.Int
@@ -452,7 +452,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					WTokenIn:    "0x18755d2cec785ab87680edb8e117615e4b005430",
 					WTokenOut:   "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1",
 				},
-				SwapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
+				SwapLimitBig: swaplimit.NewInventory("ringswap", map[string]*big.Int{
 					"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000000000"),
 					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000000000"),
 				}),
@@ -495,7 +495,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					WTokenIn:    "0x18755d2cec785ab87680edb8e117615e4b005430",
 					WTokenOut:   "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1",
 				},
-				SwapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
+				SwapLimitBig: swaplimit.NewInventory("ringswap", map[string]*big.Int{
 					"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000000000"),
 					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000000000"),
 				}),
@@ -538,7 +538,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					WTokenIn:    "0x18755d2cec785ab87680edb8e117615e4b005430",
 					WTokenOut:   "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1",
 				},
-				SwapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
+				SwapLimitBig: swaplimit.NewInventory("ringswap", map[string]*big.Int{
 					"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000000000"),
 					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000000000"),
 				}),
@@ -581,7 +581,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					WTokenIn:    "0x18755d2cec785ab87680edb8e117615e4b005430",
 					WTokenOut:   "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1",
 				},
-				SwapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
+				SwapLimitBig: swaplimit.NewInventory("ringswap", map[string]*big.Int{
 					"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000000000"),
 					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000000000"),
 				}),
@@ -611,7 +611,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			assert.Equal(t, 0, tc.poolSimulator.Info.Reserves[3].Cmp(tc.expectedFwReserves[3]))
 
 			if len(tc.expectedSwapLimits) > 0 {
-				inventory, ok := tc.params.SwapLimit.(*swaplimit.Inventory)
+				inventory, ok := tc.params.SwapLimitBig.(*swaplimit.Inventory)
 				assert.True(t, ok)
 
 				for token, expectedLimit := range tc.expectedSwapLimits {

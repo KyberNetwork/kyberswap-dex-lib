@@ -151,7 +151,7 @@ func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenAmountOut.Token
-	_, _, err := params.SwapLimit.UpdateLimit(tokenOut, tokenIn, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
+	_, _, err := params.SwapLimitBig.UpdateLimit(tokenOut, tokenIn, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
 	if err != nil {
 		logger.Errorf("unable to update integral limit, error: %v", err)
 	}

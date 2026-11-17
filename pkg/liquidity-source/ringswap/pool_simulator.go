@@ -232,7 +232,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	deltaIn := lo.Ternary(swapInfo.IsWrapIn, params.TokenAmountIn.Amount, bignumber.ZeroBI)
 	deltaOut := lo.Ternary(swapInfo.IsUnwrapOut, params.TokenAmountOut.Amount, bignumber.ZeroBI)
 
-	_, _, _ = params.SwapLimit.UpdateLimit(swapInfo.WTokenOut, swapInfo.WTokenIn, deltaOut, deltaIn)
+	_, _, _ = params.SwapLimitBig.UpdateLimit(swapInfo.WTokenOut, swapInfo.WTokenIn, deltaOut, deltaIn)
 }
 
 // CloneState copies the reserve slice UpdateBalance writes by index. The big.Int reserves are replaced

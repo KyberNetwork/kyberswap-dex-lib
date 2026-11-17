@@ -31,7 +31,7 @@ func NewInventory(exchange string, balance map[string]*big.Int) *Inventory {
 
 // Clone clones Inventory. Only guarantees that UpdateLimit of the original does not affect the clone.
 // The balances are copied on UpdateBalance, and so is shadow-cloned here.
-func (i *Inventory) Clone() pool.SwapLimit {
+func (i *Inventory) Clone() pool.SwapLimitBig {
 	return &Inventory{
 		exchange: i.exchange,
 		lock:     &sync.RWMutex{},

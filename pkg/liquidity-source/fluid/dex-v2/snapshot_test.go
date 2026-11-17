@@ -110,7 +110,7 @@ func TestD3SharedLimitAndClone(t *testing.T) {
 		t.Fatal(err)
 	}
 	original := new(big.Int).Set(limit.GetLimit(sim.liquidityKey(1, liquidityBorrow)))
-	sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *q.TokenAmountOut, SwapInfo: q.SwapInfo, SwapLimit: limit})
+	sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *q.TokenAmountOut, SwapInfo: q.SwapInfo, SwapLimitBig: limit})
 	// SwapInfo belongs to the quote; subsequent caller mutation must not change state.
 	si := q.SwapInfo.(SwapInfo)
 	stateLiquidity := new(uint256.Int).Set(sim.V3Pool.Liquidity)

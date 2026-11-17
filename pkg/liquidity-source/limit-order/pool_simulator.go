@@ -147,8 +147,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		if order.AvailableMakingAmount != nil {
 			order.AvailableMakingAmount = new(big.Int).Sub(order.AvailableMakingAmount, filledMakingAmount)
 		}
-		if params.SwapLimit != nil {
-			_, _, _ = params.SwapLimit.UpdateLimit(
+		if params.SwapLimitBig != nil {
+			_, _, _ = params.SwapLimitBig.UpdateLimit(
 				NewMakerAndAsset(order.Maker, order.MakerAsset),
 				NewMakerAndAsset(order.Maker, order.TakerAsset),
 				filledMakingAmount,
@@ -161,7 +161,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (p *PoolSimulator) calcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
-	limit pool.SwapLimit,
+	limit pool.SwapLimitBig,
 ) (*pool.CalcAmountOutResult, error) {
 	swapSide := p.getSwapSide(tokenAmountIn.Token, tokenOut)
 	var amountIn uint256.Int
@@ -252,7 +252,7 @@ func amountString(b *big.Int) string {
 // calcAmountOutWithSwapInfo runs the fill walk. noOrders reports no order on this side, which
 // returns no fee. amountInOK false means amountIn is not a usable amount.
 func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, amountIn uint256.Int, amountInOK bool,
-	limit pool.SwapLimit) (uint256.Int, uint256.Int, SwapInfo, bool, error) {
+	limit pool.SwapLimitBig) (uint256.Int, uint256.Int, SwapInfo, bool, error) {
 	orderIDs := p.getOrderIDsBySwapSide(swapSide)
 	if limit != nil {
 		// EX-2684: Filter out orders that are not in allowedSenders list.
@@ -512,7 +512,7 @@ func newFallbackOrderInfo(order *order, remainingMakingAmount string) *FilledOrd
 // makerBalances formats each maker's balance in the swap limit once per quote, for
 // FilledOrderInfo.MakerBalance; empty without a limit.
 type makerBalances struct {
-	limit   pool.SwapLimit
+	limit   pool.SwapLimitBig
 	byMaker map[string]string
 }
 
@@ -603,7 +603,7 @@ type Inventory = swaplimit.Inventory
 
 // NewInventory has key: "<maker>:<makerAsset>", value: maker's min(balance, allowance) for makerAsset
 // Deprecated: directly use swaplimit.NewInventory.
-func NewInventory(balance map[string]*big.Int) pool.SwapLimit {
+func NewInventory(balance map[string]*big.Int) pool.SwapLimitBig {
 	return swaplimit.NewInventory(DexTypeLimitOrder, balance)
 }
 

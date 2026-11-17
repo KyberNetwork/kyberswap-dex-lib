@@ -403,7 +403,7 @@ func TestCalcAmountOut_SharedSwapLimit(t *testing.T) {
 	sim.UpdateBalance(poolPkg.UpdateBalanceParams{
 		TokenAmountIn:  poolPkg.TokenAmount{Token: token0, Amount: big.NewInt(300_000)},
 		TokenAmountOut: *result.TokenAmountOut,
-		SwapLimit:      limit,
+		SwapLimitBig:   limit,
 	})
 
 	assert.Equal(t, new(big.Int).Sub(big.NewInt(500_000), result.TokenAmountOut.Amount), limit.GetLimit(token1))

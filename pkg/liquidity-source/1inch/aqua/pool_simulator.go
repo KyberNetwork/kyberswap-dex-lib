@@ -120,7 +120,7 @@ func (s *PoolSimulator) snapshotLimit(i int) uint256.Int {
 
 // limitOf is the fillable cap of token i: the shared limit when the caller tracks one, else the pool's
 // own wallet snapshot. A key the shared limit does not hold means the maker has no balance.
-func (s *PoolSimulator) limitOf(i int, limit pool.SwapLimit) uint256.Int {
+func (s *PoolSimulator) limitOf(i int, limit pool.SwapLimitBig) uint256.Int {
 	if limit == nil {
 		return s.snapshotLimit(i)
 	}
@@ -187,7 +187,7 @@ func (s *PoolSimulator) checkQuotable() error {
 }
 
 // quote prices an exact-in swap of amountIn (above zero) and fills q.result.
-func (s *PoolSimulator) quote(q *quoteAlloc, in, out int, amountIn *uint256.Int, limit pool.SwapLimit) error {
+func (s *PoolSimulator) quote(q *quoteAlloc, in, out int, amountIn *uint256.Int, limit pool.SwapLimitBig) error {
 	q.run.FeeIns = q.feeBuffer[:0]
 	tokenInLt := (in == 0) == s.token0Lt
 	if err := runProgram(&q.run, s.program, &s.State.Raw[in], &s.State.Raw[out], amountIn, tokenInLt); err != nil {
@@ -198,7 +198,7 @@ func (s *PoolSimulator) quote(q *quoteAlloc, in, out int, amountIn *uint256.Int,
 
 // settle turns the program result in q.run for amountIn into q.result. It is the one place the caps, the
 // fee pulls and the push bound are applied, for CalcAmountOut and for CalcAmountIn.
-func (s *PoolSimulator) settle(q *quoteAlloc, in, out int, amountIn *uint256.Int, limit pool.SwapLimit) error {
+func (s *PoolSimulator) settle(q *quoteAlloc, in, out int, amountIn *uint256.Int, limit pool.SwapLimitBig) error {
 	rawIn, rawOut := &s.State.Raw[in], &s.State.Raw[out]
 	amountOut := &q.run.AmountOut
 	if amountOut.IsZero() {
@@ -237,7 +237,7 @@ func (s *PoolSimulator) settle(q *quoteAlloc, in, out int, amountIn *uint256.Int
 // fee and the collected part in info. A pull needs the strategy's tokenIn balance and the maker's wallet
 // limit to cover it, after the pulls before it. The current router skips a pull it cannot make; the launch
 // router reverts, so the quote is refused.
-func (s *PoolSimulator) collectFees(info *SwapInfo, feeIns []uint256.Int, rawIn *uint256.Int, in int, limit pool.SwapLimit) error {
+func (s *PoolSimulator) collectFees(info *SwapInfo, feeIns []uint256.Int, rawIn *uint256.Int, in int, limit pool.SwapLimitBig) error {
 	if len(feeIns) == 0 {
 		return nil
 	}
@@ -288,21 +288,21 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	s.publishReserves()
 
-	if params.SwapLimit == nil {
+	if params.SwapLimitBig == nil {
 		return
 	}
 	credit := new(big.Int)
 	if s.State.Allowance[in].Cmp(uUnlimitedAllowance) >= 0 {
 		info.AmountIn.IntoBig(&credit)
 	}
-	if _, _, err := params.SwapLimit.UpdateLimit(s.limitKeys[out], s.limitKeys[in], info.AmountOut.ToBig(), credit); err != nil {
+	if _, _, err := params.SwapLimitBig.UpdateLimit(s.limitKeys[out], s.limitKeys[in], info.AmountOut.ToBig(), credit); err != nil {
 		return
 	}
 	if info.FeeIn.IsZero() {
 		return
 	}
 	// UpdateLimit refuses a decrease above the balance instead of flooring at zero.
-	cur := params.SwapLimit.GetLimit(s.limitKeys[in])
+	cur := params.SwapLimitBig.GetLimit(s.limitKeys[in])
 	if cur == nil {
 		return
 	}
@@ -311,7 +311,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		debit = new(big.Int).Set(cur)
 	}
 	if debit.Sign() > 0 {
-		_, _, _ = params.SwapLimit.UpdateLimit(s.limitKeys[in], s.limitKeys[in], debit, new(big.Int))
+		_, _, _ = params.SwapLimitBig.UpdateLimit(s.limitKeys[in], s.limitKeys[in], debit, new(big.Int))
 	}
 }
 

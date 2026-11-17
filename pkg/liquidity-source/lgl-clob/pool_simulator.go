@@ -357,8 +357,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	amtOutF, _ := params.TokenAmountOut.Amount.Float64()
 	p.cumAmtOutF += amtOutF
-	if params.SwapLimit != nil && p.maker != "" {
-		_, _, _ = params.SwapLimit.UpdateLimit(p.limitKey(params.TokenAmountOut.Token),
+	if params.SwapLimitBig != nil && p.maker != "" {
+		_, _, _ = params.SwapLimitBig.UpdateLimit(p.limitKey(params.TokenAmountOut.Token),
 			p.limitKey(params.TokenAmountIn.Token), params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
 	}
 }
@@ -382,7 +382,7 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 // withinLimit reports whether the pool's market maker can still pay amountOut
 // of tokenOut, after what an order took from it through any of its pools. A
 // pool without a market maker, or a limit without its key, has no limit.
-func (p *PoolSimulator) withinLimit(limit pool.SwapLimit, tokenOut string, amountOut *uint256.Int) bool {
+func (p *PoolSimulator) withinLimit(limit pool.SwapLimitBig, tokenOut string, amountOut *uint256.Int) bool {
 	if limit == nil || p.maker == "" {
 		return true
 	}

@@ -55,7 +55,7 @@ func (k *SwappedInventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddres
 	return k.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)
 }
 
-func (k *SwappedInventory) Clone() pool.SwapLimit {
+func (k *SwappedInventory) Clone() pool.SwapLimitBig {
 	return &SwappedInventory{
 		exchange: k.exchange,
 		lock:     &sync.RWMutex{},

@@ -235,7 +235,7 @@ func TestUpdateBalance(t *testing.T) {
 		TokenAmountOut: *result.TokenAmountOut,
 		Fee:            *result.Fee,
 		SwapInfo:       result.SwapInfo,
-		SwapLimit:      limit,
+		SwapLimitBig:   limit,
 	})
 
 	expectedReserve0 := new(big.Int).Add(_reserve0, _amount0In)
@@ -335,7 +335,7 @@ func (ts *UpdateBalanceTestSuite) TestUpdateBalance() {
 					},
 					TokenAmountOut: *res.TokenAmountOut,
 					SwapInfo:       res.SwapInfo,
-					SwapLimit:      ts.limit,
+					SwapLimitBig:   ts.limit,
 				})
 				require.Equal(t, swap.expectedAmountOut, res.TokenAmountOut.Amount.String())
 			} else {

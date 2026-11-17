@@ -55,7 +55,7 @@ func TestPoolSimulatorCalcAmountOutAndUpdateBalance(t *testing.T) {
 		TokenAmountOut: *res.TokenAmountOut,
 		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
-		SwapLimit:      limit,
+		SwapLimitBig:   limit,
 	})
 
 	require.Equal(t, new(big.Int).Add(beforeIn, amountIn), sim.Info.Reserves[0])

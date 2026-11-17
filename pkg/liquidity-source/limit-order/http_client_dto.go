@@ -218,7 +218,7 @@ func toOrder(ordersData []*orderData) ([]*order, error) {
 // remainingAmount loads o's terms into t, sets own to the making o itself can still fill and
 // making/taking to what it can fill within its maker's balance, and reports whether both are
 // positive.
-func (o *order) remainingAmount(t *orderTerms, own, making, taking *uint256.Int, limit pool.SwapLimit,
+func (o *order) remainingAmount(t *orderTerms, own, making, taking *uint256.Int, limit pool.SwapLimitBig,
 	usedByMaker map[string]uint256.Int) bool {
 	setAmount(&t.making, o.MakingAmount)
 	setAmount(&t.taking, o.TakingAmount)
@@ -248,7 +248,7 @@ func (o *order) remainingAmount(t *orderTerms, own, making, taking *uint256.Int,
 // quote already used of it (another order of the maker, same makerAsset, other takerAsset,
 // may have used it). A maker missing from the limit has no balance left. Callers skip this
 // without a limit, as for a pool stored before maker balances were tracked.
-func (o *order) capByMakerBalance(making *uint256.Int, limit pool.SwapLimit,
+func (o *order) capByMakerBalance(making *uint256.Int, limit pool.SwapLimitBig,
 	usedByMaker map[string]uint256.Int) bool {
 	var balance uint256.Int
 	if !setAmount(&balance, limit.GetLimit(NewMakerAndAsset(o.Maker, o.MakerAsset))) {

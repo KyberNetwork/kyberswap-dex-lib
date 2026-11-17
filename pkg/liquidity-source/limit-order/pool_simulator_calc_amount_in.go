@@ -19,7 +19,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 func (p *PoolSimulator) calcAmountIn(
 	tokenAmountOut pool.TokenAmount,
 	tokenIn string,
-	limit pool.SwapLimit,
+	limit pool.SwapLimitBig,
 ) (*pool.CalcAmountInResult, error) {
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow || tokenAmountOut.Amount.Sign() <= 0 {
@@ -55,7 +55,7 @@ func (p *PoolSimulator) calcAmountIn(
 // then partially fills a later order. So amountIn at a fully filled order i is
 // max(fullCost_i + amountIn_{i+1}, minFullFillAmountIn_i).
 func (p *PoolSimulator) calcMinAmountIn(swapSide SwapSide, amountOut *uint256.Int,
-	limit pool.SwapLimit) (*big.Int, error) {
+	limit pool.SwapLimitBig) (*big.Int, error) {
 	orderIDs := p.getOrderIDsBySwapSide(swapSide)
 	if limit != nil {
 		orderIDs = p.filterOrdersByAllowedSenders(orderIDs, limit.GetAllowedSenders())

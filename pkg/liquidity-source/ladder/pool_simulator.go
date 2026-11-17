@@ -167,7 +167,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.Info.Reserves[0] = s.Reserve0.ToBig()
 	s.Info.Reserves[1] = s.Reserve1.ToBig()
 
-	if limit := params.SwapLimit; limit != nil {
+	if limit := params.SwapLimitBig; limit != nil {
 		_, _, _ = limit.UpdateLimit(
 			params.TokenAmountOut.Token,
 			params.TokenAmountIn.Token,

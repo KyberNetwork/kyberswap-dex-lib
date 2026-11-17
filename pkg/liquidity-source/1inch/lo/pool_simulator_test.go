@@ -560,7 +560,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					TokenAmountOut: *res.TokenAmountOut,
 					Fee:            *res.Fee,
 					SwapInfo:       res.SwapInfo,
-					SwapLimit:      limit,
+					SwapLimitBig:   limit,
 				})
 			})
 		}
@@ -707,7 +707,7 @@ func TestPoolSimulator_Inventory(t *testing.T) {
 					TokenAmountOut: *res.TokenAmountOut,
 					Fee:            *res.Fee,
 					SwapInfo:       res.SwapInfo,
-					SwapLimit:      limit,
+					SwapLimitBig:   limit,
 				})
 			})
 		}

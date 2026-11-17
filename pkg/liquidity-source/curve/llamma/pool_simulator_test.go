@@ -241,7 +241,7 @@ func TestStatefullCalcAmountOut(t *testing.T) {
 					TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: bignumber.NewBig10(tc.amountIn)},
 					TokenAmountOut: *got.TokenAmountOut,
 					SwapInfo:       got.SwapInfo,
-					SwapLimit:      nil,
+					SwapLimitBig:   nil,
 				})
 			}
 		})

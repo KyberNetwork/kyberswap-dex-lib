@@ -1116,7 +1116,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 					TokenAmountOut: *res.TokenAmountOut,
 					Fee:            *res.Fee,
 					SwapInfo:       res.SwapInfo,
-					SwapLimit:      limit,
+					SwapLimitBig:   limit,
 				})
 
 				clonedRes, err = cloned.CalcAmountOut(calcAmountOutParams)
@@ -1271,7 +1271,7 @@ func TestPool_Inventory(t *testing.T) {
 					TokenAmountOut: *res.TokenAmountOut,
 					Fee:            *res.Fee,
 					SwapInfo:       res.SwapInfo,
-					SwapLimit:      limit,
+					SwapLimitBig:   limit,
 				})
 			})
 		}
@@ -1553,7 +1553,7 @@ func TestPool_CalcAmtOut_MatchesCalcAmountOut(t *testing.T) {
 			}
 			for _, amt := range amounts {
 				for _, withLimit := range []bool{false, true} {
-					var limit pool.SwapLimit
+					var limit pool.SwapLimitBig
 					if withLimit {
 						limit = swaplimit.NewInventory("", p.CalculateLimit())
 					}

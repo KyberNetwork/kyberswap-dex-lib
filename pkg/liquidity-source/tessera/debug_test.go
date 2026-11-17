@@ -235,7 +235,7 @@ func TestTesseraMultipleSwapsVsSingleSwap(t *testing.T) {
 		sim1.UpdateBalance(pool.UpdateBalanceParams{
 			TokenAmountIn:  pool.TokenAmount{Token: p.Tokens[0].Address, Amount: amountPerSwap},
 			TokenAmountOut: *res.TokenAmountOut,
-			SwapLimit:      limit1,
+			SwapLimitBig:   limit1,
 		})
 	}
 

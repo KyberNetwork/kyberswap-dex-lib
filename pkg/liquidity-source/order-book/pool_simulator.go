@@ -164,7 +164,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	amtInAfterDecimals := amtInF / math.Pow10(int(p.tokens[indexIn].Decimals))
 	p.levelsFroms[indexIn] = updateLevelsState(amtInAfterDecimals, p.levelsFroms[indexIn])
 
-	if limit := params.SwapLimit; limit != nil {
+	if limit := params.SwapLimitBig; limit != nil {
 		_, _, err := limit.UpdateLimit(tokenOut, tokenIn, params.TokenAmountOut.Amount, amtIn)
 		if err != nil {
 			log.Err(err).Msg("orderbook.UpdateBalance failed")

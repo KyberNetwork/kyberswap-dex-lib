@@ -197,7 +197,7 @@ func TestWasabiPropMergeSwap(t *testing.T) {
 		sim1.UpdateBalance(pool.UpdateBalanceParams{
 			TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: amountPerSwap},
 			TokenAmountOut: *res.TokenAmountOut,
-			SwapLimit:      limit1,
+			SwapLimitBig:   limit1,
 		})
 	}
 

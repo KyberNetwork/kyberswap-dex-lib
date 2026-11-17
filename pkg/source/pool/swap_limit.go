@@ -6,11 +6,11 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// SwapLimit is the interface implement a separate limit from pool's State.
-// i.e: SwapLimit must be something affect multiple pools once it is change.
-type SwapLimit interface {
-	// Clone returns a clone of SwapLimit. Only guarantees that UpdateLimit of the original does not affect the clone.
-	Clone() SwapLimit
+// SwapLimitBig is the interface implement a separate limit from pool's State.
+// i.e: SwapLimitBig must be something affect multiple pools once it is change.
+type SwapLimitBig interface {
+	// Clone returns a clone of SwapLimitBig. Only guarantees that UpdateLimit of the original does not affect the clone.
+	Clone() SwapLimitBig
 	// GetExchange returns the exchange name
 	GetExchange() string
 	// GetLimit returns a limit for a certain key. Normally each dex will have different limit values
@@ -54,7 +54,7 @@ func MergeSwapLimits(limits map[string]*big.Int, simulator IPoolSimulator) {
 }
 
 // ISwapLimitU is implemented by swap limits that expose uint256 amounts. Callers should type-assert and
-// fall back to SwapLimit (big.Int) when absent.
+// fall back to SwapLimitBig (big.Int) when absent.
 type ISwapLimitU interface {
 	GetLimitU(key string) *uint256.Int
 	CheckLimitU(key string, amount *uint256.Int) error

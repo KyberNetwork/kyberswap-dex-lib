@@ -240,7 +240,7 @@ func TestUpdateBalance(t *testing.T) {
 					TokenAmountOut: *out.TokenAmountOut,
 					Fee:            *out.Fee,
 					SwapInfo:       out.SwapInfo,
-					SwapLimit:      nil,
+					SwapLimitBig:   nil,
 				})
 			})
 			fmt.Println("balances", p.Reserves[0].Dec(), p.Reserves[1].Dec())

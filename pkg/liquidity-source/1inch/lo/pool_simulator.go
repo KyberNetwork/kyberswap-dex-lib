@@ -391,7 +391,7 @@ func addFilledMakingAmount(
 }
 
 func getMakerRemainingBalance(
-	limit pool.SwapLimit,
+	limit pool.SwapLimitBig,
 	filledMakingAmountByMaker map[string]*uint256.Int,
 	maker, makerAsset string,
 ) *uint256.Int {
@@ -471,8 +471,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		order.MakerBalance = filledOrderInfo.MakerBalance
 		order.MakerAllowance = filledOrderInfo.MakerAllowance
 
-		if params.SwapLimit != nil {
-			_, _, _ = params.SwapLimit.UpdateLimit(
+		if params.SwapLimitBig != nil {
+			_, _, _ = params.SwapLimitBig.UpdateLimit(
 				newMakerAndAsset(order.Maker, order.MakerAsset),
 				newMakerAndAsset(order.Maker, order.TakerAsset),
 				filledOrderInfo.FilledMakingAmount.ToBig(),

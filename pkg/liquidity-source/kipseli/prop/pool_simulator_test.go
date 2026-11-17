@@ -95,7 +95,7 @@ func TestPoolSimulator_UpdateBalanceConsumesLadder(t *testing.T) {
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1e18)},
 		TokenAmountOut: *res.TokenAmountOut,
-		SwapLimit:      limit,
+		SwapLimitBig:   limit,
 	})
 
 	// a second 1e18 swap now needs the ladder's second knot (2e18 total consumed)
@@ -122,7 +122,7 @@ func TestPoolSimulator_CloneStateIsolatesReserves(t *testing.T) {
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1e18)},
 		TokenAmountOut: *res.TokenAmountOut,
-		SwapLimit:      limit,
+		SwapLimitBig:   limit,
 	})
 
 	require.NotEqual(t, sim.GetReserves()[0].String(), cloned.GetReserves()[0].String())

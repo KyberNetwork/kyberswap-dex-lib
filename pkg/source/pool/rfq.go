@@ -105,8 +105,8 @@ func (h *RFQWithPoolState) GetAndClonePoolState(ctx context.Context, poolAddrs .
 	for addr, poolSim := range poolState.Pools {
 		poolState.Pools[addr] = h.ClonePool(ctx, poolSim)
 	}
-	for dex, limit := range poolState.SwapLimit {
-		poolState.SwapLimit[dex] = h.CloneSwapLimit(ctx, limit)
+	for dex, limit := range poolState.SwapLimitBig {
+		poolState.SwapLimitBig[dex] = h.CloneSwapLimit(ctx, limit)
 	}
 	return context.WithValue(ctx, h, poolState)
 }
@@ -125,7 +125,7 @@ type IPoolManager interface {
 type ManagerExtraData map[string]any
 
 type FindRouteState struct {
-	Pools     map[string]IPoolSimulator // map PoolAddress-IPoolSimulator implementation
-	SwapLimit map[string]SwapLimit      // map dexType-SwapLimit
-	StateRoot common.Hash               // aevm state root
+	Pools        map[string]IPoolSimulator // map PoolAddress-IPoolSimulator implementation
+	SwapLimitBig map[string]SwapLimitBig   // map dexType-SwapLimitBig
+	StateRoot    common.Hash               // aevm state root
 }

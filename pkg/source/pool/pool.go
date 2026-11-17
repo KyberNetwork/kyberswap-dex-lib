@@ -113,7 +113,7 @@ type UpdateBalanceParams struct {
 	// Inventory is a reference to a per-request inventory balances.
 	// key is tokenAddress, balance is big.Float
 	// Must use reference (not copy)
-	SwapLimit SwapLimit
+	SwapLimitBig SwapLimitBig
 }
 
 type PoolInfo struct {
@@ -138,13 +138,13 @@ func (t *PoolInfo) GetTokenIndex(address string) int {
 type CalcAmountOutParams struct {
 	TokenAmountIn TokenAmount
 	TokenOut      string
-	Limit         SwapLimit
+	Limit         SwapLimitBig
 }
 
 type CalcAmountInParams struct {
 	TokenAmountOut TokenAmount
 	TokenIn        string
-	Limit          SwapLimit
+	Limit          SwapLimitBig
 }
 
 type CalcAmountInResult struct {
@@ -157,7 +157,7 @@ type CalcAmountInResult struct {
 
 // CalcAmountOut wraps pool.CalcAmountOut and catch panic
 func CalcAmountOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string,
-	limit SwapLimit) (res *CalcAmountOutResult, err error) {
+	limit SwapLimitBig) (res *CalcAmountOutResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.Errorf("calcAmountOut panicked: %v", r)

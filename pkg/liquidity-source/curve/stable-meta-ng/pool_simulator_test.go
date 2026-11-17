@@ -540,7 +540,7 @@ func TestUpdateBalance(t *testing.T) {
 				TokenAmountOut: *out.TokenAmountOut,
 				Fee:            *out.Fee,
 				SwapInfo:       out.SwapInfo,
-				SwapLimit:      nil,
+				SwapLimitBig:   nil,
 			})
 		})
 	}

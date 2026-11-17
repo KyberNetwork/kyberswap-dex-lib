@@ -159,7 +159,7 @@ func TestSharedVaultInventory(t *testing.T) {
 	require.NoError(t, err)
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn: pool.TokenAmount{Token: usdt, Amount: decBig(usdtIn(3000))}, TokenAmountOut: *res.TokenAmountOut,
-		SwapInfo: res.SwapInfo, SwapLimit: inv,
+		SwapInfo: res.SwapInfo, SwapLimitBig: inv,
 	})
 	// Another pair of the same vault sees the reduced WBNB inventory.
 	assert.Equal(t, new(big.Int).Sub(decBig("4130696923886726262"), res.TokenAmountOut.Amount).String(),

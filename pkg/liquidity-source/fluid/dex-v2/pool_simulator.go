@@ -390,7 +390,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	p.tokenReserves[tokenInIndex].Add(&p.tokenReserves[tokenInIndex], &si.amountInRawAdjusted)
 	p.tokenReserves[tokenOutIndex].Sub(&p.tokenReserves[tokenOutIndex], &si.amountOutRawAdjusted)
-	p.applyLiquidity(si.liquidityUsage, params.SwapLimit)
+	p.applyLiquidity(si.liquidityUsage, params.SwapLimitBig)
 
 }
 

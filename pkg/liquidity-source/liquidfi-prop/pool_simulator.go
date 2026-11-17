@@ -110,8 +110,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	in, out := swap.IndexIn, 1-swap.IndexIn
 	amountIn, amountOut := swap.AmountIn.ToBig(), swap.AmountOut.ToBig()
-	if params.SwapLimit != nil {
-		if _, _, err := params.SwapLimit.UpdateLimit(
+	if params.SwapLimitBig != nil {
+		if _, _, err := params.SwapLimitBig.UpdateLimit(
 			s.limitKey(s.Info.Tokens[out]), s.limitKey(s.Info.Tokens[in]), amountOut, amountIn); err != nil {
 			return
 		}
