@@ -144,9 +144,9 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 
 	// Without pF (protocol fee off, or an Extra written before pF existed) SwapFee is the fee for
 	// both directions, as before.
-	lpFee := v3PoolSimulator.V3Pool.Fee
-	if extra.ProtocolFee != 0 {
-		lpFee = FeeAmount(extra.LpFee)
+	lpFee, protocolFee := v3PoolSimulator.V3Pool.Fee, uint32(0)
+	if extra.Fees != 0 {
+		lpFee, protocolFee = FeeAmount(extra.Fees>>24), uint32(extra.Fees&0xffffff)
 	}
 
 	p := &PoolSimulator{
@@ -158,7 +158,7 @@ func newPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID, stale
 		tokenWrappers: tokenWrappers,
 		fewReserves:   fewReserves,
 		fewWrapperIdx: fewWrapperIdx,
-		protocolFee:   extra.ProtocolFee,
+		protocolFee:   protocolFee,
 		lpFee:         lpFee,
 	}
 	p.tokens = p.computeTokens()

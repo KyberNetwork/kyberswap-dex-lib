@@ -1,7 +1,9 @@
 package uniswapv4
 
 import (
+	"fmt"
 	"math/big"
+	"sync/atomic"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -154,19 +156,17 @@ func TestFetchRPCResult_ToExtra_ProtocolFee(t *testing.T) {
 	res := FetchRPCResult{Liquidity: big.NewInt(1), Slot0: Slot0Data{SqrtPriceX96: big.NewInt(1), Tick: big.NewInt(0),
 		LpFee: 3000}}
 
-	// protocol fee off: Extra is unchanged from before pF/lpF existed
+	// protocol fee off: Extra is unchanged from before pF existed
 	b, err := json.Marshal(res.ToExtra(nil))
 	require.NoError(t, err)
 	assert.NotContains(t, string(b), `"pF"`)
-	assert.NotContains(t, string(b), `"lpF"`)
 
 	res.Slot0.ProtocolFee = packProtocolFee(0, 1000)
 	b, err = json.Marshal(res.ToExtra(nil))
 	require.NoError(t, err)
 	var extra ExtraU256
 	require.NoError(t, json.Unmarshal(b, &extra))
-	assert.Equal(t, packProtocolFee(0, 1000), extra.ProtocolFee)
-	assert.Equal(t, uint32(3000), extra.LpFee)
+	assert.Equal(t, uint64(3000)<<24|uint64(packProtocolFee(0, 1000)), extra.Fees)
 }
 
 func TestPoolSimulator_ExtraWithoutProtocolFeeKeepsSwapFee(t *testing.T) {
@@ -195,4 +195,27 @@ func TestPoolSimulator_ExtraWithoutProtocolFeeKeepsSwapFee(t *testing.T) {
 	}, valueobject.ChainIDEthereum)
 	require.NoError(t, err)
 	assert.Equal(t, "996002007979012046", quoteExactIn(t, sim, pfToken1, pfToken0))
+}
+
+// testProtocolFee is the packed protocolFee the stubbed slot0 returns.
+var testProtocolFee uint32
+
+// With the protocol fee on, the tracker stores the zeroForOne-combined fee as SwapFee (readers
+// unaware of pF stay exact for that direction) and slot0's lpFee and protocolFee packed in pF.
+func TestPoolTracker_ProtocolFeeStoredPacked(t *testing.T) {
+	block := new(atomic.Uint64)
+	block.Store(1)
+	tr := newStateBlockTracker(t, block)
+	tr.config.StateViewAddress = "0x0000000000000000000000000000000000000001" // StateView path, not extsload
+	t.Cleanup(func() { testProtocolFee = 0 })
+
+	testProtocolFee = packProtocolFee(500, 1000)
+	got := tr.refresh(t, schedulePool(t, plainHookAddr, 0), 1, `{"a":1}`, nil, nil, nil)
+	assert.Equal(t, float64(CalculateSwapFee(500, 3000)), got.SwapFee)
+	assert.Contains(t, got.Extra, fmt.Sprintf(`"pF":%d`, uint64(3000)<<24|uint64(packProtocolFee(500, 1000))))
+
+	testProtocolFee = 0
+	got = tr.refresh(t, got, 2, `{"a":1}`, nil, nil, nil)
+	assert.Equal(t, float64(3000), got.SwapFee)
+	assert.NotContains(t, got.Extra, `"pF"`)
 }

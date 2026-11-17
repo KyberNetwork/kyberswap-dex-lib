@@ -60,11 +60,11 @@ type Extra struct {
 	// Few-wrapped pool token's contract: FewWrappedToken.unwrapTo pays out of that balance alone,
 	// so it caps how much of the token can be unwrapped. Set only for pools holding a Few token.
 	FewReserves []*big.Int `json:"fwR,omitempty"`
-	// ProtocolFee (pF) is slot0.protocolFee as packed on-chain: the zeroForOne fee in the low 12
-	// bits, the oneForZero fee in the next 12. LpFee (lpF) is slot0.lpFee. Both are only set
-	// while the protocol fee is on; otherwise the pool's SwapFee is the LP fee for both directions.
-	ProtocolFee uint32 `json:"pF,omitempty"`
-	LpFee       uint32 `json:"lpF,omitempty"`
+	// Fees (pF) is slot0 bits 184..231 as packed on-chain: lpFee<<24 | protocolFee, where protocolFee
+	// holds the zeroForOne fee in its low 12 bits and the oneForZero fee in the next 12. Set only
+	// while the protocol fee is on. entity.Pool.SwapFee stays the zeroForOne-combined fee, so a
+	// reader unaware of pF still quotes the zeroForOne direction exactly.
+	Fees uint64 `json:"pF,omitempty"`
 }
 
 type ExtraU256 struct {
@@ -72,8 +72,7 @@ type ExtraU256 struct {
 	HookExtra   json.RawMessage `json:"hX,omitempty"`
 	TrackedAt   int64           `json:"lv,omitempty"`
 	FewReserves []*uint256.Int  `json:"fwR,omitempty"`
-	ProtocolFee uint32          `json:"pF,omitempty"`
-	LpFee       uint32          `json:"lpF,omitempty"`
+	Fees        uint64          `json:"pF,omitempty"`
 }
 
 type Slot0Data struct {
@@ -117,7 +116,7 @@ func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
 		FewReserves: r.FewReserves,
 	}
 	if r.Slot0.ProtocolFee != 0 {
-		extra.ProtocolFee, extra.LpFee = r.Slot0.ProtocolFee, r.Slot0.LpFee
+		extra.Fees = uint64(r.Slot0.LpFee)<<24 | uint64(r.Slot0.ProtocolFee)
 	}
 	return extra
 }
