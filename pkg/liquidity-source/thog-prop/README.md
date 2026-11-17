@@ -90,8 +90,10 @@ Two settlement adjustments are outside `CalcAmountOut`:
 
 - **Execution surcharge.** At settlement the pool reduces output when the
   transaction's effective gas price is high relative to the block base fee, or
-  when the transaction has already touched the FastLane AuctionHandler. The
-  router interface carries neither. `State.QuoteExecution` and
+  when the FastLane AuctionHandler
+  (`0xD32EdF6642D917DbBE7B8BF8e5d6F5df6a9FFF58`) is already warm: the
+  transaction called it earlier, or names it in its access list. The router
+  interface carries neither. `State.QuoteExecution` and
   `State.QuoteExactOutput` take them as an `ExecutionContext` and apply the
   contract's rule (`friction` in the code):
 
@@ -101,6 +103,10 @@ Two settlement adjustments are outside `CalcAmountOut`:
   | above 2 × base fee | 8 bp | 1 bp |
   | above 1.5 × base fee | 6 bp | 0.5 bp |
   | otherwise | 0 | 0 |
+
+  Keep the AuctionHandler out of the transaction's access list. The pool
+  touches it to make this check, so an access list generated from a swap, for
+  example by `eth_createAccessList`, names it.
 
 - **Integrator fee.** `swapWithExtraFees` deducts
   `floor(output × extraFeePpm / 1,000,000)` before its minimum-output check.
@@ -117,7 +123,7 @@ transactions on Monad (ranges 270,713–275,413 and 538,985–597,354).
 `blockTimeMs` 300 (block interval used to estimate the quote block),
 `maxSnapshotAgeMs` 15000 (oldest snapshot a routing quote may use),
 `requestTimeoutMs` 2000 (deadline of one refresh attempt), and `disableLens`
-false (read through Multicall3 only).
+false (true reads through Multicall3 only).
 
 ## Tests
 
