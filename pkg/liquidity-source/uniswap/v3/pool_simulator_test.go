@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -247,4 +248,75 @@ func TestMaxTxGuard(t *testing.T) {
 		})
 		assert.ErrorIs(t, err, ErrMaxTxExceeded)
 	})
+}
+
+// TestGasByExchange pins the gas model chosen by the pool's exchange: aero-cl (Aerodrome Slipstream with
+// the dynamic fee hook) has its own constants, every other exchange keeps defaultGas.
+func TestGasByExchange(t *testing.T) {
+	t.Parallel()
+
+	aeroCLGas := Gas{BaseGas: 310000, CrossInitTickGas: 75000, CrossEmptyWordGas: CrossEmptyWordGas}
+	defGas := Gas{BaseGas: 109334, CrossInitTickGas: 21492, CrossEmptyWordGas: CrossEmptyWordGas}
+
+	tests := []struct {
+		name     string
+		exchange string
+		want     Gas
+	}{
+		{"aero-cl", valueobject.ExchangeAeroCL, aeroCLGas},
+		{"plain uniswapv3", valueobject.ExchangeUniSwapV3, defGas},
+		{"empty exchange", "", defGas},
+	}
+
+	// token0 = UNI, token1 = WETH. The amounts cover no initialized tick crossed and several crossed.
+	const token0, token1 = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+	swaps := []struct {
+		tokenIn, tokenOut, amountIn string
+	}{
+		{token1, token0, "100000000000000000"},                 // 0.1 WETH
+		{token0, token1, "10000000000000000000"},               // 10 UNI
+		{token1, token0, "5000000000000000000000000000"},       // 5e9 WETH, crosses many ticks
+		{token0, token1, "1000000000000000000000000000000000"}, // 1e15 UNI, crosses many ticks
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			poolEntity := new(entity.Pool)
+			require.NoError(t, json.Unmarshal([]byte(poolEncoded), poolEntity))
+			poolEntity.Exchange = tc.exchange
+			poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, poolSim.Gas)
+
+			var crossed []int64
+			for _, s := range swaps {
+				amountIn := bignumber.NewBig10(s.amountIn)
+				res, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: s.tokenIn, Amount: amountIn},
+					TokenOut:      s.tokenOut,
+				})
+				require.NoError(t, err)
+
+				// The loop counters come from the swap itself, so the expected gas does not depend on the
+				// constants under test.
+				var in uint256.Int
+				require.False(t, in.SetFromBig(amountIn))
+				sr, err := poolSim.V3Pool.GetOutputAmountV2(s.tokenIn == token0, in, uint256.Int{})
+				require.NoError(t, err)
+				want := tc.want.BaseGas + tc.want.CrossInitTickGas*int64(sr.CrossInitTickLoops) +
+					tc.want.CrossEmptyWordGas*int64(sr.CrossEmptyWordLoops)
+				assert.Equal(t, want, res.Gas, "swap %s", s.amountIn)
+				crossed = append(crossed, int64(sr.CrossInitTickLoops))
+			}
+
+			assert.Zero(t, crossed[0], "the first swap must cross no initialized tick")
+			var maxCrossed int64
+			for _, c := range crossed {
+				maxCrossed = max(maxCrossed, c)
+			}
+			assert.GreaterOrEqual(t, maxCrossed, int64(1), "some swap must cross an initialized tick")
+		})
+	}
 }

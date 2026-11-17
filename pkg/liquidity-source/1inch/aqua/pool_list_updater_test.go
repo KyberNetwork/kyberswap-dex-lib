@@ -742,11 +742,12 @@ func (timeoutErr) Temporary() bool { return true }
 // withState writes a refreshed state into a listed pool, the way the tracker would.
 func withState(t *testing.T, p entity.Pool, raw0, raw1 *uint256.Int) entity.Pool {
 	t.Helper()
-	extra, err := json.Marshal(Extra{RawBalance0: raw0, RawBalance1: raw1, RawBlock: 100, WalletBalance0: e18(1_000_000),
-		WalletBalance1: e18(1_000_000), Allowance0: unlimited, Allowance1: unlimited, WalletBlock: 100})
+	extra, err := json.Marshal(Extra{RawBalance0: raw0, RawBalance1: raw1, WalletBalance0: e18(1_000_000),
+		WalletBalance1: e18(1_000_000), Allowance0: unlimited, Allowance1: unlimited})
 	require.NoError(t, err)
 	p.Extra = string(extra)
 	p.Reserves = entity.PoolReserves{raw0.Dec(), raw1.Dec()}
+	p.BlockNumber = 100
 	return p
 }
 

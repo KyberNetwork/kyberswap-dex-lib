@@ -205,8 +205,8 @@ func (tp *trackedPool) build(ok []bool, block uint64, now int64, confirmations u
 		return tp.pool, ErrRawRead
 	}
 	zero := func() *uint256.Int { return new(uint256.Int) }
-	extra := Extra{RawBlock: block, WalletBlock: block,
-		RawBalance0: zero(), RawBalance1: zero(), WalletBalance0: zero(), WalletBalance1: zero(), Allowance0: zero(), Allowance1: zero()}
+	extra := Extra{RawBalance0: zero(), RawBalance1: zero(), WalletBalance0: zero(), WalletBalance1: zero(),
+		Allowance0: zero(), Allowance1: zero()}
 	switch {
 	case docked:
 		extra.Docked = true

@@ -90,7 +90,9 @@ type SwapStep struct {
 	Params       pool.UpdateBalanceParams
 }
 type Meta struct {
-	Settlement  string `json:"settlement"`
-	Token       string `json:"token"`
-	BlockNumber uint64 `json:"blockNumber"`
+	Settlement string `json:"settlement"`
+	// ApprovalAddress is the settlement: the executor approves it before a sell.
+	ApprovalAddress string `json:"approvalAddress"`
+	Token           string `json:"token"`
+	BlockNumber     uint64 `json:"blockNumber"`
 }

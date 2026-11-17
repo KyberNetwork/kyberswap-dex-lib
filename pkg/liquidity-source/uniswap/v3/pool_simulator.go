@@ -10,6 +10,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -32,6 +33,11 @@ type PoolSimulator struct {
 	// restriction window is active (see forks/odys-fun.Guard)
 	maxTxToken  string
 	maxTxAmount *big.Int
+
+	// stateBlock is Extra.StateBlock. It stays out of the msgpack encoding (a positional array, so a new
+	// encoded field would break snapshots written by another version): a decoded simulator has no
+	// StateBlock and its meta falls back to BlockNumber.
+	stateBlock tickspkg.TicksBasedStateBlock `msgpack:"-"`
 }
 
 // NewPoolSimulator reads entityPool.Type/Exchange straight through, so the same constructor
@@ -129,13 +135,14 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool,
 			BlockNumber: entityPool.BlockNumber,
 		},
 		V3Pool:             v3Pool,
-		Gas:                defaultGas,
+		Gas:                gasForExchange(entityPool.Exchange),
 		tickMin:            tickMin,
 		tickMax:            tickMax,
 		allowEmptyTicks:    cfg.AllowEmptyTicks,
 		buyRestrictedToken: extra.BuyRestrictedToken,
 		maxTxToken:         extra.MaxTxToken,
 		maxTxAmount:        extra.MaxTxAmount,
+		stateBlock:         extra.TicksBasedStateBlock,
 	}
 	if err := GetSqrtRatioAtTick(tickMin, &sim.sqrtPriceLimitMin); err != nil {
 		return nil, err
@@ -344,7 +351,14 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 		SwapFee:     uint32(p.Info.SwapFee.Int64()),
 		PriceLimit:  p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0]),
 		BlockNumber: p.Info.BlockNumber,
+
+		TicksBasedStateBlock: p.StateBlockMeta(),
 	}
+}
+
+// StateBlockMeta is the TicksBasedStateBlock for the meta of this pool and of the pools that embed it.
+func (p *PoolSimulator) StateBlockMeta() tickspkg.TicksBasedStateBlock {
+	return p.stateBlock.ForMeta(p.Info.BlockNumber)
 }
 
 func (p *PoolSimulator) isBuyRestricted(tokenOut string) bool {

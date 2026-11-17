@@ -402,11 +402,9 @@ func TestCalcAmountInStateGuards(t *testing.T) {
 		o    poolOpts
 		want error
 	}{
-		"docked":                {poolOpts{docked: true}, ErrStrategyTerminal},
-		"inactive":              {poolOpts{inactive: true}, ErrStrategyTerminal},
-		"no wallet snapshot":    {poolOpts{rawBlock: 5, walletBlk: 0}, ErrNoWalletSnapshot},
-		"raw older than wallet": {poolOpts{rawBlock: 4, walletBlk: 5}, ErrStateMixedBlock},
-		"raw newer than wallet": {poolOpts{rawBlock: 6, walletBlk: 5}, ErrStateMixedBlock},
+		"docked":          {poolOpts{docked: true}, ErrStrategyTerminal},
+		"inactive":        {poolOpts{inactive: true}, ErrStrategyTerminal},
+		"not tracked yet": {poolOpts{untracked: true}, ErrNoWalletSnapshot},
 	} {
 		s := newSim(t, tc.o)
 		for in := range 2 {
