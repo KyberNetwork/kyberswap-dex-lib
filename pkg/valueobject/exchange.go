@@ -210,6 +210,7 @@ const (
 	ExchangeMeshSwap                    = "meshswap"
 	ExchangeMetronomeSwap               = "metronome-swap"
 	ExchangeMetropolis                  = "metropolis"
+	ExchangeMhocDesk                    = "mhoc-desk"
 	ExchangeMidas                       = "midas"
 	ExchangeMimSwap                     = "mimswap"
 	ExchangeMiroMigrator                = "miro-migrator"
@@ -519,6 +520,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeDaikonProp:         {},
 	ExchangeStelaxisProp:       {},
 	ExchangeEfraProp:           {},
+	ExchangeMhocDesk:           {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {
