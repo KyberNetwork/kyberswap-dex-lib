@@ -19,7 +19,7 @@ func pn(numerator uint64) Price {
 	return p(u(numerator))
 }
 
-func pow10u(t *testing.T, exponent uint8) *uint256.Int {
+func pow10u(t testing.TB, exponent uint8) *uint256.Int {
 	t.Helper()
 	z, err := pow10(exponent)
 	require.NoError(t, err)
@@ -27,7 +27,7 @@ func pow10u(t *testing.T, exponent uint8) *uint256.Int {
 }
 
 // scaled returns value * 10^exponent.
-func scaled(t *testing.T, value uint64, exponent uint8) *uint256.Int {
+func scaled(t testing.TB, value uint64, exponent uint8) *uint256.Int {
 	t.Helper()
 	return new(uint256.Int).Mul(u(value), pow10u(t, exponent))
 }

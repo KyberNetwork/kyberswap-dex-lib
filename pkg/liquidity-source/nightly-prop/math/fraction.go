@@ -1,6 +1,9 @@
 package math
 
-import "github.com/holiman/uint256"
+import (
+	"github.com/KyberNetwork/msgpack/v5"
+	"github.com/holiman/uint256"
+)
 
 // maxRaw is FractionMath.MAX_RAW: type(uint104).max, the raw value of a level's upper edge.
 var maxRaw = new(uint256.Int).SubUint64(new(uint256.Int).Lsh(one, 104), 1)
@@ -76,4 +79,42 @@ func (f Fraction) MoveDown(amount, depth *uint256.Int, rounding Rounding) (Fract
 		return Fraction{}, err
 	}
 	return FractionFromRaw(raw)
+}
+
+// MarshalJSON encodes the raw value as a decimal string, as uint256.Int does.
+func (f Fraction) MarshalJSON() ([]byte, error) {
+	return f.raw.MarshalJSON()
+}
+
+// UnmarshalJSON decodes a raw value with FractionFromRaw's check.
+func (f *Fraction) UnmarshalJSON(input []byte) error {
+	var raw uint256.Int
+	if err := raw.UnmarshalJSON(input); err != nil {
+		return err
+	}
+	return f.set(&raw)
+}
+
+// EncodeMsgpack encodes the raw value as msgpack encodes a uint256.Int. Without it, msgpack skips
+// the unexported raw value, and a decoded fraction is the lower edge.
+func (f Fraction) EncodeMsgpack(enc *msgpack.Encoder) error {
+	return enc.Encode(&f.raw)
+}
+
+// DecodeMsgpack decodes a raw value with FractionFromRaw's check.
+func (f *Fraction) DecodeMsgpack(dec *msgpack.Decoder) error {
+	var raw uint256.Int
+	if err := dec.Decode(&raw); err != nil {
+		return err
+	}
+	return f.set(&raw)
+}
+
+func (f *Fraction) set(raw *uint256.Int) error {
+	decoded, err := FractionFromRaw(raw)
+	if err != nil {
+		return err
+	}
+	*f = decoded
+	return nil
 }

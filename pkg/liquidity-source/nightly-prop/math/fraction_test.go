@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func fraction(t *testing.T, raw *uint256.Int) Fraction {
+func fraction(t testing.TB, raw *uint256.Int) Fraction {
 	t.Helper()
 	f, err := FractionFromRaw(raw)
 	require.NoError(t, err)
