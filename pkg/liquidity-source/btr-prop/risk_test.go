@@ -442,3 +442,15 @@ func TestRefinePairRefusalKeepsOtherPairsToSameOutput(t *testing.T) {
 	require.Len(t, g.refinePts(1, 2, []common.Address{c, hub, b}, 3000, ladder), 2, "C->B still quotable")
 	require.False(t, g.legClosed(2), "B itself is open, so its reserve stays")
 }
+
+// The float root in termAt must equal the integer floor root: the pool's premium steps at every
+// perfect square, so one off at a square edge moves the haircut by a whole premium step.
+func TestTermAtRootIsIntegerFloor(t *testing.T) {
+	l := StaleLeg{Obs: 0, Sigma: 10_000, Grace: 0}
+	for n := uint64(1); n < 200_000; n++ {
+		for _, x := range []uint64{n*n - 1, n * n, n*n + 1} {
+			want := staleZ * l.Sigma * new(uint256.Int).Sqrt(uint256.NewInt(x)).Uint64() / bps
+			require.Equal(t, want, l.termAt(x), "excess %d", x)
+		}
+	}
+}

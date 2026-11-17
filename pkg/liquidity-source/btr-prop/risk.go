@@ -1,6 +1,7 @@
 package btrprop
 
 import (
+	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -118,7 +119,8 @@ func (l StaleLeg) termAt(t uint64) uint64 {
 	if l.Sigma == 0 {
 		return 0
 	}
-	return staleZ * l.Sigma * new(uint256.Int).Sqrt(uint256.NewInt(l.excessAt(t))).Uint64() / bps
+	// excess < 2^52, so the float root is exact (floor of the true root).
+	return staleZ * l.Sigma * uint64(math.Sqrt(float64(l.excessAt(t)))) / bps
 }
 
 // PairCut sizes a pair's haircut at quote time: Legs are the token indices the pool prices the
