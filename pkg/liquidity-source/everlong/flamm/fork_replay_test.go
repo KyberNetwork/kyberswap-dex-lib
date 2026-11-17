@@ -83,6 +83,37 @@ func callKey(from, to common.Address, data []byte) string {
 	return strings.ToLower(from.Hex() + " " + to.Hex() + " " + hexutil.Encode(data))
 }
 
+// nearCall is the fixture's call for a key: its exact entry, else one of the same caller, target, selector and
+// length whose 32-byte words equal the key's or differ by under a billionth. The tracker spaces its probe sizes
+// with math.Exp and math.Log, whose last bit differs between architectures (assembly on amd64, FMA on arm64), so
+// a fixture recorded on one asks sizes a part in 1e16 off on another. Any real change of the spacing is far larger.
+func nearCall(calls map[string]recorded, key string) (recorded, bool) {
+	if r, ok := calls[key]; ok {
+		return r, true
+	}
+	f := strings.Fields(key)
+	if len(f) != 3 || len(f[2]) < 10 {
+		return recorded{}, false
+	}
+	word := func(h string, i int) *big.Int { return new(big.Int).SetBytes(common.FromHex(h[10+64*i : 10+64*(i+1)])) }
+	for k, r := range calls {
+		g := strings.Fields(k)
+		if len(g) != 3 || g[0] != f[0] || g[1] != f[1] || len(g[2]) != len(f[2]) || g[2][:10] != f[2][:10] {
+			continue
+		}
+		near := true
+		for i := 0; near && 10+64*(i+1) <= len(f[2]); i++ {
+			a, b := word(f[2], i), word(g[2], i)
+			d := new(big.Int).Abs(new(big.Int).Sub(a, b))
+			near = d.Mul(d, big.NewInt(1_000_000_000)).Cmp(new(big.Int).Add(a, b)) <= 0
+		}
+		if near {
+			return r, true
+		}
+	}
+	return recorded{}, false
+}
+
 func loadFixture(t *testing.T, path string) *forkFixture {
 	t.Helper()
 	f, err := os.Open(path)
@@ -113,7 +144,8 @@ func replayNode(t *testing.T, fx *forkFixture, block uint64) *node {
 	older := map[string]bool{string(actions): !recordedAt(actions), string(caps): !recordedAt(caps),
 		string(minimum): !recordedAt(minimum)}
 	n := newNode(t, block, func(from, to common.Address, data []byte) (bool, []byte) {
-		r, ok := fx.Calls[callKey(from, to, data)]
+		key := callKey(from, to, data)
+		r, ok := nearCall(fx.Calls, key)
 		if !ok && len(data) >= 4 && older[string(data[:4])] {
 			if bytes.Equal(data[:4], caps) {
 				return true, make([]byte, 32)
@@ -358,8 +390,9 @@ func recordedProbes(t *testing.T, fx *forkFixture, n *node) int {
 			continue
 		}
 		var a sampleAnswer
-		require.NoError(t, samplerABI.UnpackIntoInterface(&a, "sample",
-			common.FromHex(fx.Calls[callKey(c.from, c.to, c.data)].Ret)))
+		r, ok := nearCall(fx.Calls, callKey(c.from, c.to, c.data))
+		require.True(t, ok)
+		require.NoError(t, samplerABI.UnpackIntoInterface(&a, "sample", common.FromHex(r.Ret)))
 		for _, w := range a.Walks {
 			probes += len(w.Probes)
 		}
