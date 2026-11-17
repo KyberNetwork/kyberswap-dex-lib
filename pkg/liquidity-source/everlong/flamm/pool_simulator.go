@@ -26,6 +26,7 @@ type PoolSimulator struct {
 	consumedIn []uint256.Int // by direction: the input of the route's fill there, zero where it has none
 	room       []uint256.Int // by token: what the pool may still pay of it
 	haircutBps uint64
+	filled     bool // a fill was applied on the pool: some consumedIn is set
 }
 
 var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
@@ -144,14 +145,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 // moved: a fill was taken on the pool since the refresh, by another fill of the same route, so in the same
 // transaction: it moved the custody, supply and debts the charge's reads saw and warmed what the next fill touches,
 // so every direction is charged its second-fill charge (gas.go).
-func (s *PoolSimulator) moved() bool {
-	for k := range s.consumedIn {
-		if !s.consumedIn[k].IsZero() {
-			return true
-		}
-	}
-	return false
-}
+func (s *PoolSimulator) moved() bool { return s.filled }
 
 // UpdateBalance marks the direction as filled by the fill CalcAmountOut quoted, and lowers the paid token's room
 // by its output, for every pair paying it.
@@ -163,6 +157,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	d := i*len(s.Info.Tokens) + j
 	// the fill happened whatever its SwapInfo says, so the direction is marked before anything can return; a fill
 	// with no readable amount marks it at one
+	s.filled = true
 	if s.consumedIn[d].IsZero() {
 		s.consumedIn[d].SetOne()
 	}
