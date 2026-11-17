@@ -77,6 +77,33 @@ type FeeAmount = uniswapv3.FeeAmount
 
 const FeeMax = uniswapv3.FeeMax
 
+// OverrideFeeFlag is LPFeeLibrary.OVERRIDE_FEE_FLAG. A BeforeSwapResult.SwapFee carrying it
+// overrides the pool's LP fee even when the fee bits are 0. A SwapFee without the flag
+// overrides only when it is non-zero.
+const OverrideFeeFlag FeeAmount = 0x400000
+
+// lpFeeOverride returns the LP fee a BeforeSwap SwapFee overrides the pool's with, if any.
+func lpFeeOverride(swapFee FeeAmount) (FeeAmount, bool) {
+	if swapFee&OverrideFeeFlag != 0 {
+		return swapFee &^ OverrideFeeFlag, true
+	}
+	return swapFee, swapFee != 0
+}
+
+// CalculateSwapFee is ProtocolFeeLibrary.calculateSwapFee for a single direction's protocol fee:
+// the protocol fee is taken first and the LP fee on the remainder.
+func CalculateSwapFee(protocolFee, lpFee FeeAmount) FeeAmount {
+	return protocolFee + lpFee - protocolFee*lpFee/1_000_000
+}
+
+// directionalProtocolFee is ProtocolFeeLibrary.getZeroForOneFee / getOneForZeroFee.
+func directionalProtocolFee(protocolFee uint32, zeroForOne bool) FeeAmount {
+	if zeroForOne {
+		return FeeAmount(protocolFee & _MASK12)
+	}
+	return FeeAmount(protocolFee >> 12 & _MASK12)
+}
+
 // HookOption represents different hook operation types
 type HookOption int
 
