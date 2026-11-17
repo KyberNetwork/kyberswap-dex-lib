@@ -36,6 +36,7 @@ func NewMulticallStub(t testing.TB,
 	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ID     json.RawMessage   `json:"id"`
+			Method string            `json:"method"`
 			Params []json.RawMessage `json:"params"`
 		}
 		var call struct {
@@ -44,7 +45,18 @@ func NewMulticallStub(t testing.TB,
 			Input *hexutil.Bytes `json:"input"`
 		}
 		var block string
-		if !assert.NoError(t, json.NewDecoder(r.Body).Decode(&req)) || !assert.NotEmpty(t, req.Params) ||
+		if !assert.NoError(t, json.NewDecoder(r.Body).Decode(&req)) {
+			return
+		}
+		if req.Method == "eth_blockNumber" {
+			s.mu.Lock()
+			head := s.block
+			s.mu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID,
+				"result": hexutil.EncodeUint64(head)})
+			return
+		}
+		if !assert.NotEmpty(t, req.Params) ||
 			!assert.NoError(t, json.Unmarshal(req.Params[0], &call)) {
 			return
 		}
@@ -69,7 +81,8 @@ func NewMulticallStub(t testing.TB,
 }
 
 // At makes the stub a chain at block: a read at any other block fails, a multicall reports block
-// as its own, and getCurrentBlockTimestamp returns timestamp. A read at "latest" is one at block.
+// as its own, eth_blockNumber returns it, and getCurrentBlockTimestamp returns timestamp. A read at
+// "latest" is one at block.
 func (s *MulticallStub) At(block, timestamp uint64) *MulticallStub {
 	s.mu.Lock()
 	defer s.mu.Unlock()

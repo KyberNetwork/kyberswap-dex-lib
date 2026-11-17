@@ -99,7 +99,8 @@ func TestStateBlock_BootstrapStoresReadBlock(t *testing.T) {
 	p, err := f.tracker.BootstrapPoolState(t.Context(), stateBlockPool(100, ""), sourcePool.GetNewPoolStateParams{})
 	require.NoError(t, err)
 	assert.Equal(t, uint64(500), tickspkg.TicksBasedStateBlockOf(p.Extra))
-	assert.Equal(t, uint64(100), p.BlockNumber)
+	assert.Equal(t, uint64(500), p.BlockNumber,
+		"dated by the head its state is read at, which its ticks are read again at")
 }
 
 // A refetch of the stored ticks keeps the StateBlock: it reads the ticks, not the scalar state.
