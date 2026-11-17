@@ -82,6 +82,12 @@ func StateFromLens(ctx context.Context, guard *ephemeral.Guard, p entity.Pool, p
 		if newPool, read, err = bootstrap(ctx, nil); err != nil {
 			return err
 		}
+		// A read at the latest block can come from a node behind the pool's logs, as one node of a
+		// load-balanced endpoint can be. Its snapshot misses those logs, so the read fails: the
+		// guard counts a failed attempt and backs the pool off, the pool stays without state, and
+		// a later update reads it again. The error is not Unreadable: the node serves the lens, but
+		// not yet at that block, and a read without the lens at the latest block would miss the
+		// same logs.
 		if read < due {
 			return fmt.Errorf("node at block %d, behind block %d of the pool's logs", read, due)
 		}
