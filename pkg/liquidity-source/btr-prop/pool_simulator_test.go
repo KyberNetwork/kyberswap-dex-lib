@@ -446,3 +446,28 @@ func TestUpdateBalanceContinuesCurveUnderHaircut(t *testing.T) {
 		require.LessOrEqual(t, new(big.Int).Sub(whole, sum).Int64(), int64(1), "rounding only")
 	})
 }
+
+func BenchmarkCalcAmountOut(b *testing.B) {
+	extra, _ := json.Marshal(Extra{
+		Flags:   []uint16{SwapEnabledBit, SwapEnabledBit},
+		Ladders: [][]Ladder{{{}, newLadder(pts(1_000_000, 990_000, 2_000_000, 1_900_000))}, {{}, {}}},
+		Time:    1000,
+		Stale:   []StaleLeg{{Obs: 1000, Grace: 3}, {Obs: 1000, Sigma: 4608, Grace: 3}},
+		Cuts:    [][]PairCut{{{}, {Legs: []uint16{0, 1}, Den: 2*pbps - 3000}}, {{}, {}}},
+	})
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entity.Pool{
+		Address: CreditPoolCore, Exchange: DexType, Type: DexType, Extra: string(extra),
+		Tokens:   []*entity.PoolToken{{Address: usdc, Swappable: true}, {Address: wmon, Swappable: true}},
+		Reserves: entity.PoolReserves{"10000000", "10000000"},
+	}, Opts: pool.FactoryOpts{StaleCheck: true}})
+	require.NoError(b, err)
+	nowUnix = func() uint64 { return 1004 }
+	b.Cleanup(func() { nowUnix = func() uint64 { return uint64(time.Now().Unix()) } })
+	params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: usdc, Amount: big.NewInt(1_500_000)}, TokenOut: wmon}
+	b.ReportAllocs()
+	for b.Loop() {
+		if _, err := sim.CalcAmountOut(params); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
