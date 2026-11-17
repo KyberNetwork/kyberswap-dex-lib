@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nightly-prop/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -45,25 +46,54 @@ func swappableState() rpcPoolStateV1 {
 }
 
 func TestNewExtra(t *testing.T) {
-	extra := newExtra(swappableState())
+	extra, err := newExtra(swappableState())
+	require.NoError(t, err)
 
+	position, err := math.FractionFromRaw(uint256.NewInt(7))
+	require.NoError(t, err)
 	require.Equal(t, Extra{
 		Routed:         true,
 		PriceAvailable: true,
 		BlockTimestamp: 1_794_921_438,
-		BaseDecimals:   18,
-		QuoteDecimals:  6,
-		Price:          Price{MidPrice: 182_107_498_496, BidSpread: 283, AskSpread: 284, TimestampMs: 1_794_921_430_000},
-		MaxPriceAgeMs:  30_000,
-		Position:       Position{LevelID: 0, Fraction: uint256.NewInt(7)},
-		LowestLevelID:  -1,
-		Levels: []Level{
-			{LowerOffset: -100, UpperOffset: 0, BaseAmount: uint256.NewInt(0), QuoteAmount: uint256.NewInt(10)},
-			{LowerOffset: 0, UpperOffset: 100, BidExtraSpread: 1, AskExtraSpread: 2, BaseAmount: uint256.NewInt(3),
-				QuoteAmount: uint256.NewInt(4)},
+		Price:          math.OraclePrice{MidPrice: 182_107_498_496, BidSpread: 283, AskSpread: 284, TimestampMs: 1_794_921_430_000},
+		Pool: math.Pool{
+			BaseDecimals:  18,
+			QuoteDecimals: 6,
+			MaxPriceAgeMs: 30_000,
+			LowestLevelID: -1,
+			Levels: []math.Level{
+				{
+					Config:    math.PriceLevelConfig{LowerOffset: -100, UpperOffset: 0},
+					Liquidity: math.Liquidity{QuoteAmount: *uint256.NewInt(10)},
+				},
+				{
+					Config:    math.PriceLevelConfig{LowerOffset: 0, UpperOffset: 100, BidExtraSpread: 1, AskExtraSpread: 2},
+					Liquidity: math.Liquidity{BaseAmount: *uint256.NewInt(3), QuoteAmount: *uint256.NewInt(4)},
+				},
+			},
+			Position: math.Position{LevelID: 0, Fraction: position},
 		},
 	}, extra)
 	require.Equal(t, entity.PoolReserves{"3", "14"}, extra.reserves())
+}
+
+// TestNewExtra_JSON: Extra round-trips through JSON, which the record stores.
+func TestNewExtra_JSON(t *testing.T) {
+	extra, err := newExtra(swappableState())
+	require.NoError(t, err)
+	encoded, err := json.Marshal(&extra)
+	require.NoError(t, err)
+	var decoded Extra
+	require.NoError(t, json.Unmarshal(encoded, &decoded))
+	require.Equal(t, extra, decoded)
+}
+
+// TestNewExtra_FractionAboveUint104: the contract's position fraction is a uint104.
+func TestNewExtra_FractionAboveUint104(t *testing.T) {
+	state := swappableState()
+	state.PositionFraction = new(big.Int).Lsh(big.NewInt(1), 104)
+	_, err := newExtra(state)
+	require.ErrorIs(t, err, math.ErrOverflow)
 }
 
 // TestExtraReserves_NotSwappable: a pool that the router cannot swap now has zero reserves.
@@ -77,7 +107,8 @@ func TestExtraReserves_NotSwappable(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			state := swappableState()
 			change(&state)
-			extra := newExtra(state)
+			extra, err := newExtra(state)
+			require.NoError(t, err)
 			require.False(t, extra.swappable())
 			require.Equal(t, entity.PoolReserves{"0", "0"}, extra.reserves())
 		})
@@ -121,11 +152,12 @@ func TestLivePoolTracker(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(got.Extra), &extra))
 		require.True(t, extra.Routed, p.Address)
 		require.NotZero(t, got.BlockNumber, p.Address)
-		position := int(extra.Position.LevelID) - int(extra.LowestLevelID)
-		require.True(t, position >= 0 && position < len(extra.Levels),
-			"%s: position %d is outside the levels", p.Address, extra.Position.LevelID)
+		state := extra.Pool
+		position := int(state.Position.LevelID) - int(state.LowestLevelID)
+		require.True(t, position >= 0 && position < len(state.Levels),
+			"%s: position %d is outside the levels", p.Address, state.Position.LevelID)
 		t.Logf("pool=%s block=%d swappable=%v levels=%d position=%d reserves=%v price=%+v",
-			got.Address, got.BlockNumber, extra.swappable(), len(extra.Levels), extra.Position.LevelID,
+			got.Address, got.BlockNumber, extra.swappable(), len(state.Levels), state.Position.LevelID,
 			got.Reserves, extra.Price)
 		if !extra.swappable() {
 			require.Equal(t, entity.PoolReserves{"0", "0"}, got.Reserves, p.Address)
