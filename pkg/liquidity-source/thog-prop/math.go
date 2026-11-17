@@ -125,7 +125,7 @@ func (s *State) prepareWithAgeCheck(i, o int, block uint64, checkAge bool) (c cu
 	}
 	m := arithmetic{}
 	c.balances = s.pairBalances(&m, i, o)
-	c.inputDust, c.outputDust = s.transferDust(&m, i), s.transferDust(&m, o)
+	c.inputDust, c.outputDust = s.transferDust(i), s.transferDust(o)
 	if m.err != nil {
 		return c, m.err
 	}

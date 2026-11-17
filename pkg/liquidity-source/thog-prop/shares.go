@@ -23,6 +23,8 @@ func saturatingSub(a, b uint256.Int) uint256.Int {
 	return a
 }
 
+// physicalUnits is what the pool holds of a token in the unit it transfers:
+// shares for a share-based token, raw token units otherwise.
 func (s *State) physicalUnits(index int) uint256.Int {
 	if s.shareBased(index) {
 		return s.Shares[index].Shares
@@ -30,6 +32,8 @@ func (s *State) physicalUnits(index int) uint256.Int {
 	return s.Balances[index]
 }
 
+// amountForUnits values units as a token amount: floor(shares × multiplier / 1e18).
+// A multiplier of exactly 1e18 converts one to one, so the mulDiv is skipped.
 func (s *State) amountForUnits(m *arithmetic, index int, units uint256.Int) uint256.Int {
 	if s.shareBased(index) && s.Shares[index].Multiplier != powers[18] {
 		return m.md(units, s.Shares[index].Multiplier, powers[18], false)
@@ -37,6 +41,8 @@ func (s *State) amountForUnits(m *arithmetic, index int, units uint256.Int) uint
 	return units
 }
 
+// transferUnits is what one transfer of amount moves: floor(amount × 1e18 / multiplier)
+// shares. Each transfer rounds on its own.
 func (s *State) transferUnits(m *arithmetic, index int, amount uint256.Int) uint256.Int {
 	if s.shareBased(index) && s.Shares[index].Multiplier != powers[18] {
 		return m.md(amount, powers[18], s.Shares[index].Multiplier, false)
@@ -44,19 +50,25 @@ func (s *State) transferUnits(m *arithmetic, index int, amount uint256.Int) uint
 	return amount
 }
 
-func (s *State) transferDust(m *arithmetic, index int) uint256.Int {
-	if s.shareBased(index) {
-		// max(2, ceil(multiplier / 1e18)) is exactly two throughout this range.
-		if s.Shares[index].Multiplier.CmpUint64(2_000_000_000_000_000_000) <= 0 {
-			return u(2)
-		}
-		return max(u(2), m.md(s.Shares[index].Multiplier, u(1), powers[18], true))
+// transferDust is the most a share-based transfer can lose to rounding, as the
+// contract computes it: max(2, ceil(multiplier / 1e18)). The pool leaves this much
+// of the input unvalued and quotes this much less output than it sends, so a
+// transfer that rounds down still delivers the quoted amount.
+func (s *State) transferDust(index int) (dust uint256.Int) {
+	if !s.shareBased(index) {
+		return dust
 	}
-	return uint256.Int{}
+	dust.SubUint64(&s.Shares[index].Multiplier, 1)
+	dust.Div(&dust, &powers[18])
+	dust.AddUint64(&dust, 1)
+	if dust.CmpUint64(2) < 0 {
+		dust.SetUint64(2)
+	}
+	return dust
 }
 
-// A swap reconciles physical holdings at its two endpoints; other tokens use
-// the accounted inventory from the logical page, including issuer shares.
+// A swap is priced on the pool's actual holdings of its two tokens and on the
+// recorded inventory of every other token (shares, for a share-based token).
 func (s *State) pairBalances(m *arithmetic, input, output int) (balances [maxTokens]uint256.Int) {
 	in, out := s.physicalUnits(input), s.physicalUnits(output)
 	if in.Gt(&maxInventory) || out.Gt(&maxInventory) {
