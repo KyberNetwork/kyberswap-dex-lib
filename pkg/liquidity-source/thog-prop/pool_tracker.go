@@ -117,8 +117,8 @@ func classifyRefreshError(err error) string {
 	return "transport"
 }
 
-// Retry the whole read, never an issuer batch at a different block. Each attempt
-// has one deadline, including any capability fallback; at most 4.3 s by default.
+// A failed read is retried whole; a snapshot never combines two reads. Each
+// attempt has one deadline, including a switch of reader; at most 4.3 s by default.
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
 	// The token list from discovery or the previous refresh; the Multicall3 reader
 	// asks the pool about each of them.
@@ -329,7 +329,7 @@ func readSnapshotMulticall(ctx context.Context, client *rpc.Client, proxy common
 	return state, timestamp.Uint64(), listed, nil
 }
 
-// Whole-second scheduling is unchanged. MakerPageUpdated can trigger earlier reads.
+// Refresh again after one second; a MakerPageUpdated event can prompt an earlier read.
 func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 { return p.Timestamp + 1 }
 
 var _ pool.IPoolTrackerWithSchedule = (*PoolTracker)(nil)
