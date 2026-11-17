@@ -34,6 +34,11 @@ type PoolExtra struct {
 	collaterals []*entity.PoolToken
 }
 
+// SwapInfo carries the collateral value a deposit adds to totalTVL.
+type SwapInfo struct {
+	TVLAdded *big.Int
+}
+
 type PoolMeta struct {
 	BlockNumber    uint64 `json:"blockNumber"`
 	RestakeManager string `json:"restakeManager"`

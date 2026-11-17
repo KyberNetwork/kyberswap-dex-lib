@@ -107,13 +107,15 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	var (
 		amountOut *big.Int
+		tvlAdded  *big.Int
 		err       error
 	)
 
 	if param.TokenAmountIn.Token == WETH {
-		amountOut, err = s.depositETH(param.TokenAmountIn.Amount)
+		tvlAdded = param.TokenAmountIn.Amount
+		amountOut, err = s.depositETH(tvlAdded)
 	} else {
-		amountOut, err = s.deposit(param.TokenAmountIn.Token, param.TokenAmountIn.Amount)
+		amountOut, tvlAdded, err = s.deposit(param.TokenAmountIn.Token, param.TokenAmountIn.Amount)
 	}
 
 	if err != nil {
@@ -123,6 +125,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
+		SwapInfo:       SwapInfo{TVLAdded: tvlAdded},
 	}, nil
 }
 
@@ -151,7 +154,20 @@ func (s *PoolSimulator) CanSwapFrom(address string) []string {
 }
 
 func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
+	info, ok := param.SwapInfo.(SwapInfo)
+	if !ok {
+		return
+	}
+
+	s.totalTVL.Add(s.totalTVL, info.TVLAdded)
 	s.totalSupply.Add(s.totalSupply, param.TokenAmountOut.Amount)
+}
+
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.totalTVL = new(big.Int).Set(s.totalTVL)
+	cloned.totalSupply = new(big.Int).Set(s.totalSupply)
+	return &cloned
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
@@ -174,15 +190,16 @@ func (s *PoolSimulator) depositETH(amountIn *big.Int) (*big.Int, error) {
 	return s.calculateMintAmount(s.totalTVL, amountIn, s.totalSupply)
 }
 
-func (s *PoolSimulator) deposit(collateralToken string, amount *big.Int) (*big.Int, error) {
+// deposit returns the ezETH minted and the collateral value added to totalTVL.
+func (s *PoolSimulator) deposit(collateralToken string, amount *big.Int) (*big.Int, *big.Int, error) {
 	tokenIndex, ok := s.collateralTokenIndex[collateralToken]
 	if !ok {
-		return nil, ErrInvalidCollateral
+		return nil, nil, ErrInvalidCollateral
 	}
 
 	collateralTokenValue, err := s.lookupTokenValue(collateralToken, amount)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if s.collateralTokenTvlLimits[collateralToken].Sign() != 0 {
@@ -194,19 +211,24 @@ func (s *PoolSimulator) deposit(collateralToken string, amount *big.Int) (*big.I
 		}
 
 		if currentTokenTVL.Add(&currentTokenTVL, collateralTokenValue).Cmp(s.collateralTokenTvlLimits[collateralToken]) > 0 {
-			return nil, ErrMaxTokenTVLReached
+			return nil, nil, ErrMaxTokenTVLReached
 		}
 	}
 
 	if err := s.checkAbleToDeposit(collateralToken, amount); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return s.calculateMintAmount(
+	amountOut, err := s.calculateMintAmount(
 		s.totalTVL,
 		collateralTokenValue,
 		s.totalSupply,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return amountOut, collateralTokenValue, nil
 }
 
 // calculateMintAmount: renzoOracle.calculateMintAmount
