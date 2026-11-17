@@ -10,11 +10,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-// The registered uniswap-v2 factory is legacy (big.Int). FactoryU must wrap it, and its uint256 quote must equal
+// The registered uniswap-v2 factory is legacy (big.Int). FactoryPoolSim must wrap it, and its uint256 quote must equal
 // the legacy big.Int quote for the same input. A mismatch would mean the adapter changed a route.
 func TestFactoryUMatchesLegacyQuote(t *testing.T) {
 	t.Parallel()
-	u, err := pool.FactoryU(DexType)(pool.FactoryParams{EntityPool: poolEntity})
+	u, err := pool.FactoryPoolSim(DexType)(pool.FactoryParams{EntityPool: poolEntity})
 	require.NoError(t, err)
 
 	tokenIn := poolSim.Info.Tokens[0]

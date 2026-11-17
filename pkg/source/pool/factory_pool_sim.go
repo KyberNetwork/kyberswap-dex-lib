@@ -6,12 +6,12 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// FactoryUFn builds a pool that implements IPoolSim.
-type FactoryUFn func(FactoryParams) (IPoolSim, error)
+// PoolSimFactoryFn builds a pool that implements IPoolSim.
+type PoolSimFactoryFn func(FactoryParams) (IPoolSim, error)
 
-// FactoryU returns the factory for a pool type as an IPoolSim. A registered pool that already implements IPoolSim
+// FactoryPoolSim returns the factory for a pool type as an IPoolSim. A registered pool that already implements IPoolSim
 // is returned as-is. A legacy pool is wrapped by legacyAdapter.
-func FactoryU(poolType string) FactoryUFn {
+func FactoryPoolSim(poolType string) PoolSimFactoryFn {
 	factory := Factory(poolType)
 	if factory == nil {
 		return nil
@@ -38,7 +38,7 @@ type legacyAdapter struct {
 
 func (a legacyAdapter) CalcAmtOut(params CalcAmtOutParams) (*CalcAmtOutResult, error) {
 	res, err := a.IPoolSimulator.CalcAmountOut(CalcAmountOutParams{
-		TokenAmountIn: tokenAmountFromU(&params.TokenAmountIn),
+		TokenAmountIn: tokenAmountFromAmt(&params.TokenAmountIn),
 		TokenOut:      params.TokenOut,
 		Limit:         params.Limit,
 	})
@@ -58,61 +58,61 @@ func (a legacyAdapter) CloneState() IPoolSim {
 
 func (a legacyAdapter) UpdateState(params UpdateStateParams) {
 	a.IPoolSimulator.UpdateBalance(UpdateBalanceParams{
-		TokenAmountIn:  tokenAmountFromU(&params.TokenAmountIn),
-		TokenAmountOut: tokenAmountFromU(&params.TokenAmountOut),
-		Fee:            tokenAmountFromU(&params.Fee),
+		TokenAmountIn:  tokenAmountFromAmt(&params.TokenAmountIn),
+		TokenAmountOut: tokenAmountFromAmt(&params.TokenAmountOut),
+		Fee:            tokenAmountFromAmt(&params.Fee),
 		SwapInfo:       params.SwapInfo,
 		SwapLimitBig:   params.SwapLimitBig,
 	})
 }
 
 func (a legacyAdapter) CalcLimit() map[string]*uint256.Int {
-	return limitsToU(a.IPoolSimulator.CalculateLimit())
+	return limitsToU256(a.IPoolSimulator.CalculateLimit())
 }
 
 func (a legacyAdapter) GetReserves() []uint256.Int {
 	reserves := a.IPoolSimulator.GetReserves()
 	out := make([]uint256.Int, len(reserves))
 	for i, r := range reserves {
-		out[i] = *bigToUOrZero(r)
+		out[i] = *bigToU256OrZero(r)
 	}
 	return out
 }
 
-func tokenAmountFromU(t *TokenAmt) TokenAmount {
+func tokenAmountFromAmt(t *TokenAmt) TokenAmount {
 	return TokenAmount{Token: t.Token, Amount: t.Amount.ToBig(), AmountUsd: t.AmountUsd}
 }
 
-func tokenAmountPtrToU(t *TokenAmount) *TokenAmt {
+func tokenAmountPtrToAmt(t *TokenAmount) *TokenAmt {
 	if t == nil {
 		return nil
 	}
 	out := &TokenAmt{Token: t.Token, AmountUsd: t.AmountUsd}
-	out.Amount = *bigToUOrZero(t.Amount)
+	out.Amount = *bigToU256OrZero(t.Amount)
 	return out
 }
 
 func calcAmtOutResultFromBig(r *CalcAmountOutResult) *CalcAmtOutResult {
 	return &CalcAmtOutResult{
-		TokenAmountOut:         tokenAmountPtrToU(r.TokenAmountOut),
-		Fee:                    tokenAmountPtrToU(r.Fee),
-		RemainingTokenAmountIn: tokenAmountPtrToU(r.RemainingTokenAmountIn),
+		TokenAmountOut:         tokenAmountPtrToAmt(r.TokenAmountOut),
+		Fee:                    tokenAmountPtrToAmt(r.Fee),
+		RemainingTokenAmountIn: tokenAmountPtrToAmt(r.RemainingTokenAmountIn),
 		Gas:                    r.Gas,
 		SwapInfo:               r.SwapInfo,
 	}
 }
 
-func limitsToU(limits map[string]*big.Int) map[string]*uint256.Int {
+func limitsToU256(limits map[string]*big.Int) map[string]*uint256.Int {
 	out := make(map[string]*uint256.Int, len(limits))
 	for k, v := range limits {
-		out[k] = bigToUOrZero(v)
+		out[k] = bigToU256OrZero(v)
 	}
 	return out
 }
 
-// bigToUOrZero converts a non-negative big.Int that fits 256 bits. A nil, negative, or oversized value
+// bigToU256OrZero converts a non-negative big.Int that fits 256 bits. A nil, negative, or oversized value
 // becomes zero for amounts; limits saturate separately in ToU256Balances.
-func bigToUOrZero(b *big.Int) *uint256.Int {
+func bigToU256OrZero(b *big.Int) *uint256.Int {
 	if b == nil || b.Sign() < 0 || b.BitLen() > 256 {
 		return new(uint256.Int)
 	}

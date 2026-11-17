@@ -64,7 +64,7 @@ func TestLegacyAdapterLimitsAndReservesConvert(t *testing.T) {
 
 // A legacy result with a nil or negative amount must not become a real value.
 func TestBigToUOrZeroRejectsNilAndNegative(t *testing.T) {
-	require.True(t, bigToUOrZero(nil).IsZero())
-	require.True(t, bigToUOrZero(big.NewInt(-4)).IsZero())
-	require.Equal(t, uint64(4), bigToUOrZero(big.NewInt(4)).Uint64())
+	require.True(t, bigToU256OrZero(nil).IsZero())
+	require.True(t, bigToU256OrZero(big.NewInt(-4)).IsZero())
+	require.Equal(t, uint64(4), bigToU256OrZero(big.NewInt(4)).Uint64())
 }
