@@ -247,6 +247,8 @@ func withState(p entity.Pool, rpcData *FetchRPCResult, ticks []v3Entities.Tick,
 		GlobalState: rpcData.State,
 		Ticks:       ticks,
 		TickSpacing: int24(rpcData.TickSpacing.Int64()),
+
+		TicksBasedStateBlock: tickspkg.TicksBasedStateBlock{StateBlock: rpcData.BlockNumber},
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -395,7 +397,8 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	if !t.config.SkipFeeCalculating {
 		// at the block asked for, which pins the state read above; res.BlockNumber is the multicall contract's view of
-		// block.number, the L1 block through Multicall3 on Arbitrum
+		// block.number, the L1 block through Multicall3 on Arbitrum. With no block asked for (the tracker's case) these
+		// reads run at latest, so the fee can be one block newer than the state at res.BlockNumber, the StateBlock.
 		err = t.approximateFee(ctx, p.Address, dataStorageOperator.Hex(), &res.State, res.Liquidity, block)
 		if err != nil {
 			return res, err
@@ -801,6 +804,8 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		GlobalState: rpcState.State,
 		Ticks:       entityPoolTicks,
 		TickSpacing: int32(rpcState.TickSpacing.Int64()),
+
+		TicksBasedStateBlock: tickspkg.TicksBasedStateBlock{StateBlock: rpcState.BlockNumber},
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{

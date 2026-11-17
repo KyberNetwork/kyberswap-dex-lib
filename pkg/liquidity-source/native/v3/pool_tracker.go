@@ -286,6 +286,8 @@ func (t *PoolTracker) bootstrapPool(
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
 		Vaults:       rpcData.Vaults,
+
+		TicksBasedStateBlock: tickspkg.TicksBasedStateBlock{StateBlock: rpcData.BlockNumber},
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -711,6 +713,8 @@ func withState(p entity.Pool, rpcState *FetchRPCResult, staticExtra StaticExtra,
 		Tick:         rpcState.Slot0.Tick,
 		Ticks:        ticks,
 		Vaults:       rpcState.Vaults,
+
+		TicksBasedStateBlock: tickspkg.TicksBasedStateBlock{StateBlock: rpcState.BlockNumber},
 	})
 	if err != nil {
 		return p, err

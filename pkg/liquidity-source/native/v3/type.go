@@ -10,6 +10,7 @@ import (
 	"github.com/holiman/uint256"
 
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
@@ -30,6 +31,9 @@ type (
 		Tick         *big.Int `json:"tick"`
 		Ticks        []Tick   `json:"ticks"`
 		Vaults       [2]Vault `json:"vaults"`
+
+		// sB: the block of the tracker's read of the pool state, see tickspkg.TicksBasedStateBlock.
+		tickspkg.TicksBasedStateBlock
 	}
 
 	StaticExtra struct {
@@ -49,6 +53,8 @@ type (
 		Tick         *int         `json:"tick"`
 		Ticks        []TickU256   `json:"ticks"`
 		Vaults       [2]Vault     `json:"vaults"`
+
+		tickspkg.TicksBasedStateBlock
 	}
 
 	FetchRPCResult struct {
@@ -104,6 +110,8 @@ type (
 		PriceLimit      *uint256.Int `json:"priceLimit"`
 		BlockNumber     uint64       `json:"blockNumber"`
 		ApprovalAddress string       `json:"approvalAddress,omitempty"`
+
+		tickspkg.TicksBasedStateBlock
 	}
 
 	Token struct {

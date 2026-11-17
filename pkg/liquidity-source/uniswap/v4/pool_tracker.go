@@ -157,6 +157,9 @@ func (t *PoolTracker) fetchOnchainState(
 		result.Slot0, result.Liquidity = decodeSlot0(slot0Word), decodeLiquidity(liquidityWord)
 	}
 	hookParam.BlockNumber = res.BlockNumber
+	if res.BlockNumber != nil && len(overrides) == 0 { // overridden state exists at no block
+		result.StateBlock = res.BlockNumber.Uint64()
+	}
 
 	protocolFee, lpFee := uint64(result.Slot0.ProtocolFee&_MASK12), uint64(result.Slot0.LpFee)
 	// https://github.com/Uniswap/v4-core/blob/main/src/libraries/ProtocolFeeLibrary.sol#L38
@@ -171,28 +174,39 @@ type poolState struct {
 	extra    string
 	swapFee  float64
 	reserves entity.PoolReserves
+	// stateBlock is the sB of extra: the change test leaves it out, it moves on every read.
+	stateBlock uint64
 }
 
 func snapshotState(p *entity.Pool) poolState {
-	return poolState{extra: p.Extra, swapFee: p.SwapFee, reserves: slices.Clone(p.Reserves)}
+	return poolState{extra: p.Extra, swapFee: p.SwapFee, reserves: slices.Clone(p.Reserves),
+		stateBlock: tickspkg.TicksBasedStateBlockOf(p.Extra)}
 }
 
 // buildExtra marshals the pool's new Extra and reports whether the pool state changed against
-// prev. A HookWithLiveness hook then gets "lv" restamped to now when the state changed or its
-// interval passed; the change test runs before the restamp so lv alone never counts as a change.
+// prev, with the StateBlock of prev in the Extra so that a newer read block alone is no change. The
+// Extra stored carries the block of this read. A HookWithLiveness hook then gets "lv" restamped to now
+// when the state changed or its interval passed; the change test runs before the restamp so lv alone
+// never counts as a change.
 // now is read before the RPC reads start, so lv's age includes the time Track took.
 func buildExtra(hook Hook, res *FetchRPCResult, ticks []Tick, prev poolState, now int64) ([]byte, bool, error) {
-	extraBytes, err := json.Marshal(res.ToExtra(ticks))
+	extra := res.ToExtra(ticks)
+	extra.StateBlock = prev.stateBlock
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return nil, false, err
 	}
 	changed := string(extraBytes) != prev.extra || float64(res.SwapFee) != prev.swapFee ||
 		!slices.Equal(res.Reserves, prev.reserves)
+	restamp := false
 	if lh, ok := hook.(HookWithLiveness); ok {
 		if changed || now-res.TrackedAt >= int64(lh.LivenessInterval()/time.Second) {
 			res.TrackedAt = now
-			extraBytes, err = json.Marshal(res.ToExtra(ticks))
+			restamp = true
 		}
+	}
+	if restamp || res.StateBlock != prev.stateBlock {
+		extraBytes, err = json.Marshal(res.ToExtra(ticks))
 	}
 	return extraBytes, changed, err
 }

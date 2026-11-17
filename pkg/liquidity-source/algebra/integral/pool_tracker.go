@@ -267,6 +267,8 @@ func withState(p entity.Pool, rpcData *FetchRPCResult, ticks []v3Entities.Tick, 
 		SlidingFee:       rpcData.SlidingFee,
 		DynamicFee:       rpcData.DynamicFee,
 		NamiFee:          rpcData.NamiFee,
+
+		TicksBasedStateBlock: stateBlock(rpcData, nil),
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -903,6 +905,8 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		DynamicFee:       rpcState.DynamicFee,
 		SlidingFee:       rpcState.SlidingFee,
 		NamiFee:          rpcState.NamiFee,
+
+		TicksBasedStateBlock: stateBlock(rpcState, overrides),
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -1176,6 +1180,15 @@ func (t *PoolTracker) queryRPCTicksByChunk(
 	}
 
 	return result, nil
+}
+
+// stateBlock is the block R of the multicall that read rpc. It is 0 when R is unknown or the read ran
+// under eth_call overrides, as that state exists at no block.
+func stateBlock(rpc *FetchRPCResult, overrides map[common.Address]gethclient.OverrideAccount) tickspkg.TicksBasedStateBlock {
+	if len(overrides) > 0 || rpc.BlockNumber == nil || !rpc.BlockNumber.IsUint64() {
+		return tickspkg.TicksBasedStateBlock{}
+	}
+	return tickspkg.TicksBasedStateBlock{StateBlock: rpc.BlockNumber.Uint64()}
 }
 
 // namiSnapshotBlock rejects stale RPC snapshots rather than assigning them a newer log block.
