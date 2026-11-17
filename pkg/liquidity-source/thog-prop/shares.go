@@ -67,7 +67,7 @@ func (s *State) pairBalances(m *arithmetic, input, output int) (balances [maxTok
 		if i == input || i == output {
 			balances[i] = s.Balances[i]
 		} else {
-			balances[i] = s.amountForUnits(m, i, s.packed(107, i, 128, 2))
+			balances[i] = s.amountForUnits(m, i, s.field(inventoryField(i)))
 		}
 	}
 	return
@@ -92,11 +92,11 @@ func (s *State) settlement(c *curve, input, output uint256.Int) (swap SwapInfo, 
 }
 
 func (s *State) setAccountedUnits(index int, units uint256.Int) {
-	slot, shift := 107+index/2, uint(index%2*128)
+	f := inventoryField(index)
 	var mask, value uint256.Int
-	mask.Lsh(&maxInventory, shift)
+	mask.Lsh(&maxInventory, uint(f.offset))
 	mask.Not(&mask)
-	value.Lsh(&units, shift)
-	s.Words[slot].And(&s.Words[slot], &mask)
-	s.Words[slot].Or(&s.Words[slot], &value)
+	value.Lsh(&units, uint(f.offset))
+	s.Words[f.slot].And(&s.Words[f.slot], &mask)
+	s.Words[f.slot].Or(&s.Words[f.slot], &value)
 }

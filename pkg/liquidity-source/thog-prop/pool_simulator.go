@@ -171,7 +171,7 @@ func (s *PoolSimulator) quoteContext(nowMs int64) (block uint64, ageMs int64, er
 	}
 	block = s.state.BlockNumber + elapsed + executionAgeLookahead
 	if !s.noStaleCheck {
-		posted, maxAge := s.state.small(2, 36, 32), s.state.small(2, 138, 8)
+		posted, maxAge := s.state.small(controlBlock), s.state.small(controlMaxAge)
 		if ageMs > s.maxSnapshotAgeMs || (posted > 0 && posted <= block && maxAge > 0 && block-posted > maxAge) {
 			err = ErrStaleSnapshot
 		}

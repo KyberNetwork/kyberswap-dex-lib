@@ -28,7 +28,10 @@ func TestSnapshotRejectsIncompleteOrIncompatibleImages(t *testing.T) {
 		func(p *poolData) { p.Tokens[0].VolumeRate = 0 }, func(p *poolData) { p.Categories[0].AnchorTokenIndex = 4 },
 		func(p *poolData) { p.BaseFeePerGas = nil }, func(p *poolData) { p.Balances[0] = nil },
 		func(p *poolData) { p.Tokens[1].Token = p.Tokens[0].Token },
-		func(p *poolData) { p.Words[6].Value.Sub(p.Words[6].Value, new(big.Int).Lsh(big.NewInt(1), 176)) },
+		func(p *poolData) { // an earlier pricing model
+			metadata := p.Words[metadataVersions.slot-firstPageSlot].Value
+			metadata.Sub(metadata, new(big.Int).Lsh(big.NewInt(1), modelVersionShift))
+		},
 	} {
 		p := fixturePage(t, sample)
 		mutate(&p)
@@ -60,7 +63,7 @@ func TestTrackerSchedulesUpdatesWithoutMakerEvents(t *testing.T) {
 	require.Equal(t, int64(1001), tracker.NextUpdateAt(entity.Pool{Timestamp: 1000}))
 	f := fixture(t, "execution-model3.json.gz")
 	s := stateFrom(t, f.Snapshots[0])
-	posted, maxAge := s.small(2, 36, 32), s.small(2, 138, 8)
+	posted, maxAge := s.small(controlBlock), s.small(controlMaxAge)
 	s.BlockNumber = posted + maxAge
 	// The router's explicit one-block inclusion policy crosses the actual
 	// contract cutoff; it does not silently clamp the age or use old quotes.
