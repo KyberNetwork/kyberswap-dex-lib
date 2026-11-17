@@ -112,11 +112,11 @@ type direction struct {
 	rule    settleRule
 	row     hookRow
 	trusted bool
-	// the charge's (gas.go): the cells of the pair's live kinds, their least second-fill charge and their cells after
-	// another pool of the source filled, whether a first borrow of the output may happen while it owes, and whether a
-	// repay of the input is certain where it owes; and the live venue holding a minimum position that lends the input
-	// or the output, where one does (guard.go)
-	cells, after        []Cell
+	// the charge's (gas.go): the cells of the pair's live kinds, and their least second-fill charge, whether a
+	// first borrow of the output may happen while it owes, and whether a repay of the input is certain where it
+	// owes; and the live venue holding a minimum position that lends the input or the output, where one does
+	// (guard.go)
+	cells               []Cell
 	second              int64
 	firstOwing, repayOk bool
 	heldIn, heldOut     *heldRepay
@@ -302,7 +302,7 @@ func (t *PoolTracker) directions(ctx context.Context, factory string, n int, st 
 			}
 			dirs = append(dirs, direction{in: i, out: j, hook: pricer, rule: v.rule, row: v.row,
 				trusted: v.rule == ruleEverlong && n == 2 && rowOk(v.row, liveBand), cells: c.cells,
-				after: c.after, second: c.second, firstOwing: c.firstOwing, repayOk: c.repayOk, heldIn: c.heldIn,
+				second: c.second, firstOwing: c.firstOwing, repayOk: c.repayOk, heldIn: c.heldIn,
 				heldOut: c.heldOut})
 		}
 	}

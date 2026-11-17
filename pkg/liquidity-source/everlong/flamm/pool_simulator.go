@@ -13,17 +13,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // PoolSimulator quotes every pair of one pool from the ladders its tracker probed (curve). The pool's pairs share
 // its custody and its venue book, so the simulator keeps one payout room per token for all of them: a fill paying
 // token j lowers what every pair paying j may still pay, and each direction takes one fill per route: the chain
 // charges a second fill its own fee on the book the first moved, which the ladder cannot say. No inventory spans pools:
-// each pool has its own custody and its own venue accounts. What the pools of the source do share is the cost of
-// touching the same contracts and storage in one transaction, so the route's swap limit, where the router passes
-// one, counts the fills applied on them (limitFilled): a pool's first fill after another pool's is charged its gas
-// measured after another pool (gas.go). The limit never refuses or resizes a fill.
+// each pool has its own custody and its own venue accounts.
 type PoolSimulator struct {
 	pool.Pool
 	curves     []curve       // by direction, i*n + j; empty where the pool does not route i for j
@@ -32,16 +28,7 @@ type PoolSimulator struct {
 	haircutBps uint64
 }
 
-var (
-	_ = pool.RegisterFactory(DexType, NewPoolSimulator)
-	_ = pool.RegisterUseSwapLimit(DexType)
-)
-
-// limitFilled is the swap limit's one key: how many fills the route has applied on pools of this source. Every
-// pool reports it at zero (CalculateLimit), and each fill applied with the limit raises it by one (UpdateBalance).
-// One count serves every pool of the source in the request, so on its chain: what a fill after another pool saves
-// was measured with the other pool on another venue kind, and does not turn on the measured pool's kind.
-const limitFilled = "filled"
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	return newPoolSimulator(params.EntityPool, lo.Ternary[time.Duration](params.Opts.StaleCheck, MaxAge, math.MaxInt64))
@@ -134,7 +121,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ladder.ErrNoQuote
 	}
 	moved := s.moved()
-	gas := c.charge(&out, moved, !moved && filledBefore(params.Limit))
+	gas := c.charge(&out, moved)
 	if out.Gt(&s.room[j]) {
 		return nil, ladder.ErrInsufficientLiquidity
 	}
@@ -166,24 +153,8 @@ func (s *PoolSimulator) moved() bool {
 	return false
 }
 
-// filledBefore: the route's swap limit says a fill was applied on a pool of this source. Where this pool has not
-// moved, that fill was another pool's, earlier in the route, so in the same transaction. No limit, a limit without
-// the key or one at zero says none was.
-func filledBefore(limit pool.SwapLimit) bool {
-	if limit == nil {
-		return false
-	}
-	n := limit.GetLimit(limitFilled)
-	return n != nil && n.Sign() > 0
-}
-
-// CalculateLimit starts the count of the source's fills in a route at zero.
-func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	return map[string]*big.Int{limitFilled: new(big.Int)}
-}
-
 // UpdateBalance marks the direction as filled by the fill CalcAmountOut quoted, and lowers the paid token's room
-// by its output, for every pair paying it, and counts the fill in the route's swap limit, where one is passed.
+// by its output, for every pair paying it.
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	i, j, c := s.direction(params.TokenAmountIn.Token, params.TokenAmountOut.Token)
 	if c == nil {
@@ -213,11 +184,6 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		s.room[j].Sub(&s.room[j], &out)
 	}
 	s.Info.Reserves[j] = s.room[j].ToBig()
-	if params.SwapLimit != nil {
-		// the count rises by one and nothing falls; a limit that lacks the key keeps none, and the charges stay the
-		// cells'
-		_, _, _ = params.SwapLimit.UpdateLimit(limitFilled, limitFilled, bignumber.ZeroBI, bignumber.One)
-	}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {

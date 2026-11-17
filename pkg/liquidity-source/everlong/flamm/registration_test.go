@@ -147,55 +147,27 @@ func TestFactoryAndSerialization(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, first, fresh, "the posted read survives the round trip")
 
-	// a pool's first fill after another pool of the source filled in the route, as the route's swap limit says, is
-	// charged its path's cell after another pool, and still is once its simulator has been round-tripped; with no
-	// limit, or one no fill was applied with, its cell
+	// another pool's fill does not lower this pool's first fill below its path's cell, also with a swap limit
+	// passed: nothing pools the two's gas, so the cell is charged and the charge never undercounts
 	p.Extra = `{"l":[{"i":0,"j":1,"p":[["100","200"],["200","390"],["400","770"]],` +
-		`"cs":[{"p":0,"g":500000},{"p":1,"g":700000}],"sc":300000,"ac":[{"p":0,"g":420000},{"p":1,"g":610000}],` +
-		`"ho":"100"},{"i":1,"j":0,"p":[["200","100"],["400","195"]],"cs":[{"p":0,"g":700000}],"sc":300000}],"h":1}`
+		`"cs":[{"p":0,"g":500000},{"p":1,"g":700000}],"sc":300000,"ho":"100"}],"h":1}`
 	sim, err = factory(pool.FactoryParams{EntityPool: p, Opts: pool.FactoryOpts{StaleCheck: true}})
 	require.NoError(t, err)
 	other := p
 	other.Address = "0x4444444444444444444444444444444444444444"
 	otherSim, err := factory(pool.FactoryParams{EntityPool: other, Opts: pool.FactoryOpts{StaleCheck: true}})
 	require.NoError(t, err)
-	limits := map[string]*big.Int{}
-	pool.MergeSwapLimits(limits, sim)
-	pool.MergeSwapLimits(limits, otherSim)
-	require.Len(t, limits, 1)
-	limit := swaplimit.NewInventory(everlongflamm.DexType, limits)
-	first, err = sim.CalcAmountOut(q)
+	q.Limit = swaplimit.NewInventory(everlongflamm.DexType, map[string]*big.Int{})
+	alone, err := sim.CalcAmountOut(q)
 	require.NoError(t, err)
-	require.Equal(t, int64(700_000), first.Gas, "no limit: the venue's path")
-	q.Limit = limit
-	unmarked, err := sim.CalcAmountOut(q)
-	require.NoError(t, err)
-	require.Equal(t, first, unmarked, "no fill applied with the limit")
+	require.Equal(t, int64(700_000), alone.Gas, "past custody: the venue's path")
 	otherFill, err := otherSim.CalcAmountOut(q)
 	require.NoError(t, err)
 	otherSim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn: q.TokenAmountIn, TokenAmountOut: *otherFill.TokenAmountOut, Fee: *otherFill.Fee,
-		SwapInfo: otherFill.SwapInfo, SwapLimit: limit,
+		SwapInfo: otherFill.SwapInfo, SwapLimit: q.Limit,
 	})
 	after, err := sim.CalcAmountOut(q)
 	require.NoError(t, err)
-	require.Equal(t, int64(610_000), after.Gas, "after another pool: the path's cell after another pool")
-	require.Equal(t, first.TokenAmountOut, after.TokenAmountOut)
-	encoded, err = msgpack.EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{p.Address: sim,
-		other.Address: otherSim})
-	require.NoError(t, err)
-	restored, err = msgpack.DecodePoolSimulatorsMap(encoded)
-	require.NoError(t, err)
-	fresh, err = restored[p.Address].CalcAmountOut(q)
-	require.NoError(t, err)
-	require.Equal(t, after, fresh, "the cells after another pool survive the round trip")
-	back.Limit = q.Limit
-	moved, err := restored[other.Address].CalcAmountOut(back)
-	require.NoError(t, err)
-	require.Equal(t, int64(300_000), moved.Gas, "the pool that filled: its other direction's second fill, round-tripped too")
-	q.Limit = nil
-	fresh, err = restored[p.Address].CalcAmountOut(q)
-	require.NoError(t, err)
-	require.Equal(t, first, fresh, "round-tripped, with no limit: its cell")
-	require.Equal(t, sim.CalculateLimit(), restored[p.Address].CalculateLimit())
+	require.Equal(t, alone, after, "after another pool's fill: the same cell")
 }

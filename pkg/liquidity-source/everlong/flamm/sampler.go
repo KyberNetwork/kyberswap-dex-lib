@@ -485,7 +485,7 @@ func build(d direction, st *poolState, w walk, legs pairWords) (Ladder, bool) {
 		s = cutHeld(s, lo, hi)
 	}
 	l := Ladder{In: uint8(d.in), Out: uint8(d.out), Capped: s.capped, Cells: d.cells, Second: d.second,
-		After: d.after, FirstOwing: d.firstOwing}
+		FirstOwing: d.firstOwing}
 	if h := st.tokens[d.out].Config.Held; h != nil {
 		if held, overflow := uint256.FromBig(h); !overflow {
 			l.Held = held

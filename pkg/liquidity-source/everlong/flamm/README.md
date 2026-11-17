@@ -61,9 +61,7 @@ KyberSwap executor's address (a hook prices a swap for its caller). Settlement i
 - Pairs of one pool share its custody and venue book. One entity per pool carries all its tokens, and the simulator
   keeps one payout room per token for every pair paying it; each direction takes one fill per route, since the chain
   charges a second fill its own fee on the book the first moved, which the ladder cannot say. A fill moves only
-  its own direction and the paid token's room: sibling pairs keep the prices probed until the next refresh. No inventory spans pools: each pool has its own custody and venue accounts. The source
-  registers a swap limit all the same, for the gas alone: it counts the route's fills on these pools (see Gas) and
-  never refuses or resizes a fill.
+  its own direction and the paid token's room: sibling pairs keep the prices probed until the next refresh. No inventory spans pools: each pool has its own custody and venue accounts.
 - A route may cross one pool twice, but a direction takes one fill per route: a second fill in a direction that
   already has one is refused with no quote, because the chain charges it its own fee on the book the first fill moved,
   and the ladder walked at their sum could pass what the chain pays (on a Base fork by up to 1.5 bp on a calm pool and
@@ -118,18 +116,9 @@ next is another fill of the same route, in the same transaction: the first moved
 reads saw and warmed what the next touches, so it is charged the ladder's second fill (`sc`), the least second-fill
 charge of the pair's live venue kinds (the table below).
 
-A pool's first fill costs less where another pool of this source filled earlier in the same transaction: the two share
-contracts and storage (the hook's code, the Router, the price feed and what it reads, the tokens), which that fill
-left warm. A pool's simulator sees its own fills only, so the route's swap limit carries the news. The source
-registers one (`RegisterUseSwapLimit`), every pool reports its one key, `filled`, at zero (`CalculateLimit`), and each
-fill applied with the limit raises it by one (`UpdateBalance`). A fill quoted with a limit whose count is above zero,
-on a pool that has not filled itself, is charged the ladder's cells after another pool (`ac`): the same paths,
-narrowed by the same reads, each at the least gas measured of such fills and never above its cell (the table below).
-The count is one for the whole source in a request: the saving was measured with the other pool on another venue kind
-and does not turn on the measured pool's kind, so the kind of the pool that filled is not asked. The pool that filled
-is charged its second fill as before, and so is a pool's second fill after another pool. With no limit, a limit no
-fill was applied with, or one without the key, every charge is the cells': the quotes of a router that passes none do
-not change. The limit holds no inventory: it never refuses or resizes a fill.
+A pool's first fill after another pool of this source filled earlier in the same transaction is charged its cell
+like any first fill: the two share contracts and storage that fill left warm, so the charge may exceed the gas spent,
+but it never undercounts.
 
 Each refresh reads the pool's venues from its Router (`venueCount`, `venue`, `venueActions`); retired and fenced ones
 are left out. It then reads, in one multicall, each live venue account's `capabilities()` and `minimumDebt(id)`, which
@@ -274,85 +263,6 @@ is charged its key's second fill, the least net gas measured of the second of tw
 | EverlongIdleEntryHook | Base | 1, Aave V3 | buy | 111,000 |
 | EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | 113,000 |
 | EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | 106,000 |
-
-A pool's first fill after another pool of this source filled earlier in the same transaction runs on what that fill
-warmed, the contracts and storage the two share: it is charged its path's cell below where the route's swap limit says
-so, the least net gas measured of such fills (the other pool on another venue kind, the same pair and side), less its
-chain's route saving and 1 %, rounded down to 1,000; and never above the cell's own least fill less the least fall
-measured on the path, from a fill alone to the same fill after another pool, as that least fill may be one not
-measured again after another pool. A path with no such fill measured keeps its cell above.
-
-| Hook | Chain | Venue kind | Side | Output paid by | Input repays | After another pool | Alone |
-|---|---|---|---|---|---|---|---|
-| EverlongHook | Base | 0, Morpho Blue | sale | custody | no | 123,000 | 204,000 |
-| EverlongHook | Base | 0, Morpho Blue | sale | a venue withdrawal or release | no | 242,000 | 329,000 |
-| EverlongHook | Base | 0, Morpho Blue | sale | a first borrow | no | 390,000 | 478,000 |
-| EverlongHook | Base | 0, Morpho Blue | sale | an owing borrow | no | 318,000 | 405,000 |
-| EverlongHook | Base | 0, Morpho Blue | buy | custody | no | 121,000 | 204,000 |
-| EverlongHook | Base | 0, Morpho Blue | buy | custody | yes | 238,000 | 326,000 |
-| EverlongHook | Base | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 333,000 | 420,000 |
-| EverlongHook | Base | 1, Aave V3 | sale | custody | no | 123,000 | 205,000 |
-| EverlongHook | Base | 1, Aave V3 | sale | a venue withdrawal or release | no | 426,000 | 514,000 |
-| EverlongHook | Base | 1, Aave V3 | sale | a first borrow | no | 889,000 | 977,000 |
-| EverlongHook | Base | 1, Aave V3 | sale | an owing borrow | no | 693,000 | 781,000 |
-| EverlongHook | Base | 1, Aave V3 | buy | custody | no | 111,000 | 195,000 |
-| EverlongHook | Base | 1, Aave V3 | buy | custody | yes | 432,000 | 519,000 |
-| EverlongHook | Base | 1, Aave V3 | buy | a venue withdrawal or release | yes | 724,000 | 811,000 |
-| EverlongHook | Ethereum | 0, Morpho Blue | sale | custody | no | 120,000 | 188,000 |
-| EverlongHook | Ethereum | 0, Morpho Blue | sale | a venue withdrawal or release | no | 239,000 | 313,000 |
-| EverlongHook | Ethereum | 0, Morpho Blue | sale | a first borrow | no | 388,000 | 463,000 |
-| EverlongHook | Ethereum | 0, Morpho Blue | sale | an owing borrow | no | 315,000 | 390,000 |
-| EverlongHook | Ethereum | 0, Morpho Blue | buy | custody | no | 117,000 | 188,000 |
-| EverlongHook | Ethereum | 0, Morpho Blue | buy | custody | yes | 236,000 | 311,000 |
-| EverlongHook | Ethereum | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 326,000 | 401,000 |
-| EverlongHook | Ethereum | 1, Aave V3 | sale | custody | no | 120,000 | 188,000 |
-| EverlongHook | Ethereum | 1, Aave V3 | sale | a venue withdrawal or release | no | 404,000 | 478,000 |
-| EverlongHook | Ethereum | 1, Aave V3 | sale | a first borrow | no | 855,000 | 930,000 |
-| EverlongHook | Ethereum | 1, Aave V3 | sale | an owing borrow | no | 654,000 | 729,000 |
-| EverlongHook | Ethereum | 1, Aave V3 | buy | custody | no | 108,000 | 178,000 |
-| EverlongHook | Ethereum | 1, Aave V3 | buy | custody | yes | 417,000 | 492,000 |
-| EverlongHook | Ethereum | 1, Aave V3 | buy | a venue withdrawal or release | yes | 692,000 | 767,000 |
-| EverlongHook | BSC | 1, Aave V3 | sale | custody | no | 123,000 | 186,000 |
-| EverlongHook | BSC | 1, Aave V3 | sale | a venue withdrawal or release | no | 399,000 | 466,000 |
-| EverlongHook | BSC | 1, Aave V3 | sale | a first borrow | no | 809,000 | 876,000 |
-| EverlongHook | BSC | 1, Aave V3 | sale | an owing borrow | no | 610,000 | 676,000 |
-| EverlongHook | BSC | 1, Aave V3 | buy | custody | no | 112,000 | 172,000 |
-| EverlongHook | BSC | 1, Aave V3 | buy | custody | yes | 412,000 | 475,000 |
-| EverlongHook | BSC | 1, Aave V3 | buy | a venue withdrawal or release | yes | 645,000 | 708,000 |
-| EverlongHook | BSC | 2, Venus Core | sale | custody | no | 239,000 | 302,000 |
-| EverlongHook | BSC | 2, Venus Core | sale | a venue withdrawal or release | no | 745,000 | 812,000 |
-| EverlongHook | BSC | 2, Venus Core | sale | a first borrow | no | 1,823,000 | 1,890,000 |
-| EverlongHook | BSC | 2, Venus Core | sale | an owing borrow | no | 1,558,000 | 1,625,000 |
-| EverlongHook | BSC | 2, Venus Core | buy | custody | no | 228,000 | 288,000 |
-| EverlongHook | BSC | 2, Venus Core | buy | custody | yes | 737,000 | 799,000 |
-| EverlongHook | BSC | 2, Venus Core | buy | a venue withdrawal or release | yes | 1,539,000 | 1,602,000 |
-| EverlongHook | BSC | 3, Lista Moolah | sale | custody | no | 137,000 | 200,000 |
-| EverlongHook | BSC | 3, Lista Moolah | sale | a first borrow | no | 686,000 | 779,000 |
-| EverlongHook | BSC | 3, Lista Moolah | sale | an owing borrow | no | 578,000 | 671,000 |
-| EverlongHook | BSC | 3, Lista Moolah | buy | custody | no | 126,000 | 186,000 |
-| EverlongHook | BSC | 3, Lista Moolah | buy | custody | yes | 376,000 | 438,000 |
-| EverlongHook | BSC | 3, Lista Moolah | buy | a venue withdrawal or release | yes | 353,000 | 415,000 |
-| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | custody | no | 154,000 | 237,000 |
-| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | a venue withdrawal or release | no | 268,000 | 358,000 |
-| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | a first borrow | no | 413,000 | 504,000 |
-| EverlongIdleEntryHook | Base | 0, Morpho Blue | sale | an owing borrow | no | 390,000 | 480,000 |
-| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | custody | no | 144,000 | 230,000 |
-| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | custody | yes | 272,000 | 362,000 |
-| EverlongIdleEntryHook | Base | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 358,000 | 448,000 |
-| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | custody | no | 154,000 | 237,000 |
-| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | a venue withdrawal or release | no | 503,000 | 594,000 |
-| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | a first borrow | no | 956,000 | 1,047,000 |
-| EverlongIdleEntryHook | Base | 1, Aave V3 | sale | an owing borrow | no | 872,000 | 962,000 |
-| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | custody | no | 135,000 | 221,000 |
-| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | custody | yes | 464,000 | 555,000 |
-| EverlongIdleEntryHook | Base | 1, Aave V3 | buy | a venue withdrawal or release | yes | 752,000 | 843,000 |
-| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | custody | no | 170,000 | 235,000 |
-| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | a venue withdrawal or release | no | 310,000 | 379,000 |
-| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | a first borrow | no | 738,000 | 807,000 |
-| EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | an owing borrow | no | 683,000 | 753,000 |
-| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | custody | no | 152,000 | 215,000 |
-| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | custody | yes | 411,000 | 476,000 |
-| EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | a venue withdrawal or release | yes | 596,000 | 661,000 |
 
 Gas limits, for the route's transaction: the dearest swap call measured of each key before refunds, over every path,
 state, size and recipient, times 1.10 and rounded up to 5,000. A route result carries one gas figure and no limit, so

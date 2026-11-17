@@ -39,13 +39,9 @@ type Ladder struct {
 	// collateral posted (its posted leg), so a borrow of the output while it owes nothing may take an owing borrow's
 	// cells; Repay, the input owes and its repay is certain. Nil or zero: not read. Second is the charge of a fill
 	// after another fill of the route moved the pool, in the same transaction: the least second-fill charge of the
-	// pair's live kinds. A ladder without it is not quoted either. After are the same paths at the gas of the pool's
-	// first fill after another pool of this source filled earlier in the same transaction, never above their cells,
-	// where the table measured such fills: a fill is charged them where the route's swap limit says another pool
-	// filled (pool_simulator.go). A ladder without them charges its cells then.
+	// pair's live kinds. A ladder without it is not quoted either.
 	Cells      []Cell       `json:"cs"`
 	Second     int64        `json:"sc"`
-	After      []Cell       `json:"ac,omitempty"`
 	Held       *uint256.Int `json:"ho,omitempty"`
 	Freed      *uint256.Int `json:"fr,omitempty"`
 	OwedOut    uint8        `json:"oo,omitempty"`

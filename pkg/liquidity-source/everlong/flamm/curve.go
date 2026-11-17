@@ -2,7 +2,6 @@ package everlongflamm
 
 import (
 	"math"
-	"slices"
 	"sort"
 
 	"github.com/holiman/uint256"
@@ -32,11 +31,9 @@ type curve struct {
 
 	// The charge (gas.go): the ladder's cells, their least, the second-fill charge (never above the least), and the
 	// reads that narrow the cells. heldRead and freedRead: held, the output's custody, and freedTop, what the pool
-	// frees before a draw with its slack, were read. after are the cells' paths at their gas after another pool of
-	// the source filled, each at most its cell, and leastAfter their least: the cells themselves where the ladder
-	// carries none.
-	cells, after                []Cell
-	least, second, leastAfter   int64
+	// frees before a draw with its slack, were read.
+	cells                       []Cell
+	least, second               int64
 	held, freedTop              uint256.Int
 	heldRead, freedRead         bool
 	owedOut, owedIn             uint8
@@ -63,21 +60,6 @@ func newCurve(l Ladder) (curve, error) {
 		c.least = min(c.least, cell.Gas)
 	}
 	c.second = min(l.Second, c.least)
-	c.after, c.leastAfter = c.cells, c.least
-	if len(l.After) != 0 {
-		c.after = slices.Clone(l.Cells)
-		for _, cell := range l.After {
-			if cell.Gas <= 0 {
-				return curve{}, ErrInvalidState
-			}
-			if at := slices.IndexFunc(c.after, func(e Cell) bool { return e.Path == cell.Path }); at >= 0 {
-				c.after[at].Gas = min(c.after[at].Gas, cell.Gas)
-			}
-		}
-		for _, cell := range c.after {
-			c.leastAfter = min(c.leastAfter, cell.Gas)
-		}
-	}
 	if l.Held != nil {
 		c.held.Set(l.Held)
 		c.heldRead = true

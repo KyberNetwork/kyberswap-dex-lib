@@ -105,19 +105,13 @@ func testCells(fam string, sale bool, kinds ...uint8) []Cell {
 // second-fill charge is given one over its cells, which the curve takes down to their least.
 func chargeOf(t *testing.T, l Ladder, q *uint256.Int, moved bool) int64 {
 	t.Helper()
-	return chargeAt(t, l, q, moved, false)
-}
-
-// chargeAt is chargeOf with the route's swap limit saying whether another pool of the source filled before (after).
-func chargeAt(t *testing.T, l Ladder, q *uint256.Int, moved, after bool) int64 {
-	t.Helper()
 	l.Points = []Point{{uint256.NewInt(1), uint256.NewInt(1)}}
 	if l.Second == 0 {
 		l.Second = math.MaxInt64
 	}
 	c, err := newCurve(l)
 	require.NoError(t, err)
-	return c.charge(q, moved, after)
+	return c.charge(q, moved)
 }
 
 // Each edge of the path rules (output custody, first or owing borrow, repay), on a sale's cells (custody 100, freed 200: held, supplied and posted output) and a buy's.
@@ -626,8 +620,7 @@ func owedState(owes bool) uint8 {
 // A charge never over the net gas measured, over the measured rows: every filled row's charge, from this package's own code at what the client read at
 // the row's state, is at or under the row's net gas (its swap call's gas less the refund the call earned); a second
 // fill of the pool in one transaction (moved) is charged its key's second-fill charge, and a pool's first fill
-// measured after another pool's fill in its transaction (after) is charged as with the route's swap limit saying
-// so, its key's cells after another pool. The rows file is the generator's (a TSV: src chain family kind sale q held
+// measured after another pool's fill in its transaction (after) is charged its cells, which may overcharge it. The rows file is the generator's (a TSV: src chain family kind sale q held
 // freed owedOut owedIn postedIn floor moved after net); the test is skipped without it. The worst under-charge of
 // each chain, kind and side is logged, and how many rows are charged more than 100,000 under their net, in all
 // and of the rows after another pool.
@@ -681,14 +674,11 @@ func TestChargeNeverOverAMeasuredFill(t *testing.T) {
 		require.True(t, ok, c[0])
 		l := Ladder{Cells: cells, Second: second, Held: num(c[6]), Freed: num(c[7]), OwedOut: owed(c[8]),
 			OwedIn: owed(c[9]), PostedIn: c[10] != "" && c[10] != "0"}
-		if l.After = afterOf(c[2], valueobject.ChainID(chain), uint8(kind), sale); slices.Equal(l.After, cells) {
-			l.After = nil // as the tracker leaves a ladder with no cell after another pool
-		}
 		// one venue a pool: no first borrow while owing; every measured venue takes repays, and a held-repay
 		// venue only past its floor
 		l.Repay = l.OwedIn == owedSome && (c[11] == "" || heldRepayOk(num(c[9]), num(c[11])))
-		g := chargeAt(t, l, num(c[5]), moved, after)
-		if g > net {
+		g := chargeOf(t, l, num(c[5]), moved)
+		if g > net && !after { // a fill after another pool's is charged its cells: an overcharge is accepted
 			over++
 			t.Errorf("%s: charged %d over the net %d", c[0], g, net)
 		}

@@ -99,22 +99,6 @@ func secondOf(family string, chain valueobject.ChainID, kind uint8, sale bool) (
 	return 0, false
 }
 
-// afterOf are the table's cells of a hook build, a chain, a venue kind and a side for a pool's first fill after
-// another pool of this source filled earlier in the same transaction (gasCellsAfter): every path of cellsOf, at its
-// measured gas after another pool where the table has one, never above its cell, and at its cell where it has none.
-func afterOf(family string, chain valueobject.ChainID, kind uint8, sale bool) []Cell {
-	cs := cellsOf(family, chain, kind, sale)
-	for _, c := range gasCellsAfter {
-		if !strings.EqualFold(c.family, family) || c.chain != chain || c.kind != kind || c.sale != sale {
-			continue
-		}
-		if at := slices.IndexFunc(cs, func(e Cell) bool { return e.Path == c.path }); at >= 0 && c.gas > 0 {
-			cs[at].Gas = min(cs[at].Gas, c.gas)
-		}
-	}
-	return cs
-}
-
 // venueKinds are the kinds the config's chain routes, narrowed to the config's VenueKinds where it names any.
 func (c *Config) venueKinds() []uint8 {
 	all := chainKinds[c.ChainID]
@@ -125,13 +109,12 @@ func (c *Config) venueKinds() []uint8 {
 }
 
 // chargeReads are the venue reads of a direction's charge and guard: the cells of the pair's live kinds, each path
-// at its least, as a fill may draw on any of them, and the least of their second-fill charges; the same paths
-// at their least after another pool of the source filled (afterOf), or none where that is the cells themselves;
+// at its least, as a fill may draw on any of them, and the least of their second-fill charges;
 // whether a borrow of the output may be a first one while it owes, where more than one live venue lends it;
 // whether a repay of the input may be certain where it owes, as every venue lending it is live and takes repays now;
 // and the live venue holding a minimum position that lends the input or the output, where one does.
 type chargeReads struct {
-	cells, after        []Cell
+	cells               []Cell
 	second              int64
 	firstOwing, repayOk bool
 	heldIn, heldOut     *heldRepay
@@ -187,17 +170,12 @@ func (t *PoolTracker) charges(st *poolState, family string, i, j int) (chargeRea
 			r.second = second
 		}
 		r.cells = leastByPath(r.cells, cs)
-		r.after = leastByPath(r.after, afterOf(family, t.cfg.ChainID, uint8(k), i == 0))
 	}
 	if len(r.cells) == 0 {
 		return r, false // no live venue on the pair: no fill of such a pool was measured
 	}
 	byPath := func(a, b Cell) int { return int(a.Path) - int(b.Path) }
 	slices.SortFunc(r.cells, byPath)
-	slices.SortFunc(r.after, byPath)
-	if slices.Equal(r.after, r.cells) {
-		r.after = nil // no fill after another pool measured on any path: the ladder carries the cells alone
-	}
 	r.firstOwing = lendOut > 1
 	if r.heldOut != nil {
 		r.heldOut.sole = lendOut == 1
@@ -292,27 +270,20 @@ func heldRepayOk(owed, floor *uint256.Int) bool {
 // charge is the gas of a fill paying `q` from the direction's start: the least of the cells the reads allow, or
 // the least of all where the reads allow none. Where the pool moved since the refresh, the fill is another of
 // the same route, in the same transaction, on what the fill before it warmed: it is charged the second-fill charge,
-// which the reads, moved by that fill, do not narrow. Where it has not moved and another pool of the source
-// filled earlier in the route (after), the fill is the pool's first on what that pool warmed of the contracts and
-// storage the two share: the same paths are charged their gas measured after another pool (the ladder's After
-// cells), never above their cells. The second-fill charge stands either way: the pool's own fill before it warmed
-// all another pool's would.
-func (c *curve) charge(q *uint256.Int, moved, after bool) int64 {
+// which the reads, moved by that fill, do not narrow. A fill after another pool's is charged its cells: they may
+// overcharge what the other pool warmed, never undercharge.
+func (c *curve) charge(q *uint256.Int, moved bool) int64 {
 	if moved {
 		return c.second
 	}
-	cells, least := c.cells, c.least
-	if after {
-		cells, least = c.after, c.leastAfter
-	}
 	g := int64(math.MaxInt64)
-	for _, cell := range cells {
+	for _, cell := range c.cells {
 		if cell.Gas < g && c.allows(cell.Path, q) {
 			g = cell.Gas
 		}
 	}
 	if g == math.MaxInt64 {
-		return least
+		return c.least
 	}
 	return g
 }
