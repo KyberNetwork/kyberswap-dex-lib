@@ -80,24 +80,22 @@ func (p *Pool) BuyWithExactQuote(quoteIn *uint256.Int, oracle OraclePrice, block
 		return Swap{}, err
 	}
 	quote := Quote{AmountIn: *quoteIn, EndPosition: p.Position}
-	remaining := new(uint256.Int).Set(quoteIn)
+	remaining := *quoteIn
 	var writes []LevelWrite
 	for {
-		step, write, err := p.buyFromLevel(quote.EndPosition, remaining, mid, oracle.AskSpread)
+		step, write, wrote, err := p.buyFromLevel(quote.EndPosition, &remaining, &mid, oracle.AskSpread)
 		if err != nil {
 			return Swap{}, err
 		}
-		if write != nil {
-			writes = append(writes, *write)
+		if wrote {
+			writes = append(writes, write)
 		}
-		if remaining, err = Sub(remaining, &step.QuoteAmount); err != nil {
+		if remaining, err = Sub(&remaining, &step.QuoteAmount); err != nil {
 			return Swap{}, err
 		}
-		amountOut, err := Add(&quote.AmountOut, &step.BaseAmount)
-		if err != nil {
+		if quote.AmountOut, err = Add(&quote.AmountOut, &step.BaseAmount); err != nil {
 			return Swap{}, err
 		}
-		quote.AmountOut = *amountOut
 		quote.EndPosition.Fraction = step.End
 		// An exact drain ends at the upper edge. Only more offered quote moves to the next level up.
 		if remaining.IsZero() {
@@ -127,24 +125,22 @@ func (p *Pool) SellExactBase(baseIn *uint256.Int, oracle OraclePrice, blockTimes
 		return Swap{}, err
 	}
 	quote := Quote{AmountIn: *baseIn, EndPosition: p.Position}
-	remaining := new(uint256.Int).Set(baseIn)
+	remaining := *baseIn
 	var writes []LevelWrite
 	for {
-		step, write, err := p.sellIntoLevel(quote.EndPosition, remaining, mid, oracle.BidSpread)
+		step, write, wrote, err := p.sellIntoLevel(quote.EndPosition, &remaining, &mid, oracle.BidSpread)
 		if err != nil {
 			return Swap{}, err
 		}
-		if write != nil {
-			writes = append(writes, *write)
+		if wrote {
+			writes = append(writes, write)
 		}
-		if remaining, err = Sub(remaining, &step.BaseAmount); err != nil {
+		if remaining, err = Sub(&remaining, &step.BaseAmount); err != nil {
 			return Swap{}, err
 		}
-		amountOut, err := Add(&quote.AmountOut, &step.QuoteAmount)
-		if err != nil {
+		if quote.AmountOut, err = Add(&quote.AmountOut, &step.QuoteAmount); err != nil {
 			return Swap{}, err
 		}
-		quote.AmountOut = *amountOut
 		quote.EndPosition.Fraction = step.End
 		// An exact refill ends at the lower edge. Only more offered base moves to the next level down.
 		if remaining.IsZero() {
@@ -174,64 +170,60 @@ func (p *Pool) walkPrice(oracle OraclePrice, blockTimestamp uint64) (Price, erro
 
 // buyFromLevel is NightlyPool._buyWithExactQuoteFromLevel and _recordBuy: it prices base leaving
 // one level and checks that the level can record the incoming quote. A level without base returns
-// an empty step without pricing it. The quote paid stays in the level that sold the base.
-func (p *Pool) buyFromLevel(position Position, offeredQuote *uint256.Int, mid Price,
-	oracleAskSpread Spread) (Step, *LevelWrite, error) {
+// an empty step without pricing it and without a write. The quote paid stays in the level that
+// sold the base.
+func (p *Pool) buyFromLevel(position Position, offeredQuote *uint256.Int, mid *Price,
+	oracleAskSpread Spread) (step Step, write LevelWrite, wrote bool, err error) {
 	level, err := p.level(position.LevelID)
 	if err != nil {
-		return Step{}, nil, err
+		return step, write, false, err
 	}
-	liquidity := level.Liquidity
+	liquidity := &level.Liquidity
 	if liquidity.BaseAmount.IsZero() {
-		return Step{End: position.Fraction}, nil, nil
+		return Step{End: position.Fraction}, write, false, nil
 	}
-	ask, err := AskRange(level.Config, mid, oracleAskSpread)
+	ask, err := AskRange(level.Config, *mid, oracleAskSpread)
 	if err != nil {
-		return Step{}, nil, err
+		return step, write, false, err
 	}
-	step, err := BuyWithExactQuote(&liquidity.BaseAmount, position.Fraction, offeredQuote, ask)
-	if err != nil {
-		return Step{}, nil, err
+	if step, err = BuyWithExactQuote(&liquidity.BaseAmount, position.Fraction, offeredQuote, ask); err != nil {
+		return step, write, false, err
 	}
-	quoteAmount, overflow := new(uint256.Int).AddOverflow(&liquidity.QuoteAmount, &step.QuoteAmount)
-	if overflow {
-		return Step{}, nil, fmt.Errorf("%w: level %d", ErrLiquidityOverflow, position.LevelID)
+	write.LevelID = position.LevelID
+	if _, overflow := write.Liquidity.QuoteAmount.AddOverflow(&liquidity.QuoteAmount, &step.QuoteAmount); overflow {
+		return step, write, false, fmt.Errorf("%w: level %d", ErrLiquidityOverflow, position.LevelID)
 	}
-	write := &LevelWrite{LevelID: position.LevelID}
 	write.Liquidity.BaseAmount.Sub(&liquidity.BaseAmount, &step.BaseAmount)
-	write.Liquidity.QuoteAmount = *quoteAmount
-	return step, write, nil
+	return step, write, true, nil
 }
 
 // sellIntoLevel is NightlyPool._sellExactBaseIntoLevel and _recordSell: it prices base entering
 // one level and checks that the level can record that base. A level without quote returns an
-// empty step without pricing it. The base sold stays in the level that paid the quote.
-func (p *Pool) sellIntoLevel(position Position, offeredBase *uint256.Int, mid Price,
-	oracleBidSpread Spread) (Step, *LevelWrite, error) {
+// empty step without pricing it and without a write. The base sold stays in the level that paid
+// the quote.
+func (p *Pool) sellIntoLevel(position Position, offeredBase *uint256.Int, mid *Price,
+	oracleBidSpread Spread) (step Step, write LevelWrite, wrote bool, err error) {
 	level, err := p.level(position.LevelID)
 	if err != nil {
-		return Step{}, nil, err
+		return step, write, false, err
 	}
-	liquidity := level.Liquidity
+	liquidity := &level.Liquidity
 	if liquidity.QuoteAmount.IsZero() {
-		return Step{End: position.Fraction}, nil, nil
+		return Step{End: position.Fraction}, write, false, nil
 	}
-	bid, err := BidRange(level.Config, mid, oracleBidSpread)
+	bid, err := BidRange(level.Config, *mid, oracleBidSpread)
 	if err != nil {
-		return Step{}, nil, err
+		return step, write, false, err
 	}
-	step, err := SellExactBase(&liquidity.QuoteAmount, position.Fraction, offeredBase, bid)
-	if err != nil {
-		return Step{}, nil, err
+	if step, err = SellExactBase(&liquidity.QuoteAmount, position.Fraction, offeredBase, bid); err != nil {
+		return step, write, false, err
 	}
-	baseAmount, overflow := new(uint256.Int).AddOverflow(&liquidity.BaseAmount, &step.BaseAmount)
-	if overflow {
-		return Step{}, nil, fmt.Errorf("%w: level %d", ErrLiquidityOverflow, position.LevelID)
+	write.LevelID = position.LevelID
+	if _, overflow := write.Liquidity.BaseAmount.AddOverflow(&liquidity.BaseAmount, &step.BaseAmount); overflow {
+		return step, write, false, fmt.Errorf("%w: level %d", ErrLiquidityOverflow, position.LevelID)
 	}
-	write := &LevelWrite{LevelID: position.LevelID}
-	write.Liquidity.BaseAmount = *baseAmount
 	write.Liquidity.QuoteAmount.Sub(&liquidity.QuoteAmount, &step.QuoteAmount)
-	return step, write, nil
+	return step, write, true, nil
 }
 
 // Apply writes a swap's level balances and its end position into the pool, as the swap's storage

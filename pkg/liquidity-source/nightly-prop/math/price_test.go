@@ -23,7 +23,7 @@ func pow10u(t testing.TB, exponent uint8) *uint256.Int {
 	t.Helper()
 	z, err := pow10(exponent)
 	require.NoError(t, err)
-	return z
+	return &z
 }
 
 // scaled returns value * 10^exponent.
@@ -131,7 +131,7 @@ func TestPriceRange_PriceAtWeightedEndpoints(t *testing.T) {
 		up, err := priceRange.PriceAt(fraction(t, raw), Ceil)
 		wantUp, ceilErr := CeilDiv(weighted, maxRaw)
 		require.NoError(t, ceilErr)
-		requireNumerator(t, wantUp, up, err)
+		requireNumerator(t, &wantUp, up, err)
 		require.Equal(t, denominator, &down.Denominator)
 		require.Equal(t, denominator, &up.Denominator)
 	}
@@ -174,13 +174,13 @@ func TestPrice_BaseFor(t *testing.T) {
 	// 10 quote at price 3 is 3.33... base.
 	base, err := pn(3).BaseFor(u(10), Ceil)
 	require.NoError(t, err)
-	require.Equal(t, u(4), base)
+	require.Equal(t, u(4), &base)
 	base, err = pn(3).BaseFor(u(10), Floor)
 	require.NoError(t, err)
-	require.Equal(t, u(3), base)
+	require.Equal(t, u(3), &base)
 	base, err = pn(1).BaseFor(maxUint256, Ceil)
 	require.NoError(t, err)
-	require.Equal(t, maxUint256, base)
+	require.Equal(t, maxUint256, &base)
 	// At price 1 / 2, the maximum quote is worth twice the maximum base.
 	_, err = Price{Numerator: *u(1), Denominator: *u(2)}.BaseFor(maxUint256, Ceil)
 	require.ErrorIs(t, err, ErrOverflow)
@@ -206,10 +206,10 @@ func TestPrice_RepriceQuote(t *testing.T) {
 	// 10 quote at price 3 buys 3.33... base, which is worth 6.66... quote at price 2.
 	quote, err := pn(3).RepriceQuote(u(10), pn(2), Ceil)
 	require.NoError(t, err)
-	require.Equal(t, u(7), quote)
+	require.Equal(t, u(7), &quote)
 	quote, err = pn(3).RepriceQuote(u(10), pn(2), Floor)
 	require.NoError(t, err)
-	require.Equal(t, u(6), quote)
+	require.Equal(t, u(6), &quote)
 	_, err = pn(1).RepriceQuote(u(1), Price{Numerator: *u(1), Denominator: *u(2)}, Floor)
 	require.ErrorIs(t, err, ErrDenominatorMismatch)
 }

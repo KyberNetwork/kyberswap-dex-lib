@@ -192,7 +192,7 @@ func TestPool_BuyTokenDecimalCombinations(t *testing.T) {
 			// At least the exact-base-out cost of 5 base tokens.
 			quoteIn, err := CeilDiv(scaled(t, 20_005, quoteDecimals), u(2))
 			require.NoError(t, err)
-			q, err := f.buy(quoteIn)
+			q, err := f.buy(&quoteIn)
 			require.NoError(t, err, "decimals %d/%d", baseDecimals, quoteDecimals)
 			require.False(t, q.AmountOut.Lt(scaled(t, 5, baseDecimals)), "decimals %d/%d", baseDecimals, quoteDecimals)
 			require.Equal(t, int16(0), q.EndPosition.LevelID, "decimals %d/%d", baseDecimals, quoteDecimals)

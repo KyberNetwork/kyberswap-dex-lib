@@ -97,12 +97,12 @@ func BuyWithExactQuote(availableBase *uint256.Int, start Fraction, offeredQuote 
 	if err != nil {
 		return Step{}, err
 	}
-	maxQuoteIn, err := CeilDiv(quoteAtPriceSum, two)
+	maxQuoteIn, err := CeilDiv(&quoteAtPriceSum, two)
 	if err != nil {
 		return Step{}, err
 	}
-	if !offeredQuote.Lt(maxQuoteIn) {
-		return Step{BaseAmount: *availableBase, QuoteAmount: *maxQuoteIn, End: Upper}, nil
+	if !offeredQuote.Lt(&maxQuoteIn) {
+		return Step{BaseAmount: *availableBase, QuoteAmount: maxQuoteIn, End: Upper}, nil
 	}
 
 	quoteAtStartPrice, err := startPrice.QuoteFor(availableBase, Ceil)
@@ -121,33 +121,33 @@ func BuyWithExactQuote(availableBase *uint256.Int, start Fraction, offeredQuote 
 	if err != nil {
 		return Step{}, err
 	}
-	startSquare, err := Mul(quoteAtStartPrice, quoteAtStartPrice)
+	startSquare, err := Mul(&quoteAtStartPrice, &quoteAtStartPrice)
 	if err != nil {
 		return Step{}, err
 	}
-	growth, err := Mul(twoOfferedQuote, extraQuoteAtUpperPrice)
+	growth, err := Mul(&twoOfferedQuote, &extraQuoteAtUpperPrice)
 	if err != nil {
 		return Step{}, err
 	}
-	endSquare, err := Add(startSquare, growth)
+	endSquare, err := Add(&startSquare, &growth)
 	if err != nil {
 		return Step{}, err
 	}
-	quoteAtEndPrice := Sqrt(endSquare, Ceil)
+	quoteAtEndPrice := Sqrt(&endSquare, Ceil)
 	// offeredQuote / mean(start price, end price), with both prices multiplied by availableBase.
-	priceValueSum, err := Add(quoteAtStartPrice, quoteAtEndPrice)
+	priceValueSum, err := Add(&quoteAtStartPrice, &quoteAtEndPrice)
 	if err != nil {
 		return Step{}, err
 	}
-	baseOut, err := MulDiv(twoOfferedQuote, availableBase, priceValueSum, Floor)
+	baseOut, err := MulDiv(&twoOfferedQuote, availableBase, &priceValueSum, Floor)
 	if err != nil {
 		return Step{}, err
 	}
-	end, err := start.MoveUp(baseOut, availableBase, Floor)
+	end, err := start.MoveUp(&baseOut, availableBase, Floor)
 	if err != nil {
 		return Step{}, err
 	}
-	return Step{BaseAmount: *baseOut, QuoteAmount: *offeredQuote, End: end}, nil
+	return Step{BaseAmount: baseOut, QuoteAmount: *offeredQuote, End: end}, nil
 }
 
 // SellExactBase is NightlyPoolMath.sellExactBase: it buys up to offeredBase from the taker with
@@ -174,10 +174,10 @@ func SellExactBase(availableQuote *uint256.Int, start Fraction, offeredBase *uin
 	if err != nil {
 		return Step{}, err
 	}
-	if !offeredBase.Lt(maxBaseIn) {
-		return Step{BaseAmount: *maxBaseIn, QuoteAmount: *availableQuote, End: Lower}, nil
+	if !offeredBase.Lt(&maxBaseIn) {
+		return Step{BaseAmount: maxBaseIn, QuoteAmount: *availableQuote, End: Lower}, nil
 	}
-	end, err := sellEnd(start, offeredBase, availableQuote, refillBasePrice)
+	end, err := sellEnd(&start, offeredBase, availableQuote, &refillBasePrice)
 	if err != nil {
 		return Step{}, err
 	}
@@ -193,7 +193,7 @@ func SellExactBase(availableQuote *uint256.Int, start Fraction, offeredBase *uin
 	if err != nil {
 		return Step{}, err
 	}
-	return Step{BaseAmount: *offeredBase, QuoteAmount: *quoteOut, End: end}, nil
+	return Step{BaseAmount: *offeredBase, QuoteAmount: quoteOut, End: end}, nil
 }
 
 // sellEnd is NightlyPoolMath._sellEnd: the position after a sale of offeredBase into a level whose
@@ -202,24 +202,25 @@ func SellExactBase(availableQuote *uint256.Int, start Fraction, offeredBase *uin
 // token units. Two mulDiv steps keep each intermediate value within uint256: the price factor
 // comes first when it is at least one, and last when it is below one. Both round up, so the
 // fraction moves at least the exact distance. The caller supplies offeredBase < maxBaseIn.
-func sellEnd(start Fraction, offeredBase, availableQuote *uint256.Int, refillBasePrice Price) (Fraction, error) {
+func sellEnd(start *Fraction, offeredBase, availableQuote *uint256.Int, refillBasePrice *Price) (Fraction, error) {
 	raw := &start.raw
-	var moved *uint256.Int
+	var first, moved uint256.Int
 	var err error
 	if !refillBasePrice.Numerator.Lt(&refillBasePrice.Denominator) {
-		var rawValue *uint256.Int
-		if rawValue, err = MulDiv(raw, &refillBasePrice.Numerator, &refillBasePrice.Denominator, Ceil); err == nil {
-			moved, err = MulDiv(rawValue, offeredBase, availableQuote, Ceil)
+		if first, err = MulDiv(raw, &refillBasePrice.Numerator, &refillBasePrice.Denominator, Ceil); err == nil {
+			moved, err = MulDiv(&first, offeredBase, availableQuote, Ceil)
 		}
 	} else {
-		var rawShare *uint256.Int
-		if rawShare, err = MulDiv(raw, offeredBase, availableQuote, Ceil); err == nil {
-			moved, err = MulDiv(rawShare, &refillBasePrice.Numerator, &refillBasePrice.Denominator, Ceil)
+		if first, err = MulDiv(raw, offeredBase, availableQuote, Ceil); err == nil {
+			moved, err = MulDiv(&first, &refillBasePrice.Numerator, &refillBasePrice.Denominator, Ceil)
 		}
 	}
 	if err != nil {
 		return Fraction{}, err
 	}
 	// Rounding up twice can pass the lower edge only when the exact move is within a few units of it.
-	return FractionFromRaw(new(uint256.Int).Sub(raw, Min(moved, raw)))
+	capped := Min(&moved, raw)
+	var rest uint256.Int
+	rest.Sub(raw, &capped)
+	return FractionFromRaw(&rest)
 }

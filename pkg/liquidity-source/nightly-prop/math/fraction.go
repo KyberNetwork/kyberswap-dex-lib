@@ -54,15 +54,15 @@ func (f Fraction) MoveUp(amount, depth *uint256.Int, rounding Rounding) (Fractio
 	if err != nil {
 		return Fraction{}, err
 	}
-	moved, err := MulDiv(distance, amount, depth, rounding)
+	moved, err := MulDiv(&distance, amount, depth, rounding)
 	if err != nil {
 		return Fraction{}, err
 	}
-	raw, err := Add(&f.raw, moved)
+	raw, err := Add(&f.raw, &moved)
 	if err != nil {
 		return Fraction{}, err
 	}
-	return FractionFromRaw(raw)
+	return FractionFromRaw(&raw)
 }
 
 // MoveDown is FractionMath.moveDown: it moves toward the lower edge by amount / depth of the
@@ -74,11 +74,11 @@ func (f Fraction) MoveDown(amount, depth *uint256.Int, rounding Rounding) (Fract
 	if err != nil {
 		return Fraction{}, err
 	}
-	raw, err := Sub(&f.raw, moved)
+	raw, err := Sub(&f.raw, &moved)
 	if err != nil {
 		return Fraction{}, err
 	}
-	return FractionFromRaw(raw)
+	return FractionFromRaw(&raw)
 }
 
 // MarshalJSON encodes the raw value as a decimal string, as uint256.Int does.

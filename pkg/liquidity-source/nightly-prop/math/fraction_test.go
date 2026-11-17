@@ -81,7 +81,8 @@ func randomMove(t *testing.T, r *rand.Rand) (Fraction, *uint256.Int, *uint256.In
 	case 1:
 		amount = new(uint256.Int).Set(depth)
 	default:
-		amount = Min(randomBits(r, depth.BitLen()), depth)
+		capped := Min(randomBits(r, depth.BitLen()), depth)
+		amount = &capped
 	}
 	return f, depth, amount
 }

@@ -51,39 +51,39 @@ func requireFits(t *testing.T, want *big.Int, got *uint256.Int, err error, msg s
 func TestAddSubMul(t *testing.T) {
 	sum, err := Add(u(2), u(3))
 	require.NoError(t, err)
-	require.Equal(t, u(5), sum)
+	require.Equal(t, u(5), &sum)
 	_, err = Add(maxUint256, one)
 	require.ErrorIs(t, err, ErrOverflow)
 
 	difference, err := Sub(u(3), u(2))
 	require.NoError(t, err)
-	require.Equal(t, one, difference)
+	require.Equal(t, one, &difference)
 	_, err = Sub(u(2), u(3))
 	require.ErrorIs(t, err, ErrOverflow)
 
 	product, err := Mul(u(6), u(7))
 	require.NoError(t, err)
-	require.Equal(t, u(42), product)
+	require.Equal(t, u(42), &product)
 	_, err = Mul(two128, two128)
 	require.ErrorIs(t, err, ErrOverflow)
 }
 
 func TestMin(t *testing.T) {
-	require.Equal(t, u(2), Min(u(2), u(3)))
-	require.Equal(t, u(2), Min(u(3), u(2)))
+	require.Equal(t, *u(2), Min(u(2), u(3)))
+	require.Equal(t, *u(2), Min(u(3), u(2)))
 }
 
 func TestMulDiv(t *testing.T) {
 	// (2^256 - 1)^2 / (2^256 - 1) needs the full 512-bit product.
 	got, err := MulDiv(maxUint256, maxUint256, maxUint256, Floor)
 	require.NoError(t, err)
-	require.Equal(t, maxUint256, got)
+	require.Equal(t, maxUint256, &got)
 
 	got, err = MulDiv(maxUint256, u(3), u(4), Floor)
 	require.NoError(t, err)
 	want := new(uint256.Int).Div(maxUint256, u(4))
 	want.Mul(want, u(3)).AddUint64(want, 2)
-	require.Equal(t, want, got)
+	require.Equal(t, want, &got)
 
 	for _, c := range []struct {
 		x, y, denominator uint64
@@ -97,7 +97,7 @@ func TestMulDiv(t *testing.T) {
 	} {
 		got, err := MulDiv(u(c.x), u(c.y), u(c.denominator), c.rounding)
 		require.NoError(t, err)
-		require.Equal(t, u(c.want), got, "%d * %d / %d", c.x, c.y, c.denominator)
+		require.Equal(t, u(c.want), &got, "%d * %d / %d", c.x, c.y, c.denominator)
 	}
 }
 
@@ -122,7 +122,7 @@ func TestMulDiv_Overflow(t *testing.T) {
 	denominator := new(uint256.Int).AddUint64(two128, 1)
 	got, err := MulDiv(x, y, denominator, Floor)
 	require.NoError(t, err)
-	require.Equal(t, maxUint256, got)
+	require.Equal(t, maxUint256, &got)
 	_, err = MulDiv(x, y, denominator, Ceil)
 	require.ErrorIs(t, err, ErrOverflow)
 }
@@ -143,11 +143,11 @@ func TestMulDiv_MatchesBigInt(t *testing.T) {
 		}
 		quotient, remainder := new(big.Int).QuoRem(
 			new(big.Int).Mul(x.ToBig(), y.ToBig()), denominator.ToBig(), new(big.Int))
-		requireFits(t, quotient, floor, floorErr, msg)
+		requireFits(t, quotient, &floor, floorErr, msg)
 		if remainder.Sign() != 0 {
 			quotient.Add(quotient, big.NewInt(1))
 		}
-		requireFits(t, quotient, ceil, ceilErr, msg)
+		requireFits(t, quotient, &ceil, ceilErr, msg)
 	}
 }
 
@@ -160,7 +160,7 @@ func TestCeilDiv(t *testing.T) {
 	} {
 		got, err := CeilDiv(c.a, c.b)
 		require.NoError(t, err)
-		require.Equal(t, c.want, got, "%s / %s", c.a, c.b)
+		require.Equal(t, c.want, &got, "%s / %s", c.a, c.b)
 	}
 	_, err := CeilDiv(one, new(uint256.Int))
 	require.ErrorIs(t, err, ErrDivisionByZero)
@@ -193,13 +193,14 @@ func TestSqrt(t *testing.T) {
 		{maxUint256, Floor, new(uint256.Int).SubUint64(two128, 1)},
 		{maxUint256, Ceil, two128},
 	} {
-		require.Equal(t, c.want, Sqrt(c.a, c.rounding), "sqrt(%s)", c.a)
+		require.Equal(t, *c.want, Sqrt(c.a, c.rounding), "sqrt(%s)", c.a)
 	}
 
 	r := rand.New(rand.NewPCG(0x5eed, 3))
 	for range 20_000 {
 		a := randomUint(r)
-		root := Sqrt(a, Floor).ToBig()
+		floor := Sqrt(a, Floor)
+		root := floor.ToBig()
 		next := new(big.Int).Add(root, big.NewInt(1))
 		require.LessOrEqual(t, new(big.Int).Mul(root, root).Cmp(a.ToBig()), 0, "sqrt(%s)", a)
 		require.Positive(t, new(big.Int).Mul(next, next).Cmp(a.ToBig()), "sqrt(%s)", a)
@@ -207,6 +208,7 @@ func TestSqrt(t *testing.T) {
 		if new(big.Int).Mul(root, root).Cmp(a.ToBig()) < 0 {
 			want = next
 		}
-		require.Equal(t, want.String(), Sqrt(a, Ceil).Dec(), "sqrt(%s)", a)
+		ceil := Sqrt(a, Ceil)
+		require.Equal(t, want.String(), ceil.Dec(), "sqrt(%s)", a)
 	}
 }

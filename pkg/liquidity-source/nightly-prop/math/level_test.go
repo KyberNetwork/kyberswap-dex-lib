@@ -44,7 +44,7 @@ func requireQuote(t *testing.T, want uint64, price Price, baseAmount *uint256.In
 	t.Helper()
 	quote, err := price.QuoteFor(baseAmount, Ceil)
 	require.NoError(t, err)
-	require.Equal(t, u(want), quote)
+	require.Equal(t, u(want), &quote)
 }
 
 func requireRange(t *testing.T, lower, upper, denominator string, r PriceRange) {
@@ -200,13 +200,13 @@ func randomMarket(t *testing.T, r *rand.Rand) market {
 	baseDepth, err := ask.Upper.BaseFor(quoteDepth, Floor)
 	require.NoError(t, err)
 	if baseDepth.IsZero() {
-		baseDepth = u(1)
+		baseDepth = *u(1)
 	}
 	return market{
 		ask:        ask,
 		bid:        bidRange(t, c, m, 0),
 		start:      fraction(t, randomBits(r, 104)),
-		baseDepth:  baseDepth,
+		baseDepth:  &baseDepth,
 		quoteDepth: quoteDepth,
 	}
 }
@@ -222,7 +222,7 @@ func (m market) checkBuy(t *testing.T, step Step) {
 	require.False(t, step.End.raw.Lt(&m.start.raw), "buy moves down")
 	lowerCost, err := m.ask.Lower.QuoteFor(&step.BaseAmount, Ceil)
 	require.NoError(t, err)
-	require.False(t, step.QuoteAmount.Lt(lowerCost), "buy below lower ask")
+	require.False(t, step.QuoteAmount.Lt(&lowerCost), "buy below lower ask")
 }
 
 func (m market) checkSell(t *testing.T, step Step) {
@@ -243,7 +243,7 @@ func TestBuyWithExactQuote_BoundsAndMonotonicity(t *testing.T) {
 		m := randomMarket(t, r)
 		budget, err := m.ask.Upper.QuoteFor(m.baseDepth, Ceil)
 		require.NoError(t, err)
-		amount := below(r, budget)
+		amount := below(r, &budget)
 		first, err := BuyWithExactQuote(m.baseDepth, m.start, amount, m.ask)
 		require.NoError(t, err)
 		next, err := BuyWithExactQuote(m.baseDepth, m.start, new(uint256.Int).AddUint64(amount, 1), m.ask)
@@ -256,7 +256,7 @@ func TestBuyWithExactQuote_BoundsAndMonotonicity(t *testing.T) {
 		if first.BaseAmount.Lt(m.baseDepth) {
 			require.Equal(t, amount, &first.QuoteAmount, "partial buy consumes exact input")
 		}
-		drain, err := BuyWithExactQuote(m.baseDepth, m.start, budget, m.ask)
+		drain, err := BuyWithExactQuote(m.baseDepth, m.start, &budget, m.ask)
 		require.NoError(t, err)
 		require.True(t, drain.BaseAmount.Eq(m.baseDepth) && drain.End.IsUpper(), "quote buy drain")
 	}
@@ -269,7 +269,7 @@ func TestSellExactBase_BoundsAndMonotonicity(t *testing.T) {
 		m := randomMarket(t, r)
 		maxBase, err := m.bid.Lower.BaseFor(m.quoteDepth, Ceil)
 		require.NoError(t, err)
-		amount := below(r, maxBase)
+		amount := below(r, &maxBase)
 		first, err := SellExactBase(m.quoteDepth, m.start, amount, m.bid)
 		require.NoError(t, err)
 		next, err := SellExactBase(m.quoteDepth, m.start, new(uint256.Int).AddUint64(amount, 1), m.bid)
@@ -282,7 +282,7 @@ func TestSellExactBase_BoundsAndMonotonicity(t *testing.T) {
 		if first.QuoteAmount.Lt(m.quoteDepth) {
 			require.Equal(t, amount, &first.BaseAmount, "partial sell consumes exact input")
 		}
-		drain, err := SellExactBase(m.quoteDepth, m.start, maxBase, m.bid)
+		drain, err := SellExactBase(m.quoteDepth, m.start, &maxBase, m.bid)
 		require.NoError(t, err)
 		require.True(t, drain.QuoteAmount.Eq(m.quoteDepth) && drain.End.IsLower(), "sell drain")
 	}
@@ -301,9 +301,9 @@ func TestSellExactBase_MonotonicAtQuoteRoundingBoundary(t *testing.T) {
 		quoteBoundary := new(uint256.Int).Mod(randomUint(r), m.quoteDepth)
 		baseAtBoundary, err := refillPrice.BaseFor(quoteBoundary, Floor)
 		require.NoError(t, err)
-		before, err := SellExactBase(m.quoteDepth, m.start, baseAtBoundary, m.bid)
+		before, err := SellExactBase(m.quoteDepth, m.start, &baseAtBoundary, m.bid)
 		require.NoError(t, err)
-		after, err := SellExactBase(m.quoteDepth, m.start, new(uint256.Int).AddUint64(baseAtBoundary, 1), m.bid)
+		after, err := SellExactBase(m.quoteDepth, m.start, new(uint256.Int).AddUint64(&baseAtBoundary, 1), m.bid)
 		require.NoError(t, err)
 		require.False(t, after.QuoteAmount.Lt(&before.QuoteAmount), "one more base unit reduces quote output")
 	}
