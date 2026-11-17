@@ -246,7 +246,10 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	return PoolMeta{ApprovalAddress: p.routerAddress, BlockNumber: p.Info.BlockNumber}
+	return PoolMeta{
+		MetaInfo:             pool.MetaInfo{ApprovalAddress: p.routerAddress, BlockNumber: p.Info.BlockNumber},
+		TicksBasedStateBlock: p.StateBlockMeta(),
+	}
 }
 
 // GetApprovalAddress returns the aggregator router, which is what the executor approves before

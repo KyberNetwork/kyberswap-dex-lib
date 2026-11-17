@@ -19,6 +19,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -51,6 +52,11 @@ type PoolSimulator struct {
 	useBasePluginV2 bool
 	namiFee         *nami.Config
 	namiStaleCheck  bool
+
+	// stateBlock is Extra.StateBlock. It stays out of the msgpack encoding (a positional array, so a new
+	// encoded field would break snapshots written by another version): a decoded simulator has no
+	// StateBlock and its meta falls back to BlockNumber.
+	stateBlock tickspkg.TicksBasedStateBlock `msgpack:"-"`
 }
 
 var _ = pool.RegisterFactory(DexType, newPoolSimulatorWithParams)
@@ -140,6 +146,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		writeTimePointOnce: new(sync.Once),
 		useBasePluginV2:    staticExtra.UseBasePluginV2,
 		namiFee:            extra.NamiFee,
+		stateBlock:         extra.TicksBasedStateBlock,
 	}
 	if p.usesFeeFactors() && p.volatilityOracle != nil {
 		p.lastTick = p.getLastTick()
@@ -331,6 +338,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	return PoolMeta{
 		BlockNumber: p.Info.BlockNumber,
 		PriceLimit:  priceLimit,
+
+		TicksBasedStateBlock: p.stateBlock.ForMeta(p.Info.BlockNumber),
 	}
 }
 

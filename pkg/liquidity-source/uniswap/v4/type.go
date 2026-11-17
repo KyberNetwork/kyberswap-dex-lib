@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 )
 
 type PoolSwapInfo = uniswapv3.SwapInfo
@@ -84,6 +85,10 @@ type FetchRPCResult struct {
 	HookExtra   json.RawMessage     `json:"hX,omitempty"`
 	TrackedAt   int64               `json:"lv,omitempty"`
 	FewReserves []*big.Int          `json:"fwR,omitempty"`
+	// StateBlock is the block R the slot0/liquidity read ran at, 0 under eth_call overrides. Hook
+	// state is read at R only by hooks that pass HookParam.BlockNumber to their calls. ToExtra copies
+	// it to the Extra.
+	tickspkg.TicksBasedStateBlock
 }
 
 // ToExtra builds the pool's Extra from this fetch and the given ticks. Every
@@ -97,6 +102,8 @@ func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
 			SqrtPriceX96: r.Slot0.SqrtPriceX96,
 			Tick:         r.Slot0.Tick,
 			Ticks:        ticks,
+
+			TicksBasedStateBlock: r.TicksBasedStateBlock,
 		},
 		HookExtra:   r.HookExtra,
 		TrackedAt:   r.TrackedAt,
@@ -126,6 +133,8 @@ type PoolMetaInfo struct {
 	PoolManager *common.Address `json:"manager,omitempty"`
 
 	TokenWrapMetadata *TokenWrapMetadata `json:"tokenWrapMetadata,omitempty"`
+
+	tickspkg.TicksBasedStateBlock
 }
 
 type TokenWrapMetadata struct {

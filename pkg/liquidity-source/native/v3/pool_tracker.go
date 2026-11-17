@@ -247,6 +247,8 @@ func (t *PoolTracker) BootstrapPoolState(
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
 		Vaults:       rpcData.Vaults,
+
+		TicksBasedStateBlock: tickspkg.TicksBasedStateBlock{StateBlock: rpcData.BlockNumber},
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -590,6 +592,8 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		Tick:         rpcState.Slot0.Tick,
 		Ticks:        entityPoolTicks,
 		Vaults:       rpcState.Vaults,
+
+		TicksBasedStateBlock: tickspkg.TicksBasedStateBlock{StateBlock: rpcState.BlockNumber},
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
