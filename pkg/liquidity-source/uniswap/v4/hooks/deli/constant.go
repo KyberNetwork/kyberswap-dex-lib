@@ -23,4 +23,5 @@ const wBLT = "0x4e74d4db6c0726ccded4656d0bce448876bb4c7a"
 var (
 	FeeDenom  = big.NewInt(1e6)
 	UFeeDenom = uint256.NewInt(1e6)
+	Q96       = new(uint256.Int).Lsh(uint256.NewInt(1), 96)
 )
