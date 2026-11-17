@@ -1,0 +1,310 @@
+[
+  {
+    "type": "function",
+    "name": "tokenCount",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "tokenConfig",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "t",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IFLAMM.TokenConfig",
+        "components": [
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "decimals",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "swapPriceBandWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "feeFloorWad",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "maxSwapNotional",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "reserveTarget",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minSupplyBatch",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "held",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "partner",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "pairId",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "debtFree",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "paused",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "poolCodeVersion",
+    "stateMutability": "pure",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "tradablePairs",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "tradable",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "hookPairs",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "operatorPairs",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingPairs",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "executableAt",
+        "type": "uint48",
+        "internalType": "uint48"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "hooks",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IFLAMM.HookSet",
+        "components": [
+          {
+            "name": "hook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "controller",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "pairHook",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "hook",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "mask",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "lane",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "laneWord",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "laneConfig",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pending",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "router",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "priceFeed",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "previewSwap",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "tokenIn",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokenOut",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amountInUsed",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "feeWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "pairRequest",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "tokenIn",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokenOut",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[26]",
+        "internalType": "uint256[26]"
+      }
+    ]
+  }
+]
