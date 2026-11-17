@@ -47,18 +47,13 @@ func discoveryBatchSize(total, offset, limit int) int {
 	return limit
 }
 
-func validateFactoryMetadata(config *Config, beacon, implementation common.Address) error {
-	if config == nil || beacon == (common.Address{}) || implementation == (common.Address{}) {
+func validateFactoryMetadata(config *Config, beacon common.Address) error {
+	if config == nil || beacon == (common.Address{}) {
 		return errors.New("invalid Ammalgam factory metadata")
 	}
 	if config.PairBeacon != "" &&
 		(!validPairAddress(config.PairBeacon) || !strings.EqualFold(config.PairBeacon, beacon.Hex())) {
 		return fmt.Errorf("ammalgam pair beacon mismatch: configured %s, on chain %s", config.PairBeacon, beacon.Hex())
-	}
-	if config.PairImplementation != "" &&
-		(!validPairAddress(config.PairImplementation) || !strings.EqualFold(config.PairImplementation, implementation.Hex())) {
-		return fmt.Errorf("ammalgam pair implementation mismatch: configured %s, on chain %s",
-			config.PairImplementation, implementation.Hex())
 	}
 	return nil
 }
@@ -107,17 +102,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 	blockNumber := initial.BlockNumber
 
-	var implementation common.Address
-	implementationResponse, err := u.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).
-		AddCall(&ethrpc.Call{ABI: beaconABI, Target: beacon.Hex(), Method: "implementation"}, []any{&implementation}).
-		TryAggregate()
-	if err != nil {
-		return nil, metadataBytes, fmt.Errorf("read Ammalgam pair implementation: %w", err)
-	}
-	if err := requireAllCallsSucceeded(implementationResponse, 1); err != nil {
-		return nil, metadataBytes, err
-	}
-	if err := validateFactoryMetadata(u.config, beacon, implementation); err != nil {
+	if err := validateFactoryMetadata(u.config, beacon); err != nil {
 		return nil, metadataBytes, err
 	}
 
@@ -167,10 +152,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		gas = defaultGas
 	}
 	staticExtraBytes, err := json.Marshal(StaticExtra{
-		FactoryAddress:     strings.ToLower(u.config.FactoryAddress),
-		PairBeacon:         hexutil.Encode(beacon[:]),
-		PairImplementation: hexutil.Encode(implementation[:]),
-		Gas:                gas,
+		FactoryAddress: strings.ToLower(u.config.FactoryAddress),
+		PairBeacon:     hexutil.Encode(beacon[:]),
+		Gas:            gas,
 	})
 	if err != nil {
 		return nil, metadataBytes, err

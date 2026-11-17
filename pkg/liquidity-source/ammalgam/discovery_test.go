@@ -67,11 +67,10 @@ func TestDiscoveryPaginationAndConfig(t *testing.T) {
 	require.Equal(t, 2, discoveryBatchSize(10, 7, 2))
 
 	beacon := common.HexToAddress("0x1111111111111111111111111111111111111111")
-	implementation := common.HexToAddress("0x2222222222222222222222222222222222222222")
-	require.NoError(t, validateFactoryMetadata(&Config{}, beacon, implementation))
-	require.NoError(t, validateFactoryMetadata(&Config{PairBeacon: beacon.Hex(), PairImplementation: implementation.Hex()}, beacon, implementation))
-	require.Error(t, validateFactoryMetadata(&Config{PairBeacon: implementation.Hex()}, beacon, implementation))
-	require.Error(t, validateFactoryMetadata(&Config{PairImplementation: beacon.Hex()}, beacon, implementation))
+	other := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	require.NoError(t, validateFactoryMetadata(&Config{}, beacon))
+	require.NoError(t, validateFactoryMetadata(&Config{PairBeacon: beacon.Hex()}, beacon))
+	require.Error(t, validateFactoryMetadata(&Config{PairBeacon: other.Hex()}, beacon))
 	require.Error(t, requireAllCallsSucceeded(&ethrpc.Response{Result: []bool{true, false}}, 2))
 	require.Error(t, requireAllCallsSucceeded(&ethrpc.Response{Result: []bool{true}}, 2))
 }
