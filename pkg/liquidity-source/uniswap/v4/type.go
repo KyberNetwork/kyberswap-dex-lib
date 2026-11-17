@@ -60,6 +60,11 @@ type Extra struct {
 	// Few-wrapped pool token's contract: FewWrappedToken.unwrapTo pays out of that balance alone,
 	// so it caps how much of the token can be unwrapped. Set only for pools holding a Few token.
 	FewReserves []*big.Int `json:"fwR,omitempty"`
+	// ProtocolFee (pF) is slot0.protocolFee as packed on-chain: the zeroForOne fee in the low 12
+	// bits, the oneForZero fee in the next 12. LpFee (lpF) is slot0.lpFee. Both are only set
+	// while the protocol fee is on; otherwise the pool's SwapFee is the LP fee for both directions.
+	ProtocolFee uint32 `json:"pF,omitempty"`
+	LpFee       uint32 `json:"lpF,omitempty"`
 }
 
 type ExtraU256 struct {
@@ -67,6 +72,8 @@ type ExtraU256 struct {
 	HookExtra   json.RawMessage `json:"hX,omitempty"`
 	TrackedAt   int64           `json:"lv,omitempty"`
 	FewReserves []*uint256.Int  `json:"fwR,omitempty"`
+	ProtocolFee uint32          `json:"pF,omitempty"`
+	LpFee       uint32          `json:"lpF,omitempty"`
 }
 
 type Slot0Data struct {
@@ -95,7 +102,7 @@ type FetchRPCResult struct {
 // writer of the tracked Extra goes through it, so a field added here reaches
 // all of them.
 func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
-	return Extra{
+	extra := Extra{
 		Extra: &uniswapv3.Extra{
 			Liquidity:    r.Liquidity,
 			TickSpacing:  uint64(r.TickSpacing),
@@ -109,6 +116,10 @@ func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
 		TrackedAt:   r.TrackedAt,
 		FewReserves: r.FewReserves,
 	}
+	if r.Slot0.ProtocolFee != 0 {
+		extra.ProtocolFee, extra.LpFee = r.Slot0.ProtocolFee, r.Slot0.LpFee
+	}
+	return extra
 }
 
 type TicksResp struct {
