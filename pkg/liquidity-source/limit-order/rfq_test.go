@@ -313,7 +313,7 @@ func TestRFQ_RefillMatchesSimulatorWithoutDroppedOrder(t *testing.T) {
 		return sim.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: "a", Amount: bignumber.NewBig10(amountIn)},
 			TokenOut:      "b",
-			Limit:         swaplimit.NewInventory("", sim.CalculateLimit()),
+			Limit:         pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(sim.CalculateLimit()))),
 		})
 	}
 

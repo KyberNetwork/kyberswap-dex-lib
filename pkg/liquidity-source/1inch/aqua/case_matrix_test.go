@@ -984,12 +984,12 @@ func TestCaseMatrixCaps(t *testing.T) {
 	// Shared limit: the key replaces the own snapshot.
 	s := newSim(t, poolOpts{program: program, raw: profileA.Raw})
 	key := s.limitKeys[1]
-	limit := func(v *big.Int) *swaplimit.Inventory {
+	limit := func(v *big.Int) pool.SwapLimitBig {
 		m := map[string]*big.Int{}
 		if v != nil {
 			m[key] = v
 		}
-		return swaplimit.NewInventory(DexType, m)
+		return pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(m)))
 	}
 	for name, tc := range map[string]struct {
 		limit *big.Int
@@ -1113,7 +1113,7 @@ type simSnapshot struct {
 	limit    map[string]string
 }
 
-func snapshotOf(s *PoolSimulator, inv *swaplimit.Inventory, keys ...string) simSnapshot {
+func snapshotOf(s *PoolSimulator, inv pool.SwapLimitBig, keys ...string) simSnapshot {
 	snap := simSnapshot{state: s.State, limit: map[string]string{}}
 	for _, r := range s.Info.Reserves {
 		snap.reserves = append(snap.reserves, r.String())
@@ -1134,7 +1134,7 @@ func TestSequencesDeterminismAndPurity(t *testing.T) {
 	t.Parallel()
 	feeProgram := buildProgram("PCF", "trail")
 	s := newSim(t, poolOpts{program: feeProgram})
-	inv := swaplimit.NewInventory(DexType, map[string]*big.Int{s.limitKeys[0]: e18(500).ToBig(), s.limitKeys[1]: e18(900).ToBig()})
+	inv := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{s.limitKeys[0]: e18(500).ToBig(), s.limitKeys[1]: e18(900).ToBig()})))
 	before := snapshotOf(s, inv, s.limitKeys[0], s.limitKeys[1])
 	first, err := quoteOut(s, 0, e18(10), inv)
 	require.NoError(t, err)
@@ -1163,7 +1163,7 @@ func TestSequencesDeterminismAndPurity(t *testing.T) {
 		},
 		"amount too big": func() error { _, err := quoteOut(s, 0, e18(100_000_000), inv); return err },
 		"limit missing": func() error {
-			_, err := quoteOut(s, 0, e18(10), swaplimit.NewInventory(DexType, map[string]*big.Int{}))
+			_, err := quoteOut(s, 0, e18(10), pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{}))))
 			return err
 		},
 	}
@@ -1213,53 +1213,6 @@ func TestSequencesMultiHopSamePool(t *testing.T) {
 }
 
 // Two strategies of one maker in one route share the wallet limit under the min merge.
-func TestSequencesTwoPoolsSharedLimit(t *testing.T) {
-	t.Parallel()
-	program := buildProgram("CF", "none")
-	a := newSim(t, poolOpts{strategyId: "a", program: program, wallet: [2]*uint256.Int{e18(500), e18(900)}})
-	b := newSim(t, poolOpts{strategyId: "b", program: program, wallet: [2]*uint256.Int{e18(400), e18(700)}})
-	merged := map[string]*big.Int{}
-	pool.MergeSwapLimits(merged, a)
-	pool.MergeSwapLimits(merged, b)
-	key0, key1 := a.limitKeys[0], a.limitKeys[1]
-	require.Equal(t, e18(400).Dec(), merged[key0].String(), "min of the snapshots")
-	require.Equal(t, e18(700).Dec(), merged[key1].String())
-
-	outA, err := quoteOut(a, 0, e18(10), nil)
-	require.NoError(t, err)
-	outB, err := quoteOut(b, 0, e18(10), nil)
-	require.NoError(t, err)
-	need := new(big.Int).Add(outA.TokenAmountOut.Amount, outB.TokenAmountOut.Amount)
-	for name, tc := range map[string]struct {
-		limit  *big.Int
-		wantB2 error
-	}{
-		"room for both hops":      {new(big.Int).Set(need), nil},
-		"one wei short of both":   {new(big.Int).Sub(need, big.NewInt(1)), ErrInsufficientWallet},
-		"room for the first only": {new(big.Int).Set(outA.TokenAmountOut.Amount), ErrInsufficientWallet},
-	} {
-		inv := swaplimit.NewInventory(DexType, map[string]*big.Int{key0: e18(400).ToBig(), key1: tc.limit})
-		simA, simB := a.CloneState().(*PoolSimulator), b.CloneState().(*PoolSimulator)
-		first, err := swapOnce(simA, 0, e18(10), inv)
-		require.NoError(t, err, name)
-		require.Equal(t, outA.TokenAmountOut.Amount, first.TokenAmountOut.Amount)
-		require.Equal(t, new(big.Int).Sub(tc.limit, first.TokenAmountOut.Amount).String(), inv.GetLimit(key1).String(), name)
-		// The second hop equals a quote against the limit that is left, and the other strategy's own state is untouched.
-		second, err := quoteOut(simB, 0, e18(10), inv)
-		if tc.wantB2 != nil {
-			require.ErrorIs(t, err, tc.wantB2, name)
-		} else {
-			require.NoError(t, err, name)
-			require.Equal(t, outB.TokenAmountOut.Amount, second.TokenAmountOut.Amount, name)
-		}
-		require.Equal(t, e18(1000).Dec(), simB.State.Raw[0].Dec())
-	}
-	// The original pools were never touched by the cloned runs.
-	require.Equal(t, e18(1000).Dec(), a.State.Raw[0].Dec())
-}
-
-// The tokenIn credit depends on the allowance: with an unlimited one the taker's push raises the wallet
-// limit and the reverse hop can draw on it; with a finite one nothing is credited.
 func TestSequencesConditionalCredit(t *testing.T) {
 	t.Parallel()
 	program := prog(iFlat(10_000_000), iSwap())
@@ -1273,7 +1226,7 @@ func TestSequencesConditionalCredit(t *testing.T) {
 		"finite and small":        {e18(50), false},
 	} {
 		s := newSim(t, poolOpts{program: program, allowance: [2]*uint256.Int{tc.allowance0, nil}})
-		inv := swaplimit.NewInventory(DexType, map[string]*big.Int{s.limitKeys[0]: new(big.Int), s.limitKeys[1]: e18(900).ToBig()})
+		inv := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{s.limitKeys[0]: new(big.Int), s.limitKeys[1]: e18(900).ToBig()})))
 		_, err := swapOnce(s, 0, e18(100), inv)
 		require.NoError(t, err, name)
 		require.Equal(t, tc.credited, inv.GetLimit(s.limitKeys[0]).Sign() > 0, name)

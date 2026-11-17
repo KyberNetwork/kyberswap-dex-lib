@@ -29,7 +29,7 @@ func TestPoolSimulatorCalcAmountOutAndUpdateBalance(t *testing.T) {
 	sim := newTestPoolSimulator(t)
 	cloned := sim.CloneState().(*PoolSimulator)
 
-	limit := swaplimit.NewInventory(DexType, sim.CalculateLimit())
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
 
 	require.NotNil(t, limit.GetLimit(testNative))
 	require.NotNil(t, limit.GetLimit(testUSDC))

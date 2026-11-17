@@ -161,7 +161,7 @@ func TestCalcAmountOut_MatchesExecutor(t *testing.T) {
 		require.NoError(t, err)
 		amountIn := refRandAmount(rng)
 		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: "a", Amount: amountIn},
-			TokenOut: "b", Limit: swaplimit.NewInventory("", sim.CalculateLimit())})
+			TokenOut: "b", Limit: pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(sim.CalculateLimit())))})
 		if err != nil {
 			continue // the simulator only quotes when it can place all of amountIn
 		}
@@ -333,7 +333,7 @@ func testRefillNeverAboveExecutor(t *testing.T, sorted bool) {
 		require.NoError(t, err)
 		amountIn := refRandAmount(rng)
 		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: "a", Amount: amountIn},
-			TokenOut: "b", Limit: swaplimit.NewInventory("", sim.CalculateLimit())})
+			TokenOut: "b", Limit: pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(sim.CalculateLimit())))})
 		if err != nil {
 			continue
 		}

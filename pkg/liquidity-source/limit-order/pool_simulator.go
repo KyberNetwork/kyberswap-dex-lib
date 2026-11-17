@@ -604,7 +604,7 @@ type Inventory = swaplimit.Inventory
 // NewInventory has key: "<maker>:<makerAsset>", value: maker's min(balance, allowance) for makerAsset
 // Deprecated: directly use swaplimit.NewInventory.
 func NewInventory(balance map[string]*big.Int) pool.SwapLimitBig {
-	return swaplimit.NewInventory(DexTypeLimitOrder, balance)
+	return pool.AsSwapLimitBig(swaplimit.NewInventory(DexTypeLimitOrder, swaplimit.ToU256Balances(balance)))
 }
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string {

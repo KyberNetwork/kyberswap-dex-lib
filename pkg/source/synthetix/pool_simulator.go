@@ -254,5 +254,5 @@ type AtomicLimits = swaplimit.Inventory
 // NewLimits has key: "blockTimeStamp", value: limit and only decrease without increasing.
 // Deprecated: directly use swaplimit.NewInventory.
 func NewLimits(atomicMaxVolumePerBlocks map[string]*big.Int) pool.SwapLimitBig {
-	return swaplimit.NewInventory(DexTypeSynthetix, atomicMaxVolumePerBlocks)
+	return pool.AsSwapLimitBig(swaplimit.NewInventory(DexTypeSynthetix, swaplimit.ToU256Balances(atomicMaxVolumePerBlocks)))
 }

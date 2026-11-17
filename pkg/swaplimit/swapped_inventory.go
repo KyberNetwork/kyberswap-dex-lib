@@ -2,27 +2,28 @@ package swaplimit
 
 import (
 	"maps"
-	"math/big"
 	"sync"
+
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type SwappedInventory struct {
 	Inventory
-	swapped map[string]*big.Int
+	swapped map[string]*uint256.Int
 }
 
-func NewSwappedInventory(exchange string, balance map[string]*big.Int) *SwappedInventory {
+func NewSwappedInventory(exchange string, balance map[string]*uint256.Int) *SwappedInventory {
 	return &SwappedInventory{
 		exchange: exchange,
 		lock:     &sync.RWMutex{},
 		balance:  balance,
-		swapped:  make(map[string]*big.Int),
+		swapped:  make(map[string]*uint256.Int),
 	}
 }
 
-func (k *SwappedInventory) GetSwapped() map[string]*big.Int {
+func (k *SwappedInventory) GetSwapped() map[string]*uint256.Int {
 	k.lock.RLock()
 	defer k.lock.RUnlock()
 
@@ -30,7 +31,7 @@ func (k *SwappedInventory) GetSwapped() map[string]*big.Int {
 }
 
 func (k *SwappedInventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddress string,
-	decreaseDelta, increaseDelta *big.Int) (*big.Int, *big.Int, error) {
+	decreaseDelta, increaseDelta *uint256.Int) (*uint256.Int, *uint256.Int, error) {
 	k.lock.Lock()
 	defer k.lock.Unlock()
 
@@ -40,14 +41,14 @@ func (k *SwappedInventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddres
 
 	// swappedOut, ok := k.swapped[decreaseTokenAddress]
 	// if !ok {
-	// 	swappedOut = new(big.Int)
+	// 	swappedOut = new(uint256.Int)
 	// }
 	// swappedOut = swappedOut.Sub(swappedOut, decreaseDelta)
 	// k.swapped[decreaseTokenAddress] = swappedOut
 
 	swappedIn, ok := k.swapped[increaseTokenAddress]
 	if !ok {
-		swappedIn = new(big.Int)
+		swappedIn = new(uint256.Int)
 	}
 	swappedIn = swappedIn.Add(swappedIn, increaseDelta)
 	k.swapped[increaseTokenAddress] = swappedIn
@@ -55,7 +56,7 @@ func (k *SwappedInventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddres
 	return k.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)
 }
 
-func (k *SwappedInventory) Clone() pool.SwapLimitBig {
+func (k *SwappedInventory) Clone() pool.SwapLimit {
 	return &SwappedInventory{
 		exchange: k.exchange,
 		lock:     &sync.RWMutex{},

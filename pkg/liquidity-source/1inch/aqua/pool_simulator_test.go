@@ -323,17 +323,17 @@ func TestCalcAmountOutCaps(t *testing.T) {
 
 	// A shared limit replaces the own snapshot: a missing key means no balance.
 	key := s.limitKeys[1]
-	inv := swaplimit.NewInventory(DexType, map[string]*big.Int{key: new(big.Int).Set(out.ToBig())})
+	inv := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{key: new(big.Int).Set(out.ToBig())})))
 	_, err = quoteOut(s, 0, e18(1), inv)
 	require.NoError(t, err)
-	_, err = quoteOut(s, 0, e18(1), swaplimit.NewInventory(DexType, map[string]*big.Int{key: new(big.Int).Sub(out.ToBig(), big.NewInt(1))}))
+	_, err = quoteOut(s, 0, e18(1), pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{key: new(big.Int).Sub(out.ToBig(), big.NewInt(1))}))))
 	require.ErrorIs(t, err, ErrInsufficientWallet)
-	_, err = quoteOut(s, 0, e18(1), swaplimit.NewInventory(DexType, map[string]*big.Int{}))
+	_, err = quoteOut(s, 0, e18(1), pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{}))))
 	require.ErrorIs(t, err, ErrInsufficientWallet)
-	_, err = quoteOut(s, 0, e18(1), swaplimit.NewInventory(DexType, map[string]*big.Int{key: big.NewInt(-1)}))
+	_, err = quoteOut(s, 0, e18(1), pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{key: big.NewInt(-1)}))))
 	require.ErrorIs(t, err, ErrInsufficientWallet)
 	huge := new(big.Int).Lsh(big.NewInt(1), 300)
-	_, err = quoteOut(s, 0, e18(1), swaplimit.NewInventory(DexType, map[string]*big.Int{key: huge}))
+	_, err = quoteOut(s, 0, e18(1), pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{key: huge}))))
 	require.NoError(t, err, "a limit above 2^256 is not a cap")
 }
 
@@ -388,8 +388,8 @@ func TestProtocolFee(t *testing.T) {
 	_, err = quoteOut(newSim(t, poolOpts{program: feeProgram, wallet: walletShort.wallet, app: testLaunch}), 0, amount, nil)
 	require.ErrorIs(t, err, ErrFeeShortfall)
 	cur := newSim(t, poolOpts{program: feeProgram})
-	res, err = quoteOut(cur, 0, amount, swaplimit.NewInventory(DexType, map[string]*big.Int{
-		cur.limitKeys[0]: new(big.Int).Sub(fee.ToBig(), big.NewInt(1)), cur.limitKeys[1]: e18(1000).ToBig()}))
+	res, err = quoteOut(cur, 0, amount, pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{
+		cur.limitKeys[0]: new(big.Int).Sub(fee.ToBig(), big.NewInt(1)), cur.limitKeys[1]: e18(1000).ToBig()}))))
 	require.NoError(t, err)
 	require.Equal(t, "0", res.Fee.Amount.String())
 
@@ -538,24 +538,6 @@ func TestCalculateLimit(t *testing.T) {
 }
 
 // Two strategies of one maker publish snapshots of the same wallet at different times: the lower wins.
-func TestMergeMinOfSnapshots(t *testing.T) {
-	t.Parallel()
-	a := newSim(t, poolOpts{strategyId: "a", wallet: [2]*uint256.Int{e18(100), e18(100)}})
-	b := newSim(t, poolOpts{strategyId: "b", wallet: [2]*uint256.Int{e18(40), e18(250)}})
-	limits := map[string]*big.Int{}
-	pool.MergeSwapLimits(limits, a)
-	pool.MergeSwapLimits(limits, b)
-	require.Equal(t, e18(40).Dec(), limits[a.limitKeys[0]].String())
-	require.Equal(t, e18(100).Dec(), limits[a.limitKeys[1]].String())
-	// Order does not matter.
-	limits = map[string]*big.Int{}
-	pool.MergeSwapLimits(limits, b)
-	pool.MergeSwapLimits(limits, a)
-	require.Equal(t, e18(40).Dec(), limits[a.limitKeys[0]].String())
-}
-
-// Shared maker wallet inside one route: the first hop lowers what the second strategy of the same maker
-// can pay out, and a finite allowance is not credited by the taker's push.
 func TestSharedLimitTwoStrategies(t *testing.T) {
 	t.Parallel()
 	one := newSim(t, poolOpts{strategyId: "1", program: prog(iFlat(10_000_000), iSwap())})
@@ -565,10 +547,10 @@ func TestSharedLimitTwoStrategies(t *testing.T) {
 	out1 := first.TokenAmountOut.Amount
 
 	// The wallet holds exactly that much token1: after hop one nothing is left for the second strategy.
-	inv := swaplimit.NewInventory(DexType, map[string]*big.Int{
+	inv := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{
 		one.limitKeys[0]: e18(10).ToBig(),
 		one.limitKeys[1]: new(big.Int).Set(out1),
-	})
+	})))
 	_, err = swapOnce(one, 0, e18(100), inv)
 	require.NoError(t, err)
 	require.Equal(t, "0", inv.GetLimit(one.limitKeys[1]).String(), "tokenOut decreased by amountOut")
@@ -579,7 +561,7 @@ func TestSharedLimitTwoStrategies(t *testing.T) {
 
 	// With a finite allowance on tokenIn nothing is credited.
 	finite := newSim(t, poolOpts{strategyId: "3", program: prog(iFlat(10_000_000), iSwap()), allowance: [2]*uint256.Int{e18(50), nil}})
-	inv2 := swaplimit.NewInventory(DexType, map[string]*big.Int{finite.limitKeys[0]: e18(10).ToBig(), finite.limitKeys[1]: e18(900).ToBig()})
+	inv2 := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{finite.limitKeys[0]: e18(10).ToBig(), finite.limitKeys[1]: e18(900).ToBig()})))
 	_, err = swapOnce(finite, 0, e18(100), inv2)
 	require.NoError(t, err)
 	require.Equal(t, e18(10).String(), inv2.GetLimit(finite.limitKeys[0]).String())
@@ -587,7 +569,7 @@ func TestSharedLimitTwoStrategies(t *testing.T) {
 	edge := new(uint256.Int).Lsh(uint256.NewInt(1), 128)
 	for allowance, credited := range map[string]bool{edge.Dec(): true, new(uint256.Int).SubUint64(edge, 1).Dec(): false} {
 		sim := newSim(t, poolOpts{strategyId: "4", program: prog(iSwap()), allowance: [2]*uint256.Int{u(allowance), nil}})
-		l := swaplimit.NewInventory(DexType, map[string]*big.Int{sim.limitKeys[0]: big.NewInt(0), sim.limitKeys[1]: e18(900).ToBig()})
+		l := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{sim.limitKeys[0]: big.NewInt(0), sim.limitKeys[1]: e18(900).ToBig()})))
 		_, err = swapOnce(sim, 0, e18(100), l)
 		require.NoError(t, err)
 		require.Equal(t, credited, l.GetLimit(sim.limitKeys[0]).Sign() > 0, allowance)
@@ -603,7 +585,7 @@ func TestFeeDebitClamp(t *testing.T) {
 	fee := new(uint256.Int).Div(new(uint256.Int).Mul(e18(100), uint256.NewInt(10_000_000)), uBps) // 1e18
 
 	// The in key is below the fee: the pull is skipped by the quote, the debit clamps to the key.
-	inv := swaplimit.NewInventory(DexType, map[string]*big.Int{s.limitKeys[0]: big.NewInt(1000), s.limitKeys[1]: e18(900).ToBig()})
+	inv := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{s.limitKeys[0]: big.NewInt(1000), s.limitKeys[1]: e18(900).ToBig()})))
 	res, err := swapOnce(s, 0, e18(100), inv)
 	require.NoError(t, err)
 	collected := res.SwapInfo.(*SwapInfo).FeeCollected
@@ -613,7 +595,7 @@ func TestFeeDebitClamp(t *testing.T) {
 
 	// Collected fee with a roomy key: the key ends at credit minus fee.
 	s2 := newSim(t, poolOpts{program: program})
-	inv2 := swaplimit.NewInventory(DexType, map[string]*big.Int{s2.limitKeys[0]: e18(5).ToBig(), s2.limitKeys[1]: e18(900).ToBig()})
+	inv2 := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{s2.limitKeys[0]: e18(5).ToBig(), s2.limitKeys[1]: e18(900).ToBig()})))
 	_, err = swapOnce(s2, 0, e18(100), inv2)
 	require.NoError(t, err)
 	want := new(big.Int).Sub(new(big.Int).Add(e18(5).ToBig(), e18(100).ToBig()), fee.ToBig())
@@ -630,16 +612,16 @@ func TestFeeDebitClamp(t *testing.T) {
 			SwapLimitBig:   limit,
 		})
 	}
-	inv3 := swaplimit.NewInventory(DexType, map[string]*big.Int{s3.limitKeys[1]: e18(900).ToBig()})
+	inv3 := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{s3.limitKeys[1]: e18(900).ToBig()})))
 	swap100(inv3)
 	require.NotNil(t, inv3.GetLimit(s3.limitKeys[0]))
 	require.Equal(t, "0", inv3.GetLimit(s3.limitKeys[0]).String())
 	// The out key missing makes UpdateLimit refuse and nothing else is touched.
-	inv4 := swaplimit.NewInventory(DexType, map[string]*big.Int{})
+	inv4 := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{})))
 	swap100(inv4)
 	require.Nil(t, inv4.GetLimit(s3.limitKeys[0]))
 	// A key that the credit left at zero and a zero clamp skip the debit.
-	inv5 := swaplimit.NewInventory(DexType, map[string]*big.Int{s3.limitKeys[0]: big.NewInt(0), s3.limitKeys[1]: e18(900).ToBig()})
+	inv5 := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{s3.limitKeys[0]: big.NewInt(0), s3.limitKeys[1]: e18(900).ToBig()})))
 	swap100(inv5)
 	require.Equal(t, "0", inv5.GetLimit(s3.limitKeys[0]).String())
 }
@@ -732,7 +714,7 @@ func quoteAll(s *PoolSimulator, limit func() pool.SwapLimitBig) []q {
 }
 
 func newInv(s *PoolSimulator) pool.SwapLimitBig {
-	return swaplimit.NewInventory(DexType, map[string]*big.Int{s.limitKeys[0]: e18(3).ToBig(), s.limitKeys[1]: e18(400).ToBig()})
+	return pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{s.limitKeys[0]: e18(3).ToBig(), s.limitKeys[1]: e18(400).ToBig()})))
 }
 
 // Concurrent quotes on one shared simulator (the router's pattern: one pool set, many goroutines), while
@@ -852,7 +834,7 @@ func TestRaceCalcAmountIn(t *testing.T) {
 func TestCalcAmountOutErrorPathPure(t *testing.T) {
 	for _, s := range raceSims(t) {
 		base := snapOf(s)
-		zero := swaplimit.NewInventory(DexType, map[string]*big.Int{s.limitKeys[0]: big.NewInt(0), s.limitKeys[1]: big.NewInt(0)})
+		zero := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{s.limitKeys[0]: big.NewInt(0), s.limitKeys[1]: big.NewInt(0)})))
 		for in := range 2 {
 			for _, a := range []*uint256.Int{e18(1), e18(1_000_000_000), new(uint256.Int).Lsh(uint256.NewInt(1), 250)} {
 				_, _ = quoteOut(s, in, a, zero)

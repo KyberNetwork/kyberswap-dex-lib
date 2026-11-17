@@ -860,7 +860,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
 			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				limit := swaplimit.NewInventory("", p.CalculateLimit())
+				limit := pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(p.CalculateLimit())))
 				return p.CalcAmountOut(
 					pool.CalcAmountOutParams{
 						TokenAmountIn: tt.args.tokenAmountIn,
@@ -961,7 +961,7 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
+			limit := pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(sims[tc.pool].CalculateLimit())))
 			res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
 					Token:  "A",
@@ -1068,7 +1068,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 
 	for _, tc := range testcases {
 		resetSim()
-		limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
+		limit := pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(sims[tc.pool].CalculateLimit())))
 		for i, swap := range tc.swaps {
 			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
 				cloned := sims[tc.pool].CloneState()
@@ -1229,7 +1229,7 @@ func TestPool_Inventory(t *testing.T) {
 
 	for _, tc := range testcases {
 		resetSim()
-		limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
+		limit := pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(sims[tc.pool].CalculateLimit())))
 		for i, swap := range tc.swaps {
 			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
 				res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
@@ -1355,7 +1355,7 @@ func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
+			limit := pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(sims[tc.pool].CalculateLimit())))
 			res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
 					Token:  "A",
@@ -1463,7 +1463,7 @@ func TestPool_FilterAllowedSenders(t *testing.T) {
 			Amount: parseBigInt("400"),
 		},
 		TokenOut: "B",
-		Limit:    swaplimit.NewInventoryWithAllowedSenders("", p.CalculateLimit(), "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"),
+		Limit:    pool.AsSwapLimitBig(swaplimit.NewInventoryWithAllowedSenders("", swaplimit.ToU256Balances(p.CalculateLimit()), "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67")),
 	})
 	assert.Equal(t, ErrCannotFulfillAmountIn, err)
 
@@ -1473,7 +1473,7 @@ func TestPool_FilterAllowedSenders(t *testing.T) {
 			Amount: parseBigInt("300"),
 		},
 		TokenOut: "B",
-		Limit:    swaplimit.NewInventoryWithAllowedSenders("", p.CalculateLimit(), "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"),
+		Limit:    pool.AsSwapLimitBig(swaplimit.NewInventoryWithAllowedSenders("", swaplimit.ToU256Balances(p.CalculateLimit()), "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67")),
 	})
 	assert.Equal(t, "300", res.TokenAmountOut.Amount.String())
 }
@@ -1555,7 +1555,7 @@ func TestPool_CalcAmtOut_MatchesCalcAmountOut(t *testing.T) {
 				for _, withLimit := range []bool{false, true} {
 					var limit pool.SwapLimitBig
 					if withLimit {
-						limit = swaplimit.NewInventory("", p.CalculateLimit())
+						limit = pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(p.CalculateLimit())))
 					}
 					amtIn := bignumber.NewBig10(amt)
 					want, wantErr := p.CalcAmountOut(pool.CalcAmountOutParams{

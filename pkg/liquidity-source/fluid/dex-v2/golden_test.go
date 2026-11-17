@@ -84,7 +84,7 @@ func goldenTrace(t *testing.T) string {
 		}
 		// Sequential chains share one inventory and mutate the simulator.
 		chain := sim.CloneState().(*PoolSimulator)
-		limit := swaplimit.NewInventory(DexType, chain.CalculateLimit())
+		limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(chain.CalculateLimit())))
 		for i, step := range []struct {
 			dir    int
 			amount int64

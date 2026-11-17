@@ -137,7 +137,7 @@ func TestInventoryAndFailurePurity(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, before, after)
 	s = flat(t)
-	limit := swaplimit.NewInventory(DexType, s.CalculateLimit())
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(s.CalculateLimit())))
 	params := quoteParams(0, "10000000000000000")
 	params.Limit = limit
 	quote, err := s.CalcAmountOut(params)
@@ -146,7 +146,7 @@ func TestInventoryAndFailurePurity(t *testing.T) {
 	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: quote.SwapInfo, SwapLimitBig: limit})
 	require.Equal(t, new(big.Int).Sub(old, big.NewInt(25000000)), limit.GetLimit(s.limitKey(quoteToken)))
 	params = quoteParams(1, "25000000")
-	params.Limit = swaplimit.NewInventory(DexType, map[string]*big.Int{})
+	params.Limit = pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{})))
 	_, err = s.CalcAmountOut(params)
 	require.ErrorIs(t, err, pool.ErrNotEnoughInventory)
 }
@@ -244,7 +244,7 @@ func TestAdditionalBaseScaleAndSharedQuoteInventory(t *testing.T) {
 
 	inventory := weth.CalculateLimit()
 	maps.Copy(inventory, other.CalculateLimit())
-	limit := swaplimit.NewInventory(DexType, inventory)
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(inventory)))
 	firstParams := quoteParams(0, "10000000000000000")
 	firstParams.Limit = limit
 	first, err := weth.CalcAmountOut(firstParams)

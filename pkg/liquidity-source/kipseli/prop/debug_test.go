@@ -91,7 +91,7 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 		}
 	}
 
-	limit := swaplimit.NewInventory(DexType, sim.CalculateLimit())
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
 
 	for _, dir := range directions {
 		snap, err := fetchSnapshot(context.Background(), rpcClient, common.HexToAddress(testRouterAddr),
@@ -148,7 +148,7 @@ func TestKipseliMergeSwap(t *testing.T) {
 	numSwaps := 20
 	totalAmount := new(big.Int).Mul(amountPerSwap, big.NewInt(int64(numSwaps)))
 
-	limit1 := swaplimit.NewInventory(DexType, sim1.CalculateLimit())
+	limit1 := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim1.CalculateLimit())))
 	totalOut1 := new(big.Int)
 	var err1 error
 	for i := range numSwaps {
@@ -174,7 +174,7 @@ func TestKipseliMergeSwap(t *testing.T) {
 	res2, err2 := sim2Typed.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: totalAmount},
 		TokenOut:      tokenOut,
-		Limit:         swaplimit.NewInventory(DexType, sim2Typed.CalculateLimit()),
+		Limit:         pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim2Typed.CalculateLimit()))),
 	})
 
 	if err2 != nil {

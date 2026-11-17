@@ -75,3 +75,26 @@ type UpdateStateParams struct {
 type IUpdateState interface {
 	UpdateState(params UpdateStateParams)
 }
+
+// IPoolSim is the default pool simulator interface. It works in uint256 amounts. Legacy pools implement the
+// big.Int IPoolSimulator and reach this interface through the factory wrapper.
+type IPoolSim interface {
+	CalcAmtOut(params CalcAmtOutParams) (*CalcAmtOutResult, error)
+	// CloneState clones IPoolSim to back up old state before UpdateState by a swap.
+	// Returns nil if unimplemented.
+	CloneState() IPoolSim
+	// UpdateState updates the pool state after a swap.
+	UpdateState(params UpdateStateParams)
+	CanSwapTo(address string) []string
+	CanSwapFrom(address string) []string
+	GetTokens() []string
+	GetReserves() []uint256.Int
+	GetAddress() string
+	GetExchange() string
+	GetType() string
+	GetMetaInfo(tokenIn, tokenOut string) any
+	GetTokenIndex(address string) int
+	CalcLimit() map[string]*uint256.Int
+	// GetApprovalAddress returns the address that should be approved to spend tokenIn
+	GetApprovalAddress(tokenIn, tokenOut string) string
+}

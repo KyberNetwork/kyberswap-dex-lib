@@ -381,7 +381,7 @@ func TestCalcAmountOut_SharedSwapLimit(t *testing.T) {
 	sim, err := NewPoolSimulator(makePool(10_000, 5_000_000, 10_000_000_000, "1", "1"))
 	require.NoError(t, err)
 
-	limit := swaplimit.NewInventory(DexType, map[string]*big.Int{token1: big.NewInt(500_000)})
+	limit := poolPkg.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{token1: big.NewInt(500_000)})))
 
 	result, err := sim.CalcAmountOut(poolPkg.CalcAmountOutParams{
 		TokenAmountIn: poolPkg.TokenAmount{Token: token0, Amount: big.NewInt(1_000_000)},

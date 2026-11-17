@@ -1,11 +1,11 @@
 package swaplimit
 
 import (
-	"math/big"
 	"sync/atomic"
 
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // SingleSwapLimit implements Swap Limit for dexes that can only swap once
@@ -23,7 +23,7 @@ func NewSingleSwapLimit(exchange string) *SingleSwapLimit {
 }
 
 // Clone clones SingleSwapLimit.
-func (l *SingleSwapLimit) Clone() pool.SwapLimitBig {
+func (l *SingleSwapLimit) Clone() pool.SwapLimit {
 	cloned := NewSingleSwapLimit(l.exchange)
 	if l.swapped.Load() {
 		cloned.swapped.Store(true)
@@ -36,15 +36,15 @@ func (l *SingleSwapLimit) GetExchange() string {
 	return l.exchange
 }
 
-// GetLimit returns ZeroBI if a swap has already been done, nil otherwise
-func (l *SingleSwapLimit) GetLimit(_ string) *big.Int {
+// GetLimit returns zero if a swap has already been done, nil otherwise
+func (l *SingleSwapLimit) GetLimit(_ string) *uint256.Int {
 	if l.swapped.Load() {
-		return bignumber.ZeroBI
+		return new(uint256.Int)
 	}
 	return nil
 }
 
-func (l *SingleSwapLimit) GetSwapped() map[string]*big.Int {
+func (l *SingleSwapLimit) GetSwapped() map[string]*uint256.Int {
 	return nil
 }
 
@@ -53,7 +53,7 @@ func (i *SingleSwapLimit) GetAllowedSenders() string {
 }
 
 // UpdateLimit updates the atomic bool to mark swap done
-func (l *SingleSwapLimit) UpdateLimit(_, _ string, _, _ *big.Int) (*big.Int, *big.Int, error) {
+func (l *SingleSwapLimit) UpdateLimit(_, _ string, _, _ *uint256.Int) (*uint256.Int, *uint256.Int, error) {
 	l.swapped.Store(true)
 	return nil, nil, nil
 }

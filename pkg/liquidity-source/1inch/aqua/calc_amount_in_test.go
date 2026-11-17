@@ -527,7 +527,7 @@ func TestCalcAmountInCaps(t *testing.T) {
 		if v != nil {
 			m[key] = v
 		}
-		return swaplimit.NewInventory(DexType, m)
+		return pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(m)))
 	}
 	huge := new(big.Int).Lsh(big.NewInt(1), 300)
 	for name, tc := range map[string]struct {
@@ -557,7 +557,7 @@ func TestCalcAmountInCaps(t *testing.T) {
 	own := newSim(t, poolOpts{program: program, raw: raw, wallet: [2]*uint256.Int{nil, new(uint256.Int).SubUint64(x, 1)}})
 	_, err = own.CalcAmountIn(inParams(own, 0, x, nil))
 	require.ErrorIs(t, err, ErrInsufficientWallet)
-	_, err = own.CalcAmountIn(inParams(own, 0, x, swaplimit.NewInventory(DexType, map[string]*big.Int{own.limitKeys[1]: e18(1000).ToBig()})))
+	_, err = own.CalcAmountIn(inParams(own, 0, x, pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{own.limitKeys[1]: e18(1000).ToBig()})))))
 	require.NoError(t, err)
 
 	// The smallest amountIn can pay out more than the target: the cap binds on what it pays, not on the
@@ -617,7 +617,7 @@ func TestCalcAmountInProtocolFee(t *testing.T) {
 	// Wallet short of the fee through the shared limit: the tokenIn key decides the fee, the tokenOut key the cap.
 	s := newSim(t, poolOpts{program: feeProgram})
 	inv := func(in, out *big.Int) pool.SwapLimitBig {
-		return swaplimit.NewInventory(DexType, map[string]*big.Int{s.limitKeys[0]: in, s.limitKeys[1]: out})
+		return pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{s.limitKeys[0]: in, s.limitKeys[1]: out})))
 	}
 	res, err = verifyAmountIn(t, s, 0, target, inv(big.NewInt(0), e18(1000).ToBig()))
 	require.NoError(t, err)
@@ -923,7 +923,7 @@ func TestCalcAmountInUpdateBalance(t *testing.T) {
 				o.app = testLaunch
 			}
 			byIn, byOut := newSim(t, o), newSim(t, o)
-			invA := swaplimit.NewInventory(DexType, map[string]*big.Int{byIn.limitKeys[0]: e18(900).ToBig(), byIn.limitKeys[1]: e18(900).ToBig()})
+			invA := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(map[string]*big.Int{byIn.limitKeys[0]: e18(900).ToBig(), byIn.limitKeys[1]: e18(900).ToBig()})))
 			invB := invA.Clone()
 			for hop, step := range []struct {
 				in     int

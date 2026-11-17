@@ -174,7 +174,7 @@ func TestPoolSimulator_RouteConsumptionAndSharedInventory(t *testing.T) {
 	for _, s := range []*PoolSimulator{sim, btc} {
 		maps.Copy(limits, s.CalculateLimit())
 	}
-	inventory := swaplimit.NewInventory(DexType, limits)
+	inventory := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(limits)))
 
 	// Sell WETH for 1000 USDC through one market...
 	res, err := quoteResult(sim, 1, big.NewInt(2000), inventory)

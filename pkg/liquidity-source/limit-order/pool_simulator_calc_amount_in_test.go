@@ -257,7 +257,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
 			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
-				limit := swaplimit.NewInventory("", p.CalculateLimit())
+				limit := pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(p.CalculateLimit())))
 				return p.CalcAmountIn(
 					pool.CalcAmountInParams{
 						TokenAmountOut: tt.args.tokenAmountOut,
@@ -352,7 +352,7 @@ func TestPool_CalcAmountOut_CalcAmountIn(t *testing.T) {
 			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
 			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				limit := swaplimit.NewInventory("", p.CalculateLimit())
+				limit := pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(p.CalculateLimit())))
 				return p.CalcAmountOut(
 					pool.CalcAmountOutParams{
 						TokenAmountIn: pool.TokenAmount{
@@ -368,7 +368,7 @@ func TestPool_CalcAmountOut_CalcAmountIn(t *testing.T) {
 			assert.Equal(t, tt.args.amountOut, calcAmountOutResult.TokenAmountOut.Amount)
 
 			calcAmountInResult, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
-				limit := swaplimit.NewInventory("", p.CalculateLimit())
+				limit := pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(p.CalculateLimit())))
 				return p.CalcAmountIn(
 					pool.CalcAmountInParams{
 						TokenAmountOut: pool.TokenAmount{
@@ -527,7 +527,7 @@ func TestPool_CalcAmountIn_MinimalInverseOfCalcAmountOut(t *testing.T) {
 		res, err := p.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: tokenUSDC, Amount: amountIn},
 			TokenOut:      tokenUSDT,
-			Limit:         swaplimit.NewInventory("", p.CalculateLimit()),
+			Limit:         pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(p.CalculateLimit()))),
 		})
 		if err != nil {
 			return nil, nil, err
@@ -568,7 +568,7 @@ func TestPool_CalcAmountIn_MinimalInverseOfCalcAmountOut(t *testing.T) {
 		res, err := p.CalcAmountIn(pool.CalcAmountInParams{
 			TokenAmountOut: pool.TokenAmount{Token: tokenUSDT, Amount: amountOut},
 			TokenIn:        tokenUSDC,
-			Limit:          swaplimit.NewInventory("", p.CalculateLimit()),
+			Limit:          pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(p.CalculateLimit()))),
 		})
 		if err != nil {
 			require.ErrorIs(t, err, ErrCannotFulfillAmountOut)

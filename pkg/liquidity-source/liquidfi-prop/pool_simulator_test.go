@@ -151,7 +151,7 @@ func TestSharedVaultInventory(t *testing.T) {
 	sim := newSim(t, nil, false)
 	limits := sim.CalculateLimit()
 	assert.Equal(t, "4130696923886726262", limits[vault+":"+wbnb].String())
-	inv := swaplimit.NewInventory(DexType, limits)
+	inv := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(limits)))
 
 	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: usdt, Amount: decBig(usdtIn(3000))}, TokenOut: wbnb, Limit: inv,

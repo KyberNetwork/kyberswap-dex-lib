@@ -210,9 +210,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
 					TokenAmountIn: tc.tokenAmountIn,
 					TokenOut:      tc.tokenOut,
-					Limit: swaplimit.NewInventory("", map[string]*big.Int{
+					Limit: poolPkg.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(map[string]*big.Int{
 						strconv.FormatUint(pool.poolState.BlockTimestamp, 10): big.NewInt(0).Set(pool.poolState.AtomicMaxVolumePerBlock),
-					}),
+					}))),
 				})
 			})
 

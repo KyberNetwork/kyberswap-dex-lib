@@ -103,7 +103,7 @@ func TestD3SettlementConstraints(t *testing.T) {
 func TestD3SharedLimitAndClone(t *testing.T) {
 	sim, p := snapshotSimulator(t)
 	clone := sim.CloneState().(*PoolSimulator)
-	limit := swaplimit.NewInventory(DexType, sim.CalculateLimit())
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
 	params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: p.Tokens[0].Address, Amount: big.NewInt(1_000_000_000)}, TokenOut: p.Tokens[1].Address, Limit: limit}
 	q, err := sim.CalcAmountOut(params)
 	if err != nil {

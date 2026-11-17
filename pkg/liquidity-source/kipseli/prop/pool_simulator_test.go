@@ -49,7 +49,7 @@ func mustSim(t *testing.T, ladders [2][]ladder.Point, bal0, bal1 *big.Int) *Pool
 
 func calcOut(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut string, amountIn *big.Int) (*big.Int, error) {
 	t.Helper()
-	limit := swaplimit.NewInventory(DexType, sim.CalculateLimit())
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
 	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
 		TokenOut:      tokenOut,
@@ -84,7 +84,7 @@ func TestPoolSimulator_UpdateBalanceConsumesLadder(t *testing.T) {
 	}
 	sim := mustSim(t, ladders, big.NewInt(9e18), big.NewInt(30000e6))
 
-	limit := swaplimit.NewInventory(DexType, sim.CalculateLimit())
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
 	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1e18)},
 		TokenOut:      testUSDC,
@@ -112,7 +112,7 @@ func TestPoolSimulator_CloneStateIsolatesReserves(t *testing.T) {
 	sim := mustSim(t, ladders, big.NewInt(9e18), big.NewInt(30000e6))
 
 	cloned := sim.CloneState().(*PoolSimulator)
-	limit := swaplimit.NewInventory(DexType, sim.CalculateLimit())
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
 	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1e18)},
 		TokenOut:      testUSDC,

@@ -150,7 +150,7 @@ func TestTesseraDebugFailingCases(t *testing.T) {
 				fmt.Printf("Quoter output: %s\n", quoterRes.AmountOut.String())
 			}
 
-			limit := swaplimit.NewInventory("tessera", sim.CalculateLimit())
+			limit := pool.AsSwapLimitBig(swaplimit.NewInventory("tessera", swaplimit.ToU256Balances(sim.CalculateLimit())))
 
 			simRes, simErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
@@ -220,7 +220,7 @@ func TestTesseraMultipleSwapsVsSingleSwap(t *testing.T) {
 
 	sim2 := sim1.CloneState()
 
-	limit1 := swaplimit.NewInventory("tessera", sim1.CalculateLimit())
+	limit1 := pool.AsSwapLimitBig(swaplimit.NewInventory("tessera", swaplimit.ToU256Balances(sim1.CalculateLimit())))
 	totalOut1 := big.NewInt(0)
 	for range numSwaps {
 		res, err := sim1.CalcAmountOut(pool.CalcAmountOutParams{
@@ -242,7 +242,7 @@ func TestTesseraMultipleSwapsVsSingleSwap(t *testing.T) {
 	res2, err := sim2.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: p.Tokens[0].Address, Amount: totalAmount},
 		TokenOut:      p.Tokens[1].Address,
-		Limit:         swaplimit.NewInventory("tessera", sim2.CalculateLimit()),
+		Limit:         pool.AsSwapLimitBig(swaplimit.NewInventory("tessera", swaplimit.ToU256Balances(sim2.CalculateLimit()))),
 	})
 
 	if err == nil {

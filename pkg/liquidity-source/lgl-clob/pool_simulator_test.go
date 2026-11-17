@@ -726,7 +726,7 @@ func TestPoolSimulator_SharedMakerLimit(t *testing.T) {
 		}
 	}
 	require.Len(t, limits, 2, "the pools of one market maker share its keys, and a pool without one has none")
-	limit := swaplimit.NewInventory(valueobject.ExchangeHanji, limits)
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(valueobject.ExchangeHanji, swaplimit.ToU256Balances(limits)))
 
 	wxtz, weth := first.Info.Tokens[0], first.Info.Tokens[1]
 	quote := func(sim *PoolSimulator, amount string, limit pool.SwapLimitBig) (pool.TokenAmount,

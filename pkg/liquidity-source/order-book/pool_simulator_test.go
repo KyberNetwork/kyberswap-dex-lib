@@ -154,7 +154,7 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 
 			var limit pool.SwapLimitBig
 			if !errors.Is(tt.expectedErr, ErrNoSwapLimit) {
-				limit = swaplimit.NewInventory("pmm-1", poolSimulator.CalculateLimit())
+				limit = pool.AsSwapLimitBig(swaplimit.NewInventory("pmm-1", swaplimit.ToU256Balances(poolSimulator.CalculateLimit())))
 			}
 
 			params := pool.CalcAmountOutParams{
@@ -269,7 +269,7 @@ func TestPoolSimulator_MultiSwap(t *testing.T) {
 			sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool})
 			require.NoError(t, err)
 
-			limit := swaplimit.NewInventory("pmm-1", sim.CalculateLimit())
+			limit := pool.AsSwapLimitBig(swaplimit.NewInventory("pmm-1", swaplimit.ToU256Balances(sim.CalculateLimit())))
 
 			var errSequential error
 			for range tt.numberOfSwaps {
@@ -301,7 +301,7 @@ func TestPoolSimulator_MultiSwap(t *testing.T) {
 			sim2, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool2})
 			require.NoError(t, err)
 
-			limit2 := swaplimit.NewInventory("pmm-1", sim2.CalculateLimit())
+			limit2 := pool.AsSwapLimitBig(swaplimit.NewInventory("pmm-1", swaplimit.ToU256Balances(sim2.CalculateLimit())))
 
 			totalAmount := new(big.Int).Mul(tt.amountPerSwap, big.NewInt(int64(tt.numberOfSwaps)))
 

@@ -2,8 +2,9 @@ package swaplimit
 
 import (
 	"maps"
-	"math/big"
 	"sync"
+
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -15,7 +16,7 @@ type InventoryWithAllowedSenders struct {
 
 func NewInventoryWithAllowedSenders(
 	exchange string,
-	balance map[string]*big.Int,
+	balance map[string]*uint256.Int,
 	allowedSenders string,
 ) *InventoryWithAllowedSenders {
 	return &InventoryWithAllowedSenders{
@@ -32,12 +33,12 @@ func (i *InventoryWithAllowedSenders) GetAllowedSenders() string {
 
 func (i *InventoryWithAllowedSenders) UpdateLimit(
 	decreaseTokenAddress, increaseTokenAddress string,
-	decreaseDelta, increaseDelta *big.Int,
-) (*big.Int, *big.Int, error) {
+	decreaseDelta, increaseDelta *uint256.Int,
+) (*uint256.Int, *uint256.Int, error) {
 	return i.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)
 }
 
-func (i *InventoryWithAllowedSenders) Clone() pool.SwapLimitBig {
+func (i *InventoryWithAllowedSenders) Clone() pool.SwapLimit {
 	return &InventoryWithAllowedSenders{
 		exchange:       i.exchange,
 		lock:           &sync.RWMutex{},

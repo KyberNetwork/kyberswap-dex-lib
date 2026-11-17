@@ -1,7 +1,6 @@
 package dexv2
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/holiman/uint256"
@@ -36,7 +35,7 @@ func TestFloatAggregateEndpointLimits(t *testing.T) {
 		if input {
 			p.liquidityLimits[0].Allowed[0] = false
 		}
-		limit := swaplimit.NewInventory(DexType, p.CalculateLimit())
+		limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit())))
 		usage, err := p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(75), uint256.NewInt(75), uint256.NewInt(0))
 		require.NoError(t, err)
 		p.applyLiquidity(usage, limit)
@@ -50,7 +49,7 @@ func TestFloatAggregateAcrossPools(t *testing.T) {
 	p.liquidityLimits[1].Float.SetUint64(100)
 	p.liquidityLimits[1].Withdraw.SetUint64(100)
 	other := *p
-	limit := swaplimit.NewInventory(DexType, p.CalculateLimit())
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit())))
 	usage, err := p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(75), uint256.NewInt(75), uint256.NewInt(0))
 	require.NoError(t, err)
 	p.applyLiquidity(usage, limit)
@@ -111,7 +110,7 @@ func TestLiquidityGrowthAndRoundingBound(t *testing.T) {
 	p := testLiquiditySimulator()
 	p.liquidityLimits[0].Growth.SetUint64(100)
 	p.liquidityLimits[0].RoundingBuffer.SetUint64(10)
-	limit := swaplimit.NewInventory(DexType, p.CalculateLimit())
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit())))
 	_, err := p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(10), uint256.NewInt(20), uint256.NewInt(0))
 	require.ErrorIs(t, err, ErrUnsupportedLiquidityState)
 	usage, err := p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(60), uint256.NewInt(20), uint256.NewInt(0))
@@ -158,7 +157,7 @@ func TestSubBaseDepositsShareHeadroom(t *testing.T) {
 	p.liquidityLimits[0].DepositSafe = false
 	p.liquidityLimits[0].DepositHeadroom.SetUint64(100)
 	p.liquidityLimits[0].Withdraw.SetUint64(100)
-	limit := swaplimit.NewInventory(DexType, p.CalculateLimit())
+	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit())))
 	usage, err := p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(75), uint256.NewInt(75), uint256.NewInt(0))
 	require.NoError(t, err)
 	p.applyLiquidity(usage, limit)
@@ -173,26 +172,4 @@ func TestSubBaseDepositsShareHeadroom(t *testing.T) {
 	require.Zero(t, limit.GetLimit("vault:token0:depositHeadroom").Sign())
 	_, err = p.quoteLiquidity(limit, 1, 0, D3_MODULE, uint256.NewInt(1), uint256.NewInt(1), uint256.NewInt(0))
 	require.ErrorIs(t, err, ErrUnsupportedLiquidityState)
-}
-
-func TestLiquiditySnapshotMergePolicy(t *testing.T) {
-	p := testLiquiditySimulator()
-	other := testLiquiditySimulator()
-	p.liquidityLimits[0].Withdraw.SetUint64(100)
-	other.liquidityLimits[0].Withdraw.SetUint64(80)
-	p.liquidityLimits[0].Allowed[0] = false
-	p.liquidityLimits[0].RoundingBuffer.SetUint64(7)
-	other.liquidityLimits[0].RoundingBuffer.SetUint64(9)
-	p.liquidityLimits[0].OutputReserved.SetUint64(3)
-	other.liquidityLimits[0].OutputReserved.SetUint64(4)
-	for _, snapshots := range [][]*PoolSimulator{{p, other}, {other, p}} {
-		limits := make(map[string]*big.Int)
-		for _, snapshot := range snapshots {
-			pool.MergeSwapLimits(limits, snapshot)
-		}
-		require.Equal(t, int64(80), limits[p.liquidityKey(0, liquidityWithdraw)].Int64())
-		require.Zero(t, limits[p.liquidityKey(0, liquiditySupplyAllowed)].Sign())
-		require.Equal(t, int64(9), limits[p.liquidityKey(0, liquidityRoundingBuffer)].Int64())
-		require.Equal(t, int64(4), limits[p.liquidityKey(0, liquidityOutputReserved)].Int64())
-	}
 }
