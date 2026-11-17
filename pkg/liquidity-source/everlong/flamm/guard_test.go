@@ -12,6 +12,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -218,7 +219,7 @@ func curveOnly(_ *world, fp *fakePool, _ *Config) {
 		case i == 0 && a.Cmp(big.NewInt(5_000_000_000)) <= 0:
 			return sale(from, i, j, a)
 		case i == 1:
-			return buy(from, i, j, minBig(a, big.NewInt(1_000_000_000_000)))
+			return buy(from, i, j, bignumber.Min(a, big.NewInt(1_000_000_000_000)))
 		}
 		return nil, nil, false
 	}

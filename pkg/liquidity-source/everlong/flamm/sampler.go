@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
@@ -428,18 +429,18 @@ func samplerLimits(capGas uint64) sampleLimits {
 func seedsOf(decimals int, capIn *big.Int, last *Ladder, fresh, rungs int) []*big.Int {
 	ceil := maxAsk
 	if capIn != nil {
-		ceil = minBig(capIn, maxAsk)
+		ceil = bignumber.Min(capIn, maxAsk)
 	}
-	floor := minBig(pow10(decimals-3), ceil)
-	from, to, n := floor, minBig(pow10(decimals+9), ceil), fresh
+	floor := bignumber.Min(bignumber.TenPowInt(max(decimals-3, 0)), ceil)
+	from, to, n := floor, bignumber.Min(bignumber.TenPowInt(decimals+9), ceil), fresh
 	var below *big.Int
 	if last != nil && len(last.Points) != 0 {
 		x0, top := last.Points[0][0], last.Points[len(last.Points)-1]
 		if x0 != nil && top[0] != nil && top[1] != nil && top[1].CmpUint64(dustOut) >= 0 {
 			first, end := x0.ToBig(), top[0].ToBig()
 			below = maxBig(new(big.Int).Rsh(first, 3), floor)
-			from = minBig(first, ceil)
-			to = minBig(maxBig(new(big.Int).Lsh(end, 3), new(big.Int).Lsh(first, 1)), ceil)
+			from = bignumber.Min(first, ceil)
+			to = bignumber.Min(maxBig(new(big.Int).Lsh(end, 3), new(big.Int).Lsh(first, 1)), ceil)
 			n = rungs
 		}
 	}
@@ -841,17 +842,6 @@ func geometric(lo, hi *big.Int, n int) []*big.Int {
 		}
 	}
 	return out
-}
-
-func pow10(e int) *big.Int {
-	return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(max(e, 0))), nil)
-}
-
-func minBig(a, b *big.Int) *big.Int {
-	if a.Cmp(b) <= 0 {
-		return a
-	}
-	return b
 }
 
 func maxBig(a, b *big.Int) *big.Int {

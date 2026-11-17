@@ -31,6 +31,8 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // FlammSampler's and MaxOfTwoPool's code, pinned over the decoded runtime and over the source: a rebuild that moves a
@@ -169,16 +171,16 @@ func (s m2Slots) at(slot uint64) *big.Int {
 	return new(big.Int)
 }
 
-func ten(m int64, e int) *big.Int { return new(big.Int).Mul(big.NewInt(m), pow10(e)) }
+func ten(m int64, e int) *big.Int { return new(big.Int).Mul(big.NewInt(m), bignumber.TenPowInt(e)) }
 
 // m2Base is a pool of a d0- and a d1-decimal token, token 0 at `price` dollars, and its hook's leverage row: spread
 // 1.75 %, spreadDn 1.3 %, caps of 0.5 % up and 2 % down inside a 5 % band, at a live band of 8 %. The leverage route
 // pays the small fills of both directions and the curve the large ones.
 func m2Base(d0, d1 int, price int64) m2Slots {
 	addr := func(a common.Address) *big.Int { return new(big.Int).SetBytes(a[:]) }
-	p36 := new(big.Int).Mul(big.NewInt(price), pow10(d1+36))
+	p36 := new(big.Int).Mul(big.NewInt(price), bignumber.TenPowInt(d1+36))
 	return m2Slots{}.with(0, addr(m2Token0), 1, addr(m2Token1), m2Taker, addr(defaultTaker), m2Band, ten(8, 16),
-		m2Usd0, ten(price, 18), m2Usd1, ten(1, 18), m2P36, p36.Quo(p36, pow10(d0)), m2CurveFee, 12644526805792593,
+		m2Usd0, ten(price, 18), m2Usd1, ten(1, 18), m2P36, p36.Quo(p36, bignumber.TenPowInt(d0)), m2CurveFee, 12644526805792593,
 		m2Bid, ten(736, 15), m2CV, ten(23, 22), m2Legs0, 117098252, m2Legs0+2, 192927801, m2Legs1+3, 80231847915,
 		m2Sale+rtCurveR, ten(745, 10), m2Sale+rtCurveX, ten(1, 10), m2Sale+rtLevR, ten(750*229, 7),
 		m2Sale+rtLevX, ten(229, 7),
@@ -1167,7 +1169,7 @@ func TestSamplerLadderNeverQuotesMoreThanThePool(t *testing.T) {
 		joinSizes = append(joinSizes, big.NewInt(j0+k))
 	}
 	for e := 3; e <= 9; e++ {
-		joinSizes = append(joinSizes, new(big.Int).Add(big.NewInt(j0), pow10(e)))
+		joinSizes = append(joinSizes, new(big.Int).Add(big.NewInt(j0), bignumber.TenPowInt(e)))
 	}
 	holes := base.with(m2Sale+rtHoleMod, 7, m2Sale+rtHoleRem, 3, m2Buy+rtHoleMod, 7, m2Buy+rtHoleRem, 3)
 	rowA := holes.with(m2Params+pmDnCap, ten(1, 15), m2Params+pmBand, ten(1, 15), m2Sale+rtLevR, ten(7556, 12),
@@ -1243,7 +1245,7 @@ func TestSamplerLadderNeverQuotesMoreThanThePool(t *testing.T) {
 				for _, a := range tiered {
 					p := n.preview(t, true, a)
 					lo, hi := r.limits(p[0])
-					room := minBig(new(big.Int).Sub(p[1], lo), new(big.Int).Sub(hi, p[1]))
+					room := bignumber.Min(new(big.Int).Sub(p[1], lo), new(big.Int).Sub(hi, p[1]))
 					if room.Cmp(r.need) > 0 && room.Cmp(r.margin(p[0], p[1])) < 0 {
 						mid = append(mid, a)
 					}

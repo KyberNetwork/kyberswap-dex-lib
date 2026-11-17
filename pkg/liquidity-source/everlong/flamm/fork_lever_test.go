@@ -19,6 +19,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // testdata/base-fork-lever.json.gz is the calm fixture's two pools after three sales, so that the leverage route wins
@@ -160,7 +161,7 @@ func forkTolerance(sale bool, req []*big.Int, cvWad *big.Int, params []*big.Int,
 	}
 	p36 := new(big.Int)
 	if usd1.Sign() != 0 {
-		p36.Mul(usd0, pow10(int(d1))).Mul(p36, e36).Quo(p36, new(big.Int).Mul(usd1, pow10(int(d0))))
+		p36.Mul(usd0, bignumber.TenPowInt(int(d1))).Mul(p36, e36).Quo(p36, new(big.Int).Mul(usd1, bignumber.TenPowInt(int(d0))))
 	}
 	legs := func(k ...int) *big.Int {
 		s := new(big.Int)
@@ -178,10 +179,10 @@ func forkTolerance(sale bool, req []*big.Int, cvWad *big.Int, params []*big.Int,
 		r, _ := new(big.Float).SetInt(x).Float64()
 		return r
 	}
-	ax := float64(f(params[0])/1e18) * (f(minBig(params[1], params[2]))/1e18 - 1)
+	ax := float64(f(params[0])/1e18) * (f(bignumber.Min(params[1], params[2]))/1e18 - 1)
 	book := 1 + 1/ax
 	root := math.Sqrt(float64(f(usd0)*math.Pow10(18-int(d0))) / f(usd1))
-	cv := new(big.Int).Quo(cvWad, pow10(18-int(d1))) // levState's words are WAD-scaled
+	cv := new(big.Int).Quo(cvWad, bignumber.TenPowInt(18-int(d1))) // levState's words are WAD-scaled
 	if !sale {
 		n := new(big.Int)
 		if !unread {

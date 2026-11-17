@@ -241,3 +241,27 @@ func TestSimulatorUpdateBalanceWithWrongSwapInfoStillMarksTheDirection(t *testin
 	require.NoError(t, err, "the other direction keeps its first fill")
 	require.Positive(t, back.TokenAmountOut.Amount.Sign())
 }
+
+func BenchmarkCalcAmountOut(b *testing.B) {
+	s, err := NewPoolSimulator(pool.FactoryParams{EntityPool: testEntity(time.Now().Unix())})
+	require.NoError(b, err)
+	params := pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: cbBTC, Amount: big.NewInt(500_000)}, TokenOut: usdc}
+	b.ReportAllocs()
+	for b.Loop() {
+		_, _ = s.CalcAmountOut(params)
+	}
+}
+
+func BenchmarkFillAndClone(b *testing.B) {
+	s, err := NewPoolSimulator(pool.FactoryParams{EntityPool: testEntity(time.Now().Unix())})
+	require.NoError(b, err)
+	in := pool.TokenAmount{Token: cbBTC, Amount: big.NewInt(500_000)}
+	b.ReportAllocs()
+	for b.Loop() {
+		c := s.CloneState().(*PoolSimulator)
+		res, _ := c.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: in, TokenOut: usdc})
+		c.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: in, TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee,
+			SwapInfo: res.SwapInfo})
+	}
+}

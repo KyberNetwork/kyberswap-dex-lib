@@ -20,6 +20,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -76,7 +77,7 @@ func testWorld() *world {
 			case i == 0 && j == 1 && a.Cmp(big.NewInt(5_000_000_000)) <= 0:
 				return btcUsd(from, i, j, a)
 			case i == 1 && j == 0:
-				return usdBtc(from, i, j, minBig(a, big.NewInt(1_000_000_000_000)))
+				return usdBtc(from, i, j, bignumber.Min(a, big.NewInt(1_000_000_000_000)))
 			case i == 2 && j == 1 && a.Cmp(big.NewInt(500_000_000_000)) <= 0:
 				return usdtUsd(from, i, j, a)
 			}
@@ -273,7 +274,7 @@ func TestTrackerNextRefreshSizesFromTheLastLadder(t *testing.T) {
 		require.True(t, ok)
 		x0, top := l.Points[0][0].ToBig(), l.Points[len(l.Points)-1][0].ToBig()
 		seeds := a.Seeds
-		if under := maxBig(new(big.Int).Rsh(x0, 3), pow10(int(fp.tokens[d[0]].Decimals)-3)); under.Cmp(x0) < 0 {
+		if under := maxBig(new(big.Int).Rsh(x0, 3), bignumber.TenPowInt(int(fp.tokens[d[0]].Decimals)-3)); under.Cmp(x0) < 0 {
 			require.Equal(t, under, seeds[0], "direction %v: one size an eighth of the last first point", d)
 			seeds, below = seeds[1:], below+1
 		}

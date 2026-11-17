@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func strs(v []*big.Int) []string {
@@ -97,7 +98,7 @@ func TestTrackerLowersAFirstPointARefreshRaised(t *testing.T) {
 	want := firstOf(p)
 	require.GreaterOrEqual(t, want.Cmp(big.NewInt(200_000_000)), 0)
 	moving.Store(false)
-	floor := pow10(8 - 3)
+	floor := bignumber.TenPowInt(8 - 3)
 	var falls int
 	for want.Cmp(floor) > 0 {
 		require.Less(t, falls, 8, "the first point reaches the floor")

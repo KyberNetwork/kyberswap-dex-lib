@@ -9,6 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // fakePool is one pool of the fake chain, answering the reads the lister and the tracker send.
@@ -424,7 +426,7 @@ func tierWorldFrom(saleFrom, buyFrom int64) (*world, *fakePool) {
 			out := new(big.Int).Mul(a, big.NewInt(995))
 			return a, out.Div(out, big.NewInt(1_000_000)), true
 		case i == 1:
-			return curveBuy(from, i, j, minBig(a, big.NewInt(1_000_000_000_000)))
+			return curveBuy(from, i, j, bignumber.Min(a, big.NewInt(1_000_000_000_000)))
 		}
 		return nil, nil, false
 	}

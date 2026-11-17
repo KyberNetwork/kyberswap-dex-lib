@@ -3,6 +3,8 @@ package everlongflamm
 import (
 	"math/big"
 	"slices"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // probeStatus is how one previewSwap answered.
@@ -304,16 +306,16 @@ func newRoom(in settleIn) *room {
 	leg := func(k int) *big.Int { return orZero(w.legs[k]) }
 	r := &room{sale: in.sale, p36: new(big.Int), decIn: in.decIn, decOut: in.decOut}
 	if usd1.Sign() != 0 {
-		num := new(big.Int).Mul(usd0, pow10(int(d1)))
+		num := new(big.Int).Mul(usd0, bignumber.TenPowInt(int(d1)))
 		num.Mul(num, e36)
-		r.p36.Div(num, new(big.Int).Mul(usd1, pow10(int(d0))))
+		r.p36.Div(num, new(big.Int).Mul(usd1, bignumber.TenPowInt(int(d0))))
 	}
 	r.v = new(big.Int).Add(leg(4), leg(5))
 	r.v.Add(r.v, leg(6))
 	if band.Sign() == 0 || usdIn.Sign() == 0 || usdOut.Sign() == 0 || r.p36.Sign() == 0 || !in.sale && r.v.Sign() == 0 {
 		return nil
 	}
-	r.b = minBig(orZero(in.rowBand), band)
+	r.b = bignumber.Min(orZero(in.rowBand), band)
 	u := big.NewInt(1)
 	if in.sale {
 		u.Quo(r.p36, e36).Add(u, one)
@@ -356,13 +358,13 @@ func (r *room) limits(used *big.Int) (lo, hi *big.Int) {
 func (r *room) margin(used, out *big.Int) *big.Int {
 	m := new(big.Int).Set(r.need)
 	if r.sale {
-		bracket := new(big.Int).Mul(used, pow10(int(r.decOut)))
+		bracket := new(big.Int).Mul(used, bignumber.TenPowInt(int(r.decOut)))
 		m.Add(m, bracket.Div(bracket, e36))
 		return m.Add(m, one)
 	}
 	book := new(big.Int).Add(r.v, r.n)
 	m.Add(m, book.Div(book, e16))
-	bracket := new(big.Int).Mul(out, pow10(int(r.decIn)))
+	bracket := new(big.Int).Mul(out, bignumber.TenPowInt(int(r.decIn)))
 	m.Add(m, bracket.Div(bracket, r.p36))
 	return m.Add(m, one)
 }
@@ -384,7 +386,7 @@ func (r hookRow) tiers() []*big.Int {
 // spread of at least minSpreadWad, and each cap inside the band by capMarginWad, at the tighter of the row's band and
 // the pool's live one. A row that fails it is routed on the curve's points only.
 func rowOk(r hookRow, liveBand *big.Int) bool {
-	b := minBig(orZero(r.band), orZero(liveBand))
+	b := bignumber.Min(orZero(r.band), orZero(liveBand))
 	if b.Sign() == 0 || orZero(r.dnCap).Sign() == 0 || orZero(r.upCap).Sign() == 0 ||
 		orZero(r.spreadDn).Cmp(big.NewInt(minSpreadWad)) < 0 {
 		return false
