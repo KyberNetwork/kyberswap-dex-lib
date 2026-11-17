@@ -21,7 +21,7 @@ type Hook struct {
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	return &Hook{
-		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4},
+		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4OzLimitOrder},
 	}
 }, HookAddresses...)
 

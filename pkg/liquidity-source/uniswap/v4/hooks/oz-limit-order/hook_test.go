@@ -30,6 +30,7 @@ func TestHookIsRegistered(t *testing.T) {
 		hook, ok := uniswapv4.GetHook(addr, nil)
 		require.True(t, ok)
 		require.IsType(t, &Hook{}, hook)
+		require.Equal(t, valueobject.ExchangeUniswapV4OzLimitOrder, hook.GetExchange())
 		require.True(t, hook.CanAfterSwap(addr))
 		require.False(t, hook.CanBeforeSwap(addr))
 		before, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{})
@@ -62,4 +63,13 @@ func TestCloneStateKeepsHook(t *testing.T) {
 	res, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: in, TokenOut: "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"})
 	require.NoError(t, err)
 	require.Equal(t, "53201999728098375278079", res.TokenAmountOut.Amount.String())
+}
+
+func BenchmarkCalcAmountOut(b *testing.B) {
+	in := pool.TokenAmount{Token: "0x754704bc059f8c67012fed69bc8a327a5aafb603", Amount: bignumber.NewBig10("20000000000")}
+	param := pool.CalcAmountOutParams{TokenAmountIn: in, TokenOut: "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"}
+	b.ReportAllocs()
+	for b.Loop() {
+		_, _ = poolSim.CalcAmountOut(param)
+	}
 }
