@@ -49,13 +49,14 @@ func TestTrack_NativeCurrencyPaysFromEthBalance(t *testing.T) {
 	require.NoError(t, json.Unmarshal(raw, &f))
 
 	staticExtra, err := json.Marshal(uniswapv4.StaticExtra{IsNative: [2]bool{true, false},
-		HooksAddress: common.HexToAddress(f.Hook), Multicall3Address: common.HexToAddress(f.Multicall3)})
+		HooksAddress: common.HexToAddress(f.Hook)})
 	require.NoError(t, err)
 	stub := testutil.NewMulticallStub(t, testutil.RecordedCalls(t, f.Calls)).At(f.Block, f.Timestamp)
 	hookAddress := common.HexToAddress(f.Hook)
 	hook, ok := uniswapv4.GetHook(hookAddress, nil)
 	require.True(t, ok)
 	hookExtra, err := hook.Track(t.Context(), &uniswapv4.HookParam{
+		Cfg:       &uniswapv4.Config{Multicall3Address: f.Multicall3},
 		RpcClient: stub.Client(),
 		Pool: &entity.Pool{Address: f.Pool, StaticExtra: string(staticExtra), Tokens: []*entity.PoolToken{
 			{Address: "0x4200000000000000000000000000000000000006"}, {Address: f.Currency1}}},

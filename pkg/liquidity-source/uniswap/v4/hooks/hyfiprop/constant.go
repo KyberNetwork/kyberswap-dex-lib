@@ -30,9 +30,6 @@ var (
 	ErrUnexpectedResponse    = errors.New("hyfi: unexpected RPC response")
 )
 
-// defaultMulticall3 reads the ETH balance of a pool without a Multicall3 address of its own.
-var defaultMulticall3 = common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")
-
 // HookAddresses are the HyFi contracts: Base, Robinhood (4663) and Arbitrum.
 var HookAddresses = []common.Address{
 	common.HexToAddress("0xB23F731949145E158E656e1Abe128c5e617A6888"), // base

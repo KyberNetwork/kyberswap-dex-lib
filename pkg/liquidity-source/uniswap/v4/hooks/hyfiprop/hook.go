@@ -1,7 +1,6 @@
 package hyfiprop
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"math/big"
@@ -82,8 +81,8 @@ func (h *Hook) GetReserves(context.Context, *uniswapv4.HookParam) (entity.PoolRe
 // Track reads the config, both book sides and the contract balances in one multicall, so they
 // come from a single block.
 //
-// A native currency is paid out of the contract's ETH balance, which Multicall3 reads. The pool
-// lists the wrapped native in its place, whose balance the contract does not pay from.
+// A native currency is paid out of the contract's ETH balance, which the dex's Multicall3 reads.
+// The pool lists the wrapped native in its place, whose balance the contract does not pay from.
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	if len(param.Pool.Tokens) != 2 {
 		return nil, ErrUnexpectedResponse
@@ -92,7 +91,6 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	if err := json.Unmarshal([]byte(param.Pool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
-	multicall3 := cmp.Or(staticExtra.Multicall3Address, defaultMulticall3)
 
 	poolId := common.HexToHash(param.Pool.Address)
 	hookAddr := hexutil.Encode(param.HookAddress[:])
@@ -107,7 +105,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		req.AddCall(&ethrpc.Call{ABI: hyfiABI, Target: hookAddr, Method: "getBookSideRaw",
 			Params: []any{poolId, i == sideBid}}, []any{&books[i]})
 		if staticExtra.IsNative[i] {
-			req.AddCall(&ethrpc.Call{ABI: abi.Multicall3ABI, Target: multicall3.Hex(),
+			req.AddCall(&ethrpc.Call{ABI: abi.Multicall3ABI, Target: param.Cfg.Multicall3Address,
 				Method: abi.Multicall3GetEthBalance, Params: []any{param.HookAddress}}, []any{&bals[i]})
 		} else {
 			req.AddCall(&ethrpc.Call{ABI: hyfiABI, Target: param.Pool.Tokens[i].Address, Method: "balanceOf",
