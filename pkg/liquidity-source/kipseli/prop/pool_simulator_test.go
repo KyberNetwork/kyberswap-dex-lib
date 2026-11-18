@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -49,16 +50,16 @@ func mustSim(t *testing.T, ladders [2][]ladder.Point, bal0, bal1 *big.Int) *Pool
 
 func calcOut(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut string, amountIn *big.Int) (*big.Int, error) {
 	t.Helper()
-	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
+	limit := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit()))
+	res, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: *uint256.MustFromBig(amountIn)},
 		TokenOut:      tokenOut,
 		Limit:         limit,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return res.TokenAmountOut.Amount, nil
+	return res.TokenAmountOut.Amount.ToBig(), nil
 }
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
