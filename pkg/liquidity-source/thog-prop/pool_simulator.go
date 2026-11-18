@@ -128,7 +128,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		units uint256.Int
 	}{{swap.InputIndex, swap.InputUnits}, {swap.OutputIndex, swap.OutputUnits}} {
 		s.state.setAccountedUnits(endpoint.index, endpoint.units)
-		if isXStock(s.state.Tokens[endpoint.index].Address) {
+		if s.state.shareBased(endpoint.index) {
 			s.state.Shares[endpoint.index].Shares = endpoint.units
 		}
 	}
@@ -153,7 +153,7 @@ func (s *PoolSimulator) quoteContext(nowMs int64) (block uint64, ageMs int64, er
 		ageMs = nowMs - s.capturedAtMs
 	} else if s.capturedAtMs > 0 && nowMs >= 0 && s.capturedAtMs-nowMs <= clockSkewAllowanceMs {
 		// Tolerate a small cross-host clock offset only for future captures.
-		// Positive ages, the backstop, and the on-chain cutoff are unchanged.
+		// Positive ages, the backstop, and the on-chain cutoff are unaffected.
 		ageMs = 0
 	}
 	var elapsed uint64
@@ -171,7 +171,7 @@ func (s *PoolSimulator) quoteContext(nowMs int64) (block uint64, ageMs int64, er
 	}
 	block = s.state.BlockNumber + elapsed + executionAgeLookahead
 	if !s.noStaleCheck {
-		posted, maxAge := s.state.small(2, 36, 32), s.state.small(2, 138, 8)
+		posted, maxAge := s.state.small(controlBlock), s.state.small(controlMaxAge)
 		if ageMs > s.maxSnapshotAgeMs || (posted > 0 && posted <= block && maxAge > 0 && block-posted > maxAge) {
 			err = ErrStaleSnapshot
 		}

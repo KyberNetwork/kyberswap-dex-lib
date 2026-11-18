@@ -16,7 +16,7 @@ import (
 func TestListerListsEveryConfiguredFactorysPoolsOnce(t *testing.T) {
 	w := testWorld()
 	two := func(f string) *fakePool {
-		return &fakePool{factory: common.HexToAddress(f), listed: true, version: 1,
+		return &fakePool{factory: common.HexToAddress(f), listed: true,
 			tokens: []tokenConfig{tokenCfg(usdc, 6), tokenCfg(usdt, 6)}}
 	}
 	pY, pZ := common.HexToAddress("0xa2"), common.HexToAddress("0xa3")
