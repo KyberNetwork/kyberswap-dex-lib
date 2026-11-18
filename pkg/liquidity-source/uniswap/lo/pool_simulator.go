@@ -146,6 +146,31 @@ func (p *PoolSimulator) GetAllAmountInToTake(tokenIn string) ([]*big.Int, error)
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	res, err := p.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
+			Token:     param.TokenAmountIn.Token,
+			Amount:    *number.SetFromBig(param.TokenAmountIn.Amount),
+			AmountUsd: param.TokenAmountIn.AmountUsd,
+		},
+		TokenOut: param.TokenOut,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: res.TokenAmountOut.Token, Amount: res.TokenAmountOut.Amount.ToBig()},
+		Fee:            &pool.TokenAmount{Token: res.Fee.Token, Amount: res.Fee.Amount.ToBig()},
+		Gas:            res.Gas,
+		SwapInfo:       res.SwapInfo,
+		RemainingTokenAmountIn: &pool.TokenAmount{
+			Token:  res.RemainingTokenAmountIn.Token,
+			Amount: res.RemainingTokenAmountIn.Amount.ToBig(),
+		},
+	}, nil
+}
+
+func (p *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 
@@ -161,7 +186,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	// Filter orders to only keep those with taking amount <= input amount
-	amountIn := number.SetFromBig(tokenAmountIn.Amount)
+	amountIn := &tokenAmountIn.Amount
 	filteredOrders := make([]*DutchOrder, 0, len(orders))
 	for _, order := range orders {
 		if order.Outputs[0].StartAmount.Cmp(amountIn) <= 0 {
@@ -176,10 +201,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	totalAmountOut := number.Set(number.Zero)
-	remainingAmountIn := number.SetFromBig(tokenAmountIn.Amount)
+	remainingAmountIn := number.Set(amountIn)
 
 	swapInfo := SwapInfo{
-		AmountIn:     tokenAmountIn.Amount.String(),
+		AmountIn:     tokenAmountIn.Amount.Dec(),
 		SwapSide:     swapSide,
 		FilledOrders: []*DutchOrder{},
 	}
@@ -240,20 +265,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrCannotFulfillAmountIn
 	}
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: totalAmountOut.ToBig(),
-		},
-		Fee: &pool.TokenAmount{
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *totalAmountOut},
+		Fee:            &pool.TokenAmt{Token: tokenAmountIn.Token, Amount: *number.Zero},
+		Gas:            p.estimateGas(len(swapInfo.FilledOrders)),
+		SwapInfo:       swapInfo,
+		RemainingTokenAmountIn: &pool.TokenAmt{
 			Token:  tokenAmountIn.Token,
-			Amount: integer.Zero(),
-		},
-		Gas:      p.estimateGas(len(swapInfo.FilledOrders)),
-		SwapInfo: swapInfo,
-		RemainingTokenAmountIn: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: remainingAmountIn.ToBig(),
+			Amount: *remainingAmountIn,
 		},
 	}, nil
 }
