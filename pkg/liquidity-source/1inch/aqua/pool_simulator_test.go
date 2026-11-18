@@ -875,7 +875,7 @@ func BenchmarkCalcAmountOutUpdateBalance(b *testing.B) {
 	b.ReportAllocs()
 	for range b.N {
 		clone := sim.CloneState()
-		res, err := pool.DefaultCalcAmtOut(context.Background(), clone, params.TokenAmountIn, params.TokenOut, params.Limit)
+		res, err := pool.DefaultCalcAmtOut(context.Background(), clone, params.TokenAmountIn, params.TokenOut, nil)
 		if err != nil {
 			b.Fatal(err)
 		}

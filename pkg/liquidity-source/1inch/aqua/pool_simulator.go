@@ -162,14 +162,46 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if amountIn.SetFromBig(params.TokenAmountIn.Amount) {
 		return nil, ErrInvalidAmountIn
 	}
+	q, err := s.quoteOut(in, out, &amountIn, params.Limit)
+	if err != nil {
+		return nil, err
+	}
+	return &q.result, nil
+}
+
+// CalcAmtOut is CalcAmountOut in uint256: the amount in and the limit are uint256, and the amounts out are uint256.
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	in, out := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenOut)
+	if in < 0 || out < 0 || in == out {
+		return nil, ErrInvalidToken
+	}
+	if params.TokenAmountIn.Amount.IsZero() {
+		return nil, ErrInvalidAmountIn
+	}
+	amountIn := params.TokenAmountIn.Amount
+	q, err := s.quoteOut(in, out, &amountIn, pool.AsSwapLimitBig(params.Limit))
+	if err != nil {
+		return nil, err
+	}
+	info := q.result.SwapInfo.(*SwapInfo)
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: s.Info.Tokens[out], Amount: info.AmountOut},
+		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[in], Amount: info.FeeCollected},
+		Gas:            q.result.Gas,
+		SwapInfo:       info,
+	}, nil
+}
+
+// quoteOut runs the state guards and the quote for an amountIn that is already above zero.
+func (s *PoolSimulator) quoteOut(in, out int, amountIn *uint256.Int, limit pool.SwapLimitBig) (*quoteAlloc, error) {
 	if err := s.checkQuotable(); err != nil {
 		return nil, err
 	}
 	q := new(quoteAlloc)
-	if err := s.quote(q, in, out, &amountIn, params.Limit); err != nil {
+	if err := s.quote(q, in, out, amountIn, limit); err != nil {
 		return nil, err
 	}
-	return &q.result, nil
+	return q, nil
 }
 
 // checkQuotable refuses a strategy that is terminal, has no wallet snapshot or holds a mixed-block state.
