@@ -55,7 +55,7 @@ func requireRange(t *testing.T, lower, upper, denominator string, r PriceRange) 
 	require.Equal(t, denominator, r.Upper.Denominator.Dec())
 }
 
-// TestAskBidRange: the vectors of NightlyPoolMath.t.sol. ETH is $2,000, the edges are -0.1% and
+// ETH is $2,000, the edges are -0.1% and
 // +0.1%, and both total spreads are 0.03%, so 1 ETH costs 1,998.5994 or 2,002.6006 USDC to buy
 // and pays 1,997.4006 or 2,001.3994 USDC to sell.
 func TestAskBidRange(t *testing.T) {
@@ -70,8 +70,7 @@ func TestAskBidRange(t *testing.T) {
 	requireQuote(t, 2_001_399_400, bid.Upper, oneEther)
 }
 
-// TestAskBidRange_Solidity: ranges that NightlyPoolMath computed in Solidity, for 6/6 decimals
-// with offsets, level spreads, and an oracle spread, and for a price above one native unit.
+// The Solidity reference values cover equal and different token decimals, offsets, and spreads.
 func TestAskBidRange_Solidity(t *testing.T) {
 	c := config(-10, 10, 2, 3)
 	usdcUsdt := mid(t, 1e8, 6, 6)
@@ -101,10 +100,7 @@ func TestAskBidRange_Error(t *testing.T) {
 	require.ErrorIs(t, err, ErrOverflow)
 }
 
-// TestLevelSteps_Solidity: steps that NightlyPoolMath computed in Solidity. The examples are the
-// ones in NightlyPoolMath.sol: a level from 2,000 to 2,002 with 10 ETH, and one from 1,998 to
-// 2,000 with 19,990 USDC. The others start inside a level, take a price above one native unit,
-// add spreads, or use a 0-decimal quote token.
+// The Solidity reference values cover partial fills, spreads, and different token decimals.
 func TestLevelSteps_Solidity(t *testing.T) {
 	ethUsdc := mid(t, 2_000e8, 18, 6)
 	usdcWeth := mid(t, 2_000e8, 6, 18)
@@ -173,15 +169,13 @@ func TestLevelSteps_Solidity(t *testing.T) {
 	}
 }
 
-// market is NightlyPoolMathFuzz._market: one level's ask and bid ranges, a start fraction, and its
-// base and quote depths.
 type market struct {
 	ask, bid              PriceRange
 	start                 Fraction
 	baseDepth, quoteDepth *uint256.Int
 }
 
-// randomMarket follows NightlyPoolMathFuzz._market: any nonzero oracle price, 0 to 18 decimals,
+// randomMarket uses nonzero prices, 0 to 18 token decimals,
 // lower offsets from -99.9999% to +100%, positive widths, extra spreads up to 65,535 millionths,
 // and a quote depth of at most 1e24 units, which keeps the square roots within uint256.
 func randomMarket(t *testing.T, r *rand.Rand) market {
@@ -234,7 +228,7 @@ func (m market) checkSell(t *testing.T, step Step) {
 	require.False(t, upperValue.Lt(&step.QuoteAmount), "sell above upper bid")
 }
 
-// TestBuyWithExactQuote_BoundsAndMonotonicity: NightlyPoolMathFuzz's buy properties. The buy spends
+// A buy spends
 // at most the offered quote, and all of it unless it drains the level. One more quote unit buys no
 // less base. The cost is at least the lower ask, and the upper ask value drains the level.
 func TestBuyWithExactQuote_BoundsAndMonotonicity(t *testing.T) {
@@ -262,7 +256,6 @@ func TestBuyWithExactQuote_BoundsAndMonotonicity(t *testing.T) {
 	}
 }
 
-// TestSellExactBase_BoundsAndMonotonicity: NightlyPoolMathFuzz's sell properties, mirrored.
 func TestSellExactBase_BoundsAndMonotonicity(t *testing.T) {
 	r := rand.New(rand.NewPCG(0x5eed, 8))
 	for range 2_000 {

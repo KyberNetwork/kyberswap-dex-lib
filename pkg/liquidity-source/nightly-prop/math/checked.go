@@ -1,9 +1,4 @@
-// Package math ports the math of the NightlyPool contract (evm_contracts/src/lib in the Nightly
-// trading engine) to Go, with the same integer results. Where the contract reverts, a function
-// here returns an error.
-//
-// The functions return uint256.Int values, not pointers, so that the results of a walk stay on the
-// stack: the router quotes a pool thousands of times per route.
+// Package math implements the pool's integer pricing and rounding rules.
 package math
 
 import "github.com/holiman/uint256"

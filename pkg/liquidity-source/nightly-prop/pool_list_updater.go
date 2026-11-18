@@ -26,14 +26,8 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolsListUp
 	if !common.IsHexAddress(cfg.RouterAddress) {
 		return nil, fmt.Errorf("%w: %q", ErrInvalidRouterAddress, cfg.RouterAddress)
 	}
-	if !common.IsHexAddress(cfg.PartnerAddress) {
-		return nil, fmt.Errorf("%w: %q", ErrInvalidPartnerAddress, cfg.PartnerAddress)
-	}
-	router, partner := common.HexToAddress(cfg.RouterAddress), common.HexToAddress(cfg.PartnerAddress)
-	staticExtra, err := json.Marshal(StaticExtra{
-		RouterAddress:  hexutil.Encode(router[:]),
-		PartnerAddress: hexutil.Encode(partner[:]),
-	})
+	router := common.HexToAddress(cfg.RouterAddress)
+	staticExtra, err := json.Marshal(StaticExtra{RouterAddress: hexutil.Encode(router[:])})
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +38,7 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolsListUp
 	}, nil
 }
 
-// GetNewPools returns one pool for each route of the router that the cursor does not hold. The pool
-// address is the NightlyPool proxy, and the tracker fills its reserves and state. On an error, it
-// returns the old cursor, so the next call reads the same routes again.
+// GetNewPools returns the router's pools added since the last discovery.
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var meta poolsListUpdaterMetadata
 	if len(metadataBytes) > 0 {
@@ -106,7 +98,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Exchange:  u.cfg.DexID,
 			Type:      DexType,
 			Timestamp: now,
-			Reserves:  entity.PoolReserves{"0", "0"},
+			Reserves:  entity.PoolReserves{"0", "0"}, // The tracker sets both reserves on the first refresh.
 			Tokens: []*entity.PoolToken{
 				{Address: hexutil.Encode(tokens[i].Base[:]), Swappable: true},
 				{Address: hexutil.Encode(tokens[i].Quote[:]), Swappable: true},

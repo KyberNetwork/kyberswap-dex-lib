@@ -1,15 +1,6 @@
 package nightlyprop
 
-// The EVM test compares the simulator's quotes with the compiled NightlyPool's own quotes in
-// go-ethereum's in-process EVM, with no RPC and no live pool. The tracker reads the state through
-// the compiled NightlyRouter. testdata/router-fixture-state.json.gz is the chain state that NightlyPropStateDumpTest
-// (evm_contracts/test in the Nightly trading engine) dumps from its router fixture, and
-// testdata/router-fixture.json names its accounts. To refresh them after a contract change:
-//
-//	cd evm_contracts && mkdir -p state-dumps
-//	NIGHTLY_PROP_STATE_DIR=state-dumps FOUNDRY_PROFILE=state-dump forge test --match-contract NightlyPropStateDumpTest
-//	gzip -9 -n -c state-dumps/router-fixture-state.json > <this package>/testdata/router-fixture-state.json.gz
-//	cp state-dumps/router-fixture.json <this package>/testdata/
+// These tests compare Go quotes with the compiled pool and router in a local EVM.
 
 import (
 	"compress/gzip"
@@ -40,6 +31,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 // evmGasLimit bounds each call, as a node bounds eth_call.
@@ -183,8 +175,7 @@ func (f *evmFixture) record(pool, base, quote common.Address) entity.Pool {
 			{Address: hexutil.Encode(base[:]), Swappable: true},
 			{Address: hexutil.Encode(quote[:]), Swappable: true},
 		},
-		StaticExtra: `{"routerAddress":"` + hexutil.Encode(f.accounts.Router[:]) + `","partnerAddress":"` +
-			hexutil.Encode(f.accounts.Partner[:]) + `"}`,
+		StaticExtra: `{"routerAddress":"` + hexAddress(f.accounts.Router) + `"}`,
 	}
 }
 
@@ -216,15 +207,15 @@ func (f *evmFixture) poolQuote(pool, tokenIn common.Address, amountIn *uint256.I
 // track refreshes the record of pool with the tracker, over the fixture's RPC.
 func (f *evmFixture) track(t *testing.T, pool, base, quote common.Address) entity.Pool {
 	t.Helper()
-	tracked, err := NewPoolTracker(&Config{}, f.client).GetNewPoolState(t.Context(), f.record(pool, base, quote),
+	tracker, err := NewPoolTracker(&Config{KyberExecutor: hexAddress(f.accounts.Partner)}, f.client)
+	require.NoError(t, err)
+	tracked, err := tracker.GetNewPoolState(t.Context(), f.record(pool, base, quote),
 		poolpkg.GetNewPoolStateParams{})
 	require.NoError(t, err)
 	return tracked
 }
 
-// simulator builds the simulator of a freshly tracked record. The fixture's price is from 1970,
-// so the simulator skips the age check, as with StaleCheck off; the contract checks the age
-// against the fixture's block time itself.
+// The fixture uses its saved block time for contract calls.
 func (f *evmFixture) simulator(t *testing.T, pool, base, quote common.Address) *PoolSimulator {
 	t.Helper()
 	sim, err := NewPoolSimulator(poolpkg.FactoryParams{EntityPool: f.track(t, pool, base, quote)})
@@ -238,6 +229,35 @@ func evmUnits(amount uint64, decimals uint8) *uint256.Int {
 
 func hexAddress(address common.Address) string {
 	return hexutil.Encode(address[:])
+}
+
+// A saved pool must follow the current executor when its permissions change.
+func TestEVM_TrackerUsesConfiguredExecutor(t *testing.T) {
+	f := loadEVMFixture(t)
+	a := f.accounts
+	record := f.record(a.WethUsdc, a.Weth, a.Usdc)
+	oldExecutor := "0x000000000000000000000000000000000000cafe"
+	record.StaticExtra = `{"routerAddress":"` + hexAddress(a.Router) + `","partnerAddress":"` + oldExecutor + `"}`
+
+	for _, tc := range []struct {
+		executor string
+		enabled  bool
+	}{{oldExecutor, false}, {hexAddress(a.Partner), true}} {
+		t.Run(tc.executor, func(t *testing.T) {
+			tracker, err := pooltrack.Factory(DexType)(DexType, pooltrack.FactoryParams{
+				Properties:   pooltrack.Properties{"kyberExecutor": tc.executor},
+				Dependencies: pooltrack.Dependencies{EthrpcClient: f.client},
+			})
+			require.NoError(t, err)
+			tracked, err := tracker.GetNewPoolState(t.Context(), record, poolpkg.GetNewPoolStateParams{})
+			require.NoError(t, err)
+			require.Equal(t, tc.enabled, tracked.HasReserves())
+			require.JSONEq(t, `{"routerAddress":"`+hexAddress(a.Router)+`","kyberExecutor":"`+tc.executor+`"}`, tracked.StaticExtra)
+			var extra Extra
+			require.NoError(t, json.Unmarshal([]byte(tracked.Extra), &extra))
+			require.Equal(t, tc.enabled, extra.PartnerRole)
+		})
+	}
 }
 
 // TestEVM_QuotesMatchPool: the tracked state lets the fixture's partner swap, and on every amount,

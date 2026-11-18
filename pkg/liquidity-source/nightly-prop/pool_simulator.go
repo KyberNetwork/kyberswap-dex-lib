@@ -15,11 +15,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// PoolSimulator quotes NightlyRouter.swapWithFees on one NightlyPool: the router swaps exactly the
-// input with the pool's swapExactIn, which walks the pool's levels. Token 0 is the pool's base and
-// token 1 its quote, so a quote input buys base and a base input sells it. Not modelled: exact-output
-// swaps, which the router does not offer, and the partner fee, which the caller passes to
-// swapWithFees.
+// PoolSimulator quotes exact-input swaps before any fee selected by the executor.
+// Token 0 is the base token and token 1 is the quote token.
 type PoolSimulator struct {
 	pool.Pool
 	Extra       Extra

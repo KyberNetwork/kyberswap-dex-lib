@@ -9,13 +9,11 @@ import (
 )
 
 type StaticExtra struct {
-	RouterAddress  string `json:"routerAddress"`
-	PartnerAddress string `json:"partnerAddress"`
+	RouterAddress string `json:"routerAddress"`
+	KyberExecutor string `json:"kyberExecutor,omitempty"` // Executor used for this snapshot.
 }
 
-// Extra is the pool's state that the router's getPoolStateV1 returned for the record's partner at
-// the record's BlockNumber. The record has zero reserves unless swapError finds no reason that the
-// partner's swaps revert. Marshal it through a pointer, as math.Pool requires.
+// Extra holds the pool state read for the configured executor at the record's block.
 type Extra struct {
 	Routed       bool `json:"routed"`
 	RouterPaused bool `json:"routerPaused"`
@@ -35,16 +33,12 @@ type Extra struct {
 	Pool  math.Pool        `json:"pool"`
 }
 
-// poolsListUpdaterMetadata is the cursor of GetNewPools: the pools that the router listed on the
-// last call. It is a set, because getRoutes returns the pools in no fixed order.
+// The discovery cursor is a set because the router can return routes in any order.
 type poolsListUpdaterMetadata struct {
 	KnownPools []string `json:"knownPools"`
 }
 
-// The rpc types below receive ABI outputs. The decoder copies several outputs into a struct by
-// name. It copies a single output into the first field of a struct, so a single tuple output goes
-// into a tuple, and the tuple's components are copied by field order.
-
+// The ABI decoder writes a single tuple result into the first field.
 type tuple[T any] struct {
 	Value T
 }

@@ -157,8 +157,7 @@ func BenchmarkPriceRange_PriceAt(b *testing.B) {
 	}
 }
 
-// BenchmarkLevel_BuyWithExactQuote: one level from 2,000 to 2,002 with 10 ETH, as in the
-// examples of NightlyPoolMath.sol.
+// This level holds 10 ETH between 2,000 and 2,002 USDC per ETH.
 func BenchmarkLevel_BuyWithExactQuote(b *testing.B) {
 	ask := askRange(b, config(0, 1_000, 0, 0), mid(b, fixtureMid, 18, 6), 0)
 	depth := scaled(b, 10, 18)

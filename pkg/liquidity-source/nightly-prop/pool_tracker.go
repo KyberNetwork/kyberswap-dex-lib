@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -17,21 +18,20 @@ import (
 )
 
 type PoolTracker struct {
+	executor     common.Address
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
-// NewPoolTracker takes no setting from cfg: each record names its router in StaticExtra.
-func NewPoolTracker(_ *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	return &PoolTracker{ethrpcClient: ethrpcClient}
+func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
+	if !common.IsHexAddress(cfg.KyberExecutor) {
+		return nil, fmt.Errorf("%w: %q", ErrInvalidKyberExecutor, cfg.KyberExecutor)
+	}
+	return &PoolTracker{executor: common.HexToAddress(cfg.KyberExecutor), ethrpcClient: ethrpcClient}, nil
 }
 
-// GetNewPoolState reads the pool's whole state for the record's partner with one getPoolStateV1
-// call to the record's router, so every value comes from one block, and the record's BlockNumber
-// is the router's number for that block. A pool whose swaps by the partner revert now, for example
-// a paused one or one with a missing role, gets zero reserves, and Extra keeps the flags that tell
-// why. A stale price keeps the reserves: the simulator checks the price's age when it quotes.
+// GetNewPoolState reads one snapshot for the configured Kyber executor.
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
@@ -44,15 +44,15 @@ func (t *PoolTracker) GetNewPoolState(
 	if len(p.Tokens) != 2 {
 		return p, fmt.Errorf("%w: %d tokens", ErrInvalidPoolRecord, len(p.Tokens))
 	}
-	if !common.IsHexAddress(staticExtra.PartnerAddress) {
-		return p, fmt.Errorf("%w: partner address %q", ErrInvalidPoolRecord, staticExtra.PartnerAddress)
+	if !common.IsHexAddress(staticExtra.RouterAddress) {
+		return p, fmt.Errorf("%w: router address %q", ErrInvalidPoolRecord, staticExtra.RouterAddress)
 	}
 
 	var out tuple[rpcPoolStateV1]
 	// getPoolStateV1 accepts only a simulation, whose origin is the zero address.
 	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(common.Address{}).
 		AddCall(&ethrpc.Call{ABI: routerABI, Target: staticExtra.RouterAddress, Method: routerMethodGetPoolStateV1,
-			Params: []any{common.HexToAddress(p.Address), common.HexToAddress(staticExtra.PartnerAddress)}},
+			Params: []any{common.HexToAddress(p.Address), t.executor}},
 			[]any{&out}).
 		Call(); err != nil {
 		return p, fmt.Errorf("nightly-prop: getPoolStateV1: %w", err)
@@ -70,6 +70,12 @@ func (t *PoolTracker) GetNewPoolState(
 	if err != nil {
 		return p, err
 	}
+	staticExtra.KyberExecutor = hexutil.Encode(t.executor[:])
+	staticBytes, err := json.Marshal(staticExtra)
+	if err != nil {
+		return p, err
+	}
+	p.StaticExtra = string(staticBytes)
 	p.Extra = string(extraBytes)
 	p.Reserves = extra.reserves()
 	p.BlockNumber = state.BlockNumber.Uint64()
@@ -77,8 +83,6 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-// newExtra converts the router's PoolStateV1 to the pool state that the math walks. A position
-// fraction above uint104 is an error, as the contract's type cannot hold it.
 func newExtra(state rpcPoolStateV1) (Extra, error) {
 	fraction, err := math.FractionFromRaw(uint256.MustFromBig(state.PositionFraction))
 	if err != nil {
@@ -126,10 +130,7 @@ func newExtra(state rpcPoolStateV1) (Extra, error) {
 	}, nil
 }
 
-// swapError is the reason that the partner's swaps on the pool revert now, apart from the walk and
-// the price's age, or nil: the router must route the pair through the pool, neither the router
-// nor the pool may be paused, the pool must let the router swap and the oracle must let the pool
-// read prices, the partner needs its role and a fee recipient, and the pool needs a price.
+// The simulator checks the price age at quote time.
 func (e *Extra) swapError() error {
 	switch {
 	case !e.Routed:

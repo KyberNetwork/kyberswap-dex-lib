@@ -1,7 +1,5 @@
 package math
 
-// The vectors of evm_contracts/test/NightlyPoolMath.t.sol for PriceMath.
-
 import (
 	"math/rand/v2"
 	"testing"

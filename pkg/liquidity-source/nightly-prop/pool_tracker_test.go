@@ -145,17 +145,25 @@ func TestExtraReserves_StalePrice(t *testing.T) {
 	require.Equal(t, entity.PoolReserves{"3", "14"}, extra.reserves())
 }
 
+func TestNewPoolTracker_InvalidKyberExecutor(t *testing.T) {
+	for _, address := range []string{"", "0x1234"} {
+		_, err := NewPoolTracker(&Config{KyberExecutor: address}, nil)
+		require.ErrorIs(t, err, ErrInvalidKyberExecutor)
+	}
+}
+
 func TestPoolTracker_InvalidPoolRecord(t *testing.T) {
-	tracker := NewPoolTracker(&Config{}, nil)
+	tracker, err := NewPoolTracker(&Config{KyberExecutor: simRouter}, nil)
+	require.NoError(t, err)
 	for name, p := range map[string]entity.Pool{
 		"one token": {
 			Address:     arbitrumWethUsdcPool,
-			StaticExtra: `{"routerAddress":"` + simRouter + `","partnerAddress":"` + simPartner + `"}`,
+			StaticExtra: `{"routerAddress":"` + simRouter + `"}`,
 			Tokens:      []*entity.PoolToken{{Address: arbitrumWeth}},
 		},
-		"no partner": {
+		"no router": {
 			Address:     arbitrumWethUsdcPool,
-			StaticExtra: `{"routerAddress":"` + simRouter + `"}`,
+			StaticExtra: `{}`,
 			Tokens:      []*entity.PoolToken{{Address: arbitrumWeth}, {Address: arbitrumUsdc}},
 		},
 	} {
@@ -167,28 +175,20 @@ func TestPoolTracker_InvalidPoolRecord(t *testing.T) {
 	}
 }
 
-// TestLivePoolTracker: on Arbitrum, each pool that the router lists refreshes from one
-// getPoolStateV1 call for the partner. Each pool has its position inside its levels. A swappable
-// pool has reserves that its token balances at the record's block cover, and any other pool has
-// zero reserves. It needs router revision 5: until the Arbitrum router has it, point the URL at a
-// fork whose router has it. The partner must hold the router's PARTNER_ROLE and have a fee
-// recipient, or no pool is swappable. Run with:
-//
-//	NIGHTLY_PROP_ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc NIGHTLY_PROP_ARBITRUM_PARTNER=<partner> \
-//	  go test ./pkg/liquidity-source/nightly-prop/ -run LivePoolTracker -v
 func TestLivePoolTracker(t *testing.T) {
 	client := testutil.DialLive(t, testutil.LiveURL(t, "NIGHTLY_PROP_ARBITRUM_RPC_URL"))
-	partner := os.Getenv("NIGHTLY_PROP_ARBITRUM_PARTNER")
-	if partner == "" {
-		t.Skip("set NIGHTLY_PROP_ARBITRUM_PARTNER to run this")
+	executor := os.Getenv("NIGHTLY_PROP_ARBITRUM_EXECUTOR")
+	if executor == "" {
+		t.Skip("set NIGHTLY_PROP_ARBITRUM_EXECUTOR to run this")
 	}
 	cfg := &Config{DexID: DexType, ChainID: valueobject.ChainIDArbitrumOne, RouterAddress: arbitrumRouter,
-		PartnerAddress: partner}
+		KyberExecutor: executor}
 	u, err := NewPoolsListUpdater(cfg, client.Ethrpc)
 	require.NoError(t, err)
 	pools, _, err := u.GetNewPools(t.Context(), nil)
 	require.NoError(t, err)
-	tracker := NewPoolTracker(cfg, client.Ethrpc)
+	tracker, err := NewPoolTracker(cfg, client.Ethrpc)
+	require.NoError(t, err)
 
 	swappable := 0
 	for _, p := range pools {

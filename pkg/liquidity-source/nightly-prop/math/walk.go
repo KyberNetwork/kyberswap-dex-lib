@@ -6,7 +6,7 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// Liquidity is NightlyPoolStorage.Liquidity: a level's balances in native token units.
+// Liquidity holds a level's balances in native token units.
 type Liquidity struct {
 	BaseAmount  uint256.Int `json:"baseAmount"`
 	QuoteAmount uint256.Int `json:"quoteAmount"`
@@ -18,14 +18,13 @@ type Level struct {
 	Liquidity Liquidity        `json:"liquidity"`
 }
 
-// Position is NightlyPoolStorage.PriceLevelPosition: the current level and the fraction inside it.
+// Position identifies the current level and the fraction within it.
 type Position struct {
 	LevelID  int16    `json:"levelId"`
 	Fraction Fraction `json:"fraction"`
 }
 
-// OraclePrice is NightlyPriceOracle.Price: the mid price with eight decimals, the spreads in
-// millionths, and the time of the price.
+// OraclePrice stores the midpoint with eight decimals, spreads in millionths, and a timestamp in milliseconds.
 type OraclePrice struct {
 	MidPrice    uint64 `json:"midPrice"`
 	BidSpread   Spread `json:"bidSpread"`
@@ -33,7 +32,6 @@ type OraclePrice struct {
 	TimestampMs uint64 `json:"timestampMs"`
 }
 
-// Quote is NightlyPool.Quote.
 type Quote struct {
 	// AmountIn is the input that the taker pays, in native units of the input token.
 	AmountIn uint256.Int `json:"amountIn"`
@@ -67,10 +65,8 @@ type Pool struct {
 	Position Position `json:"position"`
 }
 
-// BuyWithExactQuote is NightlyPool._buyWithExactQuote without a rebalance, as swapExactIn and
-// quoteSwapExactIn run it: it buys base for exactly quoteIn, walking up from the position at the
-// oracle's ask spread. blockTimestamp is the block's time in seconds, against which the price's age
-// counts. It writes nothing; Apply writes the returned Swap, as the swap does.
+// BuyWithExactQuote buys base by walking up the asks from the current position.
+// blockTimestamp is in seconds. Apply commits the returned level changes.
 func (p *Pool) BuyWithExactQuote(quoteIn *uint256.Int, oracle OraclePrice, blockTimestamp uint64) (Swap, error) {
 	if quoteIn.IsZero() {
 		return Swap{}, ErrZeroSwapAmount
@@ -113,9 +109,8 @@ func (p *Pool) BuyWithExactQuote(quoteIn *uint256.Int, oracle OraclePrice, block
 	return Swap{Quote: quote, Writes: writes}, nil
 }
 
-// SellExactBase is NightlyPool._sellExactBase without a rebalance, as swapExactIn and
-// quoteSwapExactIn run it: it sells exactly baseIn for quote, walking down from the position at
-// the oracle's bid spread. blockTimestamp and the returned Swap are as in BuyWithExactQuote.
+// SellExactBase sells base by walking down the bids from the current position.
+// blockTimestamp is in seconds. Apply commits the returned level changes.
 func (p *Pool) SellExactBase(baseIn *uint256.Int, oracle OraclePrice, blockTimestamp uint64) (Swap, error) {
 	if baseIn.IsZero() {
 		return Swap{}, ErrZeroSwapAmount
@@ -158,8 +153,7 @@ func (p *Pool) SellExactBase(baseIn *uint256.Int, oracle OraclePrice, blockTimes
 	return Swap{Quote: quote, Writes: writes}, nil
 }
 
-// walkPrice is NightlyPool._oraclePrice's age check and the mid price that a walk prices from. The
-// price is stale when its time plus the maximum price age is before the block's time.
+// A price is valid through its timestamp plus the maximum age.
 func (p *Pool) walkPrice(oracle OraclePrice, blockTimestamp uint64) (Price, error) {
 	if oracle.TimestampMs+uint64(p.MaxPriceAgeMs) < blockTimestamp*1000 {
 		return Price{}, fmt.Errorf("%w: price time %d ms, maximum age %d ms", ErrStaleOraclePrice,
@@ -168,10 +162,7 @@ func (p *Pool) walkPrice(oracle OraclePrice, blockTimestamp uint64) (Price, erro
 	return PriceFromOracle(oracle.MidPrice, p.BaseDecimals, p.QuoteDecimals)
 }
 
-// buyFromLevel is NightlyPool._buyWithExactQuoteFromLevel and _recordBuy: it prices base leaving
-// one level and checks that the level can record the incoming quote. A level without base returns
-// an empty step without pricing it and without a write. The quote paid stays in the level that
-// sold the base.
+// buyFromLevel skips empty asks and credits the incoming quote to the level that sold the base.
 func (p *Pool) buyFromLevel(position Position, offeredQuote *uint256.Int, mid *Price,
 	oracleAskSpread Spread) (step Step, write LevelWrite, wrote bool, err error) {
 	level, err := p.level(position.LevelID)
@@ -197,10 +188,7 @@ func (p *Pool) buyFromLevel(position Position, offeredQuote *uint256.Int, mid *P
 	return step, write, true, nil
 }
 
-// sellIntoLevel is NightlyPool._sellExactBaseIntoLevel and _recordSell: it prices base entering
-// one level and checks that the level can record that base. A level without quote returns an
-// empty step without pricing it and without a write. The base sold stays in the level that paid
-// the quote.
+// sellIntoLevel skips empty bids and credits the incoming base to the level that paid the quote.
 func (p *Pool) sellIntoLevel(position Position, offeredBase *uint256.Int, mid *Price,
 	oracleBidSpread Spread) (step Step, write LevelWrite, wrote bool, err error) {
 	level, err := p.level(position.LevelID)

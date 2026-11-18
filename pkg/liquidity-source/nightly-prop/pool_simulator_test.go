@@ -16,10 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-const (
-	simRouter  = "0xede7b21238ab8d2bc7c5e62d7e6d141caba5cba2"
-	simPartner = "0x0000000000000000000000000000000000009a27"
-)
+const simRouter = "0xede7b21238ab8d2bc7c5e62d7e6d141caba5cba2"
 
 func units(tb testing.TB, amount uint64, decimals uint8) uint256.Int {
 	tb.Helper()
@@ -79,7 +76,7 @@ func newSim(tb testing.TB, extra Extra, staleCheck bool) *PoolSimulator {
 			Tokens:      []*entity.PoolToken{{Address: arbitrumWeth, Swappable: true}, {Address: arbitrumUsdc, Swappable: true}},
 			Reserves:    extra.reserves(),
 			Extra:       string(extraBytes),
-			StaticExtra: `{"routerAddress":"` + simRouter + `","partnerAddress":"` + simPartner + `"}`,
+			StaticExtra: `{"routerAddress":"` + simRouter + `"}`,
 			BlockNumber: 525_043_339,
 		},
 		Opts: pool.FactoryOpts{StaleCheck: staleCheck},
@@ -267,6 +264,20 @@ func TestPoolSimulator_Msgpack(t *testing.T) {
 	got, err := quote(&decoded, arbitrumWeth, wethUnits(t, 1), arbitrumUsdc)
 	require.NoError(t, err)
 	require.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.String())
+}
+
+// Kyber stores simulator snapshots as arrays, so the executor keeps its original field position.
+func TestStaticExtra_MsgpackPreviousSnapshot(t *testing.T) {
+	var buffer bytes.Buffer
+	encoder := msgpack.NewEncoder(&buffer)
+	encoder.SetForceAsArray(true)
+	old := struct{ RouterAddress, PartnerAddress string }{simRouter, "0x000000000000000000000000000000000000cafe"}
+	require.NoError(t, encoder.Encode(old))
+	decoder := msgpack.NewDecoder(&buffer)
+	decoder.SetForceAsArray(true)
+	var got StaticExtra
+	require.NoError(t, decoder.Decode(&got))
+	require.Equal(t, StaticExtra{RouterAddress: old.RouterAddress, KyberExecutor: old.PartnerAddress}, got)
 }
 
 func TestPoolSimulator_Router(t *testing.T) {

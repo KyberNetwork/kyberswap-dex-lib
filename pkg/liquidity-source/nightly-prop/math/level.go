@@ -4,8 +4,7 @@ import "github.com/holiman/uint256"
 
 var two = uint256.NewInt(2)
 
-// PriceLevelConfig is NightlyPoolStorage.PriceLevelConfig: a level's offsets from the oracle mid
-// price and its extra spreads, in millionths.
+// PriceLevelConfig stores offsets from the midpoint and extra spreads in millionths.
 type PriceLevelConfig struct {
 	LowerOffset    SignedSpread `json:"lowerOffset"`
 	UpperOffset    SignedSpread `json:"upperOffset"`
@@ -13,15 +12,14 @@ type PriceLevelConfig struct {
 	AskExtraSpread Spread       `json:"askExtraSpread"`
 }
 
-// Step is NightlyPoolMath.Step: one level's part of a quote. End is the fraction where the trade
-// leaves the level.
+// Step contains the traded amounts and the ending position within one level.
 type Step struct {
 	BaseAmount  uint256.Int
 	QuoteAmount uint256.Int
 	End         Fraction
 }
 
-// AskRange is NightlyPoolMath.askRange: the ask prices at both level edges,
+// AskRange calculates the ask prices at both level edges,
 // mid * (1 + offset) * (1 + oracle ask spread + level ask spread). Exact.
 func AskRange(config PriceLevelConfig, mid Price, oracleAskSpread Spread) (PriceRange, error) {
 	spread, err := oracleAskSpread.Add(config.AskExtraSpread)
@@ -45,7 +43,7 @@ func AskRange(config PriceLevelConfig, mid Price, oracleAskSpread Spread) (Price
 	return PriceRange{Lower: lower, Upper: upper}, nil
 }
 
-// BidRange is NightlyPoolMath.bidRange: the bid prices at both level edges,
+// BidRange calculates the bid prices at both level edges,
 // mid * (1 + offset) * (1 - oracle bid spread - level bid spread). Exact.
 func BidRange(config PriceLevelConfig, mid Price, oracleBidSpread Spread) (PriceRange, error) {
 	spread, err := oracleBidSpread.Add(config.BidExtraSpread)
@@ -69,7 +67,7 @@ func BidRange(config PriceLevelConfig, mid Price, oracleBidSpread Spread) (Price
 	return PriceRange{Lower: lower, Upper: upper}, nil
 }
 
-// BuyWithExactQuote is NightlyPoolMath.buyWithExactQuote: it sells the level's base to the taker
+// BuyWithExactQuote sells the level's base to the taker
 // for exactly offeredQuote, or for less if that quote buys all of the base. The caller supplies a
 // nonzero availableBase.
 //
@@ -150,7 +148,7 @@ func BuyWithExactQuote(availableBase *uint256.Int, start Fraction, offeredQuote 
 	return Step{BaseAmount: baseOut, QuoteAmount: *offeredQuote, End: end}, nil
 }
 
-// SellExactBase is NightlyPoolMath.sellExactBase: it buys up to offeredBase from the taker with
+// SellExactBase buys up to offeredBase from the taker with
 // the level's quote. The caller supplies a nonzero availableQuote.
 //
 // The level's quote buys back at most maxBaseIn = availableQuote / refillBasePrice on the way to
@@ -196,7 +194,7 @@ func SellExactBase(availableQuote *uint256.Int, start Fraction, offeredBase *uin
 	return Step{BaseAmount: *offeredBase, QuoteAmount: quoteOut, End: end}, nil
 }
 
-// sellEnd is NightlyPoolMath._sellEnd: the position after a sale of offeredBase into a level whose
+// sellEnd calculates the position after a sale of offeredBase into a level whose
 // quote buys back availableQuote / refillBasePrice base,
 // start * (1 - offeredBase * refillBasePrice / availableQuote), without rounding the move to whole
 // token units. Two mulDiv steps keep each intermediate value within uint256: the price factor

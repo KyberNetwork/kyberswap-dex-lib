@@ -1,10 +1,7 @@
 package math
 
-// The exact-in vectors of evm_contracts/test/NightlyPoolQuotes.t.sol, as the Rust port of the
-// Nightly trading engine (crates/nightly-pool/src/pool.rs) copies them, on the same fixture:
-// 20,000 USDC in level -1 (bid 1,998 to 2,000), 10 ETH in level 0 (ask 2,000 to 2,002), and 20 ETH
-// in level 1, with zero extra spreads, the position at the lower edge of level 0, and ETH at $2,000
-// with zero oracle spreads.
+// The fixture holds 20,000 USDC below the midpoint, 10 ETH in level 0, and 20 ETH in level 1.
+// Trades start at the lower edge of level 0, with ETH at $2,000 and zero spreads.
 
 import (
 	"math"
@@ -27,7 +24,7 @@ type fixture struct {
 	blockTimestamp uint64
 }
 
-// levelConfigs is _levels(): IDs -1, 0, and 1 without extra spreads.
+// levelConfigs defines three adjacent levels without extra spreads.
 func levelConfigs() []PriceLevelConfig {
 	return []PriceLevelConfig{config(-1_000, 0, 0, 0), config(0, 1_000, 0, 0), config(1_000, 2_000, 0, 0)}
 }
@@ -37,8 +34,7 @@ func fourLevels() []PriceLevelConfig {
 	return append([]PriceLevelConfig{config(-2_000, -1_000, 0, 0)}, levelConfigs()...)
 }
 
-// deploy is _deploy(lowest, initial, configs): no liquidity, and the position at the lower edge of
-// initial.
+// deploy creates an empty pool at the lower edge of the initial level.
 func deploy(baseDecimals, quoteDecimals uint8, lowest, initial int16, configs []PriceLevelConfig) *fixture {
 	levels := make([]Level, len(configs))
 	for i, c := range configs {
@@ -58,13 +54,10 @@ func deploy(baseDecimals, quoteDecimals uint8, lowest, initial int16, configs []
 	}
 }
 
-// funded is _deploy(-1, 0, configs) and _fund() with ETH (18) and USDC (6).
 func funded(t testing.TB, configs []PriceLevelConfig) *fixture {
 	return fundedWithDecimals(t, 18, 6, configs)
 }
 
-// fundedWithDecimals is _deploy(-1, 0, configs) and _fund(): 20,000 quote tokens in level -1, 10
-// base tokens in level 0, and 20 base tokens in level 1.
 func fundedWithDecimals(t testing.TB, baseDecimals, quoteDecimals uint8, configs []PriceLevelConfig) *fixture {
 	f := deploy(baseDecimals, quoteDecimals, -1, 0, configs)
 	f.seedLevel(-1, u(0), scaled(t, 20_000, quoteDecimals))
