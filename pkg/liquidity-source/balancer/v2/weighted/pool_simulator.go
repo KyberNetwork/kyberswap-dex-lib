@@ -951,18 +951,18 @@ func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
 }
 
 // CloneState copies the slices UpdateBalance writes by index, and clones each base pool, since
-// UpdateBalance also updates them. A base pool without its own CloneState is copied by value.
+// UpdateBalance also updates them. Returns nil if a base pool cannot clone, so the caller falls back.
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
 	cloned.totalAmountsIn = slices.Clone(s.totalAmountsIn)
 	cloned.basePools = make(map[string]shared.IBasePool, len(s.basePools))
 	for addr, bp := range s.basePools {
-		if c, ok := bp.CloneState().(shared.IBasePool); ok {
-			cloned.basePools[addr] = c
-		} else {
-			cloned.basePools[addr] = bp
+		c, ok := bp.CloneState().(shared.IBasePool)
+		if !ok {
+			return nil
 		}
+		cloned.basePools[addr] = c
 	}
 	return &cloned
 }
