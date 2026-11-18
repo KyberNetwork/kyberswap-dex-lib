@@ -90,9 +90,8 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	}
 
 	if limit := params.Limit; limit != nil {
-		inventoryLimit := limit.GetLimit(tokenOut)
-		// A limit above 2^256-1 cannot be exceeded by a uint256 amount.
-		if limitU, overflow := uint256.FromBig(inventoryLimit); !overflow && result.TokenAmountOut.Amount.Gt(limitU) {
+		// A missing inventory entry means no balance to pay out from.
+		if inventoryLimit := limit.GetLimit(tokenOut); inventoryLimit == nil || result.TokenAmountOut.Amount.Gt(inventoryLimit) {
 			return nil, ErrSwapLimitExceeded
 		}
 	}

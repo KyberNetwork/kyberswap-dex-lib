@@ -152,15 +152,15 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			poolSimulator, err := NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool})
 			require.NoError(t, err)
 
-			var limit pool.SwapLimitBig
+			var limit pool.SwapLimit
 			if !errors.Is(tt.expectedErr, ErrNoSwapLimit) {
-				limit = pool.AsSwapLimitBig(swaplimit.NewInventory("pmm-1", swaplimit.ToU256Balances(poolSimulator.CalculateLimit())))
+				limit = swaplimit.NewInventory("pmm-1", swaplimit.ToU256Balances(poolSimulator.CalculateLimit()))
 			}
 
 			params := pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: tt.tokenIn, Amount: tt.amountIn},
 				TokenOut:      tt.tokenOut,
-				Limit:         limit,
+				Limit:         pool.AsSwapLimitBig(limit),
 			}
 
 			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
