@@ -73,6 +73,28 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+	sourceAmount, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrOverflow
+	}
+
+	res, err := s.CalcAmtOut(poolpkg.CalcAmtOutParams{
+		TokenAmountIn: poolpkg.TokenAmt{Token: params.TokenAmountIn.Token, Amount: *sourceAmount, AmountUsd: params.TokenAmountIn.AmountUsd},
+		TokenOut:      params.TokenOut,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &poolpkg.CalcAmountOutResult{
+		TokenAmountOut: &poolpkg.TokenAmount{Token: res.TokenAmountOut.Token, Amount: res.TokenAmountOut.Amount.ToBig()},
+		Fee:            &poolpkg.TokenAmount{Token: res.Fee.Token, Amount: res.Fee.Amount.ToBig()},
+		Gas:            res.Gas,
+		SwapInfo:       res.SwapInfo,
+	}, nil
+}
+
+func (s *PoolSimulator) CalcAmtOut(params poolpkg.CalcAmtOutParams) (*poolpkg.CalcAmtOutResult, error) {
 	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 
 	sourceToken, targetToken, isSourceNative, isTargetNative, err := s.transformTokens(tokenAmountIn.Token, tokenOut)
@@ -84,29 +106,21 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	sourceAmount, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrOverflow
-	}
-
 	amountOut, feeAmount, tradeInfo, err := s.tradeBySourceAmount(
 		sourceToken,
 		targetToken,
-		sourceAmount,
+		&tokenAmountIn.Amount,
 		number.Number_1,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
-		},
-		Fee: &poolpkg.TokenAmount{
+	return &poolpkg.CalcAmtOutResult{
+		TokenAmountOut: &poolpkg.TokenAmt{Token: tokenOut, Amount: *amountOut},
+		Fee: &poolpkg.TokenAmt{
 			Token:  tokenOut, // fee is applied on the target token https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/pools/PoolCollection.sol#L1534
-			Amount: feeAmount.ToBig(),
+			Amount: *feeAmount,
 		},
 		Gas: defaultGas.Swap,
 		SwapInfo: SwapInfo{

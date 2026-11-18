@@ -13,12 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
-func TestPoolSimulator_CalcAmountOut(t *testing.T) {
-	t.Parallel()
-	t.Run("1. should return OK", func(t *testing.T) {
-		// input
-		// ethereum, block 19281309
-		p := `{
+const bancorV3Pool1 = `{
 			"address": "0xeef417e1d5cc832e619ae18d2f140de2999dd4fb",
 			"exchange": "bancor-v3",
 			"type": "bancor-v3",
@@ -83,6 +78,13 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			"staticExtra": "{\"bnt\":\"0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c\",\"chainId\":1}",
 			"blockNumber": 19281309
 		  }`
+
+func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
+	t.Run("1. should return OK", func(t *testing.T) {
+		// input
+		// ethereum, block 19281309
+		p := bancorV3Pool1
 		var pool entity.Pool
 		err := json.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
