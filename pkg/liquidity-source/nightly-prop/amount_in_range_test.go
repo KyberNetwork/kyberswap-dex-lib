@@ -3,6 +3,7 @@ package nightlyprop
 import (
 	"math/big"
 	"testing"
+	"testing/synctest"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -17,28 +18,50 @@ func TestEVM_AmountInRange(t *testing.T) {
 	f := loadEVMFixture(t)
 	a := f.accounts
 	sim := f.simulator(t, a.WethUsdc, a.Weth, a.Usdc)
-	for _, tc := range []struct {
-		name    string
-		in, out common.Address
-		maxIn   string
-	}{
-		{"buy across two asks", a.Usdc, a.Weth, "40040000000"},
-		{"sell after an empty bid", a.Weth, a.Usdc, "10005002501250625313"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			minIn, maxIn, err := sim.AmountInRange(hexAddress(tc.in), hexAddress(tc.out), nil)
+	checkRange := func(name string, in, out common.Address, wantMax string) {
+		t.Run(name, func(t *testing.T) {
+			minIn, maxIn, err := sim.AmountInRange(hexAddress(in), hexAddress(out), nil)
 			require.NoError(t, err)
 			require.Nil(t, minIn)
-			require.Equal(t, tc.maxIn, maxIn.String())
+			require.Equal(t, wantMax, maxIn.String())
 
 			atMax := uint256.MustFromBig(maxIn)
-			out, err := f.poolQuote(a.WethUsdc, tc.in, atMax)
+			wantOut, err := f.poolQuote(a.WethUsdc, in, atMax)
 			require.NoError(t, err)
-			require.Positive(t, out.Sign())
-			_, err = f.poolQuote(a.WethUsdc, tc.in, new(uint256.Int).AddUint64(atMax, 1))
+			require.Positive(t, wantOut.Sign())
+			got, err := quote(sim, hexAddress(in), atMax, hexAddress(out))
+			require.NoError(t, err)
+			require.Equal(t, wantOut, got.TokenAmountOut.Amount)
+
+			aboveMax := new(uint256.Int).AddUint64(atMax, 1)
+			_, err = quote(sim, hexAddress(in), aboveMax, hexAddress(out))
+			require.ErrorIs(t, err, math.ErrInsufficientLiquidity)
+			input, err := evmABI.Pack("quoteSwapExactIn", in, aboveMax.ToBig())
+			require.NoError(t, err)
+			revert, err := f.call(common.Address{}, a.WethUsdc, input)
 			require.ErrorIs(t, err, vm.ErrExecutionReverted)
+			require.Len(t, revert, 4+common.HashLength)
+			require.ErrorIs(t, fuzzSwapErrors[[4]byte(revert[:4])], math.ErrInsufficientLiquidity)
+			require.Equal(t, big.NewInt(1), new(big.Int).SetBytes(revert[4:]))
 		})
 	}
+
+	checkRange("buy across two asks", a.Usdc, a.Weth, "40040000000")
+	checkRange("sell after an empty bid", a.Weth, a.Usdc, "10005002501250625313")
+
+	buy := evmUnits(25_000, 6)
+	f.fuzzMustCall(t, a.Partner, a.Usdc, "mint", a.Partner, buy.ToBig())
+	f.fuzzMustCall(t, a.Partner, a.Usdc, "approve", a.Router, buy.ToBig())
+	f.fuzzSwap(t, sim, true, buy)
+	// Rounding in the partly filled ask leaves 15,040.000001 USDC of buy capacity.
+	checkRange("buy after spending 25000 USDC", a.Usdc, a.Weth, "15040000001")
+	checkRange("sell after spending 25000 USDC", a.Weth, a.Usdc, "22497199751643493029")
+
+	sell := evmUnits(5, 18)
+	f.fuzzMustCall(t, a.Partner, a.Weth, "approve", a.Router, sell.ToBig())
+	f.fuzzSwap(t, sim, false, sell)
+	checkRange("buy after selling 5 WETH", a.Usdc, a.Weth, "25049992199")
+	checkRange("sell after selling 5 WETH", a.Weth, a.Usdc, "17497199751768638710")
 }
 
 func TestAmountInRange_AfterFill(t *testing.T) {
@@ -86,11 +109,11 @@ func TestAmountInRange_AfterFill(t *testing.T) {
 func TestAmountInRange_Uint256Limit(t *testing.T) {
 	extra := simExtra(t, 0)
 	extra.Pool.BaseDecimals, extra.Pool.QuoteDecimals = 0, 0
-	extra.Price.MidPrice = 50_000_000 // Each quote token buys two base tokens.
+	extra.Price.MidPrice = 50_000_000 // The midpoint is half a quote token per base token.
 	liquidity := new(uint256.Int).Lsh(uint256.NewInt(1), 254)
 	extra.Pool.Levels = []math.Level{
-		simLevel(0, 0, uint256.Int{}, *liquidity),
-		simLevel(0, 0, uint256.Int{}, *liquidity),
+		simLevel(-1_000, 0, uint256.Int{}, *liquidity),
+		simLevel(0, 1_000, uint256.Int{}, *liquidity),
 	}
 	extra.Pool.Position.Fraction = math.Upper
 	sim := newSim(t, extra, false)
@@ -104,6 +127,33 @@ func TestAmountInRange_Uint256Limit(t *testing.T) {
 		TokenOut:      arbitrumUsdc,
 	})
 	require.ErrorIs(t, err, ErrInvalidAmount)
+}
+
+func TestAmountInRange_Uint256BuyCeiling(t *testing.T) {
+	extra := simExtra(t, 0)
+	extra.Pool.BaseDecimals, extra.Pool.QuoteDecimals = 0, 0
+	extra.Price.MidPrice = 300_000_000
+	liquidity := new(uint256.Int).Lsh(uint256.NewInt(1), 253)
+	extra.Pool.LowestLevelID = 0
+	extra.Pool.Levels = []math.Level{
+		simLevel(-1_000, 1_000, *liquidity, uint256.Int{}),
+		simLevel(1_000, 3_000, *liquidity, uint256.Int{}),
+		simLevel(3_000, 5_000, *liquidity, uint256.Int{}),
+	}
+	sim := newSim(t, extra, false)
+	_, maxIn, err := sim.AmountInRange(arbitrumUsdc, arbitrumWeth, nil)
+	require.NoError(t, err)
+	require.Equal(t, new(uint256.Int).SetAllOne().ToBig(), maxIn)
+
+	// A full first ask costs exactly three quote units per base unit.
+	firstAskCost := new(uint256.Int).Mul(liquidity, uint256.NewInt(3))
+	fill, err := quote(sim, arbitrumUsdc, firstAskCost, arbitrumWeth)
+	require.NoError(t, err)
+	require.Equal(t, liquidity.ToBig(), fill.TokenAmountOut.Amount)
+
+	// At the reported ceiling, the last ask is only partly filled and its price calculation overflows.
+	_, err = quote(sim, arbitrumUsdc, uint256.MustFromBig(maxIn), arbitrumWeth)
+	require.ErrorIs(t, err, math.ErrOverflow)
 }
 
 func TestAmountInRange_Unavailable(t *testing.T) {
@@ -126,14 +176,31 @@ func TestAmountInRange_Unavailable(t *testing.T) {
 			require.Zero(t, maxIn.Sign())
 		})
 	}
+}
 
-	stale := simExtra(t, 0)
-	_, maxIn, err := newSim(t, stale, true).AmountInRange(arbitrumUsdc, arbitrumWeth, nil)
-	require.NoError(t, err)
-	require.Zero(t, maxIn.Sign())
-	_, maxIn, err = newSim(t, stale, false).AmountInRange(arbitrumUsdc, arbitrumWeth, nil)
-	require.NoError(t, err)
-	require.Equal(t, "60070000000", maxIn.String())
+func TestAmountInRange_PriceAge(t *testing.T) {
+	const capacity = 60_070_000_000 // USDC base units
+	for _, tc := range []struct {
+		name       string
+		ageMs      uint64
+		staleCheck bool
+		wantMax    int64
+	}{
+		{"fresh", 0, true, capacity},
+		{"at expiry", 30_000, true, capacity},
+		{"one millisecond past expiry", 30_001, true, 0},
+		{"age check disabled", 30_001, false, capacity},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				sim := newSim(t, simExtra(t, nowMs()-tc.ageMs), tc.staleCheck)
+				minIn, maxIn, err := sim.AmountInRange(arbitrumUsdc, arbitrumWeth, nil)
+				require.NoError(t, err)
+				require.Nil(t, minIn)
+				require.Equal(t, big.NewInt(tc.wantMax), maxIn)
+			})
+		})
+	}
 }
 
 func TestAmountInRange_Error(t *testing.T) {
