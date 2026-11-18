@@ -18,3 +18,8 @@ type PoolExtra struct {
 type Gas struct {
 	Stake int64
 }
+
+// SwapInfo carries the ETH a stake adds to totalControlled.
+type SwapInfo struct {
+	TotalControlledAdded *uint256.Int
+}
