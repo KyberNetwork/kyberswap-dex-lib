@@ -33,7 +33,6 @@ const (
 	pairHk   = "0x00000000000000000000000000000000000000c1"
 	stranger = "0x00000000000000000000000000000000000000d1"
 	routerA  = "0x00000000000000000000000000000000000000e9"
-	feedA    = "0x00000000000000000000000000000000000000fa"
 	testBlk  = 1_000
 )
 
@@ -68,7 +67,7 @@ func testWorld() *world {
 		tokens:   []tokenConfig{tokenCfg(cbBTC, 8), tokenCfg(usdc, 6), tokenCfg(usdt, 6)},
 		tradable: bits(16*0+1, 16*1+0, 16*2+1),
 		hook:     common.HexToAddress(hookA), pairMask: new(big.Int), laneConfig: new(big.Int),
-		feed: common.HexToAddress(feedA), router: common.HexToAddress(routerA), venues: []venueView{venue(0, 0, 1, 0)},
+		router: common.HexToAddress(routerA), venues: []venueView{venue(0, 0, 1, 0)},
 		quote: func(from common.Address, i, j int, a *big.Int) (*big.Int, *big.Int, bool) {
 			if from != defaultTaker {
 				return nil, nil, false // the hook prices its caller: the test's taker only
@@ -89,7 +88,7 @@ func testWorld() *world {
 
 func testConfig() *Config {
 	return &Config{DexID: DexType, ChainID: valueobject.ChainIDBase, Factories: []string{factoryA},
-		PriceFeeds: []string{feedA}, HookFamilies: testFamilies()}
+		HookFamilies: testFamilies()}
 }
 
 func listed(t *testing.T, w *world, cfg *Config) (*node, []entity.Pool) {
@@ -410,16 +409,6 @@ func TestTrackerGatesFailClosed(t *testing.T) {
 		"an implementation listed": {edit: func(_ *world, fp *fakePool, cfg *Config) {
 			fp.version, cfg.CodeVersions = 2, []uint32{1, 2}
 		}, want: [][2]uint8{{0, 1}, {1, 0}}},
-		"a feed the list does not name": {edit: func(_ *world, fp *fakePool, _ *Config) {
-			fp.feed = common.HexToAddress(stranger)
-		}},
-		"no feed listed": {edit: func(_ *world, _ *fakePool, cfg *Config) { cfg.PriceFeeds = nil }},
-		"any hook behind a feed the list does not name": {edit: func(_ *world, fp *fakePool, cfg *Config) {
-			fp.feed, cfg.AnyHook = common.HexToAddress(stranger), true
-		}},
-		"a feed the list names, in another case": {edit: func(_ *world, fp *fakePool, cfg *Config) {
-			fp.feed, cfg.PriceFeeds = common.HexToAddress(stranger), []string{"0x" + strings.ToUpper(stranger[2:])}
-		}, want: [][2]uint8{{0, 1}, {1, 0}}},
 		"a closed pair": {edit: func(_ *world, fp *fakePool, _ *Config) {
 			fp.tradable = bits(16*0+1, 16*2+1)
 		}, want: [][2]uint8{{0, 1}}},
@@ -575,11 +564,6 @@ func TestTrackerFailsOnAReadThatFails(t *testing.T) {
 	w.pools[common.HexToAddress(poolX)].laneConfig = nil // lane() reverts: a gate read lost
 	_, err = track(t, n, cfg, pools[0])
 	require.ErrorIs(t, err, ErrRead)
-
-	w.pools[common.HexToAddress(poolX)].laneConfig = new(big.Int)
-	w.pools[common.HexToAddress(poolX)].noFeed = true // the feed unread is no feed listed
-	_, err = track(t, n, cfg, pools[0])
-	require.ErrorIs(t, err, ErrRead)
 }
 
 // On the plain path a revert is the pool's word on a size, and a probe the node ran out of gas, or that reverted
@@ -645,23 +629,6 @@ func TestTrackerLeavesEmptyADirectionWhoseAnswerItCannotRead(t *testing.T) {
 			require.NoError(t, err)
 			require.Empty(t, extraOf(t, p).Ladders)
 		})
-	}
-}
-
-func TestTrackerNeverProbesAPoolBehindAFeedTheListDoesNotName(t *testing.T) {
-	w, cfg := testWorld(), testConfig()
-	n, pools := listed(t, w, cfg)
-	w.pools[common.HexToAddress(poolX)].feed = common.HexToAddress(stranger)
-	before := len(n.calls())
-	p, err := track(t, n, cfg, pools[0])
-	require.NoError(t, err)
-	require.Empty(t, extraOf(t, p).Ladders)
-	require.Equal(t, uint64(testBlk), p.BlockNumber)
-	for _, c := range n.seen()[before:] {
-		require.NotEqual(t, common.HexToAddress(stranger), c.to, "nothing of the feed is called")
-		require.False(t, c.sampler, "a pool behind a stranger's feed is never sampled")
-		m, _, ok := decode(poolABI, c.data)
-		require.False(t, ok && m.Name == "previewSwap", "a pool behind a stranger's feed is never probed")
 	}
 }
 
@@ -1179,22 +1146,4 @@ func TestTrackerPinsTheLevStateSelector(t *testing.T) {
 	require.Len(t, poolABI.Methods["pairRequest"].Outputs, 1)
 	require.Equal(t, requestWords, poolABI.Methods["pairRequest"].Outputs[0].Type.Size)
 	require.Equal(t, paramsWords, hookABI.Methods["params"].Outputs[0].Type.Size)
-}
-
-// A price feed that is not an address, or is the zero address, refuses the config: read as an address, it would
-// otherwise be the zero address, which a pool's unset feed also reads as.
-func TestConfigRefusesAMalformedOrZeroPriceFeed(t *testing.T) {
-	const feed = "0x00000000000000000000000000000000000000fe"
-	var ok Config
-	require.NoError(t, json.Unmarshal([]byte(`{"dexID":"everlong-flamm","chainID":56,"priceFeeds":["`+feed+`"]}`), &ok))
-	require.True(t, ok.hasFeed(common.HexToAddress(feed)))
-	for name, bad := range map[string]string{
-		"not hex":   "0xnothex",
-		"too short": "0x1234",
-		"empty":     "",
-		"zero":      "0x0000000000000000000000000000000000000000",
-	} {
-		var cfg Config
-		require.Error(t, json.Unmarshal([]byte(`{"priceFeeds":["`+feed+`","`+bad+`"]}`), &cfg), name)
-	}
 }

@@ -228,19 +228,6 @@
   },
   {
     "type": "function",
-    "name": "priceFeed",
-    "stateMutability": "view",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "function",
     "name": "previewSwap",
     "stateMutability": "view",
     "inputs": [

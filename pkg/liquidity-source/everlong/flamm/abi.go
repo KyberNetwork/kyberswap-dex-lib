@@ -9,8 +9,8 @@ import (
 )
 
 // The pool's, the Factory's, the Router's and a pricing hook's entries this source calls: discovery, the trade mask,
-// the pricers, the price feed's address, the cheap lane's state, the quote and the request a swap hands its hook,
-// the kinds of the pool's lending venues for the gas, and a hook's fixed parameters, `params()`, read as the 35
+// the pricers, the cheap lane's state, the quote and the request a swap hands its hook, the kinds of the pool's
+// lending venues for the gas, and a hook's fixed parameters, `params()`, read as the 35
 // words it answers. On a buy whose ladder carries a leverage label the hook's `levState` is read too, sent as raw
 // call data on the request's words (levStateSelector), so it has no entry here; the sampler reads it the same way,
 // and the curve's fee by the hook's `quotePair`. Of each live lending venue's account, `capabilities()` and

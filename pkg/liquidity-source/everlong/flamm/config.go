@@ -1,8 +1,6 @@
 package everlongflamm
 
 import (
-	"encoding/json"
-	"fmt"
 	"slices"
 	"strings"
 
@@ -12,8 +10,8 @@ import (
 )
 
 // Config is per dex id. It names no pool or venue: every pool a configured Factory created is found on chain and
-// each pair is priced by the pool's own quote. What it names are the trust gates: the factories, the price feeds,
-// the pool implementations and the hook code families quoted.
+// each pair is priced by the pool's own quote. What it names are the trust gates: the factories, the pool
+// implementations and the hook code families quoted.
 type Config struct {
 	DexID   string              `json:"dexID"`
 	ChainID valueobject.ChainID `json:"chainID"`
@@ -21,12 +19,6 @@ type Config struct {
 	// Factories whose pools are listed, several per chain. `isPool` there is a pool's provenance, read on every
 	// refresh.
 	Factories []string `json:"factories"`
-
-	// PriceFeeds are the price feeds quoted, by address, each chain's protocol feeds: a pool behind any other is left
-	// unrouted, and with none named nothing is routed. A pool's creator picks its feed at birth and the hook prices
-	// from it, so a feed that tells a probe from a swap makes an honest hook quote one price and fill another. A
-	// code hash would not vet it: a build of the protocol's feed takes any aggregators at construction.
-	PriceFeeds []string `json:"priceFeeds"`
 
 	// CodeVersions are the `poolCodeVersion()` values quoted; empty: [1]. A pool behind any other implementation
 	// is left unrouted until the list names it.
@@ -95,23 +87,6 @@ type HookFamily struct {
 	Front bool   `json:"front,omitempty"` // a front's build: not routed by this build, kept for the PropAMM listings
 }
 
-// UnmarshalJSON refuses a config that names a price feed which is not an address, or is the zero address: read as
-// an address, either would be the zero address, which no feed is.
-func (c *Config) UnmarshalJSON(data []byte) error {
-	type plain Config
-	var p plain
-	if err := json.Unmarshal(data, &p); err != nil {
-		return err
-	}
-	for _, f := range p.PriceFeeds {
-		if !common.IsHexAddress(f) || common.HexToAddress(f) == (common.Address{}) {
-			return fmt.Errorf("everlong-flamm: price feed %q is not a non-zero address", f)
-		}
-	}
-	*c = Config(p)
-	return nil
-}
-
 func (c *Config) families() []HookFamily {
 	fs := orDefault(c.HookFamilies, defaultHookFamilies)
 	if !c.AnyHook {
@@ -168,10 +143,6 @@ func (c *Config) rungs() int {
 
 func (c *Config) hasFactory(f string) bool {
 	return slices.ContainsFunc(c.Factories, func(g string) bool { return strings.EqualFold(f, g) })
-}
-
-func (c *Config) hasFeed(f common.Address) bool {
-	return slices.ContainsFunc(c.PriceFeeds, func(g string) bool { return common.HexToAddress(g) == f })
 }
 
 func orDefault[T any](v, fallback []T) []T {

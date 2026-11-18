@@ -300,12 +300,6 @@ the package carries none of these.
   one, and that pool fails the reads.
 - Implementation: `poolCodeVersion()` must be in `codeVersions` (default `[1]`); every upgrade raises it. The earlier
   pool also reports 1, so the Factory list, not the version, keeps it out.
-- Price feed: the pool's `priceFeed()` must be in `priceFeeds`, by address; a pool behind any other is never probed.
-  With none listed nothing is routed: the list has no default, a chain's protocol feeds are named beside its
-  Factories. A pool's creator picks its feed at birth and the hook prices from it, so a feed that tells a probe from a
-  swap makes an honest hook quote one price and fill another, by up to 2 % measured on a Base fork, and a code hash
-  would not vet it, as a build of the protocol's feed takes any aggregators at construction. A pool with no market band
-  is held to the list too: it reads no feed now, but its operator can attach a band at once.
 - Hook code: the pricer of a pair (the pair hook where its mask names the pair, else the swap hook) must run code of a
   listed family: keccak256 of the runtime code with its immutable ranges zeroed. With no `hookFamilies` in the config,
   the families are the protocol-listed builds (the swap hook builds the gas table measures, `gas_table.go`, and each
@@ -330,7 +324,6 @@ the package carries none of these.
 dexID: everlong-flamm
 chainID: 8453
 factories: ["0x029EB597fb328844A807DC7662023244dE698C15"]   # the protocol's Factory, one address on every chain
-priceFeeds: ["0xF9f642F747372b70e7473AB359C3C68F44f5605C"]  # the protocol's price feed; none: nothing routed
 codeVersions: [1]             # optional; default [1]
 hookFamilies:                 # optional; default: the protocol-listed builds (families.go)
   - name: everlong-hook
@@ -350,9 +343,8 @@ rungs: 20                     # optional; sizes a later refresh seeds past the o
 ```
 
 On BSC (`chainID: 56`) the source routes venue kinds 1 (Aave V3), 2 (Venus Core) and 3 (Lista Moolah), with the cells
-the table measured there, and Lista Moolah's ladders behind the guard on its minimum (see Gas). `factories` and
-`priceFeeds` take the same addresses as on Base: the protocol deploys its Factory and price feed at one address on every
-chain. With none named, nothing is routed. The default `taker` is the KyberSwap executor's Base address, which holds the
+the table measured there, and Lista Moolah's ladders behind the guard on its minimum (see Gas). `factories` take
+the same address as on Base: the protocol deploys its Factory at one address on every chain. The default `taker` is the KyberSwap executor's Base address, which holds the
 same code on BSC; name the executor there if it differs. A first refresh seeds a direction from 10^(decimals - 3) of its
 input, 1e15 wei of BTCB (about $75), which a pool seeded with less refuses past its price band: such a pool's sale stays
 unrouted, never quoted over, until its seed grows. A Venus Core preview costs about twice an Aave V3 one, so a full walk
