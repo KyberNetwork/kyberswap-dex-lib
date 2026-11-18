@@ -153,6 +153,45 @@ func (p *Pool) SellExactBase(baseIn *uint256.Int, oracle OraclePrice, blockTimes
 	return Swap{Quote: quote, Writes: writes}, nil
 }
 
+// MaxAmountIn sums the input that fills each reachable level. The active level starts at the
+// current fraction. Each subsequent level starts at the edge where the swap enters it.
+func (p *Pool) MaxAmountIn(buyBase bool, oracle OraclePrice, blockTimestamp uint64) (uint256.Int, error) {
+	mid, err := p.walkPrice(oracle, blockTimestamp)
+	if err != nil || len(p.Levels) == 0 {
+		return uint256.Int{}, err
+	}
+
+	last, direction, entry := p.LowestLevelID, int16(-1), Upper
+	if buyBase {
+		last, direction, entry = p.highestLevelID(), 1, Lower
+	}
+	// Offering the largest input takes the full-fill branch of the same step used by a quote.
+	offered := new(uint256.Int).SetAllOne()
+	var total uint256.Int
+	pos := p.Position
+	for {
+		var step Step
+		var input *uint256.Int
+		if buyBase {
+			step, _, _, err = p.buyFromLevel(pos, offered, &mid, oracle.AskSpread)
+			input = &step.QuoteAmount
+		} else {
+			step, _, _, err = p.sellIntoLevel(pos, offered, &mid, oracle.BidSpread)
+			input = &step.BaseAmount
+		}
+		if err != nil {
+			return uint256.Int{}, err
+		}
+		if _, overflow := total.AddOverflow(&total, input); overflow {
+			return *offered, nil // Swap inputs cannot exceed uint256.
+		}
+		if pos.LevelID == last {
+			return total, nil
+		}
+		pos = Position{LevelID: pos.LevelID + direction, Fraction: entry}
+	}
+}
+
 // A price is valid through its timestamp plus the maximum age.
 func (p *Pool) walkPrice(oracle OraclePrice, blockTimestamp uint64) (Price, error) {
 	if oracle.TimestampMs+uint64(p.MaxPriceAgeMs) < blockTimestamp*1000 {

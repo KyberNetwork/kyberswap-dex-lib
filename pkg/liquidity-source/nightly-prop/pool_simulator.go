@@ -1,6 +1,7 @@
 package nightlyprop
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"slices"
@@ -88,6 +89,27 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		Gas:            singleLevelGas + (written-1)*extraWrittenLevelGas + (visited-written)*skippedLevelGas,
 		SwapInfo:       &swap,
 	}, nil
+}
+
+// AmountInRange reports the maximum remaining input in native token units. The lower bound is
+// open because the pool has no configured minimum. Small inputs can round to zero output.
+func (s *PoolSimulator) AmountInRange(tokenIn, tokenOut string, _ pool.SwapLimit) (*big.Int, *big.Int, error) {
+	in, out := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
+	if in < 0 || out < 0 || in == out {
+		return nil, nil, ErrInvalidToken
+	}
+	if s.Extra.swapError() != nil {
+		return nil, new(big.Int), nil
+	}
+	maxIn, err := s.Extra.Pool.MaxAmountIn(in == 1, s.Extra.Price, s.blockTimestamp())
+	if errors.Is(err, math.ErrStaleOraclePrice) {
+		return nil, new(big.Int), nil
+	}
+	if err != nil {
+		// A smaller swap may still succeed before it reaches the level that failed.
+		return nil, nil, fmt.Errorf("%w: %w", pool.ErrUnsupported, err)
+	}
+	return nil, maxIn.ToBig(), nil
 }
 
 // blockTimestamp is the block time, in seconds, for the walk's price age check: the quote's time.
