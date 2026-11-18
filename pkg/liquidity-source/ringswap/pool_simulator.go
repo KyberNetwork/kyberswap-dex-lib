@@ -57,6 +57,45 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	amountIn, overflow := uint256.FromBig(param.TokenAmountIn.Amount)
+	if overflow {
+		return nil, uniswapv2.ErrInvalidAmountIn
+	}
+
+	var getLimit func(string) *uint256.Int
+	if param.Limit != nil {
+		getLimit = func(key string) *uint256.Int { return toU256(param.Limit.GetLimit(key)) }
+	}
+	res, err := s.calcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
+			Token:     param.TokenAmountIn.Token,
+			Amount:    *amountIn,
+			AmountUsd: param.TokenAmountIn.AmountUsd,
+		},
+		TokenOut: param.TokenOut,
+	}, getLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: res.TokenAmountOut.Token, Amount: res.TokenAmountOut.Amount.ToBig()},
+		Fee:            &pool.TokenAmount{Token: res.Fee.Token, Amount: res.Fee.Amount.ToBig()},
+		Gas:            res.Gas,
+		SwapInfo:       res.SwapInfo,
+	}, nil
+}
+
+func (s *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	var getLimit func(string) *uint256.Int
+	if param.Limit != nil {
+		getLimit = param.Limit.GetLimit
+	}
+	return s.calcAmtOut(param, getLimit)
+}
+
+// calcAmtOut is the shared uint256 core. getLimit is nil when the caller passed no swap limit.
+func (s *PoolSimulator) calcAmtOut(param pool.CalcAmtOutParams, getLimit func(string) *uint256.Int) (*pool.CalcAmtOutResult, error) {
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
@@ -74,11 +113,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	isWrapIn := indexIn < 2
 	isUnwrapOut := indexOut < 2
 
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
-		return nil, uniswapv2.ErrInvalidAmountIn
-	}
-
+	amountIn := &tokenAmountIn.Amount
 	if amountIn.Cmp(number.Zero) <= 0 {
 		return nil, uniswapv2.ErrInsufficientInputAmount
 	}
@@ -100,18 +135,19 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	// Ensure that amountOut does not exceed original reserve
 	if isUnwrapOut {
-		if param.Limit == nil {
+		if getLimit == nil {
 			return nil, ErrNoSwapLimit
 		}
-		if amountOut.CmpBig(param.Limit.GetLimit(wTokenOut)) >= 0 {
+		limit := getLimit(wTokenOut)
+		if limit == nil || amountOut.Cmp(limit) >= 0 {
 			return nil, uniswapv2.ErrInsufficientLiquidity
 		}
 	}
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: s.Info.Tokens[indexOut], Amount: *amountOut},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: integer.Zero()},
+		Fee: &pool.TokenAmt{Token: s.Info.Tokens[indexIn], Amount: *number.Zero},
 		Gas: defaultGas,
 		SwapInfo: SwapInfo{
 			WTokenIn:    wTokenIn,
@@ -121,6 +157,13 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			IsUnwrapOut: isUnwrapOut,
 		},
 	}, nil
+}
+
+func toU256(b *big.Int) *uint256.Int {
+	if b == nil {
+		return nil
+	}
+	return uint256.MustFromBig(b)
 }
 
 func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
