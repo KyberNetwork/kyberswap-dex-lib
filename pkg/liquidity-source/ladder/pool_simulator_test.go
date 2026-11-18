@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -134,4 +135,51 @@ func TestPoolSimulator_UpdateBalanceAndCloneState(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "900000", cloneOut2.TokenAmountOut.Amount.String())
+}
+
+// TestPoolSimulator_CalcAmtOutParity pins the native uint256 quote to the legacy big.Int quote. Both run the same
+// quote helper, so a divergence in amount out, fee, gas, or error means one path changed on its own.
+func TestPoolSimulator_CalcAmtOutParity(t *testing.T) {
+	t.Parallel()
+	sim := newTestPool(t, `"{\"l\":[[[1000000000000,1000000],[2000000000000,1900000]],[[1000000,1000000000000]]]}"`)
+
+	cases := []struct {
+		name     string
+		tokenIn  string
+		amountIn string
+		limit    pool.SwapLimitBig
+	}{
+		{"direct", testToken0, "1000000000000", nil},
+		{"small", testToken0, "100", nil},
+		{"reverse", testToken1, "1000000", nil},
+		{"over ladder", testToken0, "3000000000000", nil},
+		{"zero in", testToken0, "0", nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			legacy, legacyErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: bignumber.NewBig10(tc.amountIn)},
+				TokenOut:      otherToken(tc.tokenIn),
+				Limit:         tc.limit,
+			})
+			native, nativeErr := sim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tc.tokenIn, Amount: *uint256.MustFromDecimal(tc.amountIn)},
+				TokenOut:      otherToken(tc.tokenIn),
+			})
+			require.ErrorIs(t, nativeErr, legacyErr)
+			if legacyErr != nil {
+				return
+			}
+			assert.Equal(t, legacy.TokenAmountOut.Amount.String(), native.TokenAmountOut.Amount.ToBig().String(), "amount out")
+			assert.Equal(t, legacy.Fee.Amount.String(), native.Fee.Amount.ToBig().String(), "fee")
+			assert.Equal(t, legacy.Gas, native.Gas, "gas")
+		})
+	}
+}
+
+func otherToken(token string) string {
+	if token == testToken0 {
+		return testToken1
+	}
+	return testToken0
 }

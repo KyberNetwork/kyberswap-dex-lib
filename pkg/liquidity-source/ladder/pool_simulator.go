@@ -93,13 +93,55 @@ func NewPoolSimulatorWith(ep entity.Pool, maxAge time.Duration) (*PoolSimulator,
 	}, nil
 }
 
+// CalcAmtOut is the native uint256 quote. It shares quote with CalcAmountOut and
+// differs only in reading the swap limit as uint256.
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	amountOut, err := s.quote(params.TokenAmountIn.Token, params.TokenOut, params.TokenAmountIn.Amount.Float64())
+	if err != nil {
+		return nil, err
+	}
+
+	if limit := params.Limit; limit != nil {
+		if l := limit.GetLimit(params.TokenOut); l == nil || amountOut.Gt(l) {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: params.TokenOut, Amount: *amountOut},
+		Fee:            &pool.TokenAmt{Token: params.TokenAmountIn.Token},
+		Gas:            s.Gas,
+	}, nil
+}
+
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenOut)
+	amountInF, _ := params.TokenAmountIn.Amount.Float64()
+	amountOut, err := s.quote(params.TokenAmountIn.Token, params.TokenOut, amountInF)
+	if err != nil {
+		return nil, err
+	}
+
+	if limit := params.Limit; limit != nil {
+		if l := limit.GetLimit(params.TokenOut); l == nil || amountOut.ToBig().Cmp(l) > 0 {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: bignum.ZeroBI},
+		Gas:            s.Gas,
+	}, nil
+}
+
+// quote returns the ladder amount out for amountInF of tokenIn, net of the amount already consumed in that
+// direction. It does not check the swap limit; the callers do.
+func (s *PoolSimulator) quote(tokenIn, tokenOut string, amountInF float64) (*uint256.Int, error) {
+	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
 		return nil, ErrInvalidToken
 	}
 
-	amountInF, _ := params.TokenAmountIn.Amount.Float64()
 	if amountInF <= 0 {
 		return nil, ErrZeroAmountIn
 	}
@@ -121,24 +163,34 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrNoQuote
 	}
 
-	amountOutBig, _ := big.NewFloat(amountOutF).Int(nil)
-	if amountOutBig.Sign() <= 0 {
+	amountOut, ok := u256FromFloat(amountOutF)
+	if !ok {
+		return nil, ErrInsufficientLiquidity
+	} else if amountOut.IsZero() {
 		return nil, ErrNoQuote
-	} else if reserveOut != nil && amountOutBig.Cmp(reserveOut.ToBig()) > 0 {
+	} else if reserveOut != nil && amountOut.Gt(reserveOut) {
 		return nil, ErrInsufficientLiquidity
 	}
+	return amountOut, nil
+}
 
-	if limit := params.Limit; limit != nil {
-		if amountOutBig.Cmp(limit.GetLimit(params.TokenOut)) > 0 {
-			return nil, pool.ErrNotEnoughInventory
-		}
+// u256FromFloat truncates a positive finite float64 to uint256, matching big.Float.Int. It reports false when the
+// value does not fit 256 bits.
+func u256FromFloat(f float64) (*uint256.Int, bool) {
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return nil, false
 	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOutBig},
-		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: bignum.ZeroBI},
-		Gas:            s.Gas,
-	}, nil
+	f = math.Trunc(f)
+	if f < 1<<64 {
+		return new(uint256.Int).SetUint64(uint64(f)), true
+	}
+	// Frexp gives f = frac * 2^exp with a 53-bit exact mantissa, so the shift is exact.
+	frac, exp := math.Frexp(f)
+	if exp > 256 {
+		return nil, false
+	}
+	z := new(uint256.Int).SetUint64(uint64(math.Ldexp(frac, 53)))
+	return z.Lsh(z, uint(exp-53)), true
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
