@@ -291,10 +291,8 @@ func TestEVM_QuotesMatchPool(t *testing.T) {
 		if r.IntN(2) == 0 {
 			in, out, limit = a.Weth, a.Usdc, evmUnits(12, 18)
 		}
-		// A random bit length spreads the amounts from one unit to the limit.
-		amount := new(uint256.Int).Rsh(new(uint256.Int).SetUint64(r.Uint64()), uint(r.IntN(64)))
-		amount.Mul(amount, new(uint256.Int).Div(limit, uint256.NewInt(1<<63)))
-		amount.Add(amount, uint256.NewInt(r.Uint64N(1_000_000)+1))
+		require.True(t, limit.IsUint64(), "random input limit must fit in uint64")
+		amount := uint256.NewInt(r.Uint64N(limit.Uint64()) + 1)
 		swaps = append(swaps, swap{in, out, amount})
 	}
 
