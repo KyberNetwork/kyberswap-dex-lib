@@ -24,6 +24,12 @@ import (
 )
 
 func TestTrackerPublishesPinnedSnapshot(t *testing.T) {
+	for _, address := range []common.Address{productionHookAddress, immutableHookAddress} {
+		t.Run(address.Hex(), func(t *testing.T) { testTrackerPublishesPinnedSnapshot(t, address) })
+	}
+}
+
+func testTrackerPublishesPinnedSnapshot(t *testing.T, address common.Address) {
 	readABI := func(path string) abi.ABI {
 		b, err := os.ReadFile(path)
 		require.NoError(t, err)
@@ -90,7 +96,6 @@ func TestTrackerPublishesPinnedSnapshot(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": hexutil.Encode(out)})
 	}))
 	defer server.Close()
-	address := productionHookAddress
 	static, err := json.Marshal(uniswapv4.StaticExtra{Fee: 2000, TickSpacing: 10, HooksAddress: address})
 	require.NoError(t, err)
 	p := &uniswapv4.HookParam{HookAddress: address, BlockNumber: big.NewInt(123),
@@ -113,10 +118,13 @@ func TestTrackerPublishesPinnedSnapshot(t *testing.T) {
 	require.Equal(t, s.Total1.Dec(), next.Total1.Dec())
 	require.Equal(t, s.Pool.Balance0.Dec(), next.Pool.Balance0.Dec())
 	// Exercise the full refresh with direct token balances and test-only bytecode.
-	oldProxy, oldHook := tickerProxyFingerprint, tickerHookFingerprint
+	oldProxy, oldHook, oldDirect := tickerProxyFingerprint, tickerHookFingerprint, immutableHookCodeHash
 	tickerProxyFingerprint = runtimeFingerprint{Size: 1, Hash: crypto.Keccak256Hash([]byte{0x60})}
 	tickerHookFingerprint = tickerProxyFingerprint
-	t.Cleanup(func() { tickerProxyFingerprint, tickerHookFingerprint = oldProxy, oldHook })
+	immutableHookCodeHash = crypto.Keccak256Hash([]byte{0x60, 0, 0})
+	t.Cleanup(func() {
+		tickerProxyFingerprint, tickerHookFingerprint, immutableHookCodeHash = oldProxy, oldHook, oldDirect
+	})
 	implementation := common.HexToAddress("0x7890")
 	p.Overrides = map[common.Address]gethclient.OverrideAccount{
 		address:        {Code: []byte{0x60, 0, 0}, State: map[common.Hash]common.Hash{implementationSlot: common.BytesToHash(implementation.Bytes())}},

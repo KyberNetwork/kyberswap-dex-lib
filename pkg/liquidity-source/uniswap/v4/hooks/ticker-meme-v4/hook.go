@@ -1,4 +1,4 @@
-// Package tickermemev4 registers Ticker's proxy with the existing Pons fee handler.
+// Package tickermemev4 registers Ticker's deployments with the existing Pons fee handler.
 package tickermemev4
 
 import (
@@ -13,7 +13,7 @@ type Hook struct {
 	ponsv2.Extra
 }
 
-var _ = uniswapv4.RegisterHooksFactory(NewHook, HookAddress)
+var _ = uniswapv4.RegisterHooksFactory(NewHook, HookAddress, ImmutableHookAddress)
 
 func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	h := &Hook{Exchange: DexType}

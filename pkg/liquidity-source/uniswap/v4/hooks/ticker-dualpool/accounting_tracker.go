@@ -98,16 +98,26 @@ func requireCode(ctx context.Context, p *uniswapv4.HookParam, address common.Add
 }
 
 func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessage, error) {
-	if h.address == productionHookAddress && (p == nil || p.Cfg == nil || p.Cfg.ChainID != valueobject.ChainIDMonad) {
+	if (h.address == productionHookAddress || h.address == immutableHookAddress) && (p == nil || p.Cfg == nil || p.Cfg.ChainID != valueobject.ChainIDMonad) {
 		return nil, ErrInvalidState
+	}
+	direct := h.address == immutableHookAddress
+	if direct {
+		if err := requireCode(ctx, p, h.address, "immutable hook bytecode", func(code []byte) bool {
+			return crypto.Keccak256Hash(code) == immutableHookCodeHash
+		}); err != nil {
+			return nil, err
+		}
 	}
 	// Failed reads must leave the previous snapshot intact.
 	candidate := *h
 	if _, err := candidate.trackBase(ctx, p); err != nil {
 		return nil, err
 	}
-	if err := requireCode(ctx, p, h.address, "hook proxy bytecode", tickerProxyFingerprint.matches); err != nil {
-		return nil, err
+	if !direct {
+		if err := requireCode(ctx, p, h.address, "hook proxy bytecode", tickerProxyFingerprint.matches); err != nil {
+			return nil, err
+		}
 	}
 	var poolManager common.Address
 	managerRequest := p.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(p.BlockNumber).SetOverrides(p.Overrides)
@@ -118,12 +128,14 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 	if poolManager != monadPoolManager {
 		return nil, fmt.Errorf("PoolManager address: %w", ErrInvalidState)
 	}
-	slot, err := storageAt(ctx, p, h.address, implementationSlot)
-	if err != nil {
-		return nil, err
-	}
-	if err := requireCode(ctx, p, common.BytesToAddress(slot[:]), "hook implementation", matchesTickerHook); err != nil {
-		return nil, err
+	if !direct {
+		slot, err := storageAt(ctx, p, h.address, implementationSlot)
+		if err != nil {
+			return nil, err
+		}
+		if err := requireCode(ctx, p, common.BytesToAddress(slot[:]), "hook implementation", matchesTickerHook); err != nil {
+			return nil, err
+		}
 	}
 	var config uniswapv4.StaticExtra
 	if err := json.Unmarshal([]byte(p.Pool.StaticExtra), &config); err != nil {
@@ -179,7 +191,13 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 		if vault == (common.Address{}) {
 			continue
 		}
-		if err := requireCode(ctx, p, vault, "vault implementation", tickerVaultFingerprint.matches); err != nil {
+		vaultFingerprint := tickerVaultFingerprint
+		vaultLabel := "vault implementation"
+		if direct {
+			vaultFingerprint = immutableVaultFingerprint
+			vaultLabel = "immutable Aave vault implementation"
+		}
+		if err := requireCode(ctx, p, vault, vaultLabel, vaultFingerprint.matches); err != nil {
 			return nil, err
 		}
 		shareWord, err := storageAt(ctx, p, h.address, mapSlot(4))

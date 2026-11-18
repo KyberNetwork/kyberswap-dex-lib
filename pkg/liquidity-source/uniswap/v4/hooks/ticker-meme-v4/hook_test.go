@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
@@ -17,7 +18,13 @@ import (
 )
 
 func TestRegistrationUsesPons(t *testing.T) {
-	hook, ok := uniswapv4.GetHook(ticker.HookAddress, &uniswapv4.HookParam{HookExtra: uniswapv4.HookExtra(`{"r":true,"f":200}`)})
+	for _, address := range []common.Address{ticker.HookAddress, ticker.ImmutableHookAddress} {
+		t.Run(address.Hex(), func(t *testing.T) { testRegistrationUsesPons(t, address) })
+	}
+}
+
+func testRegistrationUsesPons(t *testing.T, address common.Address) {
+	hook, ok := uniswapv4.GetHook(address, &uniswapv4.HookParam{HookExtra: uniswapv4.HookExtra(`{"r":true,"f":200}`)})
 	require.True(t, ok)
 	require.Equal(t, "uniswap-v4-ticker-meme", hook.GetExchange())
 	require.True(t, hook.CanBeforeSwap(ticker.HookAddress), "simulator-only: runs the exact-out gross-up")

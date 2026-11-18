@@ -2,6 +2,7 @@ package tickermemev4
 
 import (
 	"context"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -11,10 +12,20 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// Track checks Ticker's upgradeable proxy before using the shared Pons tracker.
+// Track validates the selected deployment before using the shared Pons tracker.
+// The legacy address remains a proxy; the new deployment executes its code directly.
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
-	if param.Cfg == nil || param.Cfg.ChainID != valueobject.ChainIDMonad || param.HookAddress != HookAddress {
+	if param.Cfg == nil || param.Cfg.ChainID != valueobject.ChainIDMonad || (param.HookAddress != HookAddress && param.HookAddress != ImmutableHookAddress) {
 		return nil, ErrUnsupportedDeployment
+	}
+	if param.HookAddress == ImmutableHookAddress {
+		if err := checkImmutableCode(ctx, param); err != nil {
+			return nil, err
+		}
+		if err := h.Extra.Track(ctx, param); err != nil {
+			return nil, err
+		}
+		return json.Marshal(h.Extra)
 	}
 	var slot []byte
 	account := param.Overrides[HookAddress]
@@ -43,4 +54,29 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 		return nil, err
 	}
 	return json.Marshal(h.Extra)
+}
+
+// Cache only verified chain code. Simulation replacement code must always be checked.
+var immutableCodeVerified sync.Map
+
+func checkImmutableCode(ctx context.Context, param *uniswapv4.HookParam) error {
+	code := param.Overrides[ImmutableHookAddress].Code
+	overridden := code != nil
+	if !overridden {
+		if _, ok := immutableCodeVerified.Load(ImmutableHookAddress); ok {
+			return nil
+		}
+		var err error
+		code, err = param.RpcClient.GetETHClient().CodeAt(ctx, ImmutableHookAddress, param.BlockNumber)
+		if err != nil {
+			return err
+		}
+	}
+	if crypto.Keccak256Hash(code) != immutableHookCodeHash {
+		return ErrUnsupportedDeployment
+	}
+	if !overridden {
+		immutableCodeVerified.Store(ImmutableHookAddress, struct{}{})
+	}
+	return nil
 }
