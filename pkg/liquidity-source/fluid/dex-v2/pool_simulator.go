@@ -229,24 +229,65 @@ func (p *PoolSimulator) GetSqrtPriceLimit(zeroForOne bool, result *v3Utils.Uint1
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if err := p.checkSupported(); err != nil {
+		return nil, err
+	}
+	var amountIn uint256.Int
+	if amt := param.TokenAmountIn.Amount; amt == nil || amt.Sign() < 0 || amountIn.SetFromBig(amt) {
+		return nil, ErrAmountOutOfLimits
+	}
+	return p.calcAmountOut(param.TokenAmountIn.Token, param.TokenOut, &amountIn, param.Limit)
+}
+
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	if err := p.checkSupported(); err != nil {
+		return nil, err
+	}
+	res, err := p.calcAmountOut(params.TokenAmountIn.Token, params.TokenOut, &params.TokenAmountIn.Amount, pool.AsSwapLimitBig(params.Limit))
+	if err != nil {
+		return nil, err
+	}
+	return calcAmtOutFromBig(res), nil
+}
+
+// checkSupported refuses a controller or dynamic-fee pool before any amount is read.
+func (p *PoolSimulator) checkSupported() error {
 	if p.staticExtra.Controller != "" && common.HexToAddress(p.staticExtra.Controller) != (common.Address{}) {
-		return nil, ErrUnsupportedController
+		return ErrUnsupportedController
 	}
-
 	if p.unsupportedDynamicFee {
-		return nil, ErrUnsupportedDynamicFee
+		return ErrUnsupportedDynamicFee
 	}
+	return nil
+}
 
-	tokenIn, tokenOut := param.TokenAmountIn.Token, param.TokenOut
+func calcAmtOutFromBig(r *pool.CalcAmountOutResult) *pool.CalcAmtOutResult {
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: tokenAmtFromBigAmount(r.TokenAmountOut),
+		Fee:            tokenAmtFromBigAmount(r.Fee),
+		Gas:            r.Gas,
+		SwapInfo:       r.SwapInfo,
+	}
+}
+
+func tokenAmtFromBigAmount(t *pool.TokenAmount) *pool.TokenAmt {
+	if t == nil {
+		return nil
+	}
+	out := &pool.TokenAmt{Token: t.Token, AmountUsd: t.AmountUsd}
+	if t.Amount != nil {
+		out.Amount.SetFromBig(t.Amount)
+	}
+	return out
+}
+
+func (p *PoolSimulator) calcAmountOut(tokenIn, tokenOut string, in *uint256.Int, limit pool.SwapLimitBig) (*pool.CalcAmountOutResult, error) {
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if tokenInIndex < 0 || tokenOutIndex < 0 || tokenInIndex == tokenOutIndex {
 		return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	var amountIn uint256.Int
-	if amt := param.TokenAmountIn.Amount; amt.Sign() < 0 || amountIn.SetFromBig(amt) {
-		return nil, ErrAmountOutOfLimits
-	}
+	amountIn := *in
 	if err := _verifyAmountLimits(&amountIn); err != nil {
 		return nil, err
 	}
@@ -332,7 +373,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			return nil, ErrOverflow
 		}
 	}
-	usage, err := p.quoteLiquidity(param.Limit, tokenInIndex, tokenOutIndex, dexType, &amountIn, &amountOut, &fees)
+	usage, err := p.quoteLiquidity(limit, tokenInIndex, tokenOutIndex, dexType, &amountIn, &amountOut, &fees)
 	if err != nil {
 		return nil, err
 	}
