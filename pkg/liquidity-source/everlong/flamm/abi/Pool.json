@@ -103,19 +103,6 @@
   },
   {
     "type": "function",
-    "name": "poolCodeVersion",
-    "stateMutability": "pure",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
-    ]
-  },
-  {
-    "type": "function",
     "name": "tradablePairs",
     "stateMutability": "view",
     "inputs": [],

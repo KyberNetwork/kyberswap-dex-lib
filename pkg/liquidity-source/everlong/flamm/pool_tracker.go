@@ -76,7 +76,6 @@ type poolState struct {
 	closed   bool
 	isPool   bool
 	paused   bool
-	version  uint32
 	tradable tradableResult
 	hooks    hooksResult
 	pairHook pairHookResult
@@ -220,7 +219,6 @@ func (t *PoolTracker) read(ctx context.Context, poolAddr, factory string, n int,
 		AddCall(&ethrpc.Call{ABI: factoryABI, Target: factory, Method: "isPool", Params: []any{pl}},
 			[]any{&st.isPool}).
 		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "paused"}, []any{&st.paused}).
-		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "poolCodeVersion"}, []any{&st.version}).
 		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "tradablePairs"}, []any{&st.tradable}).
 		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "hooks"}, []any{&st.hooks}).
 		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "pairHook"}, []any{&st.pairHook}).
@@ -234,11 +232,11 @@ func (t *PoolTracker) read(ctx context.Context, poolAddr, factory string, n int,
 	if err != nil {
 		return nil, err
 	}
-	if res.BlockNumber == nil || len(res.Result) != 8+n {
+	if res.BlockNumber == nil || len(res.Result) != 7+n {
 		return nil, ErrRead
 	}
 	st.block = res.BlockNumber
-	if r := res.Result; r[0] && !st.isPool || r[1] && st.paused || r[2] && !t.cfg.codeVersionOk(st.version) {
+	if r := res.Result; r[0] && !st.isPool || r[1] && st.paused {
 		st.closed = true
 		return st, nil
 	}

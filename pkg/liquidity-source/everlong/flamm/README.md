@@ -298,8 +298,6 @@ the package carries none of these.
 - Provenance: only pools of the configured `factories` (several per chain), `isPool` re-read on every refresh.
   List the Efficient pools' Factories only: the Factory of the cbBTC/USDC pool this source quoted before is not
   one, and that pool fails the reads.
-- Implementation: `poolCodeVersion()` must be in `codeVersions` (default `[1]`); every upgrade raises it. The earlier
-  pool also reports 1, so the Factory list, not the version, keeps it out.
 - Hook code: the pricer of a pair (the pair hook where its mask names the pair, else the swap hook) must run code of a
   listed family: keccak256 of the runtime code with its immutable ranges zeroed. With no `hookFamilies` in the config,
   the families are the protocol-listed builds (the swap hook builds the gas table measures, `gas_table.go`, and each
@@ -324,7 +322,6 @@ the package carries none of these.
 dexID: everlong-flamm
 chainID: 8453
 factories: ["0x029EB597fb328844A807DC7662023244dE698C15"]   # the protocol's Factory, one address on every chain
-codeVersions: [1]             # optional; default [1]
 hookFamilies:                 # optional; default: the protocol-listed builds (families.go)
   - name: everlong-hook
     codeHash: "0x..."

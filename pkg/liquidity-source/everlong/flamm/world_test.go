@@ -18,7 +18,6 @@ type fakePool struct {
 	factory    common.Address
 	listed     bool // the Factory's isPool
 	paused     bool
-	version    uint32
 	tokens     []tokenConfig
 	tradable   *big.Int
 	hook       common.Address // the swap hook
@@ -279,8 +278,6 @@ func (w *world) respond(from, to common.Address, data []byte) (bool, []byte) {
 		return false, nil
 	case "paused":
 		return pack(m, p.paused)
-	case "poolCodeVersion":
-		return pack(m, p.version)
 	case "tradablePairs":
 		return pack(m, p.tradable, zero, zero, zero, zero)
 	case "hooks":
@@ -395,7 +392,7 @@ func tierWorldFrom(saleFrom, buyFrom int64) (*world, *fakePool) {
 		return a.Cmp(big.NewInt(buyFrom)) >= 0 && a.Cmp(buyTop) <= 0
 	}
 	fp := &fakePool{
-		factory: common.HexToAddress(factoryA), listed: true, version: 1,
+		factory: common.HexToAddress(factoryA), listed: true,
 		tokens:   []tokenConfig{tokenCfg(cbBTC, 8), tokenCfg(usdc, 6)},
 		tradable: bits(16*0+1, 16*1+0),
 		hook:     common.HexToAddress(hookA), pairMask: new(big.Int), laneConfig: new(big.Int),

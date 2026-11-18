@@ -20,10 +20,6 @@ type Config struct {
 	// refresh.
 	Factories []string `json:"factories"`
 
-	// CodeVersions are the `poolCodeVersion()` values quoted; empty: [1]. A pool behind any other implementation
-	// is left unrouted until the list names it.
-	CodeVersions []uint32 `json:"codeVersions,omitempty"`
-
 	// HookFamilies are the pricing-hook code families quoted: a pair is routed only where the hook pricing it (the
 	// pool's pair hook for the pairs its mask names, else the swap hook) runs code of a listed family, and the gas
 	// table has cells for that build. Empty: the protocol-listed builds (defaultHookFamilies); a list replaces them,
@@ -99,10 +95,6 @@ func (c *Config) families() []HookFamily {
 		}
 	}
 	return out
-}
-
-func (c *Config) codeVersionOk(v uint32) bool {
-	return slices.Contains(orDefault(c.CodeVersions, defaultCodeVersions), v)
 }
 
 func (c *Config) taker() common.Address {

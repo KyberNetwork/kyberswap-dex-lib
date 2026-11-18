@@ -63,7 +63,7 @@ func testWorld() *world {
 	btcUsd, usdBtc, usdtUsd := oracle(1_000, 1, 5, 1_000_000_000), oracle(1, 1_000, 5, 100_000_000_000),
 		oracle(1, 1, 1, 100_000_000_000)
 	w.add(common.HexToAddress(poolX), &fakePool{
-		factory: common.HexToAddress(factoryA), listed: true, version: 1,
+		factory: common.HexToAddress(factoryA), listed: true,
 		tokens:   []tokenConfig{tokenCfg(cbBTC, 8), tokenCfg(usdc, 6), tokenCfg(usdt, 6)},
 		tradable: bits(16*0+1, 16*1+0, 16*2+1),
 		hook:     common.HexToAddress(hookA), pairMask: new(big.Int), laneConfig: new(big.Int),
@@ -403,12 +403,8 @@ func TestTrackerGatesFailClosed(t *testing.T) {
 		"a Factory not configured": {edit: func(_ *world, _ *fakePool, cfg *Config) {
 			cfg.Factories = []string{factoryB}
 		}},
-		"no pool of its Factory":     {edit: func(_ *world, fp *fakePool, _ *Config) { fp.listed = false }},
-		"paused":                     {edit: func(_ *world, fp *fakePool, _ *Config) { fp.paused = true }},
-		"an implementation unlisted": {edit: func(_ *world, fp *fakePool, _ *Config) { fp.version = 2 }},
-		"an implementation listed": {edit: func(_ *world, fp *fakePool, cfg *Config) {
-			fp.version, cfg.CodeVersions = 2, []uint32{1, 2}
-		}, want: [][2]uint8{{0, 1}, {1, 0}}},
+		"no pool of its Factory": {edit: func(_ *world, fp *fakePool, _ *Config) { fp.listed = false }},
+		"paused":                 {edit: func(_ *world, fp *fakePool, _ *Config) { fp.paused = true }},
 		"a closed pair": {edit: func(_ *world, fp *fakePool, _ *Config) {
 			fp.tradable = bits(16*0+1, 16*2+1)
 		}, want: [][2]uint8{{0, 1}}},
