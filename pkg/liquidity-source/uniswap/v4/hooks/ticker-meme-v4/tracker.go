@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/goccy/go-json"
 
@@ -12,43 +11,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// Track validates the selected deployment before using the shared Pons tracker.
-// The legacy address remains a proxy; the new deployment executes its code directly.
+// Track checks the immutable deployment before using the shared Pons tracker.
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
-	if param.Cfg == nil || param.Cfg.ChainID != valueobject.ChainIDMonad || (param.HookAddress != HookAddress && param.HookAddress != ImmutableHookAddress) {
+	if param == nil || param.Cfg == nil || param.Cfg.ChainID != valueobject.ChainIDMonad || param.HookAddress != HookAddress {
 		return nil, ErrUnsupportedDeployment
 	}
-	if param.HookAddress == ImmutableHookAddress {
-		if err := checkImmutableCode(ctx, param); err != nil {
-			return nil, err
-		}
-		if err := h.Extra.Track(ctx, param); err != nil {
-			return nil, err
-		}
-		return json.Marshal(h.Extra)
-	}
-	var slot []byte
-	account := param.Overrides[HookAddress]
-	if account.Code != nil && crypto.Keccak256Hash(account.Code) != proxyCodeHash {
-		return nil, ErrUnsupportedDeployment
-	}
-	if account.State != nil {
-		slot = account.State[implementationSlot].Bytes()
-	} else if value, ok := account.StateDiff[implementationSlot]; ok {
-		slot = value.Bytes()
-	} else {
-		var err error
-		slot, err = param.RpcClient.GetETHClient().StorageAt(ctx, HookAddress, implementationSlot, param.BlockNumber)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if common.BytesToAddress(slot) != ImplementationAddress {
-		return nil, ErrUnsupportedDeployment
-	}
-	// Check supplied code without fetching bytecode from the chain.
-	if code := param.Overrides[ImplementationAddress].Code; code != nil && crypto.Keccak256Hash(code) != ImplementationCodeHash {
-		return nil, ErrUnsupportedDeployment
+	if err := checkHookCode(ctx, param); err != nil {
+		return nil, err
 	}
 	if err := h.Extra.Track(ctx, param); err != nil {
 		return nil, err
@@ -57,26 +26,26 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 }
 
 // Cache only verified chain code. Simulation replacement code must always be checked.
-var immutableCodeVerified sync.Map
+var verifiedCode sync.Map
 
-func checkImmutableCode(ctx context.Context, param *uniswapv4.HookParam) error {
-	code := param.Overrides[ImmutableHookAddress].Code
+func checkHookCode(ctx context.Context, param *uniswapv4.HookParam) error {
+	code := param.Overrides[HookAddress].Code
 	overridden := code != nil
 	if !overridden {
-		if _, ok := immutableCodeVerified.Load(ImmutableHookAddress); ok {
+		if _, ok := verifiedCode.Load(HookAddress); ok {
 			return nil
 		}
 		var err error
-		code, err = param.RpcClient.GetETHClient().CodeAt(ctx, ImmutableHookAddress, param.BlockNumber)
+		code, err = param.RpcClient.GetETHClient().CodeAt(ctx, HookAddress, param.BlockNumber)
 		if err != nil {
 			return err
 		}
 	}
-	if crypto.Keccak256Hash(code) != immutableHookCodeHash {
+	if crypto.Keccak256Hash(code) != hookCodeHash {
 		return ErrUnsupportedDeployment
 	}
 	if !overridden {
-		immutableCodeVerified.Store(ImmutableHookAddress, struct{}{})
+		verifiedCode.Store(HookAddress, struct{}{})
 	}
 	return nil
 }

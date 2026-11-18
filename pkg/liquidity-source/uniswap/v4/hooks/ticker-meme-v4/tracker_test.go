@@ -23,26 +23,16 @@ import (
 const snapshotBlock = 112361144
 
 type trackingRPC struct {
-	t              *testing.T
-	implementation common.Address
-	hookAddress    common.Address
-	directCode     []byte
-	codeReads      int
-	storageReads   int
-	output         []byte
-	calls          int
-}
-
-func (s *trackingRPC) GetStorageAt(_ context.Context, address common.Address, slot common.Hash, block string) (hexutil.Bytes, error) {
-	require.Equal(s.t, s.hookAddress, address)
-	s.storageReads++
-	require.Equal(s.t, implementationSlot, slot)
-	require.Equal(s.t, hexutil.EncodeUint64(snapshotBlock), block)
-	return common.BytesToHash(s.implementation.Bytes()).Bytes(), nil
+	t           *testing.T
+	hookAddress common.Address
+	directCode  []byte
+	codeReads   int
+	output      []byte
+	calls       int
 }
 
 func (s *trackingRPC) GetCode(_ context.Context, address common.Address, block string) (hexutil.Bytes, error) {
-	require.Equal(s.t, ImmutableHookAddress, address, "only the direct deployment downloads code")
+	require.Equal(s.t, HookAddress, address, "only the direct deployment downloads code")
 	require.Equal(s.t, hexutil.EncodeUint64(snapshotBlock), block)
 	s.codeReads++
 	return s.directCode, nil
@@ -71,7 +61,7 @@ func trackContext(t *testing.T) (*Hook, *uniswapv4.HookParam, *trackingRPC) {
 	for index, value := range map[int]int64{0: 1, 7: 133, 8: 3000, 9: 5000, 10: 100, 11: 300, 12: 1} {
 		copy(output[index*32:(index+1)*32], common.BigToHash(big.NewInt(value)).Bytes())
 	}
-	service := &trackingRPC{t: t, implementation: ImplementationAddress, hookAddress: HookAddress, output: output}
+	service := &trackingRPC{t: t, hookAddress: HookAddress, output: output}
 	server := rpc.NewServer()
 	require.NoError(t, server.RegisterName("eth", service))
 	httpServer := httptest.NewServer(server)
@@ -80,44 +70,15 @@ func trackContext(t *testing.T) (*Hook, *uniswapv4.HookParam, *trackingRPC) {
 	return NewHook(param).(*Hook), param, service
 }
 
-func TestTrackUsesPonsAndRejectsUpgrade(t *testing.T) {
-	h, param, service := trackContext(t)
-	data, err := h.Track(context.Background(), param)
-	require.NoError(t, err)
-	require.JSONEq(t, `{"r":true,"f":233}`, string(data))
-	require.EqualValues(t, 233, h.FeeBps)
-	_, err = h.Track(context.Background(), param)
-	require.NoError(t, err)
-	require.Equal(t, 1, service.calls, "reuse Pons's immutable pool fees")
-	service.implementation = common.HexToAddress("0xdead")
-	_, err = h.Track(context.Background(), param)
-	require.ErrorIs(t, err, ErrUnsupportedDeployment)
-	require.EqualValues(t, 233, h.FeeBps)
-
-	param.Overrides = map[common.Address]gethclient.OverrideAccount{HookAddress: {StateDiff: map[common.Hash]common.Hash{implementationSlot: common.BytesToHash(ImplementationAddress.Bytes())}}}
-	_, err = h.Track(context.Background(), param)
-	require.NoError(t, err)
-	param.Overrides[ImplementationAddress] = gethclient.OverrideAccount{Code: []byte{0}}
-	_, err = h.Track(context.Background(), param)
-	require.ErrorIs(t, err, ErrUnsupportedDeployment)
-	delete(param.Overrides, ImplementationAddress)
-	param.Overrides[HookAddress] = gethclient.OverrideAccount{Code: []byte{0}}
-	_, err = h.Track(context.Background(), param)
-	require.ErrorIs(t, err, ErrUnsupportedDeployment)
-	param.Overrides = map[common.Address]gethclient.OverrideAccount{HookAddress: {State: map[common.Hash]common.Hash{}}}
-	_, err = h.Track(context.Background(), param)
-	require.ErrorIs(t, err, ErrUnsupportedDeployment)
-}
-
 func TestImmutableTrackUsesDirectCodeAndPons(t *testing.T) {
 	_, param, service := trackContext(t)
-	param.HookAddress = ImmutableHookAddress
-	service.hookAddress = ImmutableHookAddress
+	param.HookAddress = HookAddress
+	service.hookAddress = HookAddress
 	service.directCode = []byte{0x60, 0x01}
-	old := immutableHookCodeHash
-	immutableHookCodeHash = crypto.Keccak256Hash(service.directCode)
-	immutableCodeVerified.Clear()
-	t.Cleanup(func() { immutableHookCodeHash = old; immutableCodeVerified.Clear() })
+	old := hookCodeHash
+	hookCodeHash = crypto.Keccak256Hash(service.directCode)
+	verifiedCode.Clear()
+	t.Cleanup(func() { hookCodeHash = old; verifiedCode.Clear() })
 	h := NewHook(param).(*Hook)
 	data, err := h.Track(context.Background(), param)
 	require.NoError(t, err)
@@ -126,17 +87,16 @@ func TestImmutableTrackUsesDirectCodeAndPons(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, service.codeReads, "verified chain code is downloaded once")
 	require.Equal(t, 1, service.calls, "reuse Pons's immutable pool fees")
-	require.Zero(t, service.storageReads, "direct deployment has no proxy implementation")
 
-	param.Overrides = map[common.Address]gethclient.OverrideAccount{ImmutableHookAddress: {Code: []byte{0}}}
+	param.Overrides = map[common.Address]gethclient.OverrideAccount{HookAddress: {Code: []byte{0}}}
 	_, err = h.Track(context.Background(), param)
 	require.ErrorIs(t, err, ErrUnsupportedDeployment, "replacement code cannot bypass a cached code check")
-	param.Overrides[ImmutableHookAddress] = gethclient.OverrideAccount{Code: service.directCode}
+	param.Overrides[HookAddress] = gethclient.OverrideAccount{Code: service.directCode}
 	_, err = h.Track(context.Background(), param)
 	require.NoError(t, err)
 	require.Equal(t, 1, service.codeReads, "replacement code is checked locally")
 
-	immutableCodeVerified.Clear()
+	verifiedCode.Clear()
 	param.Overrides = nil
 	service.directCode = []byte{0}
 	_, err = h.Track(context.Background(), param)

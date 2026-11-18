@@ -24,12 +24,7 @@ import (
 )
 
 func TestTrackerPublishesPinnedSnapshot(t *testing.T) {
-	for _, address := range []common.Address{productionHookAddress, immutableHookAddress} {
-		t.Run(address.Hex(), func(t *testing.T) { testTrackerPublishesPinnedSnapshot(t, address) })
-	}
-}
-
-func testTrackerPublishesPinnedSnapshot(t *testing.T, address common.Address) {
+	address := productionHookAddress
 	readABI := func(path string) abi.ABI {
 		b, err := os.ReadFile(path)
 		require.NoError(t, err)
@@ -118,17 +113,11 @@ func testTrackerPublishesPinnedSnapshot(t *testing.T, address common.Address) {
 	require.Equal(t, s.Total1.Dec(), next.Total1.Dec())
 	require.Equal(t, s.Pool.Balance0.Dec(), next.Pool.Balance0.Dec())
 	// Exercise the full refresh with direct token balances and test-only bytecode.
-	oldProxy, oldHook, oldDirect := tickerProxyFingerprint, tickerHookFingerprint, immutableHookCodeHash
-	tickerProxyFingerprint = runtimeFingerprint{Size: 1, Hash: crypto.Keccak256Hash([]byte{0x60})}
-	tickerHookFingerprint = tickerProxyFingerprint
-	immutableHookCodeHash = crypto.Keccak256Hash([]byte{0x60, 0, 0})
-	t.Cleanup(func() {
-		tickerProxyFingerprint, tickerHookFingerprint, immutableHookCodeHash = oldProxy, oldHook, oldDirect
-	})
-	implementation := common.HexToAddress("0x7890")
+	oldHash := hookCodeHash
+	hookCodeHash = crypto.Keccak256Hash([]byte{0x60, 0, 0})
+	t.Cleanup(func() { hookCodeHash = oldHash })
 	p.Overrides = map[common.Address]gethclient.OverrideAccount{
-		address:        {Code: []byte{0x60, 0, 0}, State: map[common.Hash]common.Hash{implementationSlot: common.BytesToHash(implementation.Bytes())}},
-		implementation: {Code: []byte{0x60, 0, 0}},
+		address: {Code: []byte{0x60, 0, 0}, State: map[common.Hash]common.Hash{}},
 	}
 	batches[1][3] = pack(tickerABI, "vaults", empty)
 	batches = append(batches, [][]byte{pack(accountingABI, "poolManager", monadPoolManager)},

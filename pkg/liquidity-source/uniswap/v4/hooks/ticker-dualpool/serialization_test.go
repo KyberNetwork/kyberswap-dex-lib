@@ -19,7 +19,7 @@ import (
 )
 
 func TestTickerDualPoolSerializationPreservesQuotes(t *testing.T) {
-	address := common.HexToAddress("0x047ea2f55148b7601fdde0d28588b55c09192ac4")
+	address := common.HexToAddress("0x1e7bd27b3951887ed2da1ce1740c62747aa7eac4")
 	backing := uint256.MustFromDecimal("1000000000000000000000000")
 	price := new(uint256.Int).Lsh(uint256.NewInt(1), 96)
 	snapshot := ticker.Snapshot{BlockNumber: 123, Pool: dualpool.Extra{Live: true, Balance0: backing.Clone(), Balance1: backing.Clone(), SqrtPriceX96: price, LpFee: 2000, Buckets: []dualpool.Bucket{{TickLower: -10000, TickUpper: 10000, WeightBps: 10000}}}, Total0: backing.Clone(), Total1: backing.Clone(), TickSpacing: 10, Registered: true, HookFeeBps: 100, CreatorTaxBps: 50}

@@ -29,7 +29,9 @@ var accountingABI = func() abi.ABI {
 	}
 	return a
 }()
-var implementationSlot = common.HexToHash("0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc")
+
+// The Aave StataToken strategies are still proxies; the Ticker hook is not.
+var strategyImplementationSlot = common.HexToHash("0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc")
 var stataImplementationHash = common.HexToHash("0xaae6d8b1278cc94bb511e0d26bc88c503152c51502178d4e94ccfe041bfedf06")
 var monadPoolManager = common.HexToAddress("0x188d586Ddcf52439676Ca21A244753fA19F9Ea8e")
 
@@ -98,26 +100,18 @@ func requireCode(ctx context.Context, p *uniswapv4.HookParam, address common.Add
 }
 
 func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessage, error) {
-	if (h.address == productionHookAddress || h.address == immutableHookAddress) && (p == nil || p.Cfg == nil || p.Cfg.ChainID != valueobject.ChainIDMonad) {
+	if p == nil || h.address != productionHookAddress || p.Cfg == nil || p.Cfg.ChainID != valueobject.ChainIDMonad {
 		return nil, ErrInvalidState
 	}
-	direct := h.address == immutableHookAddress
-	if direct {
-		if err := requireCode(ctx, p, h.address, "immutable hook bytecode", func(code []byte) bool {
-			return crypto.Keccak256Hash(code) == immutableHookCodeHash
-		}); err != nil {
-			return nil, err
-		}
+	if err := requireCode(ctx, p, h.address, "hook bytecode", func(code []byte) bool {
+		return crypto.Keccak256Hash(code) == hookCodeHash
+	}); err != nil {
+		return nil, err
 	}
 	// Failed reads must leave the previous snapshot intact.
 	candidate := *h
 	if _, err := candidate.trackBase(ctx, p); err != nil {
 		return nil, err
-	}
-	if !direct {
-		if err := requireCode(ctx, p, h.address, "hook proxy bytecode", tickerProxyFingerprint.matches); err != nil {
-			return nil, err
-		}
 	}
 	var poolManager common.Address
 	managerRequest := p.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(p.BlockNumber).SetOverrides(p.Overrides)
@@ -127,15 +121,6 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 	}
 	if poolManager != monadPoolManager {
 		return nil, fmt.Errorf("PoolManager address: %w", ErrInvalidState)
-	}
-	if !direct {
-		slot, err := storageAt(ctx, p, h.address, implementationSlot)
-		if err != nil {
-			return nil, err
-		}
-		if err := requireCode(ctx, p, common.BytesToAddress(slot[:]), "hook implementation", matchesTickerHook); err != nil {
-			return nil, err
-		}
 	}
 	var config uniswapv4.StaticExtra
 	if err := json.Unmarshal([]byte(p.Pool.StaticExtra), &config); err != nil {
@@ -191,13 +176,7 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 		if vault == (common.Address{}) {
 			continue
 		}
-		vaultFingerprint := tickerVaultFingerprint
-		vaultLabel := "vault implementation"
-		if direct {
-			vaultFingerprint = immutableVaultFingerprint
-			vaultLabel = "immutable Aave vault implementation"
-		}
-		if err := requireCode(ctx, p, vault, vaultLabel, vaultFingerprint.matches); err != nil {
+		if err := requireCode(ctx, p, vault, "vault implementation", tickerVaultFingerprint.matches); err != nil {
 			return nil, err
 		}
 		shareWord, err := storageAt(ctx, p, h.address, mapSlot(4))
@@ -226,7 +205,7 @@ func (h *Hook) Track(ctx context.Context, p *uniswapv4.HookParam) (json.RawMessa
 		if err = requireCode(ctx, p, strategy, "strategy proxy bytecode", func(code []byte) bool { return crypto.Keccak256Hash(code) == expected }); err != nil {
 			return nil, err
 		}
-		implementation, err := storageAt(ctx, p, strategy, implementationSlot)
+		implementation, err := storageAt(ctx, p, strategy, strategyImplementationSlot)
 		if err != nil {
 			return nil, err
 		}
