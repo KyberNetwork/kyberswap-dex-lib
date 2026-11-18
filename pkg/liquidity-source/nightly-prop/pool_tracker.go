@@ -27,10 +27,11 @@ func NewPoolTracker(_ *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{ethrpcClient: ethrpcClient}
 }
 
-// GetNewPoolState reads the pool's whole state with one getPoolStateV1 call to the record's
-// router, so every value comes from one block, and the record's BlockNumber is the router's
-// number for that block. A pool that the router cannot swap now, for example a paused one or one
-// whose price is stale, gets zero reserves, and Extra keeps the flags that tell why.
+// GetNewPoolState reads the pool's whole state for the record's partner with one getPoolStateV1
+// call to the record's router, so every value comes from one block, and the record's BlockNumber
+// is the router's number for that block. A pool whose swaps by the partner revert now, for example
+// a paused one or one with a missing role, gets zero reserves, and Extra keeps the flags that tell
+// why. A stale price keeps the reserves: the simulator checks the price's age when it quotes.
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
@@ -43,12 +44,16 @@ func (t *PoolTracker) GetNewPoolState(
 	if len(p.Tokens) != 2 {
 		return p, fmt.Errorf("%w: %d tokens", ErrInvalidPoolRecord, len(p.Tokens))
 	}
+	if !common.IsHexAddress(staticExtra.PartnerAddress) {
+		return p, fmt.Errorf("%w: partner address %q", ErrInvalidPoolRecord, staticExtra.PartnerAddress)
+	}
 
 	var out tuple[rpcPoolStateV1]
 	// getPoolStateV1 accepts only a simulation, whose origin is the zero address.
 	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetFrom(common.Address{}).
 		AddCall(&ethrpc.Call{ABI: routerABI, Target: staticExtra.RouterAddress, Method: routerMethodGetPoolStateV1,
-			Params: []any{common.HexToAddress(p.Address)}}, []any{&out}).
+			Params: []any{common.HexToAddress(p.Address), common.HexToAddress(staticExtra.PartnerAddress)}},
+			[]any{&out}).
 		Call(); err != nil {
 		return p, fmt.Errorf("nightly-prop: getPoolStateV1: %w", err)
 	}
@@ -95,11 +100,15 @@ func newExtra(state rpcPoolStateV1) (Extra, error) {
 		}
 	}
 	return Extra{
-		Routed:         state.Routed,
-		RouterPaused:   state.RouterPaused,
-		PoolPaused:     state.PoolPaused,
-		PriceAvailable: state.PriceAvailable,
-		BlockTimestamp: state.BlockTimestamp.Uint64(),
+		Routed:                 state.Routed,
+		RouterPaused:           state.RouterPaused,
+		PoolPaused:             state.PoolPaused,
+		RouterSwapper:          state.RouterSwapper,
+		PoolPriceReader:        state.PoolPriceReader,
+		PartnerRole:            state.PartnerRole,
+		PartnerFeeRecipientSet: state.PartnerFeeRecipientSet,
+		PriceAvailable:         state.PriceAvailable,
+		BlockTimestamp:         state.BlockTimestamp.Uint64(),
 		Price: math.OraclePrice{
 			MidPrice:    state.MidPrice,
 			BidSpread:   math.Spread(state.BidSpread),
@@ -117,16 +126,30 @@ func newExtra(state rpcPoolStateV1) (Extra, error) {
 	}, nil
 }
 
-// swappable reports whether a partner swap can run on the pool now: the router routes its pair
-// through it, neither the router nor the pool is paused, and the pool has a price.
-func (e *Extra) swappable() bool {
-	return e.Routed && !e.RouterPaused && !e.PoolPaused && e.PriceAvailable
+// swapError is the reason that the partner's swaps on the pool revert now, apart from the walk and
+// the price's age, or nil: the router must route the pair through the pool, neither the router
+// nor the pool may be paused, the pool must let the router swap and the oracle must let the pool
+// read prices, the partner needs its role and a fee recipient, and the pool needs a price.
+func (e *Extra) swapError() error {
+	switch {
+	case !e.Routed:
+		return ErrNoRoute
+	case e.RouterPaused || e.PoolPaused:
+		return ErrPaused
+	case !e.RouterSwapper || !e.PoolPriceReader:
+		return ErrMissingRole
+	case !e.PartnerRole || !e.PartnerFeeRecipientSet:
+		return ErrPartnerNotEnabled
+	case !e.PriceAvailable:
+		return ErrPriceUnavailable
+	}
+	return nil
 }
 
-// reserves is levelBalances for a swappable pool, in the record's token order (base, then quote).
-// It is zero for a pool that is not swappable, so the route finder skips it.
+// reserves is levelBalances in the record's token order (base, then quote) when swapError is nil.
+// Otherwise it is zero, so the route finder skips the pool.
 func (e *Extra) reserves() entity.PoolReserves {
-	if !e.swappable() {
+	if e.swapError() != nil {
 		return entity.PoolReserves{"0", "0"}
 	}
 	base, quote := e.levelBalances()

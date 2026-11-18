@@ -16,7 +16,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-const simRouter = "0xede7b21238ab8d2bc7c5e62d7e6d141caba5cba2"
+const (
+	simRouter  = "0xede7b21238ab8d2bc7c5e62d7e6d141caba5cba2"
+	simPartner = "0x0000000000000000000000000000000000009a27"
+)
 
 func units(tb testing.TB, amount uint64, decimals uint8) uint256.Int {
 	tb.Helper()
@@ -34,13 +37,17 @@ func simLevel(lower, upper math.SignedSpread, base, quote uint256.Int) math.Leve
 // simExtra is the walk fixture of the math package on the WETH/USDC pool: 20,000 USDC in level
 // -1 (bid 1,998 to 2,000), 10 WETH in level 0 (ask 2,000 to 2,002), and 20 WETH in level 1, the
 // position at the lower edge of level 0, and WETH at $2,000 with zero oracle spreads. The price
-// has the time priceTimestampMs and a 30-second maximum age.
+// has the time priceTimestampMs and a 30-second maximum age. Every role and the partner are set.
 func simExtra(tb testing.TB, priceTimestampMs uint64) Extra {
 	return Extra{
-		Routed:         true,
-		PriceAvailable: true,
-		BlockTimestamp: priceTimestampMs / 1_000,
-		Price:          math.OraclePrice{MidPrice: 200_000_000_000, TimestampMs: priceTimestampMs},
+		Routed:                 true,
+		RouterSwapper:          true,
+		PoolPriceReader:        true,
+		PartnerRole:            true,
+		PartnerFeeRecipientSet: true,
+		PriceAvailable:         true,
+		BlockTimestamp:         priceTimestampMs / 1_000,
+		Price:                  math.OraclePrice{MidPrice: 200_000_000_000, TimestampMs: priceTimestampMs},
 		Pool: math.Pool{
 			BaseDecimals:  18,
 			QuoteDecimals: 6,
@@ -72,7 +79,7 @@ func newSim(tb testing.TB, extra Extra, staleCheck bool) *PoolSimulator {
 			Tokens:      []*entity.PoolToken{{Address: arbitrumWeth, Swappable: true}, {Address: arbitrumUsdc, Swappable: true}},
 			Reserves:    extra.reserves(),
 			Extra:       string(extraBytes),
-			StaticExtra: `{"routerAddress":"` + simRouter + `"}`,
+			StaticExtra: `{"routerAddress":"` + simRouter + `","partnerAddress":"` + simPartner + `"}`,
 			BlockNumber: 525_043_339,
 		},
 		Opts: pool.FactoryOpts{StaleCheck: staleCheck},
@@ -138,6 +145,10 @@ func TestCalcAmountOut_Error(t *testing.T) {
 		{"not routed", func(e *Extra) { e.Routed = false }, arbitrumUsdc, arbitrumWeth, big.NewInt(1), ErrNoRoute},
 		{"router paused", func(e *Extra) { e.RouterPaused = true }, arbitrumUsdc, arbitrumWeth, big.NewInt(1), ErrPaused},
 		{"pool paused", func(e *Extra) { e.PoolPaused = true }, arbitrumUsdc, arbitrumWeth, big.NewInt(1), ErrPaused},
+		{"router not swapper", func(e *Extra) { e.RouterSwapper = false }, arbitrumUsdc, arbitrumWeth, big.NewInt(1), ErrMissingRole},
+		{"pool not price reader", func(e *Extra) { e.PoolPriceReader = false }, arbitrumUsdc, arbitrumWeth, big.NewInt(1), ErrMissingRole},
+		{"partner without role", func(e *Extra) { e.PartnerRole = false }, arbitrumUsdc, arbitrumWeth, big.NewInt(1), ErrPartnerNotEnabled},
+		{"partner without fee recipient", func(e *Extra) { e.PartnerFeeRecipientSet = false }, arbitrumUsdc, arbitrumWeth, big.NewInt(1), ErrPartnerNotEnabled},
 		{"no price", func(e *Extra) { e.PriceAvailable = false }, arbitrumUsdc, arbitrumWeth, big.NewInt(1), ErrPriceUnavailable},
 		// All 30 WETH cost 60,070 USDC.
 		{"insufficient liquidity", nil, arbitrumUsdc, arbitrumWeth, usdcUnits(t, 60_071).ToBig(), math.ErrInsufficientLiquidity},
@@ -156,16 +167,16 @@ func TestCalcAmountOut_Error(t *testing.T) {
 	}
 }
 
-// TestCalcAmountOut_PriceAge: with StaleCheck, the age check counts to the quote's time plus
-// priceAgeMargin, so a price 29.5 s old is already stale for a 30-second maximum age. Without
+// TestCalcAmountOut_PriceAge: with StaleCheck, the age check counts to the quote's time, so for a
+// 30-second maximum age a price 29 s old is fresh and a price 31 s old is stale. Without
 // StaleCheck, as the liquidity indexer runs, no price is stale.
 func TestCalcAmountOut_PriceAge(t *testing.T) {
-	fresh := newSim(t, simExtra(t, nowMs()-20_000), true)
+	fresh := newSim(t, simExtra(t, nowMs()-29_000), true)
 	_, err := quote(fresh, arbitrumUsdc, usdcUnits(t, 1_000), arbitrumWeth)
 	require.NoError(t, err)
 
-	staleSoon := simExtra(t, nowMs()-29_500)
-	_, err = quote(newSim(t, staleSoon, true), arbitrumUsdc, usdcUnits(t, 1_000), arbitrumWeth)
+	stale := simExtra(t, nowMs()-31_000)
+	_, err = quote(newSim(t, stale, true), arbitrumUsdc, usdcUnits(t, 1_000), arbitrumWeth)
 	require.ErrorIs(t, err, math.ErrStaleOraclePrice)
 
 	old := simExtra(t, nowMs()-3_600_000)

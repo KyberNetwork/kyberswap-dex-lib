@@ -26,8 +26,14 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolsListUp
 	if !common.IsHexAddress(cfg.RouterAddress) {
 		return nil, fmt.Errorf("%w: %q", ErrInvalidRouterAddress, cfg.RouterAddress)
 	}
-	router := common.HexToAddress(cfg.RouterAddress)
-	staticExtra, err := json.Marshal(StaticExtra{RouterAddress: hexutil.Encode(router[:])})
+	if !common.IsHexAddress(cfg.PartnerAddress) {
+		return nil, fmt.Errorf("%w: %q", ErrInvalidPartnerAddress, cfg.PartnerAddress)
+	}
+	router, partner := common.HexToAddress(cfg.RouterAddress), common.HexToAddress(cfg.PartnerAddress)
+	staticExtra, err := json.Marshal(StaticExtra{
+		RouterAddress:  hexutil.Encode(router[:]),
+		PartnerAddress: hexutil.Encode(partner[:]),
+	})
 	if err != nil {
 		return nil, err
 	}

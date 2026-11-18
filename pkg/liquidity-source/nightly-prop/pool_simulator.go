@@ -69,14 +69,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if overflow {
 		return nil, ErrInvalidAmount
 	}
-	if !s.Extra.Routed {
-		return nil, ErrNoRoute
-	}
-	if s.Extra.RouterPaused || s.Extra.PoolPaused {
-		return nil, ErrPaused
-	}
-	if !s.Extra.PriceAvailable {
-		return nil, ErrPriceUnavailable
+	if err := s.Extra.swapError(); err != nil {
+		return nil, err
 	}
 
 	walk := s.Extra.Pool.SellExactBase
@@ -95,13 +89,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}, nil
 }
 
-// blockTimestamp is the block time, in seconds, for the walk's price age check: the quote's time
-// plus priceAgeMargin. Without StaleCheck it is zero, for which no price is too old.
+// blockTimestamp is the block time, in seconds, for the walk's price age check: the quote's time.
+// Without StaleCheck it is zero, for which no price is too old.
 func (s *PoolSimulator) blockTimestamp() uint64 {
 	if !s.StaleCheck {
 		return 0
 	}
-	return uint64(time.Now().Add(priceAgeMargin).Unix())
+	return uint64(time.Now().Unix())
 }
 
 // UpdateBalance applies the swap of CalcAmountOut's SwapInfo, the level balances and the end
