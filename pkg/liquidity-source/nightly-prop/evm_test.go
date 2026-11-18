@@ -71,7 +71,7 @@ func loadEVMFixture(t testing.TB) *evmFixture {
 
 	file, err := os.Open("testdata/router-fixture-state.json.gz")
 	require.NoError(t, err)
-	defer file.Close()
+	defer func() { require.NoError(t, file.Close()) }()
 	reader, err := gzip.NewReader(file)
 	require.NoError(t, err)
 	var dump map[common.Address]struct {
