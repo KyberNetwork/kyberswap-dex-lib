@@ -25,10 +25,11 @@ type PoolTracker struct {
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
-	if !common.IsHexAddress(cfg.KyberExecutor) {
+	executor, ok := parseNonzeroAddress(cfg.KyberExecutor)
+	if !ok {
 		return nil, fmt.Errorf("%w: %q", ErrInvalidKyberExecutor, cfg.KyberExecutor)
 	}
-	return &PoolTracker{executor: common.HexToAddress(cfg.KyberExecutor), ethrpcClient: ethrpcClient}, nil
+	return &PoolTracker{executor: executor, ethrpcClient: ethrpcClient}, nil
 }
 
 // GetNewPoolState reads one snapshot for the configured Kyber executor.
@@ -44,7 +45,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if len(p.Tokens) != 2 {
 		return p, fmt.Errorf("%w: %d tokens", ErrInvalidPoolRecord, len(p.Tokens))
 	}
-	if !common.IsHexAddress(staticExtra.RouterAddress) {
+	if _, ok := parseNonzeroAddress(staticExtra.RouterAddress); !ok {
 		return p, fmt.Errorf("%w: router address %q", ErrInvalidPoolRecord, staticExtra.RouterAddress)
 	}
 

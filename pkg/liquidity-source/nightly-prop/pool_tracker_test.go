@@ -146,9 +146,9 @@ func TestExtraReserves_StalePrice(t *testing.T) {
 }
 
 func TestNewPoolTracker_InvalidKyberExecutor(t *testing.T) {
-	for _, address := range []string{"", "0x1234"} {
+	for _, address := range []string{"", "0x1234", valueobject.ZeroAddress, valueobject.ZeroAddress[2:]} {
 		_, err := NewPoolTracker(&Config{KyberExecutor: address}, nil)
-		require.ErrorIs(t, err, ErrInvalidKyberExecutor)
+		require.ErrorIs(t, err, ErrInvalidKyberExecutor, "executor %q", address)
 	}
 }
 
@@ -164,6 +164,11 @@ func TestPoolTracker_InvalidPoolRecord(t *testing.T) {
 		"no router": {
 			Address:     arbitrumWethUsdcPool,
 			StaticExtra: `{}`,
+			Tokens:      []*entity.PoolToken{{Address: arbitrumWeth}, {Address: arbitrumUsdc}},
+		},
+		"zero router": {
+			Address:     arbitrumWethUsdcPool,
+			StaticExtra: `{"routerAddress":"` + valueobject.ZeroAddress + `"}`,
 			Tokens:      []*entity.PoolToken{{Address: arbitrumWeth}, {Address: arbitrumUsdc}},
 		},
 	} {

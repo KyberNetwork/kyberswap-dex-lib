@@ -19,8 +19,10 @@ const (
 )
 
 func TestNewPoolsListUpdater_InvalidRouterAddress(t *testing.T) {
-	_, err := NewPoolsListUpdater(&Config{DexID: DexType, RouterAddress: "0x1234"}, nil)
-	require.ErrorIs(t, err, ErrInvalidRouterAddress)
+	for _, address := range []string{"", "0x1234", valueobject.ZeroAddress, valueobject.ZeroAddress[2:]} {
+		_, err := NewPoolsListUpdater(&Config{DexID: DexType, RouterAddress: address}, nil)
+		require.ErrorIs(t, err, ErrInvalidRouterAddress, "router %q", address)
+	}
 }
 
 func TestLivePoolsListUpdater(t *testing.T) {

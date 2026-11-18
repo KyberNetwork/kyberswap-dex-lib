@@ -23,10 +23,10 @@ type PoolsListUpdater struct {
 var _ = poollist.RegisterFactoryCE1(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolsListUpdater, error) {
-	if !common.IsHexAddress(cfg.RouterAddress) {
+	router, ok := parseNonzeroAddress(cfg.RouterAddress)
+	if !ok {
 		return nil, fmt.Errorf("%w: %q", ErrInvalidRouterAddress, cfg.RouterAddress)
 	}
-	router := common.HexToAddress(cfg.RouterAddress)
 	staticExtra, err := json.Marshal(StaticExtra{RouterAddress: hexutil.Encode(router[:])})
 	if err != nil {
 		return nil, err
