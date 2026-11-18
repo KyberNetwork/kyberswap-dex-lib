@@ -78,10 +78,14 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if err != nil {
 		return nil, err
 	}
+	// The walk visits consecutive levels. A level without output liquidity has no write.
+	start, end := s.Extra.Pool.Position.LevelID, swap.Quote.EndPosition.LevelID
+	visited := int64(max(start, end)) - int64(min(start, end)) + 1
+	written := int64(len(swap.Writes))
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[out], Amount: swap.Quote.AmountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[in], Amount: new(big.Int)},
-		Gas:            defaultGas,
+		Gas:            singleLevelGas + (written-1)*extraWrittenLevelGas + (visited-written)*skippedLevelGas,
 		SwapInfo:       &swap,
 	}, nil
 }

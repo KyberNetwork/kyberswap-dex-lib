@@ -13,8 +13,11 @@ const (
 	routerMethodGetPoolStateV1 = "getPoolStateV1"
 	poolMethodGetTokens        = "getTokens"
 
-	// Estimated gas for a swap within one price level.
-	defaultGas = 258_833
+	// The router fixture measured 38,774 extra gas for a second write and 3,425 for a skipped level.
+	extraWrittenLevelGas = 39_000
+	skippedLevelGas      = 3_500
+	// The router_partner_sell_cold_with_fee snapshot skips level 0 and writes level -1.
+	singleLevelGas = 258_833 - skippedLevelGas
 )
 
 var (

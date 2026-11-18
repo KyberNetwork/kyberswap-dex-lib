@@ -112,7 +112,7 @@ func TestCalcAmountOut_Buy(t *testing.T) {
 	require.Equal(t, "3499387714231273582", result.TokenAmountOut.Amount.String())
 	require.Equal(t, arbitrumUsdc, result.Fee.Token)
 	require.Zero(t, result.Fee.Amount.Sign())
-	require.Equal(t, int64(defaultGas), result.Gas)
+	require.Equal(t, int64(255_333), result.Gas)
 	swap, ok := result.SwapInfo.(*math.Swap)
 	require.True(t, ok)
 	require.Equal(t, result.TokenAmountOut.Amount.String(), swap.Quote.AmountOut.Dec())
@@ -125,6 +125,19 @@ func TestCalcAmountOut_Sell(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, arbitrumUsdc, result.TokenAmountOut.Token)
 	require.Equal(t, "9997501249", result.TokenAmountOut.Amount.String())
+	require.Equal(t, int64(258_833), result.Gas) // Skip level 0 and write level -1.
+}
+
+func TestCalcAmountOut_GasAtLevelBoundary(t *testing.T) {
+	sim := newSim(t, simExtra(t, 0), false)
+	boundary := usdcUnits(t, 20_010)
+	exact, err := quote(sim, arbitrumUsdc, boundary, arbitrumWeth)
+	require.NoError(t, err)
+	require.Equal(t, int64(255_333), exact.Gas)
+
+	across, err := quote(sim, arbitrumUsdc, new(uint256.Int).AddUint64(boundary, 1), arbitrumWeth)
+	require.NoError(t, err)
+	require.Equal(t, int64(294_333), across.Gas)
 }
 
 func TestCalcAmountOut_Error(t *testing.T) {
