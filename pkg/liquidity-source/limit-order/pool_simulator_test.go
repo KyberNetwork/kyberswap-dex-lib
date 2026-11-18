@@ -1069,7 +1069,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 
 	for _, tc := range testcases {
 		resetSim()
-		limit := pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(sims[tc.pool].CalculateLimit())))
+		limit := swaplimit.NewInventory("", swaplimit.ToU256Balances(sims[tc.pool].CalculateLimit()))
 		for i, swap := range tc.swaps {
 			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
 				cloned := sims[tc.pool].CloneState()
@@ -1079,7 +1079,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 						Amount: bignumber.NewBig10(swap.amountIn),
 					},
 					TokenOut: "B",
-					Limit:    limit,
+					Limit:    pool.AsSwapLimitBig(limit),
 				}
 				res, err := sims[tc.pool].CalcAmountOut(calcAmountOutParams)
 
@@ -1092,7 +1092,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 
 				assert.Equal(t, swap.expAmountOut, res.TokenAmountOut.Amount.String())
 
-				clonedRes, err := pool.DefaultCalcAmtOut(context.Background(), cloned, calcAmountOutParams.TokenAmountIn, calcAmountOutParams.TokenOut, calcAmountOutParams.Limit)
+				clonedRes, err := pool.DefaultCalcAmtOut(context.Background(), cloned, calcAmountOutParams.TokenAmountIn, calcAmountOutParams.TokenOut, limit)
 				require.Nil(t, err)
 				assert.Equal(t, res.TokenAmountOut, clonedRes.TokenAmountOut)
 
@@ -1117,10 +1117,10 @@ func TestPool_UpdateBalance(t *testing.T) {
 					TokenAmountOut: *res.TokenAmountOut,
 					Fee:            *res.Fee,
 					SwapInfo:       res.SwapInfo,
-					SwapLimitBig:   limit,
+					SwapLimitBig:   pool.AsSwapLimitBig(limit),
 				})
 
-				clonedRes, err = pool.DefaultCalcAmtOut(context.Background(), cloned, calcAmountOutParams.TokenAmountIn, calcAmountOutParams.TokenOut, calcAmountOutParams.Limit)
+				clonedRes, err = pool.DefaultCalcAmtOut(context.Background(), cloned, calcAmountOutParams.TokenAmountIn, calcAmountOutParams.TokenOut, limit)
 				require.Nil(t, err)
 				assert.Equal(t, res.TokenAmountOut, clonedRes.TokenAmountOut)
 			})
@@ -1554,15 +1554,15 @@ func TestPool_CalcAmtOut_MatchesCalcAmountOut(t *testing.T) {
 			}
 			for _, amt := range amounts {
 				for _, withLimit := range []bool{false, true} {
-					var limit pool.SwapLimitBig
+					var limit pool.SwapLimit
 					if withLimit {
-						limit = pool.AsSwapLimitBig(swaplimit.NewInventory("", swaplimit.ToU256Balances(p.CalculateLimit())))
+						limit = swaplimit.NewInventory("", swaplimit.ToU256Balances(p.CalculateLimit()))
 					}
 					amtIn := bignumber.NewBig10(amt)
 					want, wantErr := p.CalcAmountOut(pool.CalcAmountOutParams{
 						TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amtIn},
 						TokenOut:      tokenOut,
-						Limit:         limit,
+						Limit:         pool.AsSwapLimitBig(limit),
 					})
 					var amtIn256 uint256.Int
 					require.False(t, amtIn256.SetFromBig(amtIn))

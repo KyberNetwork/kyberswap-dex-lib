@@ -108,7 +108,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	return p.calcAmountOut(param.TokenAmountIn, param.TokenOut, param.Limit)
+	return p.calcAmountOut(param.TokenAmountIn, param.TokenOut, swapLimitFromBig(param.Limit))
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
@@ -161,7 +161,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (p *PoolSimulator) calcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
-	limit pool.SwapLimitBig,
+	limit pool.SwapLimit,
 ) (*pool.CalcAmountOutResult, error) {
 	swapSide := p.getSwapSide(tokenAmountIn.Token, tokenOut)
 	var amountIn uint256.Int
@@ -252,7 +252,7 @@ func amountString(b *big.Int) string {
 // calcAmountOutWithSwapInfo runs the fill walk. noOrders reports no order on this side, which
 // returns no fee. amountInOK false means amountIn is not a usable amount.
 func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, amountIn uint256.Int, amountInOK bool,
-	limit pool.SwapLimitBig) (uint256.Int, uint256.Int, SwapInfo, bool, error) {
+	limit pool.SwapLimit) (uint256.Int, uint256.Int, SwapInfo, bool, error) {
 	orderIDs := p.getOrderIDsBySwapSide(swapSide)
 	if limit != nil {
 		// EX-2684: Filter out orders that are not in allowedSenders list.
@@ -512,7 +512,7 @@ func newFallbackOrderInfo(order *order, remainingMakingAmount string) *FilledOrd
 // makerBalances formats each maker's balance in the swap limit once per quote, for
 // FilledOrderInfo.MakerBalance; empty without a limit.
 type makerBalances struct {
-	limit   pool.SwapLimitBig
+	limit   pool.SwapLimit
 	byMaker map[string]string
 }
 
@@ -528,7 +528,7 @@ func (m *makerBalances) of(o *order) string {
 	}
 	var s string
 	if b := m.limit.GetLimit(NewMakerAndAsset(o.Maker, o.MakerAsset)); b != nil {
-		s = amountString(b)
+		s = b.Dec()
 	}
 	m.byMaker[o.Maker] = s
 	return s
