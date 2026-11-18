@@ -134,36 +134,19 @@ func (p *PoolSimulator) directionFor(tokenIn string) (dir *directionState, idxIn
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenIn := param.TokenAmountIn.Token
-	tokenOut := param.TokenOut
+	tokenIn, tokenOut := param.TokenAmountIn.Token, param.TokenOut
 	amountInBig := param.TokenAmountIn.Amount
-
-	dir, _, idxOut, ok := p.directionFor(tokenIn)
-	if !ok || !strings.EqualFold(p.Info.Tokens[idxOut], tokenOut) {
-		return nil, ErrInvalidToken
-	}
-
 	if amountInBig == nil || amountInBig.Sign() <= 0 {
 		return nil, ErrInvalidToken
 	}
-
 	amountIn, overflow := uint256.FromBig(amountInBig)
 	if overflow {
 		return nil, ErrOverflow
 	}
 
-	principal, fee := inverseFee(amountIn, dir.maxFee, dir.halfAmount)
-	if principal.IsZero() {
-		return nil, ErrInsufficientLiquidity
-	}
-
-	var amountOut uint256.Int
-	if _, overflow := amountOut.MulDivOverflow(principal, dir.scaleNumerator, dir.scaleDenominator); overflow {
-		return nil, ErrOverflow
-	}
-
-	if dir.reserve != nil && amountOut.Gt(dir.reserve) {
-		return nil, ErrInsufficientLiquidity
+	amountOut, fee, principal, err := p.quote(tokenIn, tokenOut, amountIn)
+	if err != nil {
+		return nil, err
 	}
 
 	// Multiple ghost pools can share the same underlying targetRouter/token vault balance, so
@@ -187,6 +170,56 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Gas:      p.gas,
 		SwapInfo: SwapInfo{TotalFeeBps: totalFeeBps(principal, fee)},
 	}, nil
+}
+
+// CalcAmtOut is CalcAmountOut with uint256 amounts. It shares quote and returns the same fields and errors.
+func (p *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenIn, tokenOut := param.TokenAmountIn.Token, param.TokenOut
+	if param.TokenAmountIn.Amount.IsZero() {
+		return nil, ErrInvalidToken
+	}
+	amountIn := param.TokenAmountIn.Amount
+
+	amountOut, fee, principal, err := p.quote(tokenIn, tokenOut, &amountIn)
+	if err != nil {
+		return nil, err
+	}
+
+	if limit := param.Limit; limit != nil {
+		if inventoryLimit := limit.GetLimit(tokenOut); inventoryLimit != nil && amountOut.Gt(inventoryLimit) {
+			return nil, ErrInsufficientLiquidity
+		}
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
+		Fee:            &pool.TokenAmt{Token: tokenIn, Amount: *fee},
+		Gas:            p.gas,
+		SwapInfo:       SwapInfo{TotalFeeBps: totalFeeBps(principal, fee)},
+	}, nil
+}
+
+// quote returns amountOut, fee and principal for amountIn before any inventory limit.
+func (p *PoolSimulator) quote(tokenIn, tokenOut string, amountIn *uint256.Int) (amountOut, fee, principal *uint256.Int, err error) {
+	dir, _, idxOut, ok := p.directionFor(tokenIn)
+	if !ok || !strings.EqualFold(p.Info.Tokens[idxOut], tokenOut) {
+		return nil, nil, nil, ErrInvalidToken
+	}
+
+	principal, fee = inverseFee(amountIn, dir.maxFee, dir.halfAmount)
+	if principal.IsZero() {
+		return nil, nil, nil, ErrInsufficientLiquidity
+	}
+
+	amountOut = new(uint256.Int)
+	if _, overflow := amountOut.MulDivOverflow(principal, dir.scaleNumerator, dir.scaleDenominator); overflow {
+		return nil, nil, nil, ErrOverflow
+	}
+
+	if dir.reserve != nil && amountOut.Gt(dir.reserve) {
+		return nil, nil, nil, ErrInsufficientLiquidity
+	}
+	return amountOut, fee, principal, nil
 }
 
 // totalFeeBps is the feeBps executeGhost needs to recover `principal` from `amountIn` on-chain
