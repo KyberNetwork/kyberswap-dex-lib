@@ -28,7 +28,7 @@ func quote(sim pool.IPoolSimulator, dir int, amountIn *big.Int) (*big.Int, error
 }
 
 func quoteResult(sim pool.IPoolSimulator, dir int, amountIn *big.Int,
-	limit pool.SwapLimitBig) (*pool.CalcAmountOutResult, error) {
+	limit pool.SwapLimit) (*pool.CalcAmountOutResult, error) {
 	tokens := sim.GetTokens()
 	return pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: tokens[dir], Amount: amountIn}, tokens[1-dir], limit)
 }
@@ -171,7 +171,7 @@ func TestPoolSimulator_RouteConsumptionAndSharedInventory(t *testing.T) {
 	for _, s := range []*PoolSimulator{sim, btc} {
 		maps.Copy(limits, s.CalculateLimit())
 	}
-	inventory := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(limits)))
+	inventory := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(limits))
 
 	// Sell WETH for 1000 USDC through one market...
 	res, err := quoteResult(sim, 1, big.NewInt(2000), inventory)
@@ -180,7 +180,7 @@ func TestPoolSimulator_RouteConsumptionAndSharedInventory(t *testing.T) {
 	route := sim.CloneState()
 	route.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut,
-		SwapInfo: res.SwapInfo, SwapLimitBig: inventory,
+		SwapInfo: res.SwapInfo, SwapLimitBig: pool.AsSwapLimitBig(inventory),
 	})
 
 	// ...which leaves 500 deliverable USDC for the other market.
