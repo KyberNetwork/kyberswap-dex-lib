@@ -18,4 +18,5 @@ var reserveSampleBps = []int{
 var (
 	ErrInvalidToken          = errors.New("invalid token")
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
+	ErrOverflow              = errors.New("overflow")
 )

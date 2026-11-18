@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -68,10 +69,55 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := params.TokenAmountIn
 	tokenOut := strings.ToLower(params.TokenOut)
-	tokenIn := strings.ToLower(tokenAmountIn.Token)
+	amountOut, err := s.quote(params.TokenAmountIn.Token, tokenOut, params.TokenAmountIn.Amount)
+	if err != nil {
+		return nil, err
+	}
 
+	if limit := params.Limit; limit != nil {
+		inventoryLimit := limit.GetLimit(tokenOut)
+		if inventoryLimit != nil && amountOut.Cmp(inventoryLimit) > 0 {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut},
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: big.NewInt(0)},
+		Gas:            defaultGas,
+	}, nil
+}
+
+// CalcAmtOut is CalcAmountOut with uint256 amounts. The quote runs in big.Int, converted once at each end.
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenOut := strings.ToLower(params.TokenOut)
+	amountOutBig, err := s.quote(params.TokenAmountIn.Token, tokenOut, params.TokenAmountIn.Amount.ToBig())
+	if err != nil {
+		return nil, err
+	}
+	amountOut, overflow := uint256.FromBig(amountOutBig)
+	if overflow {
+		return nil, ErrOverflow
+	}
+
+	if limit := params.Limit; limit != nil {
+		inventoryLimit := limit.GetLimit(tokenOut)
+		if inventoryLimit != nil && amountOut.Gt(inventoryLimit) {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
+		Fee:            &pool.TokenAmt{Token: params.TokenAmountIn.Token},
+		Gas:            defaultGas,
+	}, nil
+}
+
+// quote returns the amount out for amountIn before any inventory limit. tokenIn and tokenOut are lowercase.
+func (s *PoolSimulator) quote(tokenIn, tokenOut string, amountIn *big.Int) (*big.Int, error) {
+	tokenIn = strings.ToLower(tokenIn)
 	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 || len(s.Info.Tokens) != 2 {
 		return nil, ErrInvalidToken
@@ -81,32 +127,20 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 	if rem := s.remainingIn[indexIn]; rem != nil {
-		if tokenAmountIn.Amount.Cmp(rem) > 0 {
+		if amountIn.Cmp(rem) > 0 {
 			return nil, ErrInsufficientLiquidity
 		}
 	}
 
 	samples := s.Samples[indexIn]
 	idx := sort.Search(len(samples), func(i int) bool {
-		return samples[i][0].Cmp(tokenAmountIn.Amount) > 0
+		return samples[i][0].Cmp(amountIn) > 0
 	})
 	sampleIndex := max(idx-1, 0)
 
 	var amountOut = new(big.Int)
-	bignumber.MulDivDown(amountOut, tokenAmountIn.Amount, samples[sampleIndex][1], samples[sampleIndex][0])
-
-	if limit := params.Limit; limit != nil {
-		inventoryLimit := limit.GetLimit(tokenOut)
-		if amountOut.Cmp(inventoryLimit) > 0 {
-			return nil, pool.ErrNotEnoughInventory
-		}
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut},
-		Fee:            &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: big.NewInt(0)},
-		Gas:            defaultGas,
-	}, nil
+	bignumber.MulDivDown(amountOut, amountIn, samples[sampleIndex][1], samples[sampleIndex][0])
+	return amountOut, nil
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
