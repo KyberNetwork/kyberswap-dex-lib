@@ -140,10 +140,6 @@ var defaultTaker = common.HexToAddress("0x8f10b468b06c6fd214b65f87778827f7d113f9
 // erc1967Slot is the ERC-1967 implementation slot.
 var erc1967Slot = common.HexToHash("0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc")
 
-// defaultCodeVersions are the pool implementations quoted when the config names none. Every implementation
-// change reports a higher `poolCodeVersion()`, so an upgrade the config does not name leaves the pools unrouted.
-var defaultCodeVersions = []uint32{1}
-
 var (
 	ErrInvalidToken = errors.New("invalid token")
 	ErrInvalidState = errors.New("invalid pool state")
