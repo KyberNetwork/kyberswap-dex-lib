@@ -1,6 +1,7 @@
 package tickerdualpool
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -58,7 +59,7 @@ func TestKyberSimulatorAppliesTickerFees(t *testing.T) {
 	clone := sim.CloneState()
 	sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: input, TokenAmountOut: *result.TokenAmountOut, SwapInfo: result.SwapInfo})
 	// An independent clone must still give the original quote.
-	again, err := clone.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: input, TokenOut: sim.GetTokens()[1]})
+	again, err := pool.DefaultCalcAmtOut(context.Background(), clone, input, sim.GetTokens()[1], nil)
 	require.NoError(t, err)
 	require.Equal(t, result.TokenAmountOut.Amount.String(), again.TokenAmountOut.Amount.String())
 	reverse, err := sim.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: sim.GetTokens()[1], Amount: big.NewInt(198)}, TokenIn: sim.GetTokens()[0]})

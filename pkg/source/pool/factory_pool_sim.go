@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 )
 
 // PoolSimFactoryFn builds a pool that implements IPoolSim.
@@ -37,7 +38,11 @@ type legacyAdapter struct {
 }
 
 func (a legacyAdapter) CalcAmtOut(params CalcAmtOutParams) (*CalcAmtOutResult, error) {
-	res, err := a.IPoolSimulator.CalcAmountOut(CalcAmountOutParams{
+	legacy, ok := a.IPoolSimulator.(ILegacyCalcAmountOut)
+	if !ok {
+		return nil, errors.Errorf("pool %s has no legacy CalcAmountOut", a.GetAddress())
+	}
+	res, err := legacy.CalcAmountOut(CalcAmountOutParams{
 		TokenAmountIn: tokenAmountFromAmt(&params.TokenAmountIn),
 		TokenOut:      params.TokenOut,
 		Limit:         params.Limit,
@@ -81,6 +86,28 @@ func (a legacyAdapter) GetReserves() []uint256.Int {
 
 func tokenAmountFromAmt(t *TokenAmt) TokenAmount {
 	return TokenAmount{Token: t.Token, Amount: t.Amount.ToBig(), AmountUsd: t.AmountUsd}
+}
+
+func tokenAmtFromBig(t *TokenAmount) TokenAmt {
+	return TokenAmt{Token: t.Token, Amount: *bigToU256OrZero(t.Amount), AmountUsd: t.AmountUsd}
+}
+
+func calcAmountOutResultFromAmt(r *CalcAmtOutResult) *CalcAmountOutResult {
+	return &CalcAmountOutResult{
+		TokenAmountOut:         tokenAmountFromAmtPtr(r.TokenAmountOut),
+		Fee:                    tokenAmountFromAmtPtr(r.Fee),
+		RemainingTokenAmountIn: tokenAmountFromAmtPtr(r.RemainingTokenAmountIn),
+		Gas:                    r.Gas,
+		SwapInfo:               r.SwapInfo,
+	}
+}
+
+func tokenAmountFromAmtPtr(t *TokenAmt) *TokenAmount {
+	if t == nil {
+		return nil
+	}
+	out := tokenAmountFromAmt(t)
+	return &out
 }
 
 func tokenAmountPtrToAmt(t *TokenAmount) *TokenAmt {

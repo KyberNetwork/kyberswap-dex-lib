@@ -1,6 +1,7 @@
 package tricrypto_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -45,7 +46,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 		TokenAmountIn: pool.TokenAmount{Token: "weth", Amount: big.NewInt(4e18)}, TokenOut: "usdt"}
 	want, err := p.CalcAmountOut(params)
 	require.NoError(t, err)
-	got, err := q.CalcAmountOut(params)
+	got, err := pool.DefaultCalcAmtOut(context.Background(), q, params.TokenAmountIn, params.TokenOut, params.Limit)
 	require.NoError(t, err)
 	require.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.String())
 	require.Equal(t, want.Fee.Amount.String(), got.Fee.Amount.String())

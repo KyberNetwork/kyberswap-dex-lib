@@ -1,6 +1,7 @@
 package mento
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -14,10 +15,7 @@ import (
 func TestIndexingQuotesAgedState(t *testing.T) {
 	p := snapshotPool(t)
 	quote := func(sim pool.IPoolSimulator) error {
-		_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: usdc, Amount: big.NewInt(1_000_000)},
-			TokenOut:      usdm,
-		})
+		_, err := pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: usdc, Amount: big.NewInt(1_000_000)}, usdm, nil)
 		return err
 	}
 

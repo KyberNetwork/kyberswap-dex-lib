@@ -1,6 +1,7 @@
 package altfun
 
 import (
+	"context"
 	"math/big"
 	"strings"
 
@@ -190,10 +191,7 @@ func (s *PoolSimulator) calcBuyOut(
 	}
 
 	// ltIfFull: delegate USDC→LT to bounce-tech base pool.
-	ltIfFullResult, err := s.btPool.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[0], Amount: netUsdc.ToBig()},
-		TokenOut:      s.ltAddress,
-	})
+	ltIfFullResult, err := pool.DefaultCalcAmtOut(context.Background(), s.btPool, pool.TokenAmount{Token: s.Info.Tokens[0], Amount: netUsdc.ToBig()}, s.ltAddress, nil)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
@@ -231,10 +229,7 @@ func (s *PoolSimulator) calcBuyOut(
 	}
 
 	// Mint: delegate baseToConvert USDC → LT via bounce-tech.
-	ltMintResult, err := s.btPool.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[0], Amount: baseToConvert.ToBig()},
-		TokenOut:      s.ltAddress,
-	})
+	ltMintResult, err := pool.DefaultCalcAmtOut(context.Background(), s.btPool, pool.TokenAmount{Token: s.Info.Tokens[0], Amount: baseToConvert.ToBig()}, s.ltAddress, nil)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
@@ -301,10 +296,7 @@ func (s *PoolSimulator) calcSellOut(tokenIn *uint256.Int) (*uint256.Int, *uint25
 	}
 
 	// Delegate LT→USDC to bounce-tech base pool (handles btFee + liquidity check internally).
-	btResult, err := s.btPool.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: s.ltAddress, Amount: ltOut.ToBig()},
-		TokenOut:      s.Info.Tokens[0],
-	})
+	btResult, err := pool.DefaultCalcAmtOut(context.Background(), s.btPool, pool.TokenAmount{Token: s.ltAddress, Amount: ltOut.ToBig()}, s.Info.Tokens[0], nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -385,10 +377,7 @@ func (s *PoolSimulator) ltToBaseViaPool(ltAmount *uint256.Int) *uint256.Int {
 
 // baseToLTViaPool converts USDC → LT (approximate, for pre-sizing check).
 func (s *PoolSimulator) baseToLTViaPool(baseAmount *uint256.Int) (*uint256.Int, error) {
-	res, err := s.btPool.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[0], Amount: baseAmount.ToBig()},
-		TokenOut:      s.ltAddress,
-	})
+	res, err := pool.DefaultCalcAmtOut(context.Background(), s.btPool, pool.TokenAmount{Token: s.Info.Tokens[0], Amount: baseAmount.ToBig()}, s.ltAddress, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package weighted
 
 import (
+	"context"
 	"math/big"
 	"strings"
 	"testing"
@@ -177,10 +178,7 @@ func TestCloneState(t *testing.T) {
 	origBefore := orig.GetReserves()
 
 	amountIn := big.NewInt(100_000_000)
-	res, err := clone.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: romeToken, Amount: amountIn},
-		TokenOut:      usdtToken,
-	})
+	res, err := pool.DefaultCalcAmtOut(context.Background(), clone, pool.TokenAmount{Token: romeToken, Amount: amountIn}, usdtToken, nil)
 	require.NoError(t, err)
 
 	clone.UpdateBalance(pool.UpdateBalanceParams{

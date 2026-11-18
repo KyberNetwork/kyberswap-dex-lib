@@ -1,6 +1,7 @@
 package stable
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -36,7 +37,7 @@ func BenchmarkLista(b *testing.B) {
 			b.Run(c.name+"/CalcAmountOut/"+name, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if _, err := sim.CalcAmountOut(in); err != nil {
+					if _, err := poolpkg.DefaultCalcAmtOut(context.Background(), sim, in.TokenAmountIn, in.TokenOut, in.Limit); err != nil {
 						b.Fatal(err)
 					}
 				}

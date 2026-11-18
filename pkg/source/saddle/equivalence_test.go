@@ -1,6 +1,7 @@
 package saddle
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -69,7 +70,7 @@ func quoteOf(sim pool.IPoolSimulator, in pool.CalcAmountOutParams) (q quote) {
 			q = quote{err: fmt.Sprint("panic: ", r)}
 		}
 	}()
-	res, err := sim.CalcAmountOut(in)
+	res, err := pool.DefaultCalcAmtOut(context.Background(), sim, in.TokenAmountIn, in.TokenOut, in.Limit)
 	if err != nil {
 		return quote{err: err.Error()}
 	}
@@ -288,7 +289,7 @@ func BenchmarkSaddle(b *testing.B) {
 			b.Run(c.name+"/"+name, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if _, err := sim.CalcAmountOut(c.in); err != nil {
+					if _, err := pool.DefaultCalcAmtOut(context.Background(), sim, c.in.TokenAmountIn, c.in.TokenOut, c.in.Limit); err != nil {
 						b.Fatal(err)
 					}
 				}

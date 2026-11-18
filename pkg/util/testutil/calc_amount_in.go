@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/big"
@@ -105,13 +106,10 @@ const roundTripRelTolerance, roundTripAbsTolerance = 2e-4, 3
 func assertRoundTrip(tb testing.TB, poolSim pool.IPoolSimulator, tokenIn, tokenOut string, amountIn, wantOut *big.Int) {
 	tb.Helper()
 	calcAmountOut := func(amountIn *big.Int) (*pool.CalcAmountOutResult, error) {
-		return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{
-				Token:  tokenIn,
-				Amount: amountIn,
-			},
-			TokenOut: tokenOut,
-		})
+		return pool.DefaultCalcAmtOut(context.Background(), poolSim, pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn,
+		}, tokenOut, nil)
 	}
 	resOut, err := MustConcurrentSafe(tb, func() (*pool.CalcAmountOutResult, error) { return calcAmountOut(amountIn) })
 	require.NoError(tb, err)

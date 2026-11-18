@@ -192,13 +192,10 @@ func Test_ClSimulator_StableHook(t *testing.T) {
 		}
 
 		cloned := sim.CloneState()
-		res, err := cloned.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  tokenIn,
-				Amount: new(big.Int).Set(fx.dx),
-			},
-			TokenOut: tokenOut,
-		})
+		res, err := poolpkg.DefaultCalcAmtOut(context.Background(), cloned, poolpkg.TokenAmount{
+			Token:  tokenIn,
+			Amount: new(big.Int).Set(fx.dx),
+		}, tokenOut, nil)
 
 		require.NoError(t, err, fx.desc)
 		require.NotNil(t, res)

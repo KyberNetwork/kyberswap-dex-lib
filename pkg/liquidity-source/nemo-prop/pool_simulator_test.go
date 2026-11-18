@@ -2,6 +2,7 @@ package nemoprop
 
 import (
 	"bytes"
+	"context"
 	"maps"
 	"math/big"
 	"testing"
@@ -29,11 +30,7 @@ func quote(sim pool.IPoolSimulator, dir int, amountIn *big.Int) (*big.Int, error
 func quoteResult(sim pool.IPoolSimulator, dir int, amountIn *big.Int,
 	limit pool.SwapLimitBig) (*pool.CalcAmountOutResult, error) {
 	tokens := sim.GetTokens()
-	return sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokens[dir], Amount: amountIn},
-		TokenOut:      tokens[1-dir],
-		Limit:         limit,
-	})
+	return pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: tokens[dir], Amount: amountIn}, tokens[1-dir], limit)
 }
 
 func quote1000(sim pool.IPoolSimulator) int64 {

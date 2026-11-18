@@ -1,6 +1,7 @@
 package erc4626
 
 import (
+	"context"
 	"encoding/hex"
 	"math/big"
 	"testing"
@@ -65,10 +66,7 @@ func TestCalcAmountOut(t *testing.T) {
 				Amount: tc.amountIn,
 			}
 			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: tokenAmountIn,
-					TokenOut:      tokens[tc.tokenOutIdx].Address,
-				})
+				return pool.DefaultCalcAmtOut(context.Background(), poolSim, tokenAmountIn, tokens[tc.tokenOutIdx].Address, nil)
 			})
 			tc.expectedError(t, err)
 			if err == nil {

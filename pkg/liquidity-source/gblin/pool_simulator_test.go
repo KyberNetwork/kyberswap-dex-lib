@@ -1,6 +1,7 @@
 package gblin
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -185,10 +186,7 @@ func TestUpdateBalance_AppliesMintOnce(t *testing.T) {
 	assert.Equal(t, want2.String(), res2.TokenAmountOut.Amount.String())
 
 	// the clone taken before the update still quotes on the original state
-	res3, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testWeth, Amount: amountIn},
-		TokenOut:      testVault,
-	})
+	res3, err := pool.DefaultCalcAmtOut(context.Background(), cloned, pool.TokenAmount{Token: testWeth, Amount: amountIn}, testVault, nil)
 	require.NoError(t, err)
 	assert.Equal(t, res.TokenAmountOut.Amount.String(), res3.TokenAmountOut.Amount.String())
 }

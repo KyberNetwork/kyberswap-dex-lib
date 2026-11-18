@@ -1,6 +1,7 @@
 package gsm4626
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -79,10 +80,7 @@ func TestCalcAmountOut(t *testing.T) {
 				Amount: tc.amountIn,
 			}
 			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return cloned.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: tokenAmountIn,
-					TokenOut:      tokens[tc.tokenOutIdx].Address,
-				})
+				return pool.DefaultCalcAmtOut(context.Background(), cloned, tokenAmountIn, tokens[tc.tokenOutIdx].Address, nil)
 			})
 			tc.expectedError(t, err)
 			if err == nil {

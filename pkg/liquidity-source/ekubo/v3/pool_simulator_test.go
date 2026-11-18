@@ -1,6 +1,7 @@
 package ekubov3
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -522,10 +523,7 @@ func TestConcentratedPool(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, expectedToken0Amount, resExactOutAfterUpdate.TokenAmountOut.Amount)
 
-	resExactOutCloned, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      token0.Hex(),
-	})
+	resExactOutCloned, err := pool.DefaultCalcAmtOut(context.Background(), cloned, tokenAmountIn, token0.Hex(), nil)
 	require.NoError(t, err)
 	assert.Equal(t, expectedToken0Amount, resExactOutCloned.TokenAmountOut.Amount)
 }
@@ -588,10 +586,7 @@ func TestOraclePool(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, expectedToken0Amount, resExactOutAfterUpdate.TokenAmountOut.Amount)
 
-	resExactOutCloned, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      token0.Hex(),
-	})
+	resExactOutCloned, err := pool.DefaultCalcAmtOut(context.Background(), cloned, tokenAmountIn, token0.Hex(), nil)
 	require.NoError(t, err)
 	assert.Equal(t, expectedToken0Amount, resExactOutCloned.TokenAmountOut.Amount)
 }

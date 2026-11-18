@@ -1,6 +1,7 @@
 package lotflow
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -127,11 +128,9 @@ func TestPriceLimitRefusalEndToEnd(t *testing.T) {
 	sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: integrationPool(t, h),
 		ChainID: valueobject.ChainIDRobinhood})
 	require.NoError(t, err)
-	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: h.Usdg, Amount: big300k}, TokenOut: h.Lot})
+	_, err = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: h.Usdg, Amount: big300k}, h.Lot, nil)
 	require.ErrorIs(t, err, ErrPartialFill)
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: h.Usdg, Amount: usd(100_000)}, TokenOut: h.Lot})
+	res, err := pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: h.Usdg, Amount: usd(100_000)}, h.Lot, nil)
 	require.NoError(t, err)
 	require.Positive(t, res.TokenAmountOut.Amount.Sign())
 	t.Logf("$300k: unlimited fill, limited venue input %s of %s -> ErrPartialFill; $100k fills %s LOT wei",

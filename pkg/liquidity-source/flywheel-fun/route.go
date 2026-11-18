@@ -1,6 +1,7 @@
 package flywheelfun
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 
@@ -72,7 +73,7 @@ func hopSwap(p pool.IPoolSimulator, amount *uint256.Int, in, out string, index i
 		return zero, SwapStep{}, 0, ErrAmount
 	}
 	amountIn := pool.TokenAmount{Token: in, Amount: amount.ToBig()}
-	r, err := p.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: amountIn, TokenOut: out})
+	r, err := pool.DefaultCalcAmtOut(context.Background(), p, amountIn, out, nil)
 	if err != nil {
 		return zero, SwapStep{}, 0, err
 	}

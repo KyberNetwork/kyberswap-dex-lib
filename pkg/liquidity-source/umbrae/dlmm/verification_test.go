@@ -163,9 +163,7 @@ func TestVerifyUpdateBalance(t *testing.T) {
 		_, consumed, _, chainFinalBin := viewerQuoteSwap(t, ctx, client, pinBlock, false, amt)
 
 		hop := sim.CloneState() // never mutate the shared base
-		res, err := hop.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokenY, Amount: amt}, TokenOut: tokenX,
-		})
+		res, err := pool.DefaultCalcAmtOut(context.Background(), hop, pool.TokenAmount{Token: tokenY, Amount: amt}, tokenX, nil)
 		if consumed.Cmp(amt) < 0 {
 			require.Error(t, err, "viewer partial-filled, sim must reject (amt=%s)", amt)
 			continue
@@ -187,9 +185,7 @@ func TestVerifyUpdateBalance(t *testing.T) {
 
 		// A second swap must start from the advanced book: the same input now yields no more than the
 		// first hop did (consumed liquidity is gone) and still lands at-or-beyond the new active bin.
-		res2, err := hop.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokenY, Amount: amt}, TokenOut: tokenX,
-		})
+		res2, err := pool.DefaultCalcAmtOut(context.Background(), hop, pool.TokenAmount{Token: tokenY, Amount: amt}, tokenX, nil)
 		if err == nil {
 			require.LessOrEqual(t, res2.TokenAmountOut.Amount.Cmp(res.TokenAmountOut.Amount), 0,
 				"second hop must not out-quote the first on a depleted book (amt=%s)", amt)

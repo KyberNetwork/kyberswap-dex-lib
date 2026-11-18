@@ -1,6 +1,7 @@
 package arenabc
 
 import (
+	"context"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -244,13 +245,10 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 		ts.T().Run(tc.pool, func(t *testing.T) {
 			cloned := ts.sims[tc.pool].CloneState()
 
-			res, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{
-					Token:  tc.tokenIn,
-					Amount: bignum.NewBig(tc.amountIn),
-				},
-				TokenOut: tc.tokenOut,
-			})
+			res, err := pool.DefaultCalcAmtOut(context.Background(), cloned, pool.TokenAmount{
+				Token:  tc.tokenIn,
+				Amount: bignum.NewBig(tc.amountIn),
+			}, tc.tokenOut, nil)
 
 			if tc.expectedError == nil {
 				require.NotNil(t, res)

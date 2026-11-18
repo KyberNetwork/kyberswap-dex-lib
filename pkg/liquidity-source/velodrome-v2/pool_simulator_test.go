@@ -1,6 +1,7 @@
 package velodromev2
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -137,7 +138,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-				return tc.poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: tc.tokenAmountIn, TokenOut: tc.tokenOut})
+				return poolpkg.DefaultCalcAmtOut(context.Background(), tc.poolSimulator, tc.tokenAmountIn, tc.tokenOut, nil)
 			})
 
 			if tc.expectedAmountOut != nil {

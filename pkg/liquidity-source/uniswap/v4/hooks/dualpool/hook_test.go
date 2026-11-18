@@ -1,6 +1,7 @@
 package dualpool
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -56,20 +57,14 @@ func TestPoolSimulator_ExceedsBuckets(t *testing.T) {
 func TestPoolSimulator_UpdateBalanceThenQuoteAgain(t *testing.T) {
 	t.Parallel()
 	sim := poolSim.CloneState()
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: entityPool.Tokens[0].Address, Amount: big.NewInt(100_000_000)},
-		TokenOut:      entityPool.Tokens[1].Address,
-	})
+	res, err := pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: entityPool.Tokens[0].Address, Amount: big.NewInt(100_000_000)}, entityPool.Tokens[1].Address, nil)
 	require.NoError(t, err)
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: entityPool.Tokens[0].Address, Amount: big.NewInt(100_000_000)},
 		TokenAmountOut: *res.TokenAmountOut,
 		SwapInfo:       res.SwapInfo,
 	})
-	again, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: entityPool.Tokens[0].Address, Amount: big.NewInt(100_000_000)},
-		TokenOut:      entityPool.Tokens[1].Address,
-	})
+	again, err := pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: entityPool.Tokens[0].Address, Amount: big.NewInt(100_000_000)}, entityPool.Tokens[1].Address, nil)
 	require.NoError(t, err)
 	require.Equal(t, -1, again.TokenAmountOut.Amount.Cmp(res.TokenAmountOut.Amount), "second buy must be worse")
 	// the original simulator is untouched

@@ -1,6 +1,7 @@
 package bunniv2
 
 import (
+	"context"
 	"math/big"
 	"reflect"
 	"testing"
@@ -45,13 +46,10 @@ func TestCloneStateIsolatesObservations(t *testing.T) {
 	require.False(t, sharesBacking(srcHook.Observations, hookOf(t, cloned).Observations),
 		"the clone's observation ring buffer must not share a backing array with the source")
 
-	_, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0x35d8949372d46b7a3d5a56006ae77b215fc69bc0",
-			Amount: big.NewInt(1e18),
-		},
-		TokenOut: "0x73a15fed60bf67631dc6cd7bc5b6e8da8190acf5",
-	})
+	_, err = pool.DefaultCalcAmtOut(context.Background(), cloned, pool.TokenAmount{
+		Token:  "0x35d8949372d46b7a3d5a56006ae77b215fc69bc0",
+		Amount: big.NewInt(1e18),
+	}, "0x73a15fed60bf67631dc6cd7bc5b6e8da8190acf5", nil)
 	require.NoError(t, err)
 
 	require.Equal(t, before, srcHook.Observations,

@@ -1,6 +1,7 @@
 package stable_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -39,7 +40,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	} {
 		want, err := sim.CalcAmountOut(q)
 		require.NoError(t, err)
-		got, err := sims[p.Address].CalcAmountOut(q)
+		got, err := pool.DefaultCalcAmtOut(context.Background(), sims[p.Address], q.TokenAmountIn, q.TokenOut, q.Limit)
 		require.NoError(t, err)
 		require.Equal(t, want, got)
 	}

@@ -51,10 +51,6 @@ type IPoolTrackerWithDependencies interface {
 type IPoolTrackerWithSchedule interface{ NextUpdateAt(p entity.Pool) int64 }
 
 type IPoolSimulator interface {
-	// CalcAmountOut amountOut, fee, gas
-	// the required params is TokenAmountIn and TokenOut.
-	// SwapLimitBig is optional, individual dex logic will choose to ignore it if it is nil
-	CalcAmountOut(params CalcAmountOutParams) (*CalcAmountOutResult, error)
 	// CloneState clones IPoolSimulator to back up old balance state before UpdateBalance by a swap.
 	// Only clones fields updated by UpdateBalance. Returns nil if unimplemented.
 	CloneState() IPoolSimulator
@@ -72,6 +68,15 @@ type IPoolSimulator interface {
 	CalculateLimit() map[string]*big.Int
 	// GetApprovalAddress returns the address that should be approved to spend tokenIn
 	GetApprovalAddress(tokenIn, tokenOut string) string
+}
+
+// ILegacyCalcAmountOut is the big.Int CalcAmountOut that legacy pools implement. DefaultCalcAmtOut uses it when a
+// pool has no native CalcAmtOut. Remove it with the last legacy pool.
+type ILegacyCalcAmountOut interface {
+	// CalcAmountOut amountOut, fee, gas
+	// the required params is TokenAmountIn and TokenOut.
+	// SwapLimitBig is optional, individual dex logic will choose to ignore it if it is nil
+	CalcAmountOut(params CalcAmountOutParams) (*CalcAmountOutResult, error)
 }
 
 type IPoolExactOutSimulator interface {

@@ -1,6 +1,7 @@
 package integral
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -28,8 +29,7 @@ func quoteGrid(t testing.TB) []string {
 			tokenIn, tokenOut := tokens[dir], tokens[1-dir]
 			for k := range 31 {
 				amount := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(k)), nil)
-				out, err := sim.CloneState().CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amount}, TokenOut: tokenOut})
+				out, err := pool.DefaultCalcAmtOut(context.Background(), sim.CloneState(), pool.TokenAmount{Token: tokenIn, Amount: amount}, tokenOut, nil)
 				if err != nil {
 					lines = append(lines, fmt.Sprintf("out %s %d %d: %v", sim.GetAddress(), dir, k, err))
 				} else {

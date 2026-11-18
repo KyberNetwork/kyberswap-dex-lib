@@ -1,6 +1,7 @@
 package integral
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -81,14 +82,10 @@ func TestCalcAmountOut(t *testing.T) {
 	t.Run("1. should return OK for token0 to token1 swap", func(t *testing.T) {
 		cloned := sim.CloneState()
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return cloned.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{
-					Token:  _token0,
-					Amount: _amount0In,
-				},
-				TokenOut: _token1,
-				Limit:    limit,
-			})
+			return poolpkg.DefaultCalcAmtOut(context.Background(), cloned, poolpkg.TokenAmount{
+				Token:  _token0,
+				Amount: _amount0In,
+			}, _token1, limit)
 		})
 
 		require.Nil(t, err)
@@ -97,42 +94,30 @@ func TestCalcAmountOut(t *testing.T) {
 
 	t.Run("2. should return OK for token1 to token0 swap", func(t *testing.T) {
 		cloned := sim.CloneState()
-		result, err := cloned.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  _token1,
-				Amount: _amount1In,
-			},
-			TokenOut: _token0,
-			Limit:    limit,
-		})
+		result, err := poolpkg.DefaultCalcAmtOut(context.Background(), cloned, poolpkg.TokenAmount{
+			Token:  _token1,
+			Amount: _amount1In,
+		}, _token0, limit)
 		require.Nil(t, err)
 		assert.Equal(t, _amount0Out, result.TokenAmountOut.Amount)
 	})
 
 	t.Run("3. should return error when amountOut is below limit", func(t *testing.T) {
 		cloned := sim.CloneState()
-		result, err := cloned.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  _token1,
-				Amount: big.NewInt(1000), // This will result in an amountOut below the limit for token0
-			},
-			TokenOut: _token0,
-			Limit:    limit,
-		})
+		result, err := poolpkg.DefaultCalcAmtOut(context.Background(), cloned, poolpkg.TokenAmount{
+			Token:  _token1,
+			Amount: big.NewInt(1000), // This will result in an amountOut below the limit for token0
+		}, _token0, limit)
 		require.Nil(t, result)
 		require.ErrorIs(t, err, ErrTR03)
 	})
 
 	t.Run("4. should return error when amountOut exceeds limit", func(t *testing.T) {
 		cloned := sim.CloneState()
-		result, err := cloned.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  _token1,
-				Amount: big.NewInt(1000000000000000000), // This will result in an amountOut exceeds the limit for token0
-			},
-			TokenOut: _token0,
-			Limit:    limit,
-		})
+		result, err := poolpkg.DefaultCalcAmtOut(context.Background(), cloned, poolpkg.TokenAmount{
+			Token:  _token1,
+			Amount: big.NewInt(1000000000000000000), // This will result in an amountOut exceeds the limit for token0
+		}, _token0, limit)
 		require.Nil(t, result)
 		require.ErrorIs(t, err, ErrTR3A)
 	})

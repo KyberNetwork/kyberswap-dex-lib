@@ -1,6 +1,7 @@
 package lunarbase_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/KyberNetwork/msgpack/v5"
@@ -48,7 +49,7 @@ func TestSingleCallWirePreservesKnownZeroFreshness(t *testing.T) {
 	extra.LatestUpdateBlock = 0
 	sim := wireSimulator(t, extra)
 	decoded := wireMapRoundTrip(t, map[string]pool.IPoolSimulator{"pool": sim})["pool"]
-	_, err := decoded.CalcAmountOut(wireQuoteParams())
+	_, err := pool.DefaultCalcAmtOut(context.Background(), decoded, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
 	require.ErrorIs(t, err, lb.ErrStalePool)
 
 	var fields map[string]msgpack.RawMessage

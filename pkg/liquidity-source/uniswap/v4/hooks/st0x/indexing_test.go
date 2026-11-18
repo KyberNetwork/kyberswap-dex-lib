@@ -1,6 +1,7 @@
 package st0x
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -31,10 +32,7 @@ func TestIndexingQuotesAgedState(t *testing.T) {
 		StaticExtra: `{"hooks":"0x9af1a97021b92c47219d2fb24deba51c248a2a88","fee":0,"tS":1}`,
 	}
 	quote := func(sim pool.IPoolSimulator) error {
-		_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: token0, Amount: big.NewInt(10)},
-			TokenOut:      token1,
-		})
+		_, err := pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: token0, Amount: big.NewInt(10)}, token1, nil)
 		return err
 	}
 

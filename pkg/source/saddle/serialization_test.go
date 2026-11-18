@@ -1,6 +1,7 @@
 package saddle_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -42,7 +43,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 		in := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: q[0], Amount: big.NewInt(1e17)}, TokenOut: q[1]}
 		want, err := sim.CalcAmountOut(in)
 		require.NoError(t, err)
-		got, err := sims[p.Address].CalcAmountOut(in)
+		got, err := pool.DefaultCalcAmtOut(context.Background(), sims[p.Address], in.TokenAmountIn, in.TokenOut, in.Limit)
 		require.NoError(t, err)
 		require.Equal(t, want, got)
 	}

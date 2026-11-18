@@ -1,6 +1,7 @@
 package saddle
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -267,10 +268,7 @@ func TestUpdateBalance_Saddle(t *testing.T) {
 			}
 			assert.Equal(t, bignumber.NewBig10(tc.expectedBalances[len(p.Info.Reserves)]), p.LpSupply.ToBig())
 
-			clonedRes, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: amountIn,
-				TokenOut:      tc.out,
-			})
+			clonedRes, err := pool.DefaultCalcAmtOut(context.Background(), cloned, amountIn, tc.out, nil)
 			require.Nil(t, err)
 			assert.Equal(t, clonedRes.TokenAmountOut, out.TokenAmountOut)
 		})

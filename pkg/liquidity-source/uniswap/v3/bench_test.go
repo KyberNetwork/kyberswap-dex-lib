@@ -1,6 +1,7 @@
 package uniswapv3
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -54,23 +55,15 @@ func mustNewPoolSimulatorBench() *PoolSimulator {
 
 func benchmarkCalcAmountOut(b *testing.B, amount *big.Int, sim pool.IPoolSimulator) {
 	for b.Loop() {
-		_, _ = sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{
-				Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				Amount: amount,
-			},
-			TokenOut: "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b",
-			Limit:    nil,
-		})
+		_, _ = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{
+			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			Amount: amount,
+		}, "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", nil)
 
-		_, _ = sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{
-				Token:  "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b",
-				Amount: amount,
-			},
-			TokenOut: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			Limit:    nil,
-		})
+		_, _ = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{
+			Token:  "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b",
+			Amount: amount,
+		}, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", nil)
 	}
 }
 

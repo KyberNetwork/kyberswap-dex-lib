@@ -1,6 +1,7 @@
 package oneinchaqua
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
 	"strings"
@@ -874,7 +875,7 @@ func BenchmarkCalcAmountOutUpdateBalance(b *testing.B) {
 	b.ReportAllocs()
 	for range b.N {
 		clone := sim.CloneState()
-		res, err := clone.CalcAmountOut(params)
+		res, err := pool.DefaultCalcAmtOut(context.Background(), clone, params.TokenAmountIn, params.TokenOut, params.Limit)
 		if err != nil {
 			b.Fatal(err)
 		}

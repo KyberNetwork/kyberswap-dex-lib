@@ -2,6 +2,7 @@ package prmfun_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"math/big"
 	"os"
@@ -49,9 +50,9 @@ func TestAllPairsMsgpackRoundTrip(t *testing.T) {
 				amount, ok := new(big.Int).SetString(q.Input, 10)
 				require.True(t, ok)
 				params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: input, Amount: amount}, TokenOut: output}
-				before, err := original.CalcAmountOut(params)
+				before, err := pool.DefaultCalcAmtOut(context.Background(), original, params.TokenAmountIn, params.TokenOut, params.Limit)
 				require.NoError(t, err)
-				after, err := restored.CalcAmountOut(params)
+				after, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, params.Limit)
 				require.NoError(t, err)
 				require.Equal(t, before, after)
 				require.Equal(t, original.GetMetaInfo(input, output), restored.GetMetaInfo(input, output))

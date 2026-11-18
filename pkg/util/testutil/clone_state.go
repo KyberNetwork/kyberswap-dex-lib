@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +15,7 @@ func TestCloneState(t testing.TB, sim pool.IPoolSimulator, params pool.CalcAmoun
 
 	clone := sim.CloneState()
 
-	result1, err := sim.CalcAmountOut(params)
+	result1, err := pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, swapLimit)
 	require.NoError(t, err)
 
 	clone.UpdateBalance(pool.UpdateBalanceParams{
@@ -25,7 +26,7 @@ func TestCloneState(t testing.TB, sim pool.IPoolSimulator, params pool.CalcAmoun
 		SwapLimitBig:   swapLimit,
 	})
 
-	result2, err := sim.CalcAmountOut(params)
+	result2, err := pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, swapLimit)
 	require.NoError(t, err)
 
 	assert.Equal(t, result1.TokenAmountOut.Amount, result2.TokenAmountOut.Amount, "CloneState: UpdateBalance on clone mutated the original")

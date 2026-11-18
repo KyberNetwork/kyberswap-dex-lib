@@ -1,6 +1,7 @@
 package msgpack
 
 import (
+	"context"
 	"math/big"
 	"os"
 	"testing"
@@ -44,7 +45,7 @@ func TestFluidV2UpdatedStateRoundTrip(t *testing.T) {
 			restored := decoded[f.Address]
 			want, err := sim.CalcAmountOut(params)
 			require.NoError(t, err)
-			got, err := restored.CalcAmountOut(params)
+			got, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, params.Limit)
 			require.NoError(t, err)
 			require.Equal(t, want.TokenAmountOut, got.TokenAmountOut)
 			require.Equal(t, sim.CalculateLimit(), restored.CalculateLimit())

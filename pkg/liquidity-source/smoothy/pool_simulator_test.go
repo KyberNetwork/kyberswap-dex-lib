@@ -1,6 +1,7 @@
 package smoothy
 
 import (
+	"context"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -132,13 +133,10 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 		ts.T().Run(tc.pool, func(t *testing.T) {
 			sim := ts.sims[tc.pool].CloneState()
 
-			res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{
-					Token:  tc.tokenIn,
-					Amount: bignum.NewBig(tc.amountIn),
-				},
-				TokenOut: tc.tokenOut,
-			})
+			res, err := pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{
+				Token:  tc.tokenIn,
+				Amount: bignum.NewBig(tc.amountIn),
+			}, tc.tokenOut, nil)
 
 			if tc.expectedErr != nil {
 				require.ErrorContains(t, err, tc.expectedErr.Error())

@@ -1,6 +1,7 @@
 package metricpropamm
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -40,8 +41,7 @@ func TestStoredJSONRoundTrip(t *testing.T) {
 		Tokens: []*entity.PoolToken{{Address: weth, Decimals: 6, Swappable: true}, {Address: usdc, Decimals: 6, Swappable: true}},
 	}})
 	require.NoError(t, err)
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: weth, Amount: bignumber.NewBig("1000")}, TokenOut: usdc})
+	res, err := pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: weth, Amount: bignumber.NewBig("1000")}, usdc, nil)
 	require.NoError(t, err)
 	require.True(t, res.TokenAmountOut.Amount.Sign() > 0)
 }

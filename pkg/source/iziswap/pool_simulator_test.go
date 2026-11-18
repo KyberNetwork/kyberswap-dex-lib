@@ -1,6 +1,7 @@
 package iziswap
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -51,10 +52,7 @@ func TestCalcAmountOut(t *testing.T) {
 			poolSim := poolSim.CloneState()
 			cloned := poolSim.CloneState()
 			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: tokenAmountIn,
-					TokenOut:      tokenOut,
-				})
+				return pool.DefaultCalcAmtOut(context.Background(), poolSim, tokenAmountIn, tokenOut, nil)
 			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), result.TokenAmountOut.Amount)
@@ -67,19 +65,13 @@ func TestCalcAmountOut(t *testing.T) {
 				SwapInfo:       result.SwapInfo,
 			})
 
-			clonedResult, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
+			clonedResult, err := pool.DefaultCalcAmtOut(context.Background(), cloned, tokenAmountIn, tokenOut, nil)
 			assert.Nil(t, err)
 
 			assert.Equal(t, result.TokenAmountOut.Amount, clonedResult.TokenAmountOut.Amount)
 			assert.Equal(t, result.Fee.Amount, clonedResult.Fee.Amount)
 
-			result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
+			result, err = pool.DefaultCalcAmtOut(context.Background(), poolSim, tokenAmountIn, tokenOut, nil)
 			assert.Nil(t, err)
 
 			assert.NotEqual(t, clonedResult.TokenAmountOut.Amount, result.TokenAmountOut.Amount)

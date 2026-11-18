@@ -1,6 +1,7 @@
 package apefun_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -45,8 +46,7 @@ func TestSimulatorSerialization(t *testing.T) {
 		sims, err = msgpack.DecodePoolSimulatorsMap(encoded)
 		require.NoError(t, err)
 	}
-	res, err := sims[p.Address].CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: weth, Amount: big.NewInt(1e16)}, TokenOut: rh4})
+	res, err := pool.DefaultCalcAmtOut(context.Background(), sims[p.Address], pool.TokenAmount{Token: weth, Amount: big.NewInt(1e16)}, rh4, nil)
 	require.NoError(t, err)
 	require.Equal(t, "5550332439725505417402886", res.TokenAmountOut.Amount.String())
 }

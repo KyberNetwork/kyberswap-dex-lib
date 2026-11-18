@@ -1,6 +1,7 @@
 package msgpack
 
 import (
+	"context"
 	"math/big"
 	"os"
 	"testing"
@@ -50,7 +51,7 @@ func TestFlywheelCompositeSerialization(t *testing.T) {
 		params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: flywheel.WETH, Amount: big.NewInt(1000000000)}, TokenOut: p.Address}
 		expected, err := before.CalcAmountOut(params)
 		require.NoError(t, err)
-		actual, err := decoded[p.Address].CalcAmountOut(params)
+		actual, err := pool.DefaultCalcAmtOut(context.Background(), decoded[p.Address], params.TokenAmountIn, params.TokenOut, params.Limit)
 		require.NoError(t, err)
 		require.Equal(t, expected.TokenAmountOut, actual.TokenAmountOut)
 		require.Equal(t, expected.RemainingTokenAmountIn, actual.RemainingTokenAmountIn)

@@ -1,6 +1,7 @@
 package maverickv1
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -226,10 +227,7 @@ func TestUpdateBalance(t *testing.T) {
 			}
 
 			resultOfCloned, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return cloned.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: in,
-					TokenOut:      tc.tokenOut,
-				})
+				return pool.DefaultCalcAmtOut(context.Background(), cloned, in, tc.tokenOut, nil)
 			})
 			require.Nil(t, err)
 			require.Equal(t, tc.expAmountOut, resultOfCloned.TokenAmountOut.Amount.String())

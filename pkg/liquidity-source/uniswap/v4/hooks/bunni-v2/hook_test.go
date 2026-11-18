@@ -443,13 +443,10 @@ func Test_MergeSwap(t *testing.T) {
 	}
 
 	// single swap
-	singleResult, err := pSim2.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  tokenIn,
-			Amount: totalAmountIn,
-		},
-		TokenOut: tokenOut,
-	})
+	singleResult, err := pool.DefaultCalcAmtOut(context.Background(), pSim2, pool.TokenAmount{
+		Token:  tokenIn,
+		Amount: totalAmountIn,
+	}, tokenOut, nil)
 
 	// Compare results
 	if err != nil {

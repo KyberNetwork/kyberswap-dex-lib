@@ -1,6 +1,7 @@
 package lunya
 
 import (
+	"context"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -125,10 +126,7 @@ func TestRoundTripCreatesNoValue(t *testing.T) {
 					TokenAmountOut: *out.TokenAmountOut,
 					SwapInfo:       out.SwapInfo,
 				})
-				back, err := clone.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: *out.TokenAmountOut,
-					TokenOut:      "token0",
-				})
+				back, err := pool.DefaultCalcAmtOut(context.Background(), clone, *out.TokenAmountOut, "token0", nil)
 				if err != nil {
 					assert.ErrorIs(t, err, ErrZeroAmount)
 					continue

@@ -384,8 +384,7 @@ func TestHookIntegrationStaleCheck(t *testing.T) {
 		sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: integrationPool(t, h),
 			ChainID: valueobject.ChainIDRobinhood, Opts: pool.FactoryOpts{StaleCheck: stale}})
 		require.NoError(t, err)
-		_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: h.Usdg, Amount: big.NewInt(1_000_000)}, TokenOut: h.Lot})
+		_, err = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: h.Usdg, Amount: big.NewInt(1_000_000)}, h.Lot, nil)
 		if stale {
 			require.ErrorIs(t, err, ErrStale)
 		} else {
@@ -415,8 +414,7 @@ func TestHookIntegrationStaleCheckUsesLiveness(t *testing.T) {
 			sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: p,
 				ChainID: valueobject.ChainIDRobinhood, Opts: pool.FactoryOpts{StaleCheck: true}})
 			require.NoError(t, err)
-			_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: h.Usdg, Amount: big.NewInt(1_000_000)}, TokenOut: h.Lot})
+			_, err = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: h.Usdg, Amount: big.NewInt(1_000_000)}, h.Lot, nil)
 			if tc.stale {
 				require.ErrorIs(t, err, ErrStale)
 			} else {

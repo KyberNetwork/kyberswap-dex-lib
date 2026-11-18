@@ -1,6 +1,7 @@
 package gmx
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -393,10 +394,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				})
 			}
 
-			clonedResult, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: tc.tokenAmountIn,
-				TokenOut:      tc.tokenOut,
-			})
+			clonedResult, err := pool.DefaultCalcAmtOut(context.Background(), cloned, tc.tokenAmountIn, tc.tokenOut, nil)
 			assert.Equal(t, tc.expectedErr, err)
 
 			if err == nil {

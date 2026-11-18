@@ -1,6 +1,7 @@
 package algebrav1
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -355,18 +356,12 @@ func TestMultiUse(t *testing.T) {
 	}
 	tokenOut := "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
 
-	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      tokenOut,
-	})
+	result, err := pool.DefaultCalcAmtOut(context.Background(), poolSim, tokenAmountIn, tokenOut, nil)
 	require.NoError(t, err)
 	expectedAmountOut := result.TokenAmountOut.Amount.String()
 
 	t.Run("same outputs for same inputs", func(t *testing.T) {
-		result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
-		})
+		result, err := pool.DefaultCalcAmtOut(context.Background(), poolSim, tokenAmountIn, tokenOut, nil)
 		require.NoError(t, err)
 		require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
@@ -378,19 +373,13 @@ func TestMultiUse(t *testing.T) {
 	})
 
 	t.Run("different output after update", func(t *testing.T) {
-		result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
-		})
+		result, err = pool.DefaultCalcAmtOut(context.Background(), poolSim, tokenAmountIn, tokenOut, nil)
 		require.NoError(t, err)
 		require.NotEqual(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
 
 	t.Run("same output of cloned", func(t *testing.T) {
-		result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
-		})
+		result, err = pool.DefaultCalcAmtOut(context.Background(), cloned, tokenAmountIn, tokenOut, nil)
 		require.NoError(t, err)
 		require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})

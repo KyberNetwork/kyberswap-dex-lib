@@ -1,6 +1,7 @@
 package flywheelfun
 
 import (
+	"context"
 	"math/big"
 	"os"
 	"strings"
@@ -112,7 +113,7 @@ func TestBasePoolsFromBaseMap(t *testing.T) {
 	require.True(t, clone.Valid)
 	require.Equal(t, price, fingerprint(base), "clones own their bases")
 	direct := func(b pool.IPoolSimulator) *big.Int {
-		r, e := b.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: big.NewInt(1000000000)}, TokenOut: s.Static.Quote})
+		r, e := pool.DefaultCalcAmtOut(context.Background(), b, pool.TokenAmount{Token: WETH, Amount: big.NewInt(1000000000)}, s.Static.Quote, nil)
 		require.NoError(t, e)
 		return r.TokenAmountOut.Amount
 	}

@@ -1,6 +1,7 @@
 package maverickv2
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"os"
@@ -202,11 +203,7 @@ func TestSimpleSwaps_MAV_WETH(t *testing.T) {
 	// Assert the expected amount of cloned pool stays the same
 	require.Equal(t, expectedAmount.String(), result.TokenAmountOut.Amount.String(), "Swap amount should match expected value")
 
-	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmtIn,
-		TokenOut:      poolEntity.Tokens[1].Address, // WETH
-		Limit:         nil,
-	})
+	result, err = pool.DefaultCalcAmtOut(context.Background(), cloned, tokenAmtIn, poolEntity.Tokens[1].Address, nil)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 

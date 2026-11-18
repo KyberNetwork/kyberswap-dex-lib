@@ -1,6 +1,7 @@
 package stable
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -66,7 +67,7 @@ func quoteOf(sim poolpkg.IPoolSimulator, in poolpkg.CalcAmountOutParams) (q quot
 			q = quote{err: fmt.Sprint("panic: ", r)}
 		}
 	}()
-	res, err := sim.CalcAmountOut(in)
+	res, err := poolpkg.DefaultCalcAmtOut(context.Background(), sim, in.TokenAmountIn, in.TokenOut, in.Limit)
 	if err != nil {
 		return quote{err: err.Error()}
 	}

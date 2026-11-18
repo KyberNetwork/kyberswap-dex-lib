@@ -1,6 +1,7 @@
 package tricrypto
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -40,7 +41,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 			b.Run(s.name+"/"+impl.name, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if _, err := impl.p.CalcAmountOut(params); err != nil {
+					if _, err := pool.DefaultCalcAmtOut(context.Background(), impl.p, params.TokenAmountIn, params.TokenOut, params.Limit); err != nil {
 						b.Fatal(err)
 					}
 				}
@@ -67,8 +68,7 @@ func BenchmarkUpdateBalance(b *testing.B) {
 	pinClock(b, &now)
 	for _, s := range benchSwaps {
 		for _, impl := range benchImpls(b) {
-			res, err := impl.p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: s.in, Amount: big.NewInt(s.amount)}, TokenOut: s.out})
+			res, err := pool.DefaultCalcAmtOut(context.Background(), impl.p, pool.TokenAmount{Token: s.in, Amount: big.NewInt(s.amount)}, s.out, nil)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -97,13 +97,13 @@ func BenchmarkRouteStep(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
 					p := impl.p.CloneState()
-					res, err := p.CalcAmountOut(params)
+					res, err := pool.DefaultCalcAmtOut(context.Background(), p, params.TokenAmountIn, params.TokenOut, params.Limit)
 					if err != nil {
 						b.Fatal(err)
 					}
 					p.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn,
 						TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee})
-					if _, err = p.CalcAmountOut(params); err != nil {
+					if _, err = pool.DefaultCalcAmtOut(context.Background(), p, params.TokenAmountIn, params.TokenOut, params.Limit); err != nil {
 						b.Fatal(err)
 					}
 				}

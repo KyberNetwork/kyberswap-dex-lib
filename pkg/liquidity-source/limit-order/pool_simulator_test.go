@@ -1,6 +1,7 @@
 package limitorder
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -1091,7 +1092,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 
 				assert.Equal(t, swap.expAmountOut, res.TokenAmountOut.Amount.String())
 
-				clonedRes, err := cloned.CalcAmountOut(calcAmountOutParams)
+				clonedRes, err := pool.DefaultCalcAmtOut(context.Background(), cloned, calcAmountOutParams.TokenAmountIn, calcAmountOutParams.TokenOut, calcAmountOutParams.Limit)
 				require.Nil(t, err)
 				assert.Equal(t, res.TokenAmountOut, clonedRes.TokenAmountOut)
 
@@ -1119,7 +1120,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 					SwapLimitBig:   limit,
 				})
 
-				clonedRes, err = cloned.CalcAmountOut(calcAmountOutParams)
+				clonedRes, err = pool.DefaultCalcAmtOut(context.Background(), cloned, calcAmountOutParams.TokenAmountIn, calcAmountOutParams.TokenOut, calcAmountOutParams.Limit)
 				require.Nil(t, err)
 				assert.Equal(t, res.TokenAmountOut, clonedRes.TokenAmountOut)
 			})

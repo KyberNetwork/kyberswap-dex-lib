@@ -1,6 +1,7 @@
 package uniswapv4
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -101,7 +102,7 @@ func TestFewUnwrap_UpdateBalanceSpendsBalance(t *testing.T) {
 	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: usdtIn(100_000e6), TokenOut: fewTestUSDC})
 	assert.ErrorIs(t, err, ErrFewUnwrapExceeded, "only ~32.5k USDC is left to unwrap")
 
-	_, err = clone.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: usdtIn(100_000e6), TokenOut: fewTestUSDC})
+	_, err = pool.DefaultCalcAmtOut(context.Background(), clone, usdtIn(100_000e6), fewTestUSDC, nil)
 	assert.NoError(t, err, "clone keeps the pre-swap balance")
 }
 

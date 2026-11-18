@@ -79,14 +79,14 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 		}
 		params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: h.Usdg,
 			Amount: new(big.Int).Mul(big.NewInt(1_000), pow10(h.Market.Venue.UsdgDecimals))}, TokenOut: h.Lot}
-		if _, err := sim.CalcAmountOut(params); err != nil {
+		if _, err := pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, params.Limit); err != nil {
 			b.Logf("%s refused (%v): not benchmarked", v.name, err)
 			continue
 		}
 		b.Run(v.name+"/buy-1kusd", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := sim.CalcAmountOut(params); err != nil {
+				if _, err := pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, params.Limit); err != nil {
 					b.Fatal(err)
 				}
 			}

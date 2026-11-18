@@ -332,8 +332,7 @@ func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 		TokenAmountOut: pool.TokenAmount{Token: usdg, Amount: res.TokenAmountOut.Amount},
 		SwapInfo:       res.SwapInfo,
 	})
-	again, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, TokenOut: usdg})
+	again, err := pool.DefaultCalcAmtOut(context.Background(), cloned, pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, usdg, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "991370", again.TokenAmountOut.Amount.String(), "the clone is untouched")
 	next, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
@@ -457,7 +456,7 @@ func TestPoolFactory_PassesStaleCheck(t *testing.T) {
 		sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: newTestPool(t),
 			ChainID: valueobject.ChainIDRobinhood, Opts: pool.FactoryOpts{StaleCheck: staleCheck}})
 		require.NoError(t, err)
-		_, err = sim.CalcAmountOut(params) // trackedHook has no TrackedAt: older than maxAgeSec
+		_, err = pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, params.Limit) // trackedHook has no TrackedAt: older than maxAgeSec
 		if staleCheck {
 			assert.ErrorIs(t, err, ErrStale)
 		} else {

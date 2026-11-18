@@ -1,6 +1,7 @@
 package stableng_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -30,7 +31,7 @@ func TestDCacheAfterMsgpackRoundTrip(t *testing.T) {
 			TokenOut: sim.Info.Tokens[1]}
 		want, err := sim.CalcAmountOut(in)
 		require.NoError(t, err)
-		got, err := sims[p.Address].CalcAmountOut(in)
+		got, err := pool.DefaultCalcAmtOut(context.Background(), sims[p.Address], in.TokenAmountIn, in.TokenOut, in.Limit)
 		require.NoError(t, err)
 		require.Equal(t, want.TokenAmountOut.Amount, got.TokenAmountOut.Amount)
 		require.Equal(t, want.Fee.Amount, got.Fee.Amount)

@@ -1,6 +1,7 @@
 package bin
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -102,8 +103,7 @@ func regressSimOutputs(t *testing.T) map[string]string {
 		cl := sim.CloneState()
 		for i := range 3 {
 			amt := big.NewInt(1e18)
-			res, err := cl.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tk[0].Address, Amount: amt}, TokenOut: tk[1].Address})
+			res, err := pool.DefaultCalcAmtOut(context.Background(), cl, pool.TokenAmount{Token: tk[0].Address, Amount: amt}, tk[1].Address, nil)
 			require.NoError(t, err)
 			out[fmt.Sprintf("seq/%s/%d", name, i)] = res.TokenAmountOut.Amount.String()
 			cl.UpdateBalance(pool.UpdateBalanceParams{

@@ -1,6 +1,7 @@
 package arberazap
 
 import (
+	"context"
 	"math/big"
 	"strings"
 
@@ -95,13 +96,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 				burnedAmount.Mul(amountOut, extra.Sell.ToBig()).Div(burnedAmount, arberaden.DEN.ToBig())
 				amountOut.Sub(amountOut, burnedAmount)
 			}
-			result, err := currentPool.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{
-					Token:  s.Info.Tokens[idx],
-					Amount: amountOut,
-				},
-				TokenOut: s.Info.Tokens[idx+lo.Ternary(isBuy, 1, -1)],
-			})
+			result, err := pool.DefaultCalcAmtOut(context.Background(), currentPool, pool.TokenAmount{
+				Token:  s.Info.Tokens[idx],
+				Amount: amountOut,
+			}, s.Info.Tokens[idx+lo.Ternary(isBuy, 1, -1)], nil)
 
 			if err != nil {
 				return nil, err

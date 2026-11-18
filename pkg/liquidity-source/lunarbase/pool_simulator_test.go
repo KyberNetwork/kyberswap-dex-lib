@@ -1,6 +1,7 @@
 package lunarbase
 
 import (
+	"context"
 	"math/big"
 	"strings"
 	"testing"
@@ -57,10 +58,7 @@ func TestCloneStateUpdateBalance(t *testing.T) {
 	}
 
 	cloned := sim.CloneState()
-	quote, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: sim.GetTokens()[0], Amount: big.NewInt(10)},
-		TokenOut:      sim.GetTokens()[1],
-	})
+	quote, err := pool.DefaultCalcAmtOut(context.Background(), cloned, pool.TokenAmount{Token: sim.GetTokens()[0], Amount: big.NewInt(10)}, sim.GetTokens()[1], nil)
 	if err != nil {
 		t.Fatal(err)
 	}

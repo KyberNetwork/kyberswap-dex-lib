@@ -1,6 +1,7 @@
 package parityprop
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -15,10 +16,7 @@ import (
 func TestIndexingQuotesAgedState(t *testing.T) {
 	ep := livePool(t) // Timestamp == oracleUpdatedAt, maxStaleness 8s
 	quote := func(sim pool.IPoolSimulator) error {
-		_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: weth, Amount: big.NewInt(1e17)},
-			TokenOut:      usdg,
-		})
+		_, err := pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: weth, Amount: big.NewInt(1e17)}, usdg, nil)
 		return err
 	}
 

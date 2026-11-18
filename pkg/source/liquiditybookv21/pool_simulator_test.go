@@ -1,6 +1,7 @@
 package liquiditybookv21
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -135,10 +136,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			SwapInfo:       result.SwapInfo,
 		})
 
-		clonedResult, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
-		})
+		clonedResult, err := pool.DefaultCalcAmtOut(context.Background(), cloned, tokenAmountIn, tokenOut, nil)
 		assert.Nil(t, err)
 
 		assert.Equal(t, result.TokenAmountOut.Amount, clonedResult.TokenAmountOut.Amount)

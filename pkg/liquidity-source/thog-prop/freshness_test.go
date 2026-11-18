@@ -3,6 +3,7 @@ package thogprop
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"io"
 	"math/big"
@@ -68,13 +69,13 @@ func TestFactoryRoutingExpiresSameInstanceAndIndexerSkipsAge(t *testing.T) {
 		require.NoError(t, err)
 		indexer, err := pool.Factory(DexType)(pool.FactoryParams{EntityPool: ep, Opts: pool.FactoryOpts{StaleCheck: false}})
 		require.NoError(t, err)
-		before, err := live.CalcAmountOut(params)
+		before, err := pool.DefaultCalcAmtOut(context.Background(), live, params.TokenAmountIn, params.TokenOut, params.Limit)
 		require.NoError(t, err)
 		require.True(t, before.IsValid())
 		time.Sleep(5 * time.Second)
-		_, err = live.CalcAmountOut(params)
+		_, err = pool.DefaultCalcAmtOut(context.Background(), live, params.TokenAmountIn, params.TokenOut, params.Limit)
 		require.ErrorIs(t, err, ErrStaleSnapshot)
-		_, err = indexer.CalcAmountOut(params)
+		_, err = pool.DefaultCalcAmtOut(context.Background(), indexer, params.TokenAmountIn, params.TokenOut, params.Limit)
 		require.NoError(t, err)
 		meta := live.GetMetaInfo("", "").(MetaInfo)
 		require.Equal(t, int64(5000), meta.SnapshotAgeMs)

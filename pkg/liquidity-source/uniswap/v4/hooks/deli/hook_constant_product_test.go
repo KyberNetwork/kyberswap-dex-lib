@@ -1,6 +1,7 @@
 package deli
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -92,10 +93,7 @@ func Test_CP_CloneState_UpdateBalance(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, bignumber.NewBig10("3718123998780767"), result.TokenAmountOut.Amount)
 
-	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      tokenOut,
-	})
+	result, err = pool.DefaultCalcAmtOut(context.Background(), cloned, tokenAmountIn, tokenOut, nil)
 	require.NoError(t, err)
 	assert.Equal(t, bignumber.NewBig10("3646033418782424"), result.TokenAmountOut.Amount)
 }

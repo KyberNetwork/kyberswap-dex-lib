@@ -1,6 +1,7 @@
 package btrprop_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -45,7 +46,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: a, Amount: big.NewInt(500)}, TokenOut: b}
 	want, err := sim.CalcAmountOut(params)
 	require.NoError(t, err)
-	got, err := dec["p"].CalcAmountOut(params)
+	got, err := pool.DefaultCalcAmtOut(context.Background(), dec["p"], params.TokenAmountIn, params.TokenOut, params.Limit)
 	require.NoError(t, err)
 	require.Equal(t, want.TokenAmountOut, got.TokenAmountOut)
 	require.Equal(t, "455", got.TokenAmountOut.Amount.String(), "500 more after 1000 used: 1900-990 -> slope 0.91")

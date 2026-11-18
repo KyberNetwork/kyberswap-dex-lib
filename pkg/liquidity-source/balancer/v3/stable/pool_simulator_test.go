@@ -1,6 +1,7 @@
 package stable
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -295,10 +296,7 @@ func TestUpdateBalanceSwapToUnderlyingConsumesWrappedReserve(t *testing.T) {
 		waEthLidowstETH = "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"
 	)
 	quote := func(sim pool.IPoolSimulator, amountIn *big.Int, tokenOut string) (*pool.CalcAmountOutResult, error) {
-		return sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: weth, Amount: amountIn},
-			TokenOut:      tokenOut,
-		})
+		return pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: weth, Amount: amountIn}, tokenOut, nil)
 	}
 
 	sim := poolSim.CloneState()

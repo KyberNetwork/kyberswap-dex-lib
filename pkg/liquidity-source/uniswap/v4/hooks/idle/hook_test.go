@@ -1,6 +1,7 @@
 package idle
 
 import (
+	"context"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -68,10 +69,7 @@ func Test_CloneState_UpdateBalance(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, bignumber.NewBig10("10864758562295945"), result.TokenAmountOut.Amount)
 
-	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      tokenOut,
-	})
+	result, err = pool.DefaultCalcAmtOut(context.Background(), cloned, tokenAmountIn, tokenOut, nil)
 	require.NoError(t, err)
 	assert.Equal(t, bignumber.NewBig10("10864758509295884"), result.TokenAmountOut.Amount)
 }

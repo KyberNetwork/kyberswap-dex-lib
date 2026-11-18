@@ -1,6 +1,7 @@
 package metavault_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -51,9 +52,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	realDrained := `"realBalances":{"A0":` + poolA0 + `,"A2":0},`
 
 	quote := func(sim pool.IPoolSimulator, in, out string, amount int64) (*pool.CalcAmountOutResult, error) {
-		return sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: in, Amount: big.NewInt(amount)}, TokenOut: out,
-		})
+		return pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: in, Amount: big.NewInt(amount)}, out, nil)
 	}
 	roundTrip := func(t *testing.T, sim pool.IPoolSimulator) pool.IPoolSimulator {
 		enc, err := msgpack.EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{"p": sim})

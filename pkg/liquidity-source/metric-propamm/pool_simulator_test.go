@@ -1,6 +1,7 @@
 package metricpropamm
 
 import (
+	"context"
 	"math/big"
 	"os"
 	"testing"
@@ -262,9 +263,7 @@ func TestFactoryStaleCheck(t *testing.T) {
 	for _, staleCheck := range []bool{false, true} {
 		sim, err := pool.Factory(DexType)(pool.FactoryParams{EntityPool: ep, Opts: pool.FactoryOpts{StaleCheck: staleCheck}})
 		require.NoError(t, err)
-		_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: weth, Amount: bignumber.NewBig("10000000000000000")}, TokenOut: usdc,
-		})
+		_, err = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: weth, Amount: bignumber.NewBig("10000000000000000")}, usdc, nil)
 		if staleCheck {
 			assert.ErrorIs(t, err, ErrStalePoolData)
 		} else {

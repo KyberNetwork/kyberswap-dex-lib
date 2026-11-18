@@ -1,6 +1,7 @@
 package lo1inch_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -54,9 +55,6 @@ func TestPoolSimulator_NoPartialFillsSurvivesMsgpack(t *testing.T) {
 	decoded, err := msgpack.DecodePoolSimulatorsMap(encoded)
 	require.NoError(t, err)
 
-	_, err = decoded["pool"].CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: takerAsset, Amount: big.NewInt(50)},
-		TokenOut:      makerAsset,
-	})
+	_, err = pool.DefaultCalcAmtOut(context.Background(), decoded["pool"], pool.TokenAmount{Token: takerAsset, Amount: big.NewInt(50)}, makerAsset, nil)
 	require.ErrorIs(t, err, lo1inch.ErrAmountInBelowOrderMin)
 }

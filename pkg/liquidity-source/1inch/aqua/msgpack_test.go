@@ -1,6 +1,7 @@
 package oneinchaqua_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -45,8 +46,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	quote := func(s pool.IPoolSimulator) *pool.CalcAmountOutResult {
-		res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: e.Tokens[0].Address, Amount: e18(10).ToBig()}, TokenOut: e.Tokens[1].Address})
+		res, err := pool.DefaultCalcAmtOut(context.Background(), s, pool.TokenAmount{Token: e.Tokens[0].Address, Amount: e18(10).ToBig()}, e.Tokens[1].Address, nil)
 		require.NoError(t, err)
 		return res
 	}

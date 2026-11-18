@@ -1,6 +1,7 @@
 package velodromev1_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -33,9 +34,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 		return sim
 	}
 	quote := func(sim pool.IPoolSimulator, in, out string, amount int64) (*pool.CalcAmountOutResult, error) {
-		return sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: in, Amount: big.NewInt(amount)}, TokenOut: out,
-		})
+		return pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: in, Amount: big.NewInt(amount)}, out, nil)
 	}
 	roundTrip := func(t *testing.T, sim pool.IPoolSimulator) pool.IPoolSimulator {
 		enc, err := msgpack.EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{"p": sim})

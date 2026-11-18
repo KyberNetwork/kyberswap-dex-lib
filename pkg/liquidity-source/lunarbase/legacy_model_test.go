@@ -1,6 +1,7 @@
 package lunarbase
 
 import (
+	"context"
 	"errors"
 	"math/big"
 	"testing"
@@ -33,7 +34,7 @@ func TestLegacyJSONUnknownZeroModelRequiresOnlyPoolRefresh(t *testing.T) {
 				t.Fatal("legacy entity itself must remain readable:", err)
 			}
 			for _, sim := range []pool.IPoolSimulator{s, s.CloneState()} {
-				_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: p.Tokens[0].Address, Amount: big.NewInt(1)}, TokenOut: p.Tokens[1].Address})
+				_, err = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: p.Tokens[0].Address, Amount: big.NewInt(1)}, p.Tokens[1].Address, nil)
 				if kind == "unknown" {
 					if !errors.Is(err, ErrStalePool) {
 						t.Fatalf("ambiguous model quoted: %v", err)
