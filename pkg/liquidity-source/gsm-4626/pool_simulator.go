@@ -57,12 +57,31 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
+
+	res, err := s.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: params.TokenAmountIn.Token, Amount: *amountIn, AmountUsd: params.TokenAmountIn.AmountUsd},
+		TokenOut:      params.TokenOut,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: res.TokenAmountOut.Token, Amount: res.TokenAmountOut.Amount.ToBig()},
+		Fee:            &pool.TokenAmount{Token: res.Fee.Token, Amount: res.Fee.Amount.ToBig()},
+		Gas:            res.Gas,
+		SwapInfo:       res.SwapInfo,
+	}, nil
+}
+
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	if !s.CanSwap {
 		return nil, ErrCannotSwap
 	}
 
 	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenOut
-	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
+	amountIn := &params.TokenAmountIn.Amount
 
 	var (
 		amountOut   *uint256.Int
@@ -92,17 +111,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		}
 	}
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
-		},
-		Fee: &pool.TokenAmount{
-			Token:  s.Info.Tokens[0],
-			Amount: fee.ToBig(),
-		},
-		Gas:      lo.Ternary(isBuy, getAssetAmountForBuyAssetGas+buyAssetGas, sellAssetGas),
-		SwapInfo: &SwapInfo{IsBuy: isBuy, GrossAmount: grossAmount},
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
+		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *fee},
+		Gas:            lo.Ternary(isBuy, getAssetAmountForBuyAssetGas+buyAssetGas, sellAssetGas),
+		SwapInfo:       &SwapInfo{IsBuy: isBuy, GrossAmount: grossAmount},
 	}, nil
 }
 
