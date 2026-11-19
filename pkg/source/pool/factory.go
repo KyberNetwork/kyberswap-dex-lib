@@ -21,7 +21,9 @@ type (
 	FactoryOpts struct {
 		StaleCheck bool // whether to reject stale pools or not - route finding sets this true while indexing false
 	}
-	FactoryFn func(FactoryParams) (IPoolSimulator, error)
+	// FactoryFn returns a pool that implements IPoolSimulator (legacy) or IPoolSim (uint256).
+	// Use Factory for legacy and FactoryPoolSim for the uint256 interface.
+	FactoryFn func(FactoryParams) (any, error)
 )
 
 var (
@@ -30,12 +32,19 @@ var (
 	UseSwapLimit    = make(map[string]struct{}, 16)   // exchanges or pool types that use swap limit. don't modify
 )
 
-// RegisterFactory registers a factory function for a pool type with factoryParams
-func RegisterFactory[P IPoolSimulator](poolType string, factory func(FactoryParams) (P, error)) bool {
+// RegisterFactory registers a factory function for a pool type with factoryParams. P must implement IPoolSimulator
+// (legacy big.Int) or IPoolSim (uint256).
+func RegisterFactory[P any](poolType string, factory func(FactoryParams) (P, error)) bool {
 	if factoryMap[poolType] != nil {
 		panic(poolType + " pool factory already registered")
 	}
-	factoryMap[poolType] = func(factoryParams FactoryParams) (pool IPoolSimulator, err error) {
+	var zero P
+	if _, legacy := any(zero).(IPoolSimulator); !legacy {
+		if _, native := any(zero).(IPoolSim); !native {
+			panic(poolType + " pool factory must implement IPoolSimulator or IPoolSim")
+		}
+	}
+	factoryMap[poolType] = func(factoryParams FactoryParams) (pool any, err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				err = errors.Errorf("panic: %v", r)
@@ -46,8 +55,7 @@ func RegisterFactory[P IPoolSimulator](poolType string, factory func(FactoryPara
 		return factory(factoryParams)
 	}
 
-	var p P
-	if _, ok := any(p).(IPoolExactOutSimulator); ok {
+	if _, ok := any(zero).(IPoolExactOutSimulator); ok {
 		CanCalcAmountIn[poolType] = struct{}{}
 	}
 
@@ -71,7 +79,7 @@ func UsesSwapLimit(exchange, poolType string) bool {
 
 // RegisterFactory0 registers a factory function for a pool type with no factoryParams.
 // TODO: deprecate this in favor of RegisterFactory
-func RegisterFactory0[P IPoolSimulator](poolType string, factory func(entity.Pool) (P, error)) bool {
+func RegisterFactory0[P any](poolType string, factory func(entity.Pool) (P, error)) bool {
 	return RegisterFactory(poolType, func(factoryParams FactoryParams) (P, error) {
 		return factory(factoryParams.EntityPool)
 	})
@@ -79,7 +87,7 @@ func RegisterFactory0[P IPoolSimulator](poolType string, factory func(entity.Poo
 
 // RegisterFactory1 registers a factory function for a pool type with chainID.
 // TODO: deprecate this in favor of RegisterFactory
-func RegisterFactory1[P IPoolSimulator](poolType string,
+func RegisterFactory1[P any](poolType string,
 	factory func(entity.Pool, valueobject.ChainID) (P, error)) bool {
 	return RegisterFactory(poolType, func(factoryParams FactoryParams) (P, error) {
 		return factory(factoryParams.EntityPool, factoryParams.ChainID)
@@ -88,7 +96,7 @@ func RegisterFactory1[P IPoolSimulator](poolType string,
 
 // RegisterFactory2 registers a factory function for a pool type with chainID and ethClient.
 // TODO: deprecate this in favor of RegisterFactory
-func RegisterFactory2[P IPoolSimulator](poolType string,
+func RegisterFactory2[P any](poolType string,
 	factory func(entity.Pool, valueobject.ChainID, ethereum.ContractCaller) (P, error)) bool {
 	return RegisterFactory(poolType, func(factoryParams FactoryParams) (P, error) {
 		return factory(factoryParams.EntityPool, factoryParams.ChainID, factoryParams.EthClient)
@@ -97,16 +105,31 @@ func RegisterFactory2[P IPoolSimulator](poolType string,
 
 // RegisterFactoryMeta registers a factory function for a meta pool type with basePoolMap.
 // TODO: deprecate this in favor of RegisterFactory
-func RegisterFactoryMeta[P IPoolSimulator](poolType string,
+func RegisterFactoryMeta[P any](poolType string,
 	factory func(entity.Pool, map[string]IPoolSimulator) (P, error)) bool {
 	return RegisterFactory(poolType, func(factoryParams FactoryParams) (P, error) {
 		return factory(factoryParams.EntityPool, factoryParams.BasePoolMap)
 	})
 }
 
-// Factory returns the factory function for a pool type
-func Factory(poolType string) FactoryFn {
-	return factoryMap[poolType]
+// Factory returns the factory for a pool type as a legacy IPoolSimulator. It returns nil for an unknown type, and
+// an error from the returned function for a uint256-only pool. Use FactoryPoolSim for uint256.
+func Factory(poolType string) func(FactoryParams) (IPoolSimulator, error) {
+	factory := factoryMap[poolType]
+	if factory == nil {
+		return nil
+	}
+	return func(params FactoryParams) (IPoolSimulator, error) {
+		sim, err := factory(params)
+		if err != nil {
+			return nil, err
+		}
+		legacy, ok := sim.(IPoolSimulator)
+		if !ok {
+			return nil, errors.Errorf("pool type %s is uint256-only; use FactoryPoolSim", poolType)
+		}
+		return legacy, nil
+	}
 }
 
 // QuoteTime is the snapshot time to price a quote at, or the zero time when there is none. Only

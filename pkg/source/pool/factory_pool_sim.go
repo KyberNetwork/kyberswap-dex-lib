@@ -13,7 +13,7 @@ type PoolSimFactoryFn func(FactoryParams) (IPoolSim, error)
 // FactoryPoolSim returns the factory for a pool type as an IPoolSim. A registered pool that already implements IPoolSim
 // is returned as-is. A legacy pool is wrapped by legacyAdapter.
 func FactoryPoolSim(poolType string) PoolSimFactoryFn {
-	factory := Factory(poolType)
+	factory := factoryMap[poolType]
 	if factory == nil {
 		return nil
 	}
@@ -22,12 +22,10 @@ func FactoryPoolSim(poolType string) PoolSimFactoryFn {
 		if err != nil {
 			return nil, err
 		}
-		if native, ok := sim.(ICalcAmtOut); ok {
-			if u, ok := native.(IPoolSim); ok {
-				return u, nil
-			}
+		if u, ok := sim.(IPoolSim); ok {
+			return u, nil
 		}
-		return legacyAdapter{IPoolSimulator: sim}, nil
+		return legacyAdapter{IPoolSimulator: sim.(IPoolSimulator)}, nil
 	}
 }
 
