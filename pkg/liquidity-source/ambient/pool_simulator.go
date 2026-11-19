@@ -69,8 +69,82 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if params.TokenAmountIn.Amount == nil || params.TokenAmountIn.Amount.Sign() <= 0 {
 		return nil, ErrZeroAmount
 	}
+	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrOverflow
+	}
 
-	inBaseQty, ok := p.matchDirection(params.TokenAmountIn.Token, params.TokenOut)
+	q, err := p.quoteSwap(params.TokenAmountIn.Token, params.TokenOut, amountIn)
+	if err != nil {
+		return nil, err
+	}
+
+	if limit := params.Limit; limit != nil {
+		if inventoryLimit := limit.GetLimit(p.ambientToken(q.tokenOutIndex)); inventoryLimit != nil &&
+			q.amountOut.ToBig().Cmp(inventoryLimit) > 0 {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
+			Token:  params.TokenOut,
+			Amount: q.amountOut.ToBig(),
+		},
+		Fee: &pool.TokenAmount{
+			Token:  params.TokenOut,
+			Amount: bignumber.ZeroBI,
+		},
+		RemainingTokenAmountIn: &pool.TokenAmount{
+			Token:  params.TokenAmountIn.Token,
+			Amount: q.remainingIn.ToBig(),
+		},
+		Gas:      q.gas,
+		SwapInfo: SwapInfo{nextCurve: q.nextCurve},
+	}, nil
+}
+
+// CalcAmtOut is CalcAmountOut with uint256 amounts. It shares quote with the legacy method.
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	q, err := p.quoteSwap(params.TokenAmountIn.Token, params.TokenOut, &params.TokenAmountIn.Amount)
+	if err != nil {
+		return nil, err
+	}
+
+	if limit := params.Limit; limit != nil {
+		if inventoryLimit := limit.GetLimit(p.ambientToken(q.tokenOutIndex)); inventoryLimit != nil &&
+			q.amountOut.Gt(inventoryLimit) {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: params.TokenOut, Amount: q.amountOut},
+		Fee:            &pool.TokenAmt{Token: params.TokenOut},
+		RemainingTokenAmountIn: &pool.TokenAmt{
+			Token:  params.TokenAmountIn.Token,
+			Amount: q.remainingIn,
+		},
+		Gas:      q.gas,
+		SwapInfo: SwapInfo{nextCurve: q.nextCurve},
+	}, nil
+}
+
+type quoteResult struct {
+	amountOut     uint256.Int
+	remainingIn   uint256.Int
+	tokenOutIndex int
+	gas           int64
+	nextCurve     CurveState
+}
+
+// quoteSwap runs the sweep for amountIn. It checks the reserve but not the inventory limit.
+func (p *PoolSimulator) quoteSwap(tokenIn, tokenOut string, amountIn *uint256.Int) (*quoteResult, error) {
+	if amountIn.IsZero() {
+		return nil, ErrZeroAmount
+	}
+
+	inBaseQty, ok := p.matchDirection(tokenIn, tokenOut)
 	if !ok {
 		return nil, ErrPairNotFound
 	}
@@ -80,9 +154,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	var swap SwapDirective
 	swap.InBaseQty = inBaseQty
 	swap.IsBuy = isBuy
-	if overflow := swap.Qty.SetFromBig(params.TokenAmountIn.Amount); overflow {
-		return nil, ErrOverflow
-	}
+	swap.Qty = *amountIn
 	swap.LimitPrice = defaultLimitPrice(isBuy)
 
 	bmpView := NewSnapshotBitmapView(p.state)
@@ -95,43 +167,28 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrTickRangeExceeded
 	}
 
-	amountOut := outputAmount(accum, inBaseQty)
-	if amountOut.Sign() <= 0 {
+	var q quoteResult
+	q.amountOut = outputAmount(accum, inBaseQty)
+	if q.amountOut.Sign() <= 0 {
 		return nil, ErrZeroAmount
 	}
 
-	tokenOutIndex := 1
+	q.tokenOutIndex = 1
 	if !inBaseQty {
-		tokenOutIndex = 0
+		q.tokenOutIndex = 0
 	}
-	if amountOut.Cmp(p.Info.Reserves[tokenOutIndex]) > 0 {
+	reserve, overflow := uint256.FromBig(p.Info.Reserves[q.tokenOutIndex])
+	if overflow {
+		return nil, ErrOverflow
+	}
+	if q.amountOut.Gt(reserve) {
 		return nil, ErrInsufficientFund
 	}
 
-	if limit := params.Limit; limit != nil {
-		if inventoryLimit := limit.GetLimit(p.ambientToken(tokenOutIndex)); inventoryLimit != nil &&
-			amountOut.Cmp(inventoryLimit) > 0 {
-			return nil, pool.ErrNotEnoughInventory
-		}
-	}
-
-	remainingAmountIn := swap.Qty.ToBig()
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  params.TokenOut,
-			Amount: amountOut,
-		},
-		Fee: &pool.TokenAmount{
-			Token:  params.TokenOut,
-			Amount: bignumber.ZeroBI,
-		},
-		RemainingTokenAmountIn: &pool.TokenAmount{
-			Token:  params.TokenAmountIn.Token,
-			Amount: remainingAmountIn,
-		},
-		Gas:      p.estimateGas(accum),
-		SwapInfo: SwapInfo{nextCurve: curve},
-	}, nil
+	q.remainingIn = swap.Qty
+	q.gas = p.estimateGas(accum)
+	q.nextCurve = curve
+	return &q, nil
 }
 
 func (p *PoolSimulator) estimateGas(accum *SwapAccum) int64 {
@@ -217,14 +274,14 @@ func (s *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, chainId va
 	return valueobject.IsZero(meta.Quote) && valueobject.IsWrappedNative(tokenOut, chainId)
 }
 
-func outputAmount(accum *SwapAccum, inBaseQty bool) *big.Int {
+func outputAmount(accum *SwapAccum, inBaseQty bool) uint256.Int {
 	// The output token's flow is negative (user receives). Negate to get positive amount.
+	flow := accum.BaseFlow
 	if inBaseQty {
-		b := FlowToBig(accum.QuoteFlow)
-		return b.Neg(b)
+		flow = accum.QuoteFlow
 	}
-	b := FlowToBig(accum.BaseFlow)
-	return b.Neg(b)
+	var out uint256.Int
+	return *out.Neg(&flow)
 }
 
 func defaultLimitPrice(isBuy bool) uint256.Int {
