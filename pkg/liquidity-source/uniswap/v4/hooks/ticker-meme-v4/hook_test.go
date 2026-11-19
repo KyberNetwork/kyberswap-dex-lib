@@ -58,7 +58,7 @@ func TestProductionCache(t *testing.T) {
 		decoded, err := cache.DecodePoolSimulatorsMap(encoded)
 		require.NoError(t, err)
 		for _, restored := range []pool.IPoolSimulator{decoded[p.GetAddress()], p.CloneState()} {
-			after, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, params.Limit)
+			after, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, nil)
 			require.NoError(t, err)
 			require.Equal(t, before.TokenAmountOut, after.TokenAmountOut)
 			require.Equal(t, ticker.DexType, restored.GetExchange())
