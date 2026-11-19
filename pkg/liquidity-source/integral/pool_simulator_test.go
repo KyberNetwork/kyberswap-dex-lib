@@ -77,7 +77,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 	sim, err := NewPoolSimulator(pool)
 	require.Nil(t, err)
-	limit := poolpkg.AsSwapLimitBig(swaplimit.NewInventory(DexTypeIntegral, swaplimit.ToU256Balances(sim.CalculateLimit())))
+	limit := swaplimit.NewInventory(DexTypeIntegral, swaplimit.ToU256Balances(sim.CalculateLimit()))
 
 	t.Run("1. should return OK for token0 to token1 swap", func(t *testing.T) {
 		cloned := sim.CloneState()
@@ -158,7 +158,7 @@ func TestCalcAmountOut(t *testing.T) {
 				Amount: _amount0In,
 			},
 			TokenOut: _token1,
-			Limit:    limit,
+			Limit:    poolpkg.AsSwapLimitBig(limit),
 		})
 		require.NotNil(t, err)
 		require.Nil(t, result)

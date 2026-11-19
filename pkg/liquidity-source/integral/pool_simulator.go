@@ -99,28 +99,13 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if !p.isEnabled {
 		return nil, ErrTR05
 	}
-
 	if params.Limit == nil {
 		return nil, ErrNoSwapLimit
 	}
-
-	tokens := p.GetTokens()
-	if len(tokens) < 2 {
-		return nil, ErrTokenNotFound
-	}
-
-	tokenIn := params.TokenAmountIn.Token
 	tokenOut := params.TokenOut
+	maxAmountOut := p.maxAmountOut(tokenOut, number.SetFromBig(params.Limit.GetLimit(tokenOut)))
 
-	amountIn := number.SetFromBig(params.TokenAmountIn.Amount)
-
-	maxAmountOut, _ := new(uint256.Int).MulDivOverflow(
-		number.SetFromBig(params.Limit.GetLimit(tokenOut)),
-		lo.Ternary(tokenOut == tokens[0], p.token0LimitMaxMultiplier, p.token1LimitMaxMultiplier),
-		precision,
-	)
-
-	amountOut, fee, err := p.swapExactIn(tokenIn, tokenOut, amountIn, maxAmountOut)
+	amountOut, fee, err := p.quote(params.TokenAmountIn.Token, tokenOut, number.SetFromBig(params.TokenAmountIn.Amount), maxAmountOut)
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +124,51 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			RelayerAddress: p.relayerAddress,
 		},
 	}, nil
+}
+
+// CalcAmtOut is CalcAmountOut with uint256 amounts. It shares quote with the legacy method.
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	if !p.isEnabled {
+		return nil, ErrTR05
+	}
+	if params.Limit == nil {
+		return nil, ErrNoSwapLimit
+	}
+	tokenOut := params.TokenOut
+	maxAmountOut := p.maxAmountOut(tokenOut, params.Limit.GetLimit(tokenOut))
+
+	amountOut, fee, err := p.quote(params.TokenAmountIn.Token, tokenOut, &params.TokenAmountIn.Amount, maxAmountOut)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
+		Fee:            &pool.TokenAmt{Token: tokenOut, Amount: *fee},
+		Gas:            p.gas.Swap,
+		SwapInfo:       SwapInfo{RelayerAddress: p.relayerAddress},
+	}, nil
+}
+
+// maxAmountOut scales the output inventory by the token's limit multiplier. A nil inventory gives zero.
+func (p *PoolSimulator) maxAmountOut(tokenOut string, inventory *uint256.Int) *uint256.Int {
+	if inventory == nil {
+		inventory = new(uint256.Int)
+	}
+	maxAmountOut, _ := new(uint256.Int).MulDivOverflow(
+		inventory,
+		lo.Ternary(tokenOut == p.GetTokens()[0], p.token0LimitMaxMultiplier, p.token1LimitMaxMultiplier),
+		precision,
+	)
+	return maxAmountOut
+}
+
+// quote runs the swap without the inventory check. The caller passes maxAmountOut.
+func (p *PoolSimulator) quote(tokenIn, tokenOut string, amountIn, maxAmountOut *uint256.Int) (*uint256.Int, *uint256.Int, error) {
+	if len(p.GetTokens()) < 2 {
+		return nil, nil, ErrTokenNotFound
+	}
+	return p.swapExactIn(tokenIn, tokenOut, amountIn, maxAmountOut)
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
