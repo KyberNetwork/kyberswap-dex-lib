@@ -30,9 +30,9 @@ import (
 // direction the pool trades and this source routes, every read pinned to one block and every probe made at the
 // taker, and settles each direction's probes by its pricer's rule (settle). The probes run in one eth_call, the
 // sampler's code (FlammSampler) set at the taker by a state override; a node that does not run it gets them one
-// eth_call each (the plain path). The quote runs the pool's swap plan, its pricing hook, its price feed and its
-// lending venues, so no hook, feed or venue math lives here: of a hook it reads only its fixed parameters, the
-// curve's fee and, on a buy, its leverage state's top bid.
+// eth_call each (the plain path). The quote runs the pool's swap plan, its pricing hook and its lending venues, so
+// no hook or venue math lives here: of a hook it reads only its fixed parameters, the curve's fee and, on a buy, its
+// leverage state's top bid.
 type PoolTracker struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
@@ -72,17 +72,15 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 type poolState struct {
 	block *big.Int
 	// closed: a gate read refuses the pool whatever the other reads gave: no pool of its Factory, paused, or an
-	// implementation or a price feed the config does not name.
+	// implementation the config does not name.
 	closed   bool
 	isPool   bool
 	paused   bool
-	version  uint32
 	tradable tradableResult
 	hooks    hooksResult
 	pairHook pairHookResult
 	lane     laneResult
 	router   common.Address
-	feed     common.Address
 	tokens   []tokenConfigResult
 	// venues are the pool's live lending venues (neither retired nor fenced), for the kind gate and the charge;
 	// idleDebt has bit t set where a venue that is not live lends token t; venueUnread: a record did not read, or
@@ -164,6 +162,9 @@ func (t *PoolTracker) track(ctx context.Context, p entity.Pool,
 	if !t.cfg.hasFactory(se.Factory) {
 		return dark(p, nil), nil
 	}
+	if se.Legacy {
+		return t.trackLegacy(ctx, p, se, overrides)
+	}
 
 	st, err := t.read(ctx, p.Address, se.Factory, n, overrides)
 	if err != nil {
@@ -212,7 +213,7 @@ func (t *PoolTracker) track(ctx context.Context, p entity.Pool,
 func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 { return p.Timestamp + refreshSeconds }
 
 // read is the refresh's first multicall: the Factory's provenance, the switches, the trade mask, both pricers, the
-// cheap lane's state, the Router, the price feed and every token's config.
+// cheap lane's state, the Router and every token's config.
 func (t *PoolTracker) read(ctx context.Context, poolAddr, factory string, n int,
 	overrides map[common.Address]gethclient.OverrideAccount) (*poolState, error) {
 	st := &poolState{tokens: make([]tokenConfigResult, n)}
@@ -221,13 +222,11 @@ func (t *PoolTracker) read(ctx context.Context, poolAddr, factory string, n int,
 		AddCall(&ethrpc.Call{ABI: factoryABI, Target: factory, Method: "isPool", Params: []any{pl}},
 			[]any{&st.isPool}).
 		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "paused"}, []any{&st.paused}).
-		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "poolCodeVersion"}, []any{&st.version}).
 		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "tradablePairs"}, []any{&st.tradable}).
 		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "hooks"}, []any{&st.hooks}).
 		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "pairHook"}, []any{&st.pairHook}).
 		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "lane"}, []any{&st.lane}).
-		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "router"}, []any{&st.router}).
-		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "priceFeed"}, []any{&st.feed})
+		AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "router"}, []any{&st.router})
 	for k := range n {
 		req.AddCall(&ethrpc.Call{ABI: poolABI, Target: poolAddr, Method: "tokenConfig", Params: []any{uint8(k)}},
 			[]any{&st.tokens[k]})
@@ -236,12 +235,11 @@ func (t *PoolTracker) read(ctx context.Context, poolAddr, factory string, n int,
 	if err != nil {
 		return nil, err
 	}
-	if res.BlockNumber == nil || len(res.Result) != 9+n {
+	if res.BlockNumber == nil || len(res.Result) != 7+n {
 		return nil, ErrRead
 	}
 	st.block = res.BlockNumber
-	if r := res.Result; r[0] && !st.isPool || r[1] && st.paused || r[2] && !t.cfg.codeVersionOk(st.version) ||
-		r[8] && !t.cfg.hasFeed(st.feed) {
+	if r := res.Result; r[0] && !st.isPool || r[1] && st.paused {
 		st.closed = true
 		return st, nil
 	}

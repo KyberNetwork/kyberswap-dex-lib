@@ -150,6 +150,7 @@ import (
 	pkg_liquiditysource_native_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	pkg_liquiditysource_nemoprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nemo-prop"
 	pkg_liquiditysource_netstaking "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/net-staking"
+	pkg_liquiditysource_nightlyprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nightly-prop"
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	pkg_liquiditysource_obric "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	pkg_liquiditysource_ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -463,6 +464,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nemoprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_netstaking.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nightlyprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_obric.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ondousdy.PoolSimulator{})

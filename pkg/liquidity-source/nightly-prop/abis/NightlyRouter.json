@@ -1,0 +1,188 @@
+[
+  {
+    "type": "function",
+    "name": "getPoolStateV1",
+    "inputs": [
+      {
+        "name": "pool",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "partner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "state",
+        "type": "tuple",
+        "internalType": "struct PoolStateV1",
+        "components": [
+          {
+            "name": "blockNumber",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "blockTimestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "base",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "quote",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "baseDecimals",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "quoteDecimals",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "routed",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "routerPaused",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "poolPaused",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "routerSwapper",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "poolPriceReader",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "partnerRole",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "partnerFeeRecipientSet",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "priceAvailable",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "midPrice",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "bidSpread",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "askSpread",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "priceTimestampMs",
+            "type": "uint56",
+            "internalType": "uint56"
+          },
+          {
+            "name": "maxPriceAgeMs",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "positionLevelId",
+            "type": "int16",
+            "internalType": "int16"
+          },
+          {
+            "name": "positionFraction",
+            "type": "uint104",
+            "internalType": "uint104"
+          },
+          {
+            "name": "lowestLevelId",
+            "type": "int16",
+            "internalType": "int16"
+          },
+          {
+            "name": "levels",
+            "type": "tuple[]",
+            "internalType": "struct PoolStateV1PriceLevel[]",
+            "components": [
+              {
+                "name": "lowerOffset",
+                "type": "int32",
+                "internalType": "int32"
+              },
+              {
+                "name": "upperOffset",
+                "type": "int32",
+                "internalType": "int32"
+              },
+              {
+                "name": "bidExtraSpread",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "askExtraSpread",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "baseAmount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "quoteAmount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRoutes",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "pools",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

@@ -66,6 +66,10 @@ func fixture(t testing.TB, file string) contractFixture {
 	}
 	return f
 }
+
+// The pricing model is the third byte of metadataVersions.
+var modelVersionShift = uint(metadataVersions.offset + 16)
+
 func raw(t testing.TB, s string) []byte {
 	t.Helper()
 	data, err := hex.DecodeString(strings.TrimPrefix(s, "0x"))
@@ -80,10 +84,11 @@ func fixturePage(t testing.TB, snapshot contractSnapshot) poolData {
 		// Model 3 leaves the read-only curve unchanged. Migrate only the model
 		// identity in these historical model-2 fixtures, never in runtime reads.
 		require.Equal(t, uint16(8), p.SchemaVersion)
-		require.Equal(t, uint16(8), p.Words[6].Slot)
-		old := new(big.Int).Rsh(new(big.Int).Set(p.Words[6].Value), 176).Uint64() & 255
+		metadata := &p.Words[metadataVersions.slot-firstPageSlot]
+		require.EqualValues(t, metadataVersions.slot, metadata.Slot)
+		old := new(big.Int).Rsh(new(big.Int).Set(metadata.Value), modelVersionShift).Uint64() & 255
 		require.Equal(t, uint64(2), old)
-		p.Words[6].Value = new(big.Int).Add(p.Words[6].Value, new(big.Int).Lsh(big.NewInt(1), 176))
+		metadata.Value = new(big.Int).Add(metadata.Value, new(big.Int).Lsh(big.NewInt(1), modelVersionShift))
 	}
 	return p
 }
@@ -216,7 +221,7 @@ func TestSimulatorOneBlockQuotesPurityAndUpdates(t *testing.T) {
 			expected, expectedErr := s.QuoteExactInputAt(c.InputIndex, c.OutputIndex, amount, s.BlockNumber+1)
 			params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: s.Tokens[c.InputIndex].Address, Amount: amount.ToBig()}, TokenOut: s.Tokens[c.OutputIndex].Address}
 			result, err := sim.quoteAtCapture(params)
-			if sim.state.BlockNumber+1-sim.state.small(2, 36, 32) > sim.state.small(2, 138, 8) {
+			if sim.state.BlockNumber+1-sim.state.small(controlBlock) > sim.state.small(controlMaxAge) {
 				expectedErr = ErrStaleSnapshot
 			}
 			require.Equal(t, expectedErr, err)
@@ -231,8 +236,8 @@ func TestSimulatorOneBlockQuotesPurityAndUpdates(t *testing.T) {
 			swap := result.SwapInfo.(SwapInfo)
 			require.Equal(t, swap.InputBalance, clone.state.Balances[c.InputIndex])
 			require.Equal(t, swap.OutputBalance, clone.state.Balances[c.OutputIndex])
-			require.Equal(t, swap.InputUnits, clone.state.packed(107, c.InputIndex, 128, 2))
-			require.Equal(t, swap.OutputUnits, clone.state.packed(107, c.OutputIndex, 128, 2))
+			require.Equal(t, swap.InputUnits, clone.state.field(inventoryField(c.InputIndex)))
+			require.Equal(t, swap.OutputUnits, clone.state.field(inventoryField(c.OutputIndex)))
 			rebuilt, err := NewPoolSimulator(entityFrom(t, clone.state))
 			require.NoError(t, err)
 			q1, e1 := clone.quoteAtCapture(params)
@@ -267,7 +272,7 @@ func TestRouterQuotesMatchOneBlockEVM(t *testing.T) {
 	f := fixture(t, "one-block-model3.json.gz")
 	for _, snapshot := range f.Snapshots {
 		s := stateFrom(t, snapshot)
-		require.Equal(t, uint64(50), s.small(2, 146, 16))
+		require.Equal(t, uint64(50), s.small(controlWiden))
 		sim, err := NewPoolSimulator(entityFrom(t, s))
 		require.NoError(t, err)
 		count := 0
@@ -302,4 +307,11 @@ func TestRouterQuotesMatchOneBlockEVM(t *testing.T) {
 // Contract corpora quote at the exact capture instant; live clock advancement is tested separately.
 func (s *PoolSimulator) quoteAtCapture(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	return s.calcAmountOut(params, s.capturedAtMs)
+}
+
+func TestStoredMultiplierSeventeenTokenParity(t *testing.T) {
+	f := fixture(t, "deployed-stored-multipliers.json.gz")
+	require.Len(t, stateFrom(t, f.Snapshots[0]).Tokens, 17)
+	require.Len(t, f.Snapshots[0].ShareBalances, 9)
+	checkReadOnly(t, "deployed-stored-multipliers.json.gz")
 }

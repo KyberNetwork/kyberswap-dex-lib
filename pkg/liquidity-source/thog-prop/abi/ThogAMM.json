@@ -267,20 +267,17 @@
   },
   {
     "type": "function",
-    "name": "getCurrentMultiplier",
+    "name": "storedMultiplier",
     "stateMutability": "view",
-    "inputs": [],
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      }
+    ],
     "outputs": [
       {
         "name": "multiplier",
-        "type": "uint256"
-      },
-      {
-        "name": "activation",
-        "type": "uint256"
-      },
-      {
-        "name": "period",
         "type": "uint256"
       }
     ]

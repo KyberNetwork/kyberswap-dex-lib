@@ -115,9 +115,21 @@ func max(a, b uint256.Int) uint256.Int {
 	return b
 }
 func bits(word *uint256.Int, shift, width uint) (z uint256.Int) {
-	// Fast path: the field lies inside one 64-bit limb (almost every packed field).
-	if limb, offset := shift/64, shift%64; width < 64 && offset+width <= 64 {
-		z[0] = word[limb] >> offset & (1<<width - 1)
+	// Packed prices are whole 64-bit limbs; control fields can straddle two.
+	// Extract either directly instead of shifting and masking all four limbs.
+	if limb, offset := shift/64, shift%64; width <= 64 {
+		z[0] = word[limb] >> offset
+		if offset+width > 64 {
+			z[0] |= word[limb+1] << (64 - offset)
+		}
+		if width < 64 {
+			z[0] &= 1<<width - 1
+		}
+		return
+	}
+	// Accounted inventory occupies aligned 128-bit halves of a storage word.
+	if width == 128 && shift%64 == 0 {
+		z[0], z[1] = word[shift/64], word[shift/64+1]
 		return
 	}
 	var mask uint256.Int

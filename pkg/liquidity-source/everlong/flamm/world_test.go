@@ -18,7 +18,6 @@ type fakePool struct {
 	factory    common.Address
 	listed     bool // the Factory's isPool
 	paused     bool
-	version    uint32
 	tokens     []tokenConfig
 	tradable   *big.Int
 	hook       common.Address // the swap hook
@@ -27,12 +26,10 @@ type fakePool struct {
 	laneConfig *big.Int
 	noCount    bool // tokenCount reverts
 	router     common.Address
-	feed       common.Address // the pool's price feed
-	noFeed     bool           // priceFeed reverts
-	venues     []venueView    // the Router's record of the pool's venues
-	badVenue   map[int]bool   // records that revert
-	acts       map[int]uint8  // venueActions by record; absent: every action (15)
-	badActs    map[int]bool   // venueActions reads that revert
+	venues     []venueView   // the Router's record of the pool's venues
+	badVenue   map[int]bool  // records that revert
+	acts       map[int]uint8 // venueActions by record; absent: every action (15)
+	badActs    map[int]bool  // venueActions reads that revert
 	// quote is previewSwap of token i for token j: what the pool uses and pays, or false where it reverts
 	quote func(from common.Address, i, j int, amount *big.Int) (used, out *big.Int, ok bool)
 	// fee is the fee rate a fill of `amount` of token i for token j reports, its route's label; nil: curveLabel
@@ -281,8 +278,6 @@ func (w *world) respond(from, to common.Address, data []byte) (bool, []byte) {
 		return false, nil
 	case "paused":
 		return pack(m, p.paused)
-	case "poolCodeVersion":
-		return pack(m, p.version)
 	case "tradablePairs":
 		return pack(m, p.tradable, zero, zero, zero, zero)
 	case "hooks":
@@ -296,11 +291,6 @@ func (w *world) respond(from, to common.Address, data []byte) (bool, []byte) {
 		return pack(m, zero, p.laneConfig, zero)
 	case "router":
 		return pack(m, p.router)
-	case "priceFeed":
-		if p.noFeed {
-			return false, nil
-		}
-		return pack(m, p.feed)
 	case "pairRequest":
 		in, out, a := p.index(args[0].(common.Address)), p.index(args[1].(common.Address)), args[2].(*big.Int)
 		if p.noRequest || in < 0 || out < 0 || in == out || a.Sign() == 0 {
@@ -402,11 +392,11 @@ func tierWorldFrom(saleFrom, buyFrom int64) (*world, *fakePool) {
 		return a.Cmp(big.NewInt(buyFrom)) >= 0 && a.Cmp(buyTop) <= 0
 	}
 	fp := &fakePool{
-		factory: common.HexToAddress(factoryA), listed: true, version: 1,
+		factory: common.HexToAddress(factoryA), listed: true,
 		tokens:   []tokenConfig{tokenCfg(cbBTC, 8), tokenCfg(usdc, 6)},
 		tradable: bits(16*0+1, 16*1+0),
 		hook:     common.HexToAddress(hookA), pairMask: new(big.Int), laneConfig: new(big.Int),
-		feed: common.HexToAddress(feedA), router: common.HexToAddress(routerA), venues: []venueView{venue(0, 0, 1, 0)},
+		router: common.HexToAddress(routerA), venues: []venueView{venue(0, 0, 1, 0)},
 		usd: []*big.Int{new(big.Int).Mul(big.NewInt(100_000), wad), wad},
 		legs: [][4]*big.Int{
 			{big.NewInt(3_000_000_000), new(big.Int), new(big.Int), new(big.Int)},     // 30 cbBTC held

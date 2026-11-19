@@ -11,17 +11,26 @@ type Token struct {
 	Category uint8  `json:"category"`
 }
 
-// State owns the complete schema-8/model-3 portfolio. Fixed arrays copy by value.
-// Only active token metadata is a slice; it is immutable after construction.
+// State is everything a quote needs, all read at BlockNumber. Fixed arrays copy
+// by value; Tokens is immutable after construction.
 type State struct {
-	Tokens        []Token                 `json:"tokens"`
-	CategoryCount int                     `json:"categoryCount"`
-	Words         [128]uint256.Int        `json:"words"`
-	Balances      [maxTokens]uint256.Int  `json:"balances"`
-	NativeBalance uint256.Int             `json:"nativeBalance"`
-	BlockNumber   uint64                  `json:"blockNumber"`
-	BaseFee       uint256.Int             `json:"baseFee"`
-	Shares        [maxTokens]ShareBalance `json:"shares"`
+	// Tokens lists the pool's tokens in pool order.
+	Tokens        []Token `json:"tokens"`
+	CategoryCount int     `json:"categoryCount"`
+	// Words holds the pool's packed pricing state by storage slot; getPoolData
+	// fills slots 2..127. layout.go names every field.
+	Words [128]uint256.Int `json:"words"`
+	// Balances is what the pool actually holds of each token. A share-based
+	// token's balance is its shares valued at the pool's stored multiplier.
+	Balances [maxTokens]uint256.Int `json:"balances"`
+	// NativeBalance is the pool's native MON. It counts toward the risk of WMON's
+	// category but cannot be paid out as WMON.
+	NativeBalance uint256.Int `json:"nativeBalance"`
+	BlockNumber   uint64      `json:"blockNumber"`
+	BaseFee       uint256.Int `json:"baseFee"`
+	// Shares holds the pool's share-based tokens; a zero multiplier marks an
+	// ordinary ERC-20.
+	Shares [maxTokens]ShareBalance `json:"shares"`
 }
 type Extra struct {
 	State            State  `json:"state"`

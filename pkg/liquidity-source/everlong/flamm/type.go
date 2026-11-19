@@ -10,6 +10,7 @@ import (
 // StaticExtra is fixed at listing: the Factory the pool was found at, whose `isPool` every refresh re-reads.
 type StaticExtra struct {
 	Factory string `json:"factory"`
+	Legacy  bool   `json:"legacy,omitempty"` // a first-build pool (legacy.go)
 }
 
 // Point is one probe of a direction: the input the pool used and the net output it pays, in base units, exact
