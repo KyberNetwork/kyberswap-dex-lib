@@ -99,7 +99,7 @@ func TestPoolSimulator_CalcAmountOut_PurityAndClone(t *testing.T) {
 	require.Equal(t, r1.TokenAmountOut.Amount, rOrig.TokenAmountOut.Amount, "original must be untouched by clone update")
 
 	// After consuming input on the clone, the same quote moves (q-vector shifted, price impact).
-	rClone, err := pool.DefaultCalcAmtOut(context.Background(), clone, params.TokenAmountIn, params.TokenOut, params.Limit)
+	rClone, err := pool.DefaultCalcAmtOut(context.Background(), clone, params.TokenAmountIn, params.TokenOut, nil)
 	require.NoError(t, err)
 	require.NotEqual(t, r1.TokenAmountOut.Amount, rClone.TokenAmountOut.Amount, "clone state must evolve after UpdateBalance")
 
