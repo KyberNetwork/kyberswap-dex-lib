@@ -36,12 +36,12 @@ func TestFactoryAndSerialization(t *testing.T) {
 		TokenAmountIn: pool.TokenAmount{Token: p.Tokens[0].Address, Amount: big.NewInt(25)},
 		TokenOut:      p.Tokens[1].Address,
 	}
-	first, err := pool.DefaultCalcAmtOut(context.Background(), sim, q.TokenAmountIn, q.TokenOut, q.Limit)
+	first, err := pool.DefaultCalcAmtOut(context.Background(), sim, q.TokenAmountIn, q.TokenOut, nil)
 	require.NoError(t, err)
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn: q.TokenAmountIn, TokenAmountOut: *first.TokenAmountOut, Fee: *first.Fee,
 	})
-	expected, err := pool.DefaultCalcAmtOut(context.Background(), sim, q.TokenAmountIn, q.TokenOut, q.Limit)
+	expected, err := pool.DefaultCalcAmtOut(context.Background(), sim, q.TokenAmountIn, q.TokenOut, nil)
 	require.NoError(t, err)
 	encoded, err := msgpack.EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{p.Address: sim})
 	require.NoError(t, err)
@@ -49,7 +49,7 @@ func TestFactoryAndSerialization(t *testing.T) {
 	require.NoError(t, err)
 	decoded := restored[p.Address]
 	require.IsType(t, &uscoreprop.PoolSimulator{}, decoded)
-	actual, err := pool.DefaultCalcAmtOut(context.Background(), decoded, q.TokenAmountIn, q.TokenOut, q.Limit)
+	actual, err := pool.DefaultCalcAmtOut(context.Background(), decoded, q.TokenAmountIn, q.TokenOut, nil)
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
 	require.Equal(t, sim.GetReserves(), decoded.GetReserves())
