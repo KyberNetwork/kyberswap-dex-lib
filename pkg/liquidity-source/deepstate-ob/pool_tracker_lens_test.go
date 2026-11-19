@@ -92,7 +92,19 @@ func TestGetNewPoolState_ViaLens_IsOneRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, int64(1), transport.count.Load(), "lens path must be exactly one HTTP round trip")
-	require.InDelta(t, 0.001, got.SwapFee, 1e-9, "swapFee should reflect the live feeBps=10")
+
+	// The live fee can change on chain, so compare it with the router's feeConfig instead of a fixed value.
+	var feeConfig struct {
+		Recipient common.Address `abi:"recipient"`
+		Bps       uint16         `abi:"bps"`
+	}
+	resp, err := client.NewRequest().SetContext(context.Background()).AddCall(&ethrpc.Call{
+		ABI: deepstateV1ABI, Target: liveRouter, Method: methodFeeConfig,
+	}, []any{&feeConfig}).TryAggregate()
+	require.NoError(t, err)
+	require.True(t, resp.Result[0], "feeConfig call reverted")
+	require.Positive(t, got.SwapFee)
+	require.InDelta(t, float64(feeConfig.Bps)/10_000, got.SwapFee, 1e-9, "swapFee should reflect the router's live feeBps")
 	require.NotZero(t, got.BlockNumber)
 
 	var extra struct {

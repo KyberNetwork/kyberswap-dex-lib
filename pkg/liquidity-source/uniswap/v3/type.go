@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/int256"
 	"github.com/holiman/uint256"
 
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
@@ -72,6 +73,8 @@ type Extra struct {
 	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
+	// LensBlock is the block the ticks were last read whole at through the lens, 0 if never.
+	LensBlock uint64 `json:"lensBlock,omitempty"`
 
 	BuyRestrictedToken string `json:"buyRestrictedToken,omitempty"` // for pons-fun
 
@@ -79,6 +82,9 @@ type Extra struct {
 	// token's launch guard window is active (see forks/odys-fun.Guard)
 	MaxTxToken  string   `json:"maxTxToken,omitempty"`
 	MaxTxAmount *big.Int `json:"maxTxAmount,omitempty"`
+
+	// sB: the block of the tracker's read of the scalar state, see tickspkg.TicksBasedStateBlock.
+	tickspkg.TicksBasedStateBlock
 }
 
 type ExtraTickU256 struct {
@@ -87,10 +93,47 @@ type ExtraTickU256 struct {
 	TickSpacing  uint64       `json:"tickSpacing"`
 	Tick         *int         `json:"tick"`
 	Ticks        []TickU256   `json:"ticks"`
+	LensBlock    uint64       `json:"lensBlock,omitempty"`
 
 	BuyRestrictedToken string   `json:"buyRestrictedToken,omitempty"`
 	MaxTxToken         string   `json:"maxTxToken,omitempty"`
 	MaxTxAmount        *big.Int `json:"maxTxAmount,omitempty"`
+
+	tickspkg.TicksBasedStateBlock
+}
+
+// ToExtra converts a tolerant uint256 read of an Extra (it accepts quoted and plain numbers) to the
+// big.Int Extra the trackers write. Every field is carried: set a field here when ExtraTickU256 or
+// Extra gains one.
+func (u ExtraTickU256) ToExtra() Extra {
+	out := Extra{
+		TickSpacing:          u.TickSpacing,
+		LensBlock:            u.LensBlock,
+		BuyRestrictedToken:   u.BuyRestrictedToken,
+		MaxTxToken:           u.MaxTxToken,
+		MaxTxAmount:          u.MaxTxAmount,
+		TicksBasedStateBlock: u.TicksBasedStateBlock,
+	}
+	if u.Liquidity != nil {
+		out.Liquidity = u.Liquidity.ToBig()
+	}
+	if u.SqrtPriceX96 != nil {
+		out.SqrtPriceX96 = u.SqrtPriceX96.ToBig()
+	}
+	if u.Tick != nil {
+		out.Tick = big.NewInt(int64(*u.Tick))
+	}
+	if len(u.Ticks) > 0 {
+		out.Ticks = make([]Tick, len(u.Ticks))
+		for i, tick := range u.Ticks {
+			out.Ticks[i] = Tick{
+				Index:          tick.Index,
+				LiquidityGross: tick.LiquidityGross.ToBig(),
+				LiquidityNet:   tick.LiquidityNet.ToBig(),
+			}
+		}
+	}
+	return out
 }
 
 // SimulatorConfig holds construction-time options for NewPoolSimulatorWithExtra.
@@ -175,6 +218,10 @@ type FetchRPCResult struct {
 	// odys-fun launch guard (see forks/odys-fun.Guard)
 	MaxTxToken  string   `json:"maxTxToken,omitempty"`
 	MaxTxAmount *big.Int `json:"maxTxAmount,omitempty"`
+
+	// StateBlock is the block R of the multicall that read the scalar state, 0 if unknown. buildExtra
+	// copies it to the Extra.
+	tickspkg.TicksBasedStateBlock
 }
 
 type TicksResp struct {
@@ -186,6 +233,8 @@ type PoolMeta struct {
 	SwapFee     uint32       `json:"swapFee"`
 	PriceLimit  *uint256.Int `json:"priceLimit"`
 	BlockNumber uint64       `json:"blockNumber"`
+
+	tickspkg.TicksBasedStateBlock
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {

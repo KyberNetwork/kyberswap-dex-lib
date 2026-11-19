@@ -3,6 +3,7 @@ package uniswapv3
 import (
 	"net/http"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -15,6 +16,12 @@ type Config struct {
 	TickLensAddress    string      `json:"tickLensAddress,omitempty"`
 	PreGenesisPoolPath string      `json:"preGenesisPoolPath,omitempty"`
 	AlwaysUseTickLens  bool        `json:"alwaysUseTickLens,omitempty"` // instead of fetching from subgraph
+
+	// UseLens reads pools through V3Lens: their state and every tick from one
+	// block in one eth_call, or a few when the ticks do not fit. A bootstrap then asks no subgraph,
+	// and ticks accumulated from logs that turn out invalid are replaced by the lens's set, which
+	// finds a tick the stored set lacked, rather than refetched index by index.
+	ephemeral.LensConfig
 
 	// SubgraphPoolField overrides the subgraph's top-level pools entity name
 	// (e.g. ramses-style deployments querying something other than `pools`).

@@ -10,5 +10,4 @@ import (
 var (
 	factoryABI = lo.Must(abi.JSON(bytes.NewReader(factoryABIJSON)))
 	pairABI    = lo.Must(abi.JSON(bytes.NewReader(pairABIJSON)))
-	beaconABI  = lo.Must(abi.JSON(bytes.NewReader(beaconABIJSON)))
 )

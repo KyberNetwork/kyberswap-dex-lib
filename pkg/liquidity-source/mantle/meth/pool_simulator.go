@@ -87,11 +87,26 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Stake,
+		SwapInfo:       SwapInfo{TotalControlledAdded: amountIn},
 	}, nil
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	info, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		return
+	}
+
+	// stake adds msg.value to unallocatedETH, which totalControlled() sums
+	s.totalControlled.Add(s.totalControlled, info.TotalControlledAdded)
 	s.mETHTotalSupply.Add(s.mETHTotalSupply, uint256.MustFromBig(params.TokenAmountOut.Amount))
+}
+
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.totalControlled = new(uint256.Int).Set(s.totalControlled)
+	cloned.mETHTotalSupply = new(uint256.Int).Set(s.mETHTotalSupply)
+	return &cloned
 }
 
 func (s *PoolSimulator) ethToMETH(mETHAmount *uint256.Int) (*uint256.Int, error) {

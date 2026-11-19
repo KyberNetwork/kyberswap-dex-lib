@@ -39,6 +39,13 @@ var (
 
 // aggregateStub answers every eth_call with a multicall aggregate of liquidity and slot0.
 func aggregateStub(t *testing.T, calls *atomic.Int32) *httptest.Server {
+	block := new(atomic.Uint64)
+	block.Store(100)
+	return aggregateStubAt(t, calls, block)
+}
+
+// aggregateStubAt is aggregateStub with the block it answers at read from block on every call.
+func aggregateStubAt(t *testing.T, calls *atomic.Int32, block *atomic.Uint64) *httptest.Server {
 	uint256T, _ := abi.NewType("uint256", "", nil)
 	bytesArrT, _ := abi.NewType("bytes[]", "", nil)
 	outs := abi.Arguments{{Type: uint256T}, {Type: bytesArrT}}
@@ -46,13 +53,13 @@ func aggregateStub(t *testing.T, calls *atomic.Int32) *httptest.Server {
 	liq, err := stateViewABI.Methods["getLiquidity"].Outputs.Pack(big.NewInt(1e18))
 	require.NoError(t, err)
 	sqrtPrice, _ := new(big.Int).SetString("79228162514264337593543950336", 10)
-	slot0, err := stateViewABI.Methods["getSlot0"].Outputs.Pack(sqrtPrice, big.NewInt(0), uint32(0), uint32(3000))
-	require.NoError(t, err)
-	ret, err := outs.Pack(big.NewInt(100), [][]byte{liq, slot0})
-	require.NoError(t, err)
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
+		slot0, err := stateViewABI.Methods["getSlot0"].Outputs.Pack(sqrtPrice, big.NewInt(0), testProtocolFee, uint32(3000))
+		require.NoError(t, err)
+		ret, err := outs.Pack(new(big.Int).SetUint64(block.Load()), [][]byte{liq, slot0})
+		require.NoError(t, err)
 		var req struct {
 			ID json.RawMessage `json:"id"`
 		}

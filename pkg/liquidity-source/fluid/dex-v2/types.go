@@ -104,6 +104,9 @@ type Extra struct {
 	BorrowPaused         [2]bool             `json:"borrowPaused"`
 	LiquidityLimits      [2]*LiquidityLimits `json:"liquidityLimits,omitempty"`
 	SupplyOnlySettlement bool                `json:"supplyOnlySettlement,omitempty"`
+	// LensBlock is the block the ticks were last read whole at through the lens, 0 if never: every
+	// log at or below it is already in them.
+	LensBlock uint64 `json:"lensBlock,omitempty"`
 }
 
 type DexKey struct {

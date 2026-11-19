@@ -1,0 +1,197 @@
+[
+  {
+    "inputs": [],
+    "name": "TAG",
+    "outputs": [
+      {
+        "internalType": "bytes4",
+        "name": "",
+        "type": "bytes4"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "tokenIn",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenOut",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "hook",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tierA",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tierB",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxProbes",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "seeds",
+            "type": "uint256[]"
+          }
+        ],
+        "internalType": "struct FlammSampler.Ask[]",
+        "name": "asks",
+        "type": "tuple[]"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "probeGas",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "reserveGas",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "flipShift",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "edgeProbes",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "gapPpm",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct FlammSampler.Limits",
+        "name": "limits",
+        "type": "tuple"
+      }
+    ],
+    "name": "sample",
+    "outputs": [
+      {
+        "internalType": "bytes4",
+        "name": "tag",
+        "type": "bytes4"
+      },
+      {
+        "internalType": "uint256",
+        "name": "blockNumber",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "ask",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "used",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "out",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "feeWad",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "gasUsed",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "status",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes4",
+                "name": "reason",
+                "type": "bytes4"
+              }
+            ],
+            "internalType": "struct FlammSampler.Probe[]",
+            "name": "probes",
+            "type": "tuple[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "curveFeeWad",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "bandWad",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint256",
+            "name": "usdIn",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "usdOut",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256[8]",
+            "name": "legs",
+            "type": "uint256[8]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "bidWad",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "truncated",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct FlammSampler.Walk[]",
+        "name": "walks",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

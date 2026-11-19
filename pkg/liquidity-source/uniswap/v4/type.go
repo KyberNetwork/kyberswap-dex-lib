@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 )
 
 type PoolSwapInfo = uniswapv3.SwapInfo
@@ -59,6 +60,11 @@ type Extra struct {
 	// Few-wrapped pool token's contract: FewWrappedToken.unwrapTo pays out of that balance alone,
 	// so it caps how much of the token can be unwrapped. Set only for pools holding a Few token.
 	FewReserves []*big.Int `json:"fwR,omitempty"`
+	// Fees (pF) is slot0 bits 184..231 as packed on-chain: lpFee<<24 | protocolFee, where protocolFee
+	// holds the zeroForOne fee in its low 12 bits and the oneForZero fee in the next 12. Set only
+	// while the protocol fee is on. entity.Pool.SwapFee stays the zeroForOne-combined fee, so a
+	// reader unaware of pF still quotes the zeroForOne direction exactly.
+	Fees uint64 `json:"pF,omitempty"`
 }
 
 type ExtraU256 struct {
@@ -66,6 +72,7 @@ type ExtraU256 struct {
 	HookExtra   json.RawMessage `json:"hX,omitempty"`
 	TrackedAt   int64           `json:"lv,omitempty"`
 	FewReserves []*uint256.Int  `json:"fwR,omitempty"`
+	Fees        uint64          `json:"pF,omitempty"`
 }
 
 type Slot0Data struct {
@@ -84,24 +91,36 @@ type FetchRPCResult struct {
 	HookExtra   json.RawMessage     `json:"hX,omitempty"`
 	TrackedAt   int64               `json:"lv,omitempty"`
 	FewReserves []*big.Int          `json:"fwR,omitempty"`
+	// LensBlock is the block the ticks were last read whole at through the lens, 0 if never.
+	LensBlock uint64 `json:"-"`
+	// StateBlock is the block R the slot0/liquidity read ran at, 0 under eth_call overrides. Hook
+	// state is read at R only by hooks that pass HookParam.BlockNumber to their calls. ToExtra copies
+	// it to the Extra.
+	tickspkg.TicksBasedStateBlock
 }
 
 // ToExtra builds the pool's Extra from this fetch and the given ticks. Every
 // writer of the tracked Extra goes through it, so a field added here reaches
 // all of them.
 func (r *FetchRPCResult) ToExtra(ticks []Tick) Extra {
-	return Extra{
+	extra := Extra{
 		Extra: &uniswapv3.Extra{
-			Liquidity:    r.Liquidity,
-			TickSpacing:  uint64(r.TickSpacing),
-			SqrtPriceX96: r.Slot0.SqrtPriceX96,
-			Tick:         r.Slot0.Tick,
-			Ticks:        ticks,
+			Liquidity:            r.Liquidity,
+			TickSpacing:          uint64(r.TickSpacing),
+			SqrtPriceX96:         r.Slot0.SqrtPriceX96,
+			Tick:                 r.Slot0.Tick,
+			Ticks:                ticks,
+			LensBlock:            r.LensBlock,
+			TicksBasedStateBlock: r.TicksBasedStateBlock,
 		},
 		HookExtra:   r.HookExtra,
 		TrackedAt:   r.TrackedAt,
 		FewReserves: r.FewReserves,
 	}
+	if r.Slot0.ProtocolFee != 0 {
+		extra.Fees = uint64(r.Slot0.LpFee)<<24 | uint64(r.Slot0.ProtocolFee)
+	}
+	return extra
 }
 
 type TicksResp struct {
@@ -126,6 +145,8 @@ type PoolMetaInfo struct {
 	PoolManager *common.Address `json:"manager,omitempty"`
 
 	TokenWrapMetadata *TokenWrapMetadata `json:"tokenWrapMetadata,omitempty"`
+
+	tickspkg.TicksBasedStateBlock
 }
 
 type TokenWrapMetadata struct {

@@ -81,23 +81,23 @@ func TestObservedSwapAndNoInputMutation(t *testing.T) {
 	}
 }
 
-func TestDirectionalProtocolFeeAndExpiry(t *testing.T) {
+// The hook returns the LP fee override only: PoolManager adds the pool's protocol fee on top, which the
+// parent simulator does, so the hook must not fold it in (that would charge it twice).
+func TestBeforeSwapReturnsLpFeeOnlyAndExpiry(t *testing.T) {
 	t.Parallel()
-	h := makeHook(t, Extra{Fee0For1: 250, Fee1For0: 9000, Timestamp: 99, ExpiresAt: 100, ProtocolFee: 1000 | (500 << 12)})
+	h := makeHook(t, Extra{Fee0For1: 250, Fee1For0: 9000, Timestamp: 99, ExpiresAt: 100})
 	for _, tc := range []struct {
 		sell bool
 		want int64
-	}{{true, 1225}, {false, 8596}} {
-		p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: tc.sell}
-		res, err := h.BeforeSwap(p)
+	}{{true, 225}, {false, 8100}} {
+		res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: tc.sell})
 		require.NoError(t, err)
 		require.EqualValues(t, tc.want, res.SwapFee)
 	}
 	h.Timestamp = 100 // exact expiry boundary, chain timestamp from a new Track
 	res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true})
 	require.NoError(t, err)
-	require.EqualValues(t, 1450, res.SwapFee)
-	h.ProtocolFee = 0
+	require.EqualValues(t, 450, res.SwapFee)
 	for _, expiry := range []uint64{0, 99, 100} {
 		h.ExpiresAt = expiry
 		for _, side := range []bool{false, true} {
@@ -129,9 +129,6 @@ func TestInvalidStateAndAmounts(t *testing.T) {
 	p.AmountIn.Add(p.AmountIn, big.NewInt(1))
 	_, err = h.AfterSwap(p)
 	require.ErrorIs(t, err, errInvalidAmount)
-	h.ProtocolFee = 1001
-	_, err = h.budget(true)
-	require.ErrorIs(t, err, errInvalidState)
 }
 
 func TestRegistrationAndClone(t *testing.T) {

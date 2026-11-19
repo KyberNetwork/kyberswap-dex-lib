@@ -99,3 +99,18 @@ func Test_CP_CloneState_UpdateBalance(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, bignumber.NewBig10("3646033418782424"), result.TokenAmountOut.Amount)
 }
+
+// Fork-verified (Base, protocol fee 500/1000 set on the pool, same-block V4Quoter, reserves
+// 3e17/340000): the hook prices with key.fee (1000) and the protocol fee never applies, because the
+// hook consumes the whole specified amount. Pool.SwapFee (1999) must not be used as the hook fee.
+func TestCPCalcAmountOut_ProtocolFee(t *testing.T) {
+	t.Parallel()
+	var p entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(`{"address":"0xb10b10215cb7e7ddf94ad812a427c6c99929b3f73b278604280c1a00b1f1bb9a","swapFee":1999,"exchange":"uniswap-v4","type":"uniswap-v4","reserves":["300000000000000000","340000"],"tokens":[{"address":"0x4e74d4db6c0726ccded4656d0bce448876bb4c7a","decimals":18,"swappable":true},{"address":"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913","decimals":6,"swappable":true}],"extra":"{\"liquidity\":0,\"sqrtPriceX96\":79228162514264337593543950336,\"tickSpacing\":1,\"tick\":0,\"ticks\":[],\"pF\":16779265000}","staticExtra":"{\"0x0\":[false,false],\"fee\":1000,\"tS\":1,\"hooks\":\"0x00c9da9abc5303219ead3cf0307b5a8a7644bac8\"}"}`), &p))
+	sim, err := uniswapv4.NewPoolSimulator(p, 8453)
+	require.NoError(t, err)
+	testutil.TestCalcAmountOut(t, sim, map[int]map[int]map[string]string{
+		0: {1: {"10000000000000007": "10957", "3333333333333333": "3732"}},
+		1: {0: {"20001": "16651711386577934", "7777": "6702050514688587"}},
+	})
+}

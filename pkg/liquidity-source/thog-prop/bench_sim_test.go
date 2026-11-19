@@ -21,7 +21,7 @@ func benchSim(b *testing.B, xStock bool) (*PoolSimulator, pool.CalcAmountOutPara
 			continue
 		}
 		in, out := s.Tokens[c.InputIndex].Address, s.Tokens[c.OutputIndex].Address
-		if (isXStock(in) || isXStock(out)) != xStock {
+		if (s.shareBased(c.InputIndex) || s.shareBased(c.OutputIndex)) != xStock {
 			continue
 		}
 		amount := number(b, c.Amount)

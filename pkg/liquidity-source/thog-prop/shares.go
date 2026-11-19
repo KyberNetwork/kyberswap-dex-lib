@@ -2,44 +2,18 @@ package thogprop
 
 import "github.com/holiman/uint256"
 
-// ShareBalance is issuer state captured at the same block as getPoolData.
-// Ordinary tokens have an empty entry; xStocks require a nonzero multiplier.
+// ShareBalance is the pool's holding of a share-based token (an xStock): the
+// token's sharesOf(pool) and the pool's storedMultiplier(token), read in the same
+// state as getPoolData. The pool values shares at its stored multiplier, which can
+// lag the issuer's own. Ordinary tokens have an empty entry.
 type ShareBalance struct {
 	Shares     uint256.Int `json:"shares"`
 	Multiplier uint256.Int `json:"multiplier"`
 }
 
-// xStocks are the nine issuer tokens recognized by the deployed contract's catalog.
-// Active listings and their ordering still come from the snapshot. The Multicall3
-// reader reads every one; isXStock repeats them as a switch for the quote path and
-// ThogSnapshotLens.sol repeats them for the lens (tests keep all three equal).
-var xStocks = [...]string{
-	"0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48", // SPYx
-	"0xa753a7395cae905cd615da0b82a53e0560f250af", // QQQx
-	"0x8d512a03600981b8e86556fd5c0fbdd726fe1821", // SMHx
-	"0x299c95eb52bfd5bc98d924bce17197b64864589b", // EWYx
-	"0xc845b2894dbddd03858fd2d643b4ef725fe0849d", // NVDAx
-	"0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0", // TSLAx
-	"0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28", // SPCXx
-	"0xf6a873bae4ba1b304e45df52a4b7d176e1c6a8c4", // MUx
-	"0x58100046a4afcd4ee4fadbd4244f3f895a341c56", // SKHYx
-}
-
-func isXStock(token string) bool {
-	switch token {
-	case "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48", // SPYx
-		"0xa753a7395cae905cd615da0b82a53e0560f250af", // QQQx
-		"0x8d512a03600981b8e86556fd5c0fbdd726fe1821", // SMHx
-		"0x299c95eb52bfd5bc98d924bce17197b64864589b", // EWYx
-		"0xc845b2894dbddd03858fd2d643b4ef725fe0849d", // NVDAx
-		"0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0", // TSLAx
-		"0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28", // SPCXx
-		"0xf6a873bae4ba1b304e45df52a4b7d176e1c6a8c4", // MUx
-		"0x58100046a4afcd4ee4fadbd4244f3f895a341c56": // SKHYx
-		return true
-	}
-	return false
-}
+// shareBased reports whether the pool holds this token as shares. The pool stores
+// a multiplier only for such tokens, so zero identifies an ordinary ERC-20.
+func (s *State) shareBased(index int) bool { return !s.Shares[index].Multiplier.IsZero() }
 
 func saturatingSub(a, b uint256.Int) uint256.Int {
 	if a.Lt(&b) {
@@ -49,36 +23,52 @@ func saturatingSub(a, b uint256.Int) uint256.Int {
 	return a
 }
 
+// physicalUnits is what the pool holds of a token in the unit it transfers:
+// shares for a share-based token, raw token units otherwise.
 func (s *State) physicalUnits(index int) uint256.Int {
-	if isXStock(s.Tokens[index].Address) {
+	if s.shareBased(index) {
 		return s.Shares[index].Shares
 	}
 	return s.Balances[index]
 }
 
+// amountForUnits values units as a token amount: floor(shares × multiplier / 1e18).
+// A multiplier of exactly 1e18 converts one to one, so the mulDiv is skipped.
 func (s *State) amountForUnits(m *arithmetic, index int, units uint256.Int) uint256.Int {
-	if isXStock(s.Tokens[index].Address) {
+	if s.shareBased(index) && s.Shares[index].Multiplier != powers[18] {
 		return m.md(units, s.Shares[index].Multiplier, powers[18], false)
 	}
 	return units
 }
 
+// transferUnits is what one transfer of amount moves: floor(amount × 1e18 / multiplier)
+// shares. Each transfer rounds on its own.
 func (s *State) transferUnits(m *arithmetic, index int, amount uint256.Int) uint256.Int {
-	if isXStock(s.Tokens[index].Address) {
+	if s.shareBased(index) && s.Shares[index].Multiplier != powers[18] {
 		return m.md(amount, powers[18], s.Shares[index].Multiplier, false)
 	}
 	return amount
 }
 
-func (s *State) transferDust(m *arithmetic, index int) uint256.Int {
-	if isXStock(s.Tokens[index].Address) {
-		return max(u(2), m.md(s.Shares[index].Multiplier, u(1), powers[18], true))
+// transferDust is the most a share-based transfer can lose to rounding, as the
+// contract computes it: max(2, ceil(multiplier / 1e18)). The pool leaves this much
+// of the input unvalued and quotes this much less output than it sends, so a
+// transfer that rounds down still delivers the quoted amount.
+func (s *State) transferDust(index int) (dust uint256.Int) {
+	if !s.shareBased(index) {
+		return dust
 	}
-	return uint256.Int{}
+	dust.SubUint64(&s.Shares[index].Multiplier, 1)
+	dust.Div(&dust, &powers[18])
+	dust.AddUint64(&dust, 1)
+	if dust.CmpUint64(2) < 0 {
+		dust.SetUint64(2)
+	}
+	return dust
 }
 
-// A swap reconciles physical holdings at its two endpoints; other tokens use
-// the accounted inventory from the logical page, including issuer shares.
+// A swap is priced on the pool's actual holdings of its two tokens and on the
+// recorded inventory of every other token (shares, for a share-based token).
 func (s *State) pairBalances(m *arithmetic, input, output int) (balances [maxTokens]uint256.Int) {
 	in, out := s.physicalUnits(input), s.physicalUnits(output)
 	if in.Gt(&maxInventory) || out.Gt(&maxInventory) {
@@ -89,7 +79,7 @@ func (s *State) pairBalances(m *arithmetic, input, output int) (balances [maxTok
 		if i == input || i == output {
 			balances[i] = s.Balances[i]
 		} else {
-			balances[i] = s.amountForUnits(m, i, s.packed(107, i, 128, 2))
+			balances[i] = s.amountForUnits(m, i, s.field(inventoryField(i)))
 		}
 	}
 	return
@@ -114,11 +104,11 @@ func (s *State) settlement(c *curve, input, output uint256.Int) (swap SwapInfo, 
 }
 
 func (s *State) setAccountedUnits(index int, units uint256.Int) {
-	slot, shift := 107+index/2, uint(index%2*128)
+	f := inventoryField(index)
 	var mask, value uint256.Int
-	mask.Lsh(&maxInventory, shift)
+	mask.Lsh(&maxInventory, uint(f.offset))
 	mask.Not(&mask)
-	value.Lsh(&units, shift)
-	s.Words[slot].And(&s.Words[slot], &mask)
-	s.Words[slot].Or(&s.Words[slot], &value)
+	value.Lsh(&units, uint(f.offset))
+	s.Words[f.slot].And(&s.Words[f.slot], &mask)
+	s.Words[f.slot].Or(&s.Words[f.slot], &value)
 }
