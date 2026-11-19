@@ -40,6 +40,9 @@ func TestCalcAmtOutMatchesLegacy(t *testing.T) {
 	t.Parallel()
 
 	amountIn := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	parityVolume, err := newParitySim(t).GetAtomicVolume(poolPkg.TokenAmount{Token: parityTokenIn, Amount: amountIn}, parityTokenOut)
+	require.NoError(t, err)
+	require.NotNil(t, parityVolume)
 
 	cases := []struct {
 		name    string
@@ -48,6 +51,8 @@ func TestCalcAmtOutMatchesLegacy(t *testing.T) {
 	}{
 		{"limit clears volume", nil, nil},
 		{"limit binds on volume", big.NewInt(0), ErrSurpassedVolumeLimit},
+		{"limit equals volume", parityVolume, nil},
+		{"limit one wei below volume", new(big.Int).Sub(parityVolume, big.NewInt(1)), ErrSurpassedVolumeLimit},
 	}
 
 	for _, tc := range cases {
