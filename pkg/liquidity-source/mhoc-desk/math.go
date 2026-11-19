@@ -16,6 +16,10 @@ type QuoteInput struct {
 	BalanceOut  *uint256.Int // pool balance of the outgoing token
 	BlockNumber uint64       // block.number of the swap
 	Now         uint64       // block.timestamp of the swap
+	// WindowNow is the block.timestamp used for the per-minute budget; 0 = Now. The simulator sets it to the
+	// earliest time the swap can land (the snapshot's block.timestamp + 1), so a minute that the wall clock has
+	// crossed but the chain may not have does not free the budget: the quote can only be stricter than the pool.
+	WindowNow uint64
 }
 
 // QuoteResult is the swap's output, its notional Q, and the counters the swap writes.
@@ -83,7 +87,11 @@ func Quote(in QuoteInput) (*QuoteResult, error) {
 	if _, of := used.AddOverflow(fs, &q); of || used.Gt(&limC) {
 		return nil, ErrExceedsUpdateCap
 	}
-	id := in.Now / window
+	wnow := in.WindowNow
+	if wnow == 0 {
+		wnow = in.Now
+	}
+	id := wnow / window
 	var wused, bused uint256.Int
 	wused.Set(&q)
 	bused.Set(&q)
@@ -128,7 +136,7 @@ func Quote(in QuoteInput) (*QuoteResult, error) {
 	return &QuoteResult{
 		AmountOut: out,
 		Notional:  &q,
-		Counters:  afterFill(cnt, c.seq, &q, in.BlockNumber, in.Now),
+		Counters:  afterFill(cnt, c.seq, &q, in.BlockNumber, wnow),
 	}, nil
 }
 

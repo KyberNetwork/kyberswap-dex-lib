@@ -95,6 +95,14 @@ func (s *PoolSimulator) now() uint64 {
 	return max(t, s.extra.ReadTimestamp)
 }
 
+// windowNow is block.timestamp for the per-minute budget: the earliest time the swap can land (the snapshot's own
+// block.timestamp + 1), capped by now. A wall clock that has crossed a minute the chain has not yet reached must not
+// free the minute's budget, or the router would quote sizes that revert with ExceedsWindowCap. Counting the
+// snapshot's minute when the swap may land in a later one only makes the quote stricter than the pool.
+func (s *PoolSimulator) windowNow(now uint64) uint64 {
+	return min(now, s.extra.ReadTimestamp+1)
+}
+
 // nextBlock is block.number for the simulated swap: the block after the tracked one, so the per-block counter of
 // the snapshot no longer counts (the per-card counter does, if the card is the same), and a card whose
 // validUntilBlock is the tracked block itself is no longer tradable (ErrStalePrice). Every swap of one route runs
@@ -105,11 +113,14 @@ func (s *PoolSimulator) nextBlock() uint64 {
 
 // CalcAmountOut is PropAMM.quote(tokenIn, amountIn) evaluated on the tracked state in the next block.
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	return s.calcAt(params, s.nextBlock(), s.now())
+	now := s.now()
+	return s.calcAt(params, s.nextBlock(), now, s.windowNow(now))
 }
 
-func (s *PoolSimulator) calcAt(params pool.CalcAmountOutParams, blockNumber, now uint64) (*pool.CalcAmountOutResult,
-	error) {
+// calcAt evaluates the swap in a given block at a given block.timestamp (now) for the card's expiry, and at windowNow
+// for the per-minute budget. With an exact timestamp (a replay) both are the same.
+func (s *PoolSimulator) calcAt(params pool.CalcAmountOutParams, blockNumber, now, windowNow uint64) (
+	*pool.CalcAmountOutResult, error) {
 	indexIn := s.GetTokenIndex(params.TokenAmountIn.Token)
 	indexOut := s.GetTokenIndex(params.TokenOut)
 	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
@@ -133,6 +144,7 @@ func (s *PoolSimulator) calcAt(params pool.CalcAmountOutParams, blockNumber, now
 		BalanceOut:  balOut,
 		BlockNumber: blockNumber,
 		Now:         now,
+		WindowNow:   windowNow,
 	})
 	if err != nil {
 		return nil, err
@@ -142,7 +154,7 @@ func (s *PoolSimulator) calcAt(params pool.CalcAmountOutParams, blockNumber, now
 		// The spread is inside the price; the pool charges no separate fee.
 		Fee:      &pool.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:      defaultGas,
-		SwapInfo: SwapInfo{Notional: res.Notional, BlockNumber: blockNumber, Timestamp: now},
+		SwapInfo: SwapInfo{Notional: res.Notional, BlockNumber: blockNumber, Timestamp: windowNow},
 	}, nil
 }
 

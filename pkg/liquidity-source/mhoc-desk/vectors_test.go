@@ -168,7 +168,7 @@ func checkQuotes(t *testing.T, sim *PoolSimulator, label string, quotes []vecQuo
 				AmountIn: u(q.AmountIn), BalanceOut: new(uint256.Int), BlockNumber: bn, Now: ts})
 			gotErr = errName(err)
 		} else {
-			res, err := sim.calcAt(params(q), bn, ts)
+			res, err := sim.calcAt(params(q), bn, ts, ts)
 			gotErr = errName(err)
 			if err == nil {
 				gotOut = res.TokenAmountOut.Amount.String()
@@ -250,7 +250,7 @@ func TestVectors_Sequences(t *testing.T) {
 					updates++
 					continue
 				}
-				res, err := cur.calcAt(params(st.vecQuote), st.BlockNumber, st.Timestamp)
+				res, err := cur.calcAt(params(st.vecQuote), st.BlockNumber, st.Timestamp, st.Timestamp)
 				require.Equal(t, want(st.Error), errName(err), name)
 				if err != nil {
 					continue
@@ -428,4 +428,10 @@ func TestDarkPool(t *testing.T) {
 	in.SellBase, in.AmountIn = true, pow10(18)
 	_, err := Quote(in)
 	require.ErrorIs(t, err, ErrPoolPaused)
+}
+
+// calcExact is calcAt at an exact block.timestamp (a replay): the same time for expiry and the per-minute budget.
+func (s *PoolSimulator) calcExact(params pool.CalcAmountOutParams, blockNumber, ts uint64) (
+	*pool.CalcAmountOutResult, error) {
+	return s.calcAt(params, blockNumber, ts, ts)
 }

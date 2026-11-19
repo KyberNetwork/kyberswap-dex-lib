@@ -39,7 +39,7 @@ func liveCompare(t *testing.T, client *ethrpc.Client, poolAddr, registry string,
 	sim, err := NewPoolSimulator(tracked)
 	require.NoError(t, err)
 	bn, ts := tracked.BlockNumber, uint64(tracked.Timestamp)
-	return sim, tracked, compareAt(t, client.GetETHClient(), sim, tracked, poolAddr, n, bn, ts, sim.calcAt)
+	return sim, tracked, compareAt(t, client.GetETHClient(), sim, tracked, poolAddr, n, bn, ts, sim.calcExact)
 }
 
 func compareAt(t *testing.T, eth *ethclient.Client, sim *PoolSimulator, tracked entity.Pool, poolAddr string, n int,

@@ -52,5 +52,5 @@ type Counters struct {
 type SwapInfo struct {
 	Notional    *uint256.Int `json:"notional"`    // Q, QUOTE raw units: what the swap adds to every counter
 	BlockNumber uint64       `json:"blockNumber"` // block.number the swap was simulated at
-	Timestamp   uint64       `json:"timestamp"`   // block.timestamp the swap was simulated at
+	Timestamp   uint64       `json:"timestamp"`   // block.timestamp for the per-minute budget (windowNow)
 }
