@@ -45,7 +45,7 @@ func TestFluidV2UpdatedStateRoundTrip(t *testing.T) {
 			restored := decoded[f.Address]
 			want, err := sim.CalcAmountOut(params)
 			require.NoError(t, err)
-			got, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, params.Limit)
+			got, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, nil)
 			require.NoError(t, err)
 			require.Equal(t, want.TokenAmountOut, got.TokenAmountOut)
 			require.Equal(t, sim.CalculateLimit(), restored.CalculateLimit())

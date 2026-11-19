@@ -51,7 +51,7 @@ func TestFlywheelCompositeSerialization(t *testing.T) {
 		params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: flywheel.WETH, Amount: big.NewInt(1000000000)}, TokenOut: p.Address}
 		expected, err := before.CalcAmountOut(params)
 		require.NoError(t, err)
-		actual, err := pool.DefaultCalcAmtOut(context.Background(), decoded[p.Address], params.TokenAmountIn, params.TokenOut, params.Limit)
+		actual, err := pool.DefaultCalcAmtOut(context.Background(), decoded[p.Address], params.TokenAmountIn, params.TokenOut, nil)
 		require.NoError(t, err)
 		require.Equal(t, expected.TokenAmountOut, actual.TokenAmountOut)
 		require.Equal(t, expected.RemainingTokenAmountIn, actual.RemainingTokenAmountIn)
