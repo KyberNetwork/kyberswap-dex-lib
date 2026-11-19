@@ -70,6 +70,60 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if overflow || amountIn.IsZero() {
 		return nil, ErrZeroAmount
 	}
+	q, err := s.quote(in, out, amountIn)
+	if err != nil {
+		return nil, err
+	}
+	amountOutBI := q.amountOut.ToBig()
+	if params.Limit != nil {
+		if limit := params.Limit.GetLimit(s.limitKey(s.Info.Tokens[out])); limit == nil || amountOutBI.Cmp(limit) > 0 {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[out], Amount: amountOutBI},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[in], Amount: new(big.Int)},
+		Gas:            defaultGas,
+		SwapInfo:       q.swapInfo,
+	}, nil
+}
+
+// CalcAmtOut is CalcAmountOut with uint256 amounts. It shares quote with the legacy method.
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	in, out := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenOut)
+	if in < 0 || out < 0 || in == out {
+		return nil, ErrInvalidToken
+	}
+	amountIn := &params.TokenAmountIn.Amount
+	if amountIn.IsZero() {
+		return nil, ErrZeroAmount
+	}
+	q, err := s.quote(in, out, amountIn)
+	if err != nil {
+		return nil, err
+	}
+	if params.Limit != nil {
+		if limit := params.Limit.GetLimit(s.limitKey(s.Info.Tokens[out])); limit == nil || q.amountOut.Gt(limit) {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: s.Info.Tokens[out], Amount: q.amountOut},
+		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[in]},
+		Gas:            defaultGas,
+		SwapInfo:       q.swapInfo,
+	}, nil
+}
+
+type quoteResult struct {
+	amountOut uint256.Int
+	swapInfo  SwapInfo
+}
+
+// quote runs the pricing curve for amountIn without the inventory limit. in and out are token indices.
+func (s *PoolSimulator) quote(in, out int, amountIn *uint256.Int) (*quoteResult, error) {
 	if s.Extra.Paused {
 		return nil, ErrPaused
 	}
@@ -85,21 +139,12 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrZeroOutput
 	}
 	// Output is paid from the vault, so its balance caps the swap.
-	amountOutBI := amountOut.ToBig()
-	if amountOutBI.Cmp(s.Info.Reserves[out]) > 0 {
+	if amountOut.ToBig().Cmp(s.Info.Reserves[out]) > 0 {
 		return nil, pool.ErrNotEnoughInventory
 	}
-	if params.Limit != nil {
-		if limit := params.Limit.GetLimit(s.limitKey(s.Info.Tokens[out])); limit == nil || amountOutBI.Cmp(limit) > 0 {
-			return nil, pool.ErrNotEnoughInventory
-		}
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[out], Amount: amountOutBI},
-		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[in], Amount: new(big.Int)},
-		Gas:            defaultGas,
-		SwapInfo:       SwapInfo{IndexIn: in, AmountIn: *amountIn, AmountOut: amountOut},
+	return &quoteResult{
+		amountOut: amountOut,
+		swapInfo:  SwapInfo{IndexIn: in, AmountIn: *amountIn, AmountOut: amountOut},
 	}, nil
 }
 
