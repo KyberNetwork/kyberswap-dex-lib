@@ -8,3 +8,5 @@ import (
 )
 
 var aegisPropHookABI = lo.Must(abi.JSON(bytes.NewReader(aegisPropHookABIJson)))
+
+var aegisPropHookV1ABI = lo.Must(abi.JSON(bytes.NewReader(aegisPropHookV1ABIJson)))
