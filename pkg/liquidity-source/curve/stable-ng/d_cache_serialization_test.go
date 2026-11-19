@@ -31,7 +31,7 @@ func TestDCacheAfterMsgpackRoundTrip(t *testing.T) {
 			TokenOut: sim.Info.Tokens[1]}
 		want, err := sim.CalcAmountOut(in)
 		require.NoError(t, err)
-		got, err := pool.DefaultCalcAmtOut(context.Background(), sims[p.Address], in.TokenAmountIn, in.TokenOut, in.Limit)
+		got, err := pool.DefaultCalcAmtOut(context.Background(), sims[p.Address], in.TokenAmountIn, in.TokenOut, nil)
 		require.NoError(t, err)
 		require.Equal(t, want.TokenAmountOut.Amount, got.TokenAmountOut.Amount)
 		require.Equal(t, want.Fee.Amount, got.Fee.Amount)
