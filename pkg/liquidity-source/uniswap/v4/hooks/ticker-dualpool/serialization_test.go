@@ -48,7 +48,7 @@ func TestTickerDualPoolSerializationPreservesQuotes(t *testing.T) {
 	for range 2 {
 		a, err := original.CalcAmountOut(params)
 		require.NoError(t, err)
-		b, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, params.Limit)
+		b, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, nil)
 		require.NoError(t, err)
 		require.Equal(t, a.TokenAmountOut.Amount.String(), b.TokenAmountOut.Amount.String())
 		original.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: input, TokenAmountOut: *a.TokenAmountOut, SwapInfo: a.SwapInfo})
