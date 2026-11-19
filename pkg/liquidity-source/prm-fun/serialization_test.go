@@ -50,9 +50,9 @@ func TestAllPairsMsgpackRoundTrip(t *testing.T) {
 				amount, ok := new(big.Int).SetString(q.Input, 10)
 				require.True(t, ok)
 				params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: input, Amount: amount}, TokenOut: output}
-				before, err := pool.DefaultCalcAmtOut(context.Background(), original, params.TokenAmountIn, params.TokenOut, params.Limit)
+				before, err := pool.DefaultCalcAmtOut(context.Background(), original, params.TokenAmountIn, params.TokenOut, nil)
 				require.NoError(t, err)
-				after, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, params.Limit)
+				after, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, nil)
 				require.NoError(t, err)
 				require.Equal(t, before, after)
 				require.Equal(t, original.GetMetaInfo(input, output), restored.GetMetaInfo(input, output))
