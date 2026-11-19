@@ -29,14 +29,14 @@ func TestPoolSimulatorSerialization(t *testing.T) {
 			Token: ep.Tokens[0].Address, Amount: big.NewInt(100_000_000)}, TokenOut: ep.Tokens[1].Address}
 		want, err := sim.CalcAmountOut(params)
 		require.NoError(t, err)
-		got, err := pool.DefaultCalcAmtOut(context.Background(), decoded[ep.Address], params.TokenAmountIn, params.TokenOut, params.Limit)
+		got, err := pool.DefaultCalcAmtOut(context.Background(), decoded[ep.Address], params.TokenAmountIn, params.TokenOut, nil)
 		require.NoError(t, err)
 		require.Equal(t, want.TokenAmountOut, got.TokenAmountOut)
 		require.Equal(t, sim.GetMetaInfo(params.TokenAmountIn.Token, params.TokenOut),
 			decoded[ep.Address].GetMetaInfo(params.TokenAmountIn.Token, params.TokenOut))
 		decoded[ep.Address].UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn,
 			TokenAmountOut: *got.TokenAmountOut, SwapInfo: got.SwapInfo})
-		_, err = pool.DefaultCalcAmtOut(context.Background(), decoded[ep.Address], params.TokenAmountIn, params.TokenOut, params.Limit)
+		_, err = pool.DefaultCalcAmtOut(context.Background(), decoded[ep.Address], params.TokenAmountIn, params.TokenOut, nil)
 		require.NoError(t, err, "decoded simulator can quote the next swap")
 		unchanged, err := sim.CalcAmountOut(params)
 		require.NoError(t, err)
