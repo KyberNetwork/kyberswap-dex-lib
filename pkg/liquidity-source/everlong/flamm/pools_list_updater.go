@@ -53,8 +53,20 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 		for k, a := range all {
 			addr, n := hexutil.Encode(a[:]), counts[k]
-			if n <= md.Pools[addr] {
+			if n <= md.Pools[addr] && (n != 0 || md.Pools[addr] != 0) { // n 0: a first-build pool is tried again
 				continue
+			}
+			if n == 0 { // no tokenCount: a first-build pool, if it reads as one
+				if tokens, err := u.legacyTokens(ctx, addr); err == nil {
+					p, err := newEntity(u.cfg, hexutil.Encode(factory[:]), addr, tokens)
+					if err != nil {
+						return nil, metadataBytes, err
+					}
+					p.StaticExtra = legacyStaticExtra(p.StaticExtra)
+					out = append(out, p)
+					md.Pools[addr] = 2
+					continue
+				}
 			}
 			if n < 2 || n > maxTokens {
 				logger.WithFields(logger.Fields{"dexId": u.cfg.DexID, "pool": addr, "tokens": n}).

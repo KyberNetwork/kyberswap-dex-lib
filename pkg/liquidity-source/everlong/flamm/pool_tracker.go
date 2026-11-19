@@ -162,6 +162,9 @@ func (t *PoolTracker) track(ctx context.Context, p entity.Pool,
 	if !t.cfg.hasFactory(se.Factory) {
 		return dark(p, nil), nil
 	}
+	if se.Legacy {
+		return t.trackLegacy(ctx, p, se, overrides)
+	}
 
 	st, err := t.read(ctx, p.Address, se.Factory, n, overrides)
 	if err != nil {
