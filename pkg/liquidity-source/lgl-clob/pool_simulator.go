@@ -63,12 +63,59 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult,
 	err error) {
-	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
-	tokenIn := tokenAmountIn.Token
-	amtIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	amtIn, overflow := uint256.FromBig(param.TokenAmountIn.Amount)
 	if overflow {
 		return nil, ErrInvalidAmount
 	}
+	var limit func(key string) *uint256.Int
+	if param.Limit != nil {
+		limit = func(key string) *uint256.Int { return toU256(param.Limit.GetLimit(key)) }
+	}
+	q, err := p.quote(param.TokenAmountIn.Token, amtIn, param.TokenOut, limit)
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut:         &pool.TokenAmount{Token: q.tokenOut, Amount: q.amountOut.ToBig()},
+		Fee:                    &pool.TokenAmount{Token: q.feeToken, Amount: q.fee.ToBig()},
+		RemainingTokenAmountIn: &pool.TokenAmount{Token: q.tokenIn, Amount: q.remainingIn.ToBig()},
+		Gas:                    q.gas,
+		SwapInfo:               q.swapInfo,
+	}, nil
+}
+
+// CalcAmtOut is CalcAmountOut with uint256 amounts. It shares quote with the legacy method.
+func (p *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	var limit func(key string) *uint256.Int
+	if param.Limit != nil {
+		limit = param.Limit.GetLimit
+	}
+	q, err := p.quote(param.TokenAmountIn.Token, &param.TokenAmountIn.Amount, param.TokenOut, limit)
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut:         &pool.TokenAmt{Token: q.tokenOut, Amount: q.amountOut},
+		Fee:                    &pool.TokenAmt{Token: q.feeToken, Amount: q.fee},
+		RemainingTokenAmountIn: &pool.TokenAmt{Token: q.tokenIn, Amount: q.remainingIn},
+		Gas:                    q.gas,
+		SwapInfo:               q.swapInfo,
+	}, nil
+}
+
+type quoteResult struct {
+	tokenIn, tokenOut, feeToken string
+	amountOut, fee, remainingIn uint256.Int
+	gas                         int64
+	swapInfo                    SwapInfo
+}
+
+// quote runs the order book for amtIn. limit returns the remaining inventory for a key, or nil for no limit.
+func (p *PoolSimulator) quote(tokenIn string, amtIn *uint256.Int, tokenOut string,
+	limit func(key string) *uint256.Int) (*quoteResult, error) {
+	var in uint256.Int
+	in.Set(amtIn)
+	amtIn = &in
 	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
@@ -147,7 +194,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	if p.cumAmtOutF+executedAmountOut.Float64() > reserveOutF*safetyBuffer {
 		return nil, ErrExceededSafetyBuffer
 	}
-	if !p.withinLimit(param.Limit, tokenOut, executedAmountOut) {
+	if !p.withinLimit(limit, tokenOut, executedAmountOut) {
 		return nil, pool.ErrNotEnoughInventory
 	}
 
@@ -165,12 +212,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	}
 	priceLimit = round(priceLimit, priceLimitPrecision, isBuy)
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut:         &pool.TokenAmount{Token: tokenOut, Amount: executedAmountOut.ToBig()},
-		Fee:                    &pool.TokenAmount{Token: p.Info.Tokens[1], Amount: feesTokenY.ToBig()},
-		RemainingTokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: remainingAmountIn.ToBig()},
-		Gas:                    gas,
-		SwapInfo: SwapInfo{
+	return &quoteResult{
+		tokenIn:     tokenIn,
+		tokenOut:    tokenOut,
+		feeToken:    p.Info.Tokens[1],
+		amountOut:   *executedAmountOut,
+		fee:         *feesTokenY,
+		remainingIn: *remainingAmountIn,
+		gas:         gas,
+		swapInfo: SwapInfo{
 			executedLevels:     executedLevels,
 			lastExecutedShares: &executedShares,
 			HasNative:          p.SupportsNativeEth,
@@ -296,7 +346,11 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	if p.cumAmtOutF+executedAmountOut.Float64() > reserveOutF*safetyBuffer {
 		return nil, ErrExceededSafetyBuffer
 	}
-	if !p.withinLimit(param.Limit, tokenAmountOut.Token, executedAmountOut) {
+	var limit func(key string) *uint256.Int
+	if param.Limit != nil {
+		limit = func(key string) *uint256.Int { return toU256(param.Limit.GetLimit(key)) }
+	}
+	if !p.withinLimit(limit, tokenAmountOut.Token, executedAmountOut) {
 		return nil, pool.ErrNotEnoughInventory
 	}
 
@@ -382,12 +436,24 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 // withinLimit reports whether the pool's market maker can still pay amountOut
 // of tokenOut, after what an order took from it through any of its pools. A
 // pool without a market maker, or a limit without its key, has no limit.
-func (p *PoolSimulator) withinLimit(limit pool.SwapLimitBig, tokenOut string, amountOut *uint256.Int) bool {
+func (p *PoolSimulator) withinLimit(limit func(key string) *uint256.Int, tokenOut string, amountOut *uint256.Int) bool {
 	if limit == nil || p.maker == "" {
 		return true
 	}
-	remaining := limit.GetLimit(p.limitKey(tokenOut))
-	return remaining == nil || amountOut.ToBig().Cmp(remaining) <= 0
+	remaining := limit(p.limitKey(tokenOut))
+	return remaining == nil || amountOut.Cmp(remaining) <= 0
+}
+
+// toU256 converts a legacy inventory. A limit over 256 bits never binds a uint256 amount, so it maps to nil.
+func toU256(v *big.Int) *uint256.Int {
+	if v == nil {
+		return nil
+	}
+	u, overflow := uint256.FromBig(v)
+	if overflow {
+		return nil
+	}
+	return u
 }
 
 func (p *PoolSimulator) limitKey(token string) string {
