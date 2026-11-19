@@ -157,7 +157,7 @@ type CalcAmountInResult struct {
 
 // CalcAmountOut wraps pool.CalcAmountOut and catch panic
 func CalcAmountOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string,
-	limit SwapLimitBig) (res *CalcAmountOutResult, err error) {
+	limit SwapLimit) (res *CalcAmountOutResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.Errorf("calcAmountOut panicked: %v", r)
@@ -172,7 +172,7 @@ func CalcAmountOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn Token
 // DefaultCalcAmtOut quotes with the native uint256 CalcAmtOut when the pool has one. Otherwise it uses the legacy
 // big.Int CalcAmountOut.
 func DefaultCalcAmtOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string,
-	limit SwapLimitBig) (*CalcAmountOutResult, error) {
+	limit SwapLimit) (*CalcAmountOutResult, error) {
 	if native, ok := pool.(ICalcAmtOut); ok {
 		res, err := native.CalcAmtOut(CalcAmtOutParams{
 			TokenAmountIn: tokenAmtFromBig(&tokenAmountIn),
@@ -193,7 +193,7 @@ func DefaultCalcAmtOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn T
 	return legacy.CalcAmountOut(CalcAmountOutParams{
 		TokenAmountIn: tokenAmountIn,
 		TokenOut:      tokenOut,
-		Limit:         limit,
+		Limit:         AsSwapLimitBig(limit),
 	})
 }
 

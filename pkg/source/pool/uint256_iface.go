@@ -15,7 +15,7 @@ type TokenAmt struct {
 type CalcAmtOutParams struct {
 	TokenAmountIn TokenAmt
 	TokenOut      string
-	Limit         SwapLimitBig
+	Limit         SwapLimit
 }
 
 // CalcAmtOutResult is CalcAmountOutResult with uint256 amounts.
@@ -31,7 +31,7 @@ type CalcAmtOutResult struct {
 type CalcAmtInParams struct {
 	TokenAmountOut TokenAmt
 	TokenIn        string
-	Limit          SwapLimitBig
+	Limit          SwapLimit
 }
 
 // CalcAmtInResult is CalcAmountInResult with uint256 amounts.
@@ -67,7 +67,7 @@ type UpdateStateParams struct {
 	TokenAmountOut TokenAmt
 	Fee            TokenAmt
 	SwapInfo       any
-	SwapLimitBig   SwapLimitBig
+	SwapLimit      SwapLimit
 }
 
 // IUpdateState is implemented by simulators that update their state from uint256 amounts.

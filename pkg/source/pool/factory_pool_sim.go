@@ -45,7 +45,7 @@ func (a legacyAdapter) CalcAmtOut(params CalcAmtOutParams) (*CalcAmtOutResult, e
 	res, err := legacy.CalcAmountOut(CalcAmountOutParams{
 		TokenAmountIn: tokenAmountFromAmt(&params.TokenAmountIn),
 		TokenOut:      params.TokenOut,
-		Limit:         params.Limit,
+		Limit:         AsSwapLimitBig(params.Limit),
 	})
 	if err != nil || res == nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (a legacyAdapter) UpdateState(params UpdateStateParams) {
 		TokenAmountOut: tokenAmountFromAmt(&params.TokenAmountOut),
 		Fee:            tokenAmountFromAmt(&params.Fee),
 		SwapInfo:       params.SwapInfo,
-		SwapLimitBig:   params.SwapLimitBig,
+		SwapLimitBig:   AsSwapLimitBig(params.SwapLimit),
 	})
 }
 

@@ -10,7 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-func TestCloneState(t testing.TB, sim pool.IPoolSimulator, params pool.CalcAmountOutParams, swapLimit pool.SwapLimitBig) {
+func TestCloneState(t testing.TB, sim pool.IPoolSimulator, params pool.CalcAmountOutParams, swapLimit pool.SwapLimit) {
 	t.Helper()
 
 	clone := sim.CloneState()
@@ -23,7 +23,7 @@ func TestCloneState(t testing.TB, sim pool.IPoolSimulator, params pool.CalcAmoun
 		TokenAmountOut: *result1.TokenAmountOut,
 		Fee:            *result1.Fee,
 		SwapInfo:       result1.SwapInfo,
-		SwapLimitBig:   swapLimit,
+		SwapLimitBig:   pool.AsSwapLimitBig(swapLimit),
 	})
 
 	result2, err := pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, swapLimit)
