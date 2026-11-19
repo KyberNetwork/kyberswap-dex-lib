@@ -111,16 +111,63 @@ func (s *PoolSimulator) deadline() uint64 {
 func (s *PoolSimulator) expired(now uint64) bool { return now > s.deadline() }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	in, out := s.GetTokenIndex(strings.ToLower(params.TokenAmountIn.Token)), s.GetTokenIndex(strings.ToLower(params.TokenOut))
-	if in < 0 || out < 0 || in == out {
-		return nil, ErrInvalidToken
-	}
 	if params.TokenAmountIn.Amount == nil || params.TokenAmountIn.Amount.Sign() <= 0 {
 		return nil, ErrAmount
 	}
 	amount, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
 	if overflow {
 		return nil, ErrAmount
+	}
+	q, err := s.quote(params.TokenAmountIn.Token, params.TokenOut, amount)
+	if err != nil {
+		return nil, err
+	}
+	if params.Limit != nil {
+		limit := params.Limit.GetLimit(s.limitKey(s.Info.Tokens[q.out]))
+		if limit == nil || q.output.ToBig().Cmp(limit) > 0 {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[q.out], Amount: q.output.ToBig()},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[q.in], Amount: new(big.Int)},
+		Gas:            q.gas,
+		SwapInfo:       q.swapInfo,
+	}, nil
+}
+
+// CalcAmtOut is CalcAmountOut with uint256 amounts. It shares quote with the legacy method.
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	q, err := s.quote(params.TokenAmountIn.Token, params.TokenOut, &params.TokenAmountIn.Amount)
+	if err != nil {
+		return nil, err
+	}
+	if params.Limit != nil {
+		limit := params.Limit.GetLimit(s.limitKey(s.Info.Tokens[q.out]))
+		if limit == nil || q.output.Cmp(limit) > 0 {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: s.Info.Tokens[q.out], Amount: q.output},
+		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[q.in]},
+		Gas:            q.gas,
+		SwapInfo:       q.swapInfo,
+	}, nil
+}
+
+type quoteResult struct {
+	in, out  int
+	output   uint256.Int
+	gas      int64
+	swapInfo SwapInfo
+}
+
+// quote runs the curve for amount without the inventory limit. It checks the reserve and the input overflow.
+func (s *PoolSimulator) quote(tokenIn, tokenOut string, amount *uint256.Int) (*quoteResult, error) {
+	in, out := s.GetTokenIndex(strings.ToLower(tokenIn)), s.GetTokenIndex(strings.ToLower(tokenOut))
+	if in < 0 || out < 0 || in == out {
+		return nil, ErrInvalidToken
 	}
 	if s.StaleCheck && s.expired(uint64(time.Now().Unix())) {
 		return nil, ErrExpired
@@ -138,26 +185,22 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if err != nil {
 		return nil, err
 	}
-	outputBig := output.ToBig()
-	if output.IsZero() || outputBig.Cmp(s.Info.Reserves[out]) > 0 {
+	// Reserves fit in 256 bits, checked in NewPoolSimulator.
+	reserveOut, _ := uint256.FromBig(s.Info.Reserves[out])
+	if output.IsZero() || output.Gt(reserveOut) {
 		return nil, pool.ErrNotEnoughInventory
-	}
-	if params.Limit != nil {
-		limit := params.Limit.GetLimit(s.limitKey(s.Info.Tokens[out]))
-		if limit == nil || outputBig.Cmp(limit) > 0 {
-			return nil, pool.ErrNotEnoughInventory
-		}
 	}
 	// Input is transferred to custody before payout. Account for ERC20 balance
 	// arithmetic as well as the curve's own checked arithmetic.
 	if new(big.Int).Add(s.Info.Reserves[in], amount.ToBig()).BitLen() > 256 {
 		return nil, ErrOverflow
 	}
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[out], Amount: outputBig},
-		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[in], Amount: new(big.Int)},
-		Gas:            defaultGas + 5000*int64(max(len(s.Extra.Ask.Knots), len(s.Extra.Bid.Knots))),
-		SwapInfo:       SwapInfo{IndexIn: in, FillSeq: s.Extra.FillSeq, Cursor: cursor, AmountIn: *amount, AmountOut: output},
+	return &quoteResult{
+		in:       in,
+		out:      out,
+		output:   output,
+		gas:      defaultGas + 5000*int64(max(len(s.Extra.Ask.Knots), len(s.Extra.Bid.Knots))),
+		swapInfo: SwapInfo{IndexIn: in, FillSeq: s.Extra.FillSeq, Cursor: cursor, AmountIn: *amount, AmountOut: output},
 	}, nil
 }
 
