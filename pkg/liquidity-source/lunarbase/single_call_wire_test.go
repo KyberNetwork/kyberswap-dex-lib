@@ -49,7 +49,7 @@ func TestSingleCallWirePreservesKnownZeroFreshness(t *testing.T) {
 	extra.LatestUpdateBlock = 0
 	sim := wireSimulator(t, extra)
 	decoded := wireMapRoundTrip(t, map[string]pool.IPoolSimulator{"pool": sim})["pool"]
-	_, err := pool.DefaultCalcAmtOut(context.Background(), decoded, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
+	_, err := pool.DefaultCalcAmtOut(context.Background(), decoded, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, nil)
 	require.ErrorIs(t, err, lb.ErrStalePool)
 
 	var fields map[string]msgpack.RawMessage

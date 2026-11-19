@@ -76,7 +76,7 @@ func wireReadLegacy(t *testing.T, fixture string) map[string]pool.IPoolSimulator
 }
 func wireRequireKnownQuote(t *testing.T, sim pool.IPoolSimulator) {
 	t.Helper()
-	q, err := pool.DefaultCalcAmtOut(context.Background(), sim, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
+	q, err := pool.DefaultCalcAmtOut(context.Background(), sim, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, nil)
 	require.NoError(t, err)
 	require.Equal(t, "999950051307678223", q.TokenAmountOut.Amount.String())
 	require.Equal(t, "49948692321777", q.Fee.Amount.String())
@@ -117,9 +117,9 @@ func TestLunarbaseWirePreservesModelsAndMetadata(t *testing.T) {
 			require.Equal(t, original.StaticExtra, decoded.StaticExtra)
 			require.Equal(t, original.GetMetaInfo("x", "y"), decoded.GetMetaInfo("x", "y"))
 			require.Equal(t, original.GetReserves(), decoded.GetReserves())
-			want, err := pool.DefaultCalcAmtOut(context.Background(), original, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
+			want, err := pool.DefaultCalcAmtOut(context.Background(), original, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, nil)
 			require.NoError(t, err)
-			got, err := pool.DefaultCalcAmtOut(context.Background(), decoded, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
+			got, err := pool.DefaultCalcAmtOut(context.Background(), decoded, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, nil)
 			require.NoError(t, err)
 			require.Equal(t, want.TokenAmountOut, got.TokenAmountOut)
 			require.Equal(t, want.Fee, got.Fee)
@@ -137,22 +137,22 @@ func TestLunarbaseWireAmbiguityIsPoolLocalAndPersistent(t *testing.T) {
 		t.Helper()
 		wireRequireKnownQuote(t, pools["test-pool"])
 		ambiguous := pools["ambiguous-pool"]
-		_, err := pool.DefaultCalcAmtOut(context.Background(), ambiguous, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
+		_, err := pool.DefaultCalcAmtOut(context.Background(), ambiguous, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, nil)
 		require.ErrorIs(t, err, lb.ErrStalePool)
-		_, err = pool.DefaultCalcAmtOut(context.Background(), ambiguous.CloneState(), wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
+		_, err = pool.DefaultCalcAmtOut(context.Background(), ambiguous.CloneState(), wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, nil)
 		require.ErrorIs(t, err, lb.ErrStalePool)
 	}
 	check(t, decoded)
 	check(t, wireMapRoundTrip(t, decoded))
 	refreshed := wireExtra()
 	refreshed.MaxPunishmentX24 = 0
-	_, err := pool.DefaultCalcAmtOut(context.Background(), wireSimulator(t, refreshed), wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
+	_, err := pool.DefaultCalcAmtOut(context.Background(), wireSimulator(t, refreshed), wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, nil)
 	require.NoError(t, err)
 }
 
 func TestLunarbaseWireTypedSwapInfoPreservesPostReserves(t *testing.T) {
 	original := wireSimulator(t, wireExtra())
-	q, err := pool.DefaultCalcAmtOut(context.Background(), original, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
+	q, err := pool.DefaultCalcAmtOut(context.Background(), original, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, nil)
 	require.NoError(t, err)
 	var decodedInfo lb.SwapInfo
 	require.NoError(t, wireReadRaw(wireRaw(t, q.SwapInfo.(lb.SwapInfo)), &decodedInfo))
@@ -165,9 +165,9 @@ func TestLunarbaseWireTypedSwapInfoPreservesPostReserves(t *testing.T) {
 	require.Equal(t, first.GetReserves(), second.GetReserves())
 	require.Equal(t, "1001000000000000000000", second.GetReserves()[0].String())
 	require.Equal(t, "999000000000000000000", second.GetReserves()[1].String(), "the full output fee leaves the tradable reserve")
-	a, err := pool.DefaultCalcAmtOut(context.Background(), first, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
+	a, err := pool.DefaultCalcAmtOut(context.Background(), first, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, nil)
 	require.NoError(t, err)
-	b, err := pool.DefaultCalcAmtOut(context.Background(), second, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, wireQuoteParams().Limit)
+	b, err := pool.DefaultCalcAmtOut(context.Background(), second, wireQuoteParams().TokenAmountIn, wireQuoteParams().TokenOut, nil)
 	require.NoError(t, err)
 	require.Equal(t, a.TokenAmountOut, b.TokenAmountOut)
 	require.Equal(t, a.Fee, b.Fee)
