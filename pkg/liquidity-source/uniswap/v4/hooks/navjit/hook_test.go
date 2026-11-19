@@ -456,7 +456,7 @@ func TestPoolFactory_PassesStaleCheck(t *testing.T) {
 		sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: newTestPool(t),
 			ChainID: valueobject.ChainIDRobinhood, Opts: pool.FactoryOpts{StaleCheck: staleCheck}})
 		require.NoError(t, err)
-		_, err = pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, params.Limit) // trackedHook has no TrackedAt: older than maxAgeSec
+		_, err = pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, nil) // trackedHook has no TrackedAt: older than maxAgeSec
 		if staleCheck {
 			assert.ErrorIs(t, err, ErrStale)
 		} else {
