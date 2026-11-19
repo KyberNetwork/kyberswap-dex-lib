@@ -34,46 +34,42 @@ func newParitySim(t *testing.T) *PoolSimulator {
 	return sim
 }
 
-// TestCalcAmtOutMatchesLegacy checks the native quote against the legacy one over several limits.
-func TestCalcAmtOutMatchesLegacy(t *testing.T) {
+// TestCalcAmtOutLimits checks the inventory limit against the output: a quote whose output exceeds the limit fails.
+func TestCalcAmtOutLimits(t *testing.T) {
 	t.Parallel()
 
 	sim := newParitySim(t)
-	amounts := []string{"1", "999", "1000", "5000", "10000", "50000", "100000"}
-	limits := map[string]*uint256.Int{
-		"none":      nil,
-		"loose":     uint256.NewInt(1_000_000_000),
-		"binds-out": uint256.NewInt(1),
+	cases := []struct {
+		name    string
+		amtIn   string
+		limit   *uint256.Int
+		wantErr error
+	}{
+		{"no-limit", "10000", nil, nil},
+		{"loose", "10000", uint256.NewInt(1_000_000_000), nil},
+		{"binds-out", "10000", uint256.NewInt(1), pool.ErrNotEnoughInventory},
+		{"exact-limit", "10000", uint256.NewInt(9800), nil},
+		{"one-below", "10000", uint256.NewInt(9799), pool.ErrNotEnoughInventory},
 	}
 
-	for name, lim := range limits {
-		for _, amt := range amounts {
-			in, ok := new(big.Int).SetString(amt, 10)
-			require.True(t, ok)
-
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			in := uint256.MustFromDecimal(tc.amtIn)
 			var swapLimit pool.SwapLimit
-			if lim != nil {
-				swapLimit = swaplimit.NewInventory(DexType, map[string]*uint256.Int{testQuote: lim})
+			if tc.limit != nil {
+				swapLimit = swaplimit.NewInventory(DexType, map[string]*uint256.Int{testQuote: tc.limit})
 			}
-			legacy, legacyErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: testBase, Amount: in},
-				TokenOut:      testQuote,
-				Limit:         pool.AsSwapLimitBig(swapLimit),
-			})
-			native, nativeErr := sim.CalcAmtOut(pool.CalcAmtOutParams{
-				TokenAmountIn: pool.TokenAmt{Token: testBase, Amount: *uint256.MustFromBig(in)},
+			_, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: testBase, Amount: *in},
 				TokenOut:      testQuote,
 				Limit:         swapLimit,
 			})
-			require.Equal(t, legacyErr, nativeErr, "%s/%s error", name, amt)
-			if legacyErr != nil {
-				continue
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
+				return
 			}
-			require.Equal(t, 0, legacy.TokenAmountOut.Amount.Cmp(native.TokenAmountOut.Amount.ToBig()), "%s/%s amount out", name, amt)
-			require.Equal(t, 0, legacy.Fee.Amount.Sign(), "%s/%s fee", name, amt)
-			require.True(t, native.Fee.Amount.IsZero(), "%s/%s fee", name, amt)
-			require.Equal(t, legacy.Gas, native.Gas, "%s/%s gas", name, amt)
-		}
+			require.NoError(t, err)
+		})
 	}
 }
 
@@ -112,4 +108,33 @@ func TestCalcAmtOutLimitBinds(t *testing.T) {
 		Limit:         limit,
 	})
 	require.ErrorIs(t, err, pool.ErrNotEnoughInventory)
+}
+
+// TestCloneStateIsIPoolSim checks the clone satisfies IPoolSim, the uint256 interface the factory returns.
+func TestCloneStateIsIPoolSim(t *testing.T) {
+	t.Parallel()
+
+	sim := newParitySim(t)
+	var clone pool.IPoolSim = sim.CloneState()
+	require.NotNil(t, clone)
+	require.Equal(t, DexType, clone.GetType())
+}
+
+// TestCloneStateDeepCopies checks that a swap on the clone leaves the original's reserves and samples unchanged.
+func TestCloneStateDeepCopies(t *testing.T) {
+	t.Parallel()
+
+	sim := newParitySim(t)
+	origReserves := sim.GetReserves()
+	origSample := new(big.Int).Set(sim.Samples[0][0][0])
+
+	clone := sim.CloneState().(*PoolSimulator)
+	clone.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: testBase, Amount: *uint256.NewInt(1000)},
+		TokenAmountOut: pool.TokenAmt{Token: testQuote, Amount: *uint256.NewInt(990)},
+	})
+	clone.Samples[0][0][0].SetInt64(7)
+
+	require.Equal(t, origReserves, sim.GetReserves(), "UpdateState on the clone changed the original reserves")
+	require.Equal(t, 0, origSample.Cmp(sim.Samples[0][0][0]), "clone changed the original samples")
 }

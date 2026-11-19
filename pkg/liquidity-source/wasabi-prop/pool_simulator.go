@@ -68,28 +68,7 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	return sim, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenOut := strings.ToLower(params.TokenOut)
-	amountOut, err := s.quote(params.TokenAmountIn.Token, tokenOut, params.TokenAmountIn.Amount)
-	if err != nil {
-		return nil, err
-	}
-
-	if limit := params.Limit; limit != nil {
-		inventoryLimit := limit.GetLimit(tokenOut)
-		if inventoryLimit != nil && amountOut.Cmp(inventoryLimit) > 0 {
-			return nil, pool.ErrNotEnoughInventory
-		}
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut},
-		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: big.NewInt(0)},
-		Gas:            defaultGas,
-	}, nil
-}
-
-// CalcAmtOut is CalcAmountOut with uint256 amounts. The quote runs in big.Int, converted once at each end.
+// CalcAmtOut quotes in uint256 amounts. The quote runs in big.Int, converted once at each end.
 func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	tokenOut := strings.ToLower(params.TokenOut)
 	amountOutBig, err := s.quote(params.TokenAmountIn.Token, tokenOut, params.TokenAmountIn.Amount.ToBig())
@@ -143,31 +122,29 @@ func (s *PoolSimulator) quote(tokenIn, tokenOut string, amountIn *big.Int) (*big
 	return amountOut, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
+func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
+	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenAmountOut.Token
+	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return
 	}
-	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	amountIn := params.TokenAmountIn.Amount.ToBig()
+	amountOut := params.TokenAmountOut.Amount.ToBig()
+	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], amountIn)
+	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], amountOut)
 	if s.remainingIn[indexIn] != nil {
-		s.remainingIn[indexIn] = new(big.Int).Sub(s.remainingIn[indexIn], params.TokenAmountIn.Amount)
+		s.remainingIn[indexIn] = new(big.Int).Sub(s.remainingIn[indexIn], amountIn)
 		if s.remainingIn[indexIn].Sign() < 0 {
 			s.remainingIn[indexIn] = big.NewInt(0)
 		}
 	}
 
-	if limit := params.SwapLimitBig; limit != nil {
-		_, _, _ = limit.UpdateLimit(
-			params.TokenAmountOut.Token,
-			params.TokenAmountIn.Token,
-			params.TokenAmountOut.Amount,
-			params.TokenAmountIn.Amount,
-		)
+	if limit := params.SwapLimit; limit != nil {
+		_, _, _ = limit.UpdateLimit(tokenOut, tokenIn, &params.TokenAmountOut.Amount, &params.TokenAmountIn.Amount)
 	}
 }
 
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (s *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *s
 	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
 	cloned.Samples = make([][][2]*big.Int, len(s.Samples))
@@ -192,11 +169,31 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return pool.MetaInfo{ApprovalAddress: s.RouterAddress, BlockNumber: s.Info.BlockNumber}
 }
 
-func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
+func (s *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(s.Info.Reserves))
+	for i, r := range s.Info.Reserves {
+		out[i] = *reserveToU256(r)
+	}
+	return out
+}
+
+func (s *PoolSimulator) CalcLimit() map[string]*uint256.Int {
 	tokens, reserves := s.GetTokens(), s.GetReserves()
-	inventory := make(map[string]*big.Int, len(tokens))
+	inventory := make(map[string]*uint256.Int, len(tokens))
 	for i, token := range tokens {
-		inventory[token] = reserves[i]
+		inventory[token] = &reserves[i]
 	}
 	return inventory
+}
+
+// reserveToU256 converts a reserve. A nil, negative, or oversized reserve becomes zero.
+func reserveToU256(b *big.Int) *uint256.Int {
+	if b == nil || b.Sign() < 0 {
+		return new(uint256.Int)
+	}
+	u, overflow := uint256.FromBig(b)
+	if overflow {
+		return new(uint256.Int)
+	}
+	return u
 }

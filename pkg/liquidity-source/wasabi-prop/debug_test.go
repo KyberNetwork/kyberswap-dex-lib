@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -111,7 +112,7 @@ func TestWasabiPropDebug(t *testing.T) {
 		}
 	}
 
-	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
+	limit := swaplimit.NewInventory(DexType, sim.CalcLimit())
 
 	for _, dir := range directions {
 		for _, amt := range amounts {
@@ -130,36 +131,38 @@ func TestWasabiPropDebug(t *testing.T) {
 
 				_, qErr := req.Call()
 
-				simRes, simErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{
+				simRes, simErr := sim.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{
 						Token:  dir.tokenIn.Hex(),
-						Amount: amt,
+						Amount: *uint256.MustFromBig(amt),
 					},
 					TokenOut: dir.tokenOut.Hex(),
 					Limit:    limit,
 				})
 
 				if qErr != nil || quoterOut == nil || quoterOut.Sign() == 0 {
-					if simErr == nil && simRes != nil && simRes.TokenAmountOut.Amount.Sign() > 0 {
-						t.Errorf("quoter reverted but simulator accepted (out=%s) — simulator overestimates", simRes.TokenAmountOut.Amount)
+					if simErr == nil && simRes != nil && !simRes.TokenAmountOut.Amount.IsZero() {
+						t.Errorf("quoter reverted but simulator accepted (out=%s) — simulator overestimates", simRes.TokenAmountOut.Amount.Dec())
 					}
 					return
 				}
 
 				if simErr != nil || simRes == nil {
 					outIdx := sim.GetTokenIndex(hexutil.Encode(dir.tokenOut[:]))
-					if outIdx >= 0 && quoterOut.Cmp(sim.GetReserves()[outIdx]) >= 0 {
-						t.Logf("quoter %s >= reserve %s → exceeds inventory", quoterOut, sim.GetReserves()[outIdx])
+					reserves := sim.GetReserves()
+					if outIdx >= 0 && quoterOut.Cmp(reserves[outIdx].ToBig()) >= 0 {
+						t.Logf("quoter %s >= reserve %s → exceeds inventory", quoterOut, reserves[outIdx].Dec())
 						return
 					}
 					t.Errorf("quoter OK (out=%s) but simulator failed: %v", quoterOut, simErr)
 					return
 				}
 
-				bps := calculateBPS(quoterOut, simRes.TokenAmountOut.Amount)
-				t.Logf("amt=%s quote=%s sim=%s bps=%d", amt, quoterOut, simRes.TokenAmountOut.Amount, bps)
+				simOut := simRes.TokenAmountOut.Amount.ToBig()
+				bps := calculateBPS(quoterOut, simOut)
+				t.Logf("amt=%s quote=%s sim=%s bps=%d", amt, quoterOut, simOut, bps)
 				if bps > 200 {
-					t.Errorf("high BPS diff: %d (quote=%s, sim=%s)", bps, quoterOut, simRes.TokenAmountOut.Amount)
+					t.Errorf("high BPS diff: %d (quote=%s, sim=%s)", bps, quoterOut, simOut)
 				}
 			})
 		}
@@ -179,12 +182,12 @@ func TestWasabiPropMergeSwap(t *testing.T) {
 	numSwaps := 20
 	totalAmount := new(big.Int).Mul(amountPerSwap, big.NewInt(int64(numSwaps)))
 
-	limit1 := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim1.CalculateLimit())))
+	limit1 := swaplimit.NewInventory(DexType, sim1.CalcLimit())
 	totalOut1 := new(big.Int)
 	var err1 error
 	for i := range numSwaps {
-		res, err := sim1.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountPerSwap},
+		res, err := sim1.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: *uint256.MustFromBig(amountPerSwap)},
 			TokenOut:      tokenOut,
 			Limit:         limit1,
 		})
@@ -193,19 +196,18 @@ func TestWasabiPropMergeSwap(t *testing.T) {
 			t.Logf("N-swap: failed at swap %d: %v", i+1, err)
 			break
 		}
-		totalOut1.Add(totalOut1, res.TokenAmountOut.Amount)
-		sim1.UpdateBalance(pool.UpdateBalanceParams{
-			TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: amountPerSwap},
+		totalOut1.Add(totalOut1, res.TokenAmountOut.Amount.ToBig())
+		sim1.UpdateState(pool.UpdateStateParams{
+			TokenAmountIn:  pool.TokenAmt{Token: tokenIn, Amount: *uint256.MustFromBig(amountPerSwap)},
 			TokenAmountOut: *res.TokenAmountOut,
-			SwapLimitBig:   limit1,
+			SwapLimit:      limit1,
 		})
 	}
 
-	sim2Typed := sim2.(*PoolSimulator)
-	res2, err2 := sim2Typed.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: totalAmount},
+	res2, err2 := sim2.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: *uint256.MustFromBig(totalAmount)},
 		TokenOut:      tokenOut,
-		Limit:         pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim2Typed.CalculateLimit()))),
+		Limit:         swaplimit.NewInventory(DexType, sim2.CalcLimit()),
 	})
 
 	if err2 != nil {
@@ -219,12 +221,12 @@ func TestWasabiPropMergeSwap(t *testing.T) {
 	}
 
 	if totalOut1.Sign() == 0 {
-		t.Errorf("N swaps produced zero output but single swap N*X succeeded with out=%s", res2.TokenAmountOut.Amount)
+		t.Errorf("N swaps produced zero output but single swap N*X succeeded with out=%s", res2.TokenAmountOut.Amount.Dec())
 		return
 	}
 
-	bps := calculateBPS(totalOut1, res2.TokenAmountOut.Amount)
-	t.Logf("N swaps totalOut=%s, 1 swap totalOut=%s, BPS diff=%d", totalOut1, res2.TokenAmountOut.Amount, bps)
+	bps := calculateBPS(totalOut1, res2.TokenAmountOut.Amount.ToBig())
+	t.Logf("N swaps totalOut=%s, 1 swap totalOut=%s, BPS diff=%d", totalOut1, res2.TokenAmountOut.Amount.Dec(), bps)
 	require.LessOrEqual(t, bps, int64(1), "N consecutive swaps (amount X) should match 1 swap (amount N*X) within 1 BPS")
 }
 
