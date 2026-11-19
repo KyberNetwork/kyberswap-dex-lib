@@ -41,7 +41,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 			b.Run(s.name+"/"+impl.name, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if _, err := pool.DefaultCalcAmtOut(context.Background(), impl.p, params.TokenAmountIn, params.TokenOut, params.Limit); err != nil {
+					if _, err := pool.DefaultCalcAmtOut(context.Background(), impl.p, params.TokenAmountIn, params.TokenOut, nil); err != nil {
 						b.Fatal(err)
 					}
 				}
@@ -97,13 +97,13 @@ func BenchmarkRouteStep(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
 					p := impl.p.CloneState()
-					res, err := pool.DefaultCalcAmtOut(context.Background(), p, params.TokenAmountIn, params.TokenOut, params.Limit)
+					res, err := pool.DefaultCalcAmtOut(context.Background(), p, params.TokenAmountIn, params.TokenOut, nil)
 					if err != nil {
 						b.Fatal(err)
 					}
 					p.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn,
 						TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee})
-					if _, err = pool.DefaultCalcAmtOut(context.Background(), p, params.TokenAmountIn, params.TokenOut, params.Limit); err != nil {
+					if _, err = pool.DefaultCalcAmtOut(context.Background(), p, params.TokenAmountIn, params.TokenOut, nil); err != nil {
 						b.Fatal(err)
 					}
 				}

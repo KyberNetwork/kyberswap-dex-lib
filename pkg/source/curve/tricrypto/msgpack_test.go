@@ -46,7 +46,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 		TokenAmountIn: pool.TokenAmount{Token: "weth", Amount: big.NewInt(4e18)}, TokenOut: "usdt"}
 	want, err := p.CalcAmountOut(params)
 	require.NoError(t, err)
-	got, err := pool.DefaultCalcAmtOut(context.Background(), q, params.TokenAmountIn, params.TokenOut, params.Limit)
+	got, err := pool.DefaultCalcAmtOut(context.Background(), q, params.TokenAmountIn, params.TokenOut, nil)
 	require.NoError(t, err)
 	require.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.String())
 	require.Equal(t, want.Fee.Amount.String(), got.Fee.Amount.String())
