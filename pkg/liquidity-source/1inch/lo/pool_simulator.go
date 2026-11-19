@@ -147,8 +147,29 @@ func decodeOrders(orders []*Order) error {
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := param.TokenAmountIn
-	tokenOut := param.TokenOut
+	var amountIn uint256.Int
+	if param.TokenAmountIn.Amount != nil && amountIn.SetFromBig(param.TokenAmountIn.Amount) {
+		return nil, ErrCannotFulfillAmountIn
+	}
+	return p.quoteOut(param.TokenAmountIn.Token, param.TokenOut, &amountIn, param.Limit)
+}
+
+// CalcAmtOut is CalcAmountOut in uint256: the amount in and the limit are uint256.
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	res, err := p.quoteOut(params.TokenAmountIn.Token, params.TokenOut, &params.TokenAmountIn.Amount, pool.AsSwapLimitBig(params.Limit))
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: res.TokenAmountOut.Token, Amount: *uint256.MustFromBig(res.TokenAmountOut.Amount)},
+		Fee:            &pool.TokenAmt{Token: res.Fee.Token},
+		Gas:            res.Gas,
+		SwapInfo:       res.SwapInfo,
+	}, nil
+}
+
+func (p *PoolSimulator) quoteOut(tokenIn, tokenOut string, amountIn *uint256.Int, limit pool.SwapLimitBig) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := pool.TokenAmount{Token: tokenIn, Amount: amountIn.ToBig()}
 
 	swapSide := p.getSwapSide(tokenAmountIn.Token)
 	if swapSide == SwapSideUnknown {
@@ -198,7 +219,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		// the actual available balance might be less than `order.RemainingMakerAmount`
 		// for example: in this pool, we have used another order for the same maker and makerAsset:takerAsset pair in the previous loop
 		if makerRemainingBalance := getMakerRemainingBalance(
-			param.Limit,
+			limit,
 			filledMakingAmountByMaker,
 			order.Maker,
 			order.MakerAsset,
@@ -279,7 +300,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 				orderRemainingMakingAmount := number.Set(order.RemainingMakerAmount)
 				if makerRemainingBalance := getMakerRemainingBalance(
-					param.Limit,
+					limit,
 					filledMakingAmountByMaker,
 					order.Maker,
 					order.MakerAsset,
