@@ -37,7 +37,7 @@ func BenchmarkLista(b *testing.B) {
 			b.Run(c.name+"/CalcAmountOut/"+name, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if _, err := poolpkg.DefaultCalcAmtOut(context.Background(), sim, in.TokenAmountIn, in.TokenOut, in.Limit); err != nil {
+					if _, err := poolpkg.DefaultCalcAmtOut(context.Background(), sim, in.TokenAmountIn, in.TokenOut, nil); err != nil {
 						b.Fatal(err)
 					}
 				}

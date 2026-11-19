@@ -40,7 +40,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	} {
 		want, err := sim.CalcAmountOut(q)
 		require.NoError(t, err)
-		got, err := pool.DefaultCalcAmtOut(context.Background(), sims[p.Address], q.TokenAmountIn, q.TokenOut, q.Limit)
+		got, err := pool.DefaultCalcAmtOut(context.Background(), sims[p.Address], q.TokenAmountIn, q.TokenOut, nil)
 		require.NoError(t, err)
 		require.Equal(t, want, got)
 	}
