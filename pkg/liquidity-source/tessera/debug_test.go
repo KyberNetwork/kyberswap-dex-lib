@@ -239,7 +239,7 @@ func TestTesseraMultipleSwapsVsSingleSwap(t *testing.T) {
 		})
 	}
 
-	res2, err := pool.DefaultCalcAmtOut(context.Background(), sim2, pool.TokenAmount{Token: p.Tokens[0].Address, Amount: totalAmount}, p.Tokens[1].Address, pool.AsSwapLimitBig(swaplimit.NewInventory("tessera", swaplimit.ToU256Balances(sim2.CalculateLimit()))))
+	res2, err := pool.DefaultCalcAmtOut(context.Background(), sim2, pool.TokenAmount{Token: p.Tokens[0].Address, Amount: totalAmount}, p.Tokens[1].Address, swaplimit.NewInventory("tessera", swaplimit.ToU256Balances(sim2.CalculateLimit())))
 
 	if err == nil {
 		diff := new(big.Int).Abs(new(big.Int).Sub(totalOut1, res2.TokenAmountOut.Amount))

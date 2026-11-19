@@ -60,47 +60,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := params.TokenAmountIn
 	tokenOut := strings.ToLower(params.TokenOut)
-	tokenIn := strings.ToLower(tokenAmountIn.Token)
-
-	if s.GetTokenIndex(tokenIn) < 0 || s.GetTokenIndex(tokenOut) < 0 {
-		return nil, ErrInvalidToken
-	}
-
-	if !s.extra.TradingEnabled {
-		return nil, ErrTradingDisabled
-	}
-
-	if !s.extra.IsInitialised {
-		return nil, ErrNotInitialised
-	}
-
-	var isBaseToQuote bool
-	if strings.EqualFold(tokenIn, s.Info.Tokens[0]) {
-		isBaseToQuote = true
-	}
-
-	amountInRaw := uint256.MustFromBig(tokenAmountIn.Amount)
-
-	// Now only support swaps up to max prefetch points
-	// Quoter may accept larger amounts but interpolation has no data points beyond this range
-	// This prevents price deviation when swapping beyond the highest price level
-	var maxPrefetchAmount *uint256.Int
-	var prefetches []PrefetchRate
-	if isBaseToQuote {
-		maxPrefetchAmount = s.extra.MaxBaseToQuoteAmount
-		prefetches = s.extra.BaseToQuotePrefetches
-	} else {
-		maxPrefetchAmount = s.extra.MaxQuoteToBaseAmount
-		prefetches = s.extra.QuoteToBasePrefetches
-	}
-
-	if maxPrefetchAmount != nil && amountInRaw.Cmp(maxPrefetchAmount) > 0 {
-		return nil, ErrSwapReverted
-	}
-
-	amountOut, err := GetClosestRate(amountInRaw, prefetches)
+	amountOut, err := s.quote(params.TokenAmountIn.Token, tokenOut, uint256.MustFromBig(params.TokenAmountIn.Amount))
 	if err != nil {
 		return nil, err
 	}
@@ -118,11 +79,72 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: amountOut.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
+			Token:  params.TokenAmountIn.Token,
 			Amount: bignumber.ZeroBI,
 		},
 		Gas: defaultGas,
 	}, nil
+}
+
+// CalcAmtOut is CalcAmountOut with uint256 amounts. It shares quote and returns the same fields and errors.
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenOut := strings.ToLower(params.TokenOut)
+	amountOut, err := s.quote(params.TokenAmountIn.Token, tokenOut, &params.TokenAmountIn.Amount)
+	if err != nil {
+		return nil, err
+	}
+
+	if limit := params.Limit; limit != nil {
+		if inventoryLimit := limit.GetLimit(tokenOut); inventoryLimit != nil && amountOut.Gt(inventoryLimit) {
+			return nil, ErrSwapReverted
+		}
+	}
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
+		Fee:            &pool.TokenAmt{Token: params.TokenAmountIn.Token},
+		Gas:            defaultGas,
+	}, nil
+}
+
+// quote returns the amount out for amountIn before any inventory limit. Token addresses are lowercase.
+func (s *PoolSimulator) quote(tokenIn, tokenOut string, amountIn *uint256.Int) (*uint256.Int, error) {
+	tokenIn = strings.ToLower(tokenIn)
+	if s.GetTokenIndex(tokenIn) < 0 || s.GetTokenIndex(tokenOut) < 0 {
+		return nil, ErrInvalidToken
+	}
+
+	if !s.extra.TradingEnabled {
+		return nil, ErrTradingDisabled
+	}
+
+	if !s.extra.IsInitialised {
+		return nil, ErrNotInitialised
+	}
+
+	var isBaseToQuote bool
+	if strings.EqualFold(tokenIn, s.Info.Tokens[0]) {
+		isBaseToQuote = true
+	}
+
+	// Now only support swaps up to max prefetch points
+	// Quoter may accept larger amounts but interpolation has no data points beyond this range
+	// This prevents price deviation when swapping beyond the highest price level
+	var maxPrefetchAmount *uint256.Int
+	var prefetches []PrefetchRate
+	if isBaseToQuote {
+		maxPrefetchAmount = s.extra.MaxBaseToQuoteAmount
+		prefetches = s.extra.BaseToQuotePrefetches
+	} else {
+		maxPrefetchAmount = s.extra.MaxQuoteToBaseAmount
+		prefetches = s.extra.QuoteToBasePrefetches
+	}
+
+	if maxPrefetchAmount != nil && amountIn.Cmp(maxPrefetchAmount) > 0 {
+		return nil, ErrSwapReverted
+	}
+
+	return GetClosestRate(amountIn, prefetches)
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
