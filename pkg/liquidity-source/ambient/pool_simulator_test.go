@@ -148,3 +148,47 @@ func newTestPoolSimulator(t *testing.T) *PoolSimulator {
 
 	return sim
 }
+
+// The simulator reuses one tick-level index across quotes and clones. Quotes must equal the
+// per-call rebuild (levels == nil), including on a clone that has already traded.
+func TestPoolSimulatorSharedLevelsMatchRebuild(t *testing.T) {
+	t.Parallel()
+
+	sim := newTestPoolSimulator(t)
+	require.NotNil(t, sim.levels)
+
+	quote := func(s *PoolSimulator, in, out string, amt int64) (string, int64, error) {
+		res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: in, Amount: big.NewInt(amt)}, TokenOut: out,
+		})
+		if err != nil {
+			return "", 0, err
+		}
+		return res.TokenAmountOut.Amount.String(), res.Gas, nil
+	}
+	check := func(a, b *PoolSimulator) {
+		for _, amt := range []int64{1_000, 1_000_000, 1_000_000_000, 1_000_000_000_000} {
+			for _, dir := range [][2]string{{testWETH, testUSDC}, {testUSDC, testWETH}} {
+				outA, gasA, errA := quote(a, dir[0], dir[1], amt)
+				outB, gasB, errB := quote(b, dir[0], dir[1], amt)
+				require.Equal(t, errB, errA)
+				require.Equal(t, outB, outA)
+				require.Equal(t, gasB, gasA)
+			}
+		}
+	}
+	rebuild := func(s *PoolSimulator) *PoolSimulator { c := *s; c.levels = nil; return &c }
+
+	check(sim, rebuild(sim))
+
+	cloned := sim.CloneState().(*PoolSimulator)
+	res, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1_000_000)}, TokenOut: testUSDC,
+	})
+	require.NoError(t, err)
+	cloned.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn: pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1_000_000)}, TokenAmountOut: *res.TokenAmountOut,
+		Fee: *res.Fee, SwapInfo: res.SwapInfo,
+	})
+	check(cloned, rebuild(cloned))
+}
