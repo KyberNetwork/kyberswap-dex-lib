@@ -15,11 +15,20 @@ type SnapshotBitmapView struct {
 }
 
 func NewSnapshotBitmapView(state *TrackerExtra) *SnapshotBitmapView {
+	return newSnapshotBitmapView(state, buildLevels(state))
+}
+
+// buildLevels indexes state.Levels by tick. Levels never change after a pool is built (a swap only
+// moves the curve), so the simulator builds it once and shares it with its clones.
+func buildLevels(state *TrackerExtra) map[int32]BookLevel {
 	levels := make(map[int32]BookLevel, len(state.Levels))
 	for _, level := range state.Levels {
 		levels[level.Tick] = level.Level
 	}
+	return levels
+}
 
+func newSnapshotBitmapView(state *TrackerExtra, levels map[int32]BookLevel) *SnapshotBitmapView {
 	minTick := state.MinTick
 	maxTick := state.MaxTick
 	if minTick == 0 && maxTick == 0 {
