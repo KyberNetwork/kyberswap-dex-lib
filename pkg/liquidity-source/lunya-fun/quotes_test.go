@@ -302,7 +302,7 @@ func TestUpdateBalance(t *testing.T) {
 			require.NoError(t, err)
 
 			clone := sim.CloneState()
-			bought, err := pool.DefaultCalcAmtOut(context.Background(), clone, params.TokenAmountIn, params.TokenOut, params.Limit)
+			bought, err := pool.DefaultCalcAmtOut(context.Background(), clone, params.TokenAmountIn, params.TokenOut, nil)
 			require.NoError(t, err)
 			assert.Equal(t, before.TokenAmountOut.Amount, bought.TokenAmountOut.Amount, "quoting is pure")
 
@@ -316,7 +316,7 @@ func TestUpdateBalance(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, before.TokenAmountOut.Amount, again.TokenAmountOut.Amount, "the original is untouched")
 
-			after, err := pool.DefaultCalcAmtOut(context.Background(), clone, params.TokenAmountIn, params.TokenOut, params.Limit)
+			after, err := pool.DefaultCalcAmtOut(context.Background(), clone, params.TokenAmountIn, params.TokenOut, nil)
 			require.NoError(t, err)
 			assert.Negative(t, after.TokenAmountOut.Amount.Cmp(before.TokenAmountOut.Amount),
 				"the clone prices after its own buy, further along the curve")
