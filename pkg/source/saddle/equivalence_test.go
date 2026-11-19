@@ -70,7 +70,7 @@ func quoteOf(sim pool.IPoolSimulator, in pool.CalcAmountOutParams) (q quote) {
 			q = quote{err: fmt.Sprint("panic: ", r)}
 		}
 	}()
-	res, err := pool.DefaultCalcAmtOut(context.Background(), sim, in.TokenAmountIn, in.TokenOut, in.Limit)
+	res, err := pool.DefaultCalcAmtOut(context.Background(), sim, in.TokenAmountIn, in.TokenOut, nil)
 	if err != nil {
 		return quote{err: err.Error()}
 	}
@@ -289,7 +289,7 @@ func BenchmarkSaddle(b *testing.B) {
 			b.Run(c.name+"/"+name, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if _, err := pool.DefaultCalcAmtOut(context.Background(), sim, c.in.TokenAmountIn, c.in.TokenOut, c.in.Limit); err != nil {
+					if _, err := pool.DefaultCalcAmtOut(context.Background(), sim, c.in.TokenAmountIn, c.in.TokenOut, nil); err != nil {
 						b.Fatal(err)
 					}
 				}
