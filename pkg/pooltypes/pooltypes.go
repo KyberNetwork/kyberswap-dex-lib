@@ -395,6 +395,7 @@ type Types struct {
 	RenzoEZETH                 string
 	Slipstream                 string
 	NuriV2                     string
+	OwlSwapV3                  string
 	EtherVista                 string
 	MkrSky                     string
 	DaiUsds                    string
@@ -670,6 +671,7 @@ var (
 		RenzoEZETH:                 ezeth.DexType,
 		Slipstream:                 uniswapv3.DexTypeSlipstream,
 		NuriV2:                     uniswapv3.DexTypeNuriV2,
+		OwlSwapV3:                  uniswapv3.DexTypeOwlSwapV3,
 		EtherVista:                 ethervista.DexType,
 		MkrSky:                     mkrsky.DexType,
 		DaiUsds:                    daiusds.DexType,
