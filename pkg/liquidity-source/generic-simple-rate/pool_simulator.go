@@ -3,6 +3,7 @@ package generic_simple_rate
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -65,7 +66,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	if p.paused {
 		return nil, ErrPoolPaused
 	}
@@ -77,22 +78,18 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var tokenOutIndex = p.GetTokenIndex(tokenOut)
 
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex: %v or tokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
+		return &pool.CalcAmtOutResult{}, fmt.Errorf("tokenInIndex: %v or tokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	amountOut, err := p.calcAmountOut(tokenInIndex, tokenAmountIn.Amount)
-	if err != nil {
-		return nil, err
-	}
+	amountOut := p.calcAmountOut(tokenInIndex, &tokenAmountIn.Amount)
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{
 			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
+			Amount: *amountOut,
 		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: bignumber.ZeroBI,
+		Fee: &pool.TokenAmt{
+			Token: tokenAmountIn.Token,
 		},
 		Gas: p.gas,
 	}, nil
@@ -135,7 +132,38 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}, nil
 }
 
-func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateState(_ pool.UpdateStateParams) {
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSim {
+	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	return &cloned
+}
+
+func (p *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(p.Info.Reserves))
+	for i, r := range p.Info.Reserves {
+		out[i] = *reserveToU256(r)
+	}
+	return out
+}
+
+// CalcLimit returns nil: generic-simple-rate has no shared inventory limit.
+func (p *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
+}
+
+// reserveToU256 converts a reserve. A nil, negative, or oversized reserve becomes zero.
+func reserveToU256(b *big.Int) *uint256.Int {
+	if b == nil || b.Sign() < 0 {
+		return new(uint256.Int)
+	}
+	u, overflow := uint256.FromBig(b)
+	if overflow {
+		return new(uint256.Int)
+	}
+	return u
 }
 
 func (p *PoolSimulator) CanSwapTo(address string) []string {
@@ -172,17 +200,14 @@ func (p *PoolSimulator) SwapReturnNativeOut(_, tokenOut string, chainId valueobj
 	return ok && valueobject.IsWrappedNative(tokenOut, chainId)
 }
 
-func (p *PoolSimulator) calcAmountOut(tokenInIndex int, amountIn *big.Int) (*uint256.Int, error) {
-	amountOut := new(uint256.Int)
-	if amountOut.SetFromBig(amountIn) {
-		return nil, ErrOverflow
-	}
+func (p *PoolSimulator) calcAmountOut(tokenInIndex int, amountIn *uint256.Int) *uint256.Int {
+	amountOut := new(uint256.Int).Set(amountIn)
 	if p.isRateInversed == (tokenInIndex == 0) {
 		amountOut = amountOut.Mul(amountOut, p.rateUnit).Div(amountOut, p.rate)
 	} else {
 		amountOut = amountOut.Div(amountOut, p.rateUnit).Mul(amountOut, p.rate)
 	}
-	return amountOut, nil
+	return amountOut
 }
 
 // calcAmountIn inverts calcAmountOut with ceiling rounding.

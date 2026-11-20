@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
@@ -77,16 +78,18 @@ func TestGetAmountOut(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			pool, err := NewPoolSimulator(tc.entityPool)
 			assert.Nil(t, err)
-			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*poolPkg.CalcAmountOutResult, error) {
-				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
-					TokenAmountIn: tc.tokenAmountIn,
+			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*poolPkg.CalcAmtOutResult, error) {
+				return pool.CalcAmtOut(poolPkg.CalcAmtOutParams{
+					TokenAmountIn: poolPkg.TokenAmt{Token: tc.tokenAmountIn.Token, Amount: *uint256.MustFromBig(tc.tokenAmountIn.Amount)},
 					TokenOut:      tc.tokenOut,
 					Limit:         nil,
 				})
 			})
 
 			assert.Equal(t, tc.expectedErr, err)
-			assert.Equal(t, tc.expectedAmountOut, calcAmountOutResult.TokenAmountOut)
+			assert.Equal(t, tc.expectedAmountOut.Token, calcAmountOutResult.TokenAmountOut.Token)
+			assert.Equal(t, tc.expectedAmountOut.Amount.String(), calcAmountOutResult.TokenAmountOut.Amount.Dec())
+			assert.Zero(t, calcAmountOutResult.TokenAmountOut.AmountUsd)
 		})
 	}
 }
@@ -144,18 +147,50 @@ func TestCalcAmountIn(t *testing.T) {
 			assert.Equal(t, tc.wantIn, res.TokenAmountIn.Amount.String())
 
 			// Round trip: amountIn gives >= out, and amountIn-1 gives < out (minimality).
-			outRes, err := sim.CalcAmountOut(poolPkg.CalcAmountOutParams{TokenAmountIn: *res.TokenAmountIn, TokenOut: tokenOut})
+			outRes, err := sim.CalcAmtOut(poolPkg.CalcAmtOutParams{TokenAmountIn: tokenAmt(res.TokenAmountIn), TokenOut: tokenOut})
 			assert.NoError(t, err)
-			assert.GreaterOrEqual(t, outRes.TokenAmountOut.Amount.Cmp(bignumber.NewBig(tc.out)), 0)
-			less := poolPkg.TokenAmount{Token: tc.tokenIn, Amount: new(big.Int).Sub(res.TokenAmountIn.Amount, big1)}
-			outRes, err = sim.CalcAmountOut(poolPkg.CalcAmountOutParams{TokenAmountIn: less, TokenOut: tokenOut})
+			assert.GreaterOrEqual(t, outRes.TokenAmountOut.Amount.ToBig().Cmp(bignumber.NewBig(tc.out)), 0)
+			less := poolPkg.TokenAmt{Token: tc.tokenIn, Amount: *uint256.MustFromBig(new(big.Int).Sub(res.TokenAmountIn.Amount, big1))}
+			outRes, err = sim.CalcAmtOut(poolPkg.CalcAmtOutParams{TokenAmountIn: less, TokenOut: tokenOut})
 			assert.NoError(t, err)
-			assert.Less(t, outRes.TokenAmountOut.Amount.Cmp(bignumber.NewBig(tc.out)), 0)
+			assert.Less(t, outRes.TokenAmountOut.Amount.ToBig().Cmp(bignumber.NewBig(tc.out)), 0)
+		})
+	}
+}
+
+// TestCalcAmtOutMatchesLegacyGolden pins the native quote to values the legacy big.Int CalcAmountOut produced
+// before the port, including the 1-wei and max-uint256 edges.
+func TestCalcAmtOutMatchesLegacyGolden(t *testing.T) {
+	const t0, t1 = "0x56072c95faa701256059aa122697b133aded9279", "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2"
+	sim, err := NewPoolSimulator(testPool)
+	assert.NoError(t, err)
+
+	cases := []struct {
+		name, tokenIn, tokenOut, amountIn, wantOut string
+	}{
+		{"t0-1e18", t0, t1, "1000000000000000000", "41666666666666"},
+		{"t1-1e18", t1, t0, "1000000000000000000", "24000000000000000000000"},
+		{"t0-1-wei-rounds-to-zero", t0, t1, "1", "0"},
+		{"t1-23999", t1, t0, "23999", "575976000"},
+		{"t0-max-uint256", t0, t1, "115792089237316195423570985008687907853269984665640564039457584007913129639935", "4824670384888174809315457708695329493886249361068356834977399333663047068"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := sim.CalcAmtOut(poolPkg.CalcAmtOutParams{
+				TokenAmountIn: poolPkg.TokenAmt{Token: tc.tokenIn, Amount: *uint256.MustFromDecimal(tc.amountIn)},
+				TokenOut:      tc.tokenOut,
+			})
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantOut, res.TokenAmountOut.Amount.Dec())
 		})
 	}
 }
 
 var big1 = big.NewInt(1)
+
+func tokenAmt(t *poolPkg.TokenAmount) poolPkg.TokenAmt {
+	return poolPkg.TokenAmt{Token: t.Token, Amount: *uint256.MustFromBig(t.Amount)}
+}
 
 // onchain-price-service derives its sell pool types from CanCalcAmountIn.
 func TestRegisteredAsExactOut(t *testing.T) {
