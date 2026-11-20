@@ -4,10 +4,12 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 var (
@@ -17,36 +19,66 @@ var (
 	poolSim = lo.Must(NewPoolSimulator(entityPool))
 )
 
-func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+// TestPoolSimulator_CalcAmtOutGolden pins the native quote to the on-chain simulations linked below.
+func TestPoolSimulator_CalcAmtOutGolden(t *testing.T) {
 	t.Parallel()
-	testutil.TestCalcAmountOut(t, poolSim, map[int]map[int]map[string]string{
-		1: {
-			0: {
-				"1000000000000000000": "980775829738257783", // https://www.tdly.co/shared/simulation/55c5b682-43bb-4d91-8243-e37afe5f220c
-			},
-		},
-		0: {
-			1: {
-				"1000000000000000000": "1015526657366552557", // https://www.tdly.co/shared/simulation/fa0f7349-e2e2-4095-ad56-89becb2241d2
-			},
-		},
-	})
+	cases := []struct {
+		name     string
+		tokenIn  int
+		amountIn string
+		wantOut  string
+	}{
+		// https://www.tdly.co/shared/simulation/55c5b682-43bb-4d91-8243-e37afe5f220c
+		{"bond-1e18", 1, "1000000000000000000", "980775829738257783"},
+		// https://www.tdly.co/shared/simulation/fa0f7349-e2e2-4095-ad56-89becb2241d2
+		{"debond-1e18", 0, "1000000000000000000", "1015526657366552557"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := poolSim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: poolSim.Info.Tokens[tc.tokenIn], Amount: *uint256.MustFromDecimal(tc.amountIn)},
+				TokenOut:      poolSim.Info.Tokens[1-tc.tokenIn],
+			})
+			require.NoError(t, err)
+			require.Equal(t, tc.wantOut, res.TokenAmountOut.Amount.Dec())
+		})
+	}
 }
 
-func TestPoolSimulator_CalcAmountOutWithUpdateBalance(t *testing.T) {
-	// t.Parallel()
-	testutil.TestCalcAmountOutWithUpdateBalance(t, poolSim, map[int]map[int][][][2]string{
-		1: {
-			0: [][][2]string{
-				{{"1000000000000000000", "980775829738257783"}},
-				{{"1000000000000000000", "980775829738257783"}, {"1000000000000000000", "980786856564798846"}},
-			},
-		},
-		0: {
-			1: [][][2]string{
-				{{"1000000000000000000", "1015526657366552557"}},
-				{{"1000000000000000000", "1015526657366552557"}, {"1000000000000000000", "1015526665504878830"}},
-			},
-		},
-	})
+// TestPoolSimulator_CalcAmtOutWithUpdateState replays the swap sequence on a clone, checking each output.
+func TestPoolSimulator_CalcAmtOutWithUpdateState(t *testing.T) {
+	cases := []struct {
+		name    string
+		tokenIn int
+		steps   [][2]string
+	}{
+		{"bond", 1, [][2]string{
+			{"1000000000000000000", "980775829738257783"},
+			{"1000000000000000000", "980786856564798846"},
+		}},
+		{"debond", 0, [][2]string{
+			{"1000000000000000000", "1015526657366552557"},
+			{"1000000000000000000", "1015526665504878830"},
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			sim := poolSim.CloneState().(*PoolSimulator)
+			tokenIn, tokenOut := sim.Info.Tokens[tc.tokenIn], sim.Info.Tokens[1-tc.tokenIn]
+			for i, step := range tc.steps {
+				amtIn := uint256.MustFromDecimal(step[0])
+				res, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: *amtIn},
+					TokenOut:      tokenOut,
+				})
+				require.NoError(t, err, "step %d", i)
+				require.Equal(t, step[1], res.TokenAmountOut.Amount.Dec(), "step %d", i)
+				sim.UpdateState(pool.UpdateStateParams{
+					TokenAmountIn:  pool.TokenAmt{Token: tokenIn, Amount: *amtIn},
+					TokenAmountOut: *res.TokenAmountOut,
+					Fee:            *res.Fee,
+				})
+			}
+		})
+	}
 }

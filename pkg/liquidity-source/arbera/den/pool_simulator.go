@@ -42,7 +42,7 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	var (
 		tokenAmountIn = params.TokenAmountIn
 		tokenOut      = params.TokenOut
@@ -52,7 +52,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if indexIn < 0 || indexOut < 0 || len(s.Info.Tokens) != 2 {
 		return nil, ErrInvalidToken
 	}
-	amtIn := uint256.MustFromBig(tokenAmountIn.Amount)
+	amtIn := &tokenAmountIn.Amount
 	var amtOut, fee *uint256.Int
 	var err error
 	if indexIn == 0 {
@@ -64,15 +64,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amtOut.ToBig(),
-		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: fee.ToBig(),
-		},
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amtOut},
+		Fee:            &pool.TokenAmt{Token: tokenAmountIn.Token, Amount: *fee},
 	}, nil
 }
 
@@ -127,7 +121,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return fee
 }
 
-func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
 		return
@@ -135,7 +129,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	feeBurned, newSupply, newAssetBalance := new(uint256.Int), new(uint256.Int), new(uint256.Int)
 	// (fee * fees.burn) / DEN
-	feeBurned.Mul(uint256.MustFromBig(params.Fee.Amount), s.Fee.Burn).Div(feeBurned, DEN)
+	feeBurned.Mul(&params.Fee.Amount, s.Fee.Burn).Div(feeBurned, DEN)
 	if indexIn == 0 { // debond - brToken -> token
 		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Info.Tokens[indexOut] })
 		if !found {
@@ -143,13 +137,13 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		}
 		// burn amountIn after fee + burn part of fee
 		s.Supply = newSupply.
-			Sub(s.Supply, uint256.MustFromBig(params.TokenAmountIn.Amount)).
-			Add(newSupply, uint256.MustFromBig(params.Fee.Amount)).
+			Sub(s.Supply, &params.TokenAmountIn.Amount).
+			Add(newSupply, &params.Fee.Amount).
 			Sub(newSupply, feeBurned)
 
 		// decrease balance of token out
 		s.AssetSupplies[tokenIdx] = newAssetBalance.
-			Sub(s.AssetSupplies[tokenIdx], uint256.MustFromBig(params.TokenAmountOut.Amount))
+			Sub(s.AssetSupplies[tokenIdx], &params.TokenAmountOut.Amount)
 	} else { // bond - token -> brToken
 		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Info.Tokens[indexIn] })
 		if !found {
@@ -157,20 +151,45 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		}
 		// mint amountOut before fee + burn part of fee
 		s.Supply = newSupply.
-			Add(s.Supply, uint256.MustFromBig(params.TokenAmountOut.Amount)).
-			Add(newSupply, uint256.MustFromBig(params.Fee.Amount)).
+			Add(s.Supply, &params.TokenAmountOut.Amount).
+			Add(newSupply, &params.Fee.Amount).
 			Sub(newSupply, feeBurned)
 		// increase balance of token in
 		s.AssetSupplies[tokenIdx] = newAssetBalance.
-			Sub(s.AssetSupplies[tokenIdx], uint256.MustFromBig(params.TokenAmountIn.Amount))
+			Sub(s.AssetSupplies[tokenIdx], &params.TokenAmountIn.Amount)
 	}
 }
 
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (s *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *s
 	cloned.Supply = new(uint256.Int).Set(s.Supply)
 	cloned.AssetSupplies = lo.Map(s.AssetSupplies, func(e *uint256.Int, _ int) *uint256.Int { return new(uint256.Int).Set(e) })
 	return &cloned
+}
+
+func (s *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(s.Info.Reserves))
+	for i, r := range s.Info.Reserves {
+		out[i] = *reserveToU256(r)
+	}
+	return out
+}
+
+// CalcLimit returns nil: arbera-den has no shared inventory limit.
+func (s *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
+}
+
+// reserveToU256 converts a reserve. A nil, negative, or oversized reserve becomes zero.
+func reserveToU256(b *big.Int) *uint256.Int {
+	if b == nil || b.Sign() < 0 {
+		return new(uint256.Int)
+	}
+	u, overflow := uint256.FromBig(b)
+	if overflow {
+		return new(uint256.Int)
+	}
+	return u
 }
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string {
