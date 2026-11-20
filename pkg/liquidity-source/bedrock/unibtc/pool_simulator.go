@@ -37,7 +37,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		},
-		Tokens: entityPool.Tokens,
+		Tokens: entity.ClonePoolTokens(entityPool.Tokens),
 		extra:  extra,
 		gas:    defaultGas,
 	}, nil

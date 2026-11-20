@@ -1,12 +1,16 @@
 package unibtc
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -45,4 +49,27 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			2: {"100000000000": ""},
 		},
 	})
+}
+
+// The router recycles decoded entities (entity.Pool.Clear, then a new decode into the same object), so a simulator
+// must not keep the entity's token slice or the PoolToken values it points to.
+func TestNewPoolSimulator_DoesNotShareEntityTokens(t *testing.T) {
+	t.Parallel()
+	var recycled entity.Pool
+	data, err := json.Marshal(entityPool)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(data, &recycled))
+	sim, err := NewPoolSimulator(recycled)
+	require.NoError(t, err)
+
+	recycled.Clear()
+
+	uniBTC := entityPool.Tokens[3].Address
+	assert.Equal(t, []string{uniBTC}, sim.CanSwapFrom(entityPool.Tokens[0].Address))
+	result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: entityPool.Tokens[0].Address, Amount: big.NewInt(100000000000)},
+		TokenOut:      uniBTC,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "100000000000", result.TokenAmountOut.Amount.String())
 }
