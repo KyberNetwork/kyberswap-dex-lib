@@ -7,6 +7,8 @@ import (
 	"github.com/goccy/go-json"
 )
 
+const rehypeGas int64 = 198835
+
 var (
 	h = common.HexToAddress
 
@@ -45,6 +47,14 @@ var (
 		h("0x5F9eB5f6726Fe88D5e39867967F5b833d2fA3215"): NewRehypeDHookV2, // ethereum RehypeDopplerHookInitializer v2 (MAX_SWAP_FEE = 1e6)
 		h("0xA7465b9d101cf3B2381D6CD42f2C5E72f9453984"): NewRehypeDHookV2, // bsc/arc RehypeDopplerHookInitializer v2 (MAX_SWAP_FEE = 1e6)
 		h("0xE2aEbC987592593b667EC29178d0A83929DB78b6"): NewRehypeDHookV2,
+	}
+
+	// rehypeFeeSwapGas overrides rehypeGas for a fee-charging swap on the listed rehype hooks. On robinhood every swap
+	// with a fee runs fee collection, a fee rebalance swap and a full-range liquidity add inside afterSwap (685k of the
+	// 775k executor edge, measured 2026-11-19 on 2 pools, both directions, 0.01%-20% of the reserve: 711k-824k, flat
+	// in size).
+	rehypeFeeSwapGas = map[common.Address]int64{
+		h("0x6f02324d20CC679d0E585290CAa6b16baCbC0F77"): 660_000, // robinhood RehypeDopplerHookInitializer
 	}
 
 	ErrCannotSwapBeforeStartingTime = errors.New("cannot swap before starting time")

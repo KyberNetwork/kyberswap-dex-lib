@@ -239,10 +239,16 @@ func (h *RehypeDHook) getCurrentFee() int64 {
 	return h.StartFee - (h.StartFee-h.EndFee)*elapsed/h.DurationSeconds
 }
 
-func (h *RehypeDHook) AfterSwap(params *uniswapv4.AfterSwapParams, _ *DHook) (*uniswapv4.AfterSwapResult, error) {
+func (h *RehypeDHook) AfterSwap(params *uniswapv4.AfterSwapParams, dExtra *DHook) (*uniswapv4.AfterSwapResult, error) {
 	currentFee := h.getCurrentFee()
 	if currentFee == 0 {
-		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI, Gas: 198835}, nil
+		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI, Gas: rehypeGas}, nil
+	}
+	gas := rehypeGas
+	if dExtra != nil {
+		if g, ok := rehypeFeeSwapGas[dExtra.DHook]; ok {
+			gas = g
+		}
 	}
 	feeBase := lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn)
 	denominator := h.feeDenominator
@@ -251,6 +257,6 @@ func (h *RehypeDHook) AfterSwap(params *uniswapv4.AfterSwapParams, _ *DHook) (*u
 	}
 	return &uniswapv4.AfterSwapResult{
 		HookFee: bignumber.MulDivDown(new(big.Int), big.NewInt(currentFee), feeBase, big.NewInt(denominator)),
-		Gas:     198835,
+		Gas:     gas,
 	}, nil
 }
