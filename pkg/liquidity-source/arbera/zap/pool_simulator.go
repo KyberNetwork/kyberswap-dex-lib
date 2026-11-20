@@ -2,6 +2,7 @@ package arberazap
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -136,7 +137,12 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }
+// CloneState copies the base pool slice: SetBasePool on the clone must not change the shared simulator.
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.basePools = slices.Clone(s.basePools)
+	return &cloned
+}
 
 func (s *PoolSimulator) SetBasePool(newBasePool pool.IPoolSimulator) {
 	_, idx, found := lo.FindIndexOf(s.basePools, func(basePool pool.IPoolSimulator) bool {
@@ -148,7 +154,7 @@ func (s *PoolSimulator) SetBasePool(newBasePool pool.IPoolSimulator) {
 }
 
 func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
-	return s.basePools
+	return slices.Clone(s.basePools)
 }
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string {
