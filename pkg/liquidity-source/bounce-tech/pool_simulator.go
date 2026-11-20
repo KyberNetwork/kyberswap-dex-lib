@@ -66,12 +66,12 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-// CalcAmountOut computes the output for a mint (USDC→LT) or redeem (LT→USDC) swap.
+// CalcAmtOut computes the output for a mint (USDC→LT) or redeem (LT→USDC) swap.
 //
 // Token layout: tokens[0]=USDC, tokens[1]=LT.
 //   - indexIn==0 → mint:   ltOut  = usdcIn * 1e30 / exchangeRate
 //   - indexIn==1 → redeem: usdcOut = ltIn * exchangeRate / 1e30 - redemptionFee
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 
 	indexIn := s.GetTokenIndex(tokenAmountIn.Token)
@@ -79,16 +79,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
 	}
-	if tokenAmountIn.Amount == nil || tokenAmountIn.Amount.Sign() <= 0 {
+	if tokenAmountIn.Amount.IsZero() {
 		return nil, ErrZeroAmount
 	}
 	if s.exchangeRate.IsZero() {
 		return nil, ErrZeroExchangeRate
-	}
-
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrZeroAmount
 	}
 
 	isMint := indexIn == 0
@@ -96,19 +91,17 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrMintPaused
 	}
 
-	var amountOut *uint256.Int
-	var fee *uint256.Int
-	var grossAmountOut *uint256.Int
+	var amountOut, fee, grossAmountOut *uint256.Int
 	var gas int64
 
 	if isMint {
-		if !s.minTxSize.IsZero() && amountIn.Lt(s.minTxSize) {
+		if !s.minTxSize.IsZero() && tokenAmountIn.Amount.Lt(s.minTxSize) {
 			return nil, ErrBelowMinAmount
 		}
-		amountOut, fee = s.calcMintOut(amountIn)
+		amountOut, fee = s.calcMintOut(&tokenAmountIn.Amount)
 		gas = mintGas
 	} else {
-		grossAmountOut, amountOut, fee = s.calcRedeemOut(amountIn)
+		grossAmountOut, amountOut, fee = s.calcRedeemOut(&tokenAmountIn.Amount)
 		gas = redeemGas
 
 		if !s.minTxSize.IsZero() && grossAmountOut.Lt(s.minTxSize) {
@@ -116,8 +109,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		}
 
 		// The LT contract checks the gross base amount before paying redemption fees.
-		reserve := s.Info.Reserves[0] // USDC reserve = baseAssetBalance
-		if grossAmountOut.ToBig().Cmp(reserve) > 0 {
+		reserve := reserveToU256(s.Info.Reserves[0]) // USDC reserve = baseAssetBalance
+		if grossAmountOut.Gt(reserve) {
 			return nil, ErrInsufficientBalance
 		}
 	}
@@ -126,9 +119,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrZeroAmount
 	}
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: fee.ToBig()},
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
+		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *fee},
 		Gas:            gas,
 		SwapInfo:       SwapInfo{IsMint: isMint},
 	}, nil
@@ -268,28 +261,15 @@ func (s *PoolSimulator) calcRedeemOut(ltIn *uint256.Int) (*uint256.Int, *uint256
 	return grossUsdc, usdcOut, fee
 }
 
-func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	si, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
 		return
 	}
-	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
-	if overflow {
-		return
-	}
-	amountOut, overflow := uint256.FromBig(params.TokenAmountOut.Amount)
-	if overflow {
-		return
-	}
+	amountIn, amountOut := &params.TokenAmountIn.Amount, &params.TokenAmountOut.Amount
 
-	usdcReserve, overflow := uint256.FromBig(s.Info.Reserves[0])
-	if overflow {
-		return
-	}
-	ltReserve, overflow := uint256.FromBig(s.Info.Reserves[1])
-	if overflow {
-		return
-	}
+	usdcReserve := reserveToU256(s.Info.Reserves[0])
+	ltReserve := reserveToU256(s.Info.Reserves[1])
 
 	if si.IsMint {
 		// USDC in, LT out: USDC reserve increases, LT supply increases
@@ -297,13 +277,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		ltReserve.Add(ltReserve, amountOut)
 	} else {
 		// LT in, USDC out: base balance decreases by gross USDC (user output + redemption fee).
-		grossOut := amountOut.Clone()
-		if params.Fee.Amount != nil {
-			fee, overflow := uint256.FromBig(params.Fee.Amount)
-			if !overflow {
-				grossOut.Add(grossOut, fee)
-			}
-		}
+		grossOut := new(uint256.Int).Add(amountOut, &params.Fee.Amount)
 		if grossOut.Gt(usdcReserve) {
 			usdcReserve.Clear()
 		} else {
@@ -316,13 +290,38 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.Info.Reserves[1] = ltReserve.ToBig()
 }
 
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (s *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *s
 	cloned.Info.Reserves = make([]*big.Int, len(s.Info.Reserves))
 	for i, r := range s.Info.Reserves {
 		cloned.Info.Reserves[i] = new(big.Int).Set(r)
 	}
 	return &cloned
+}
+
+func (s *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(s.Info.Reserves))
+	for i, r := range s.Info.Reserves {
+		out[i] = *reserveToU256(r)
+	}
+	return out
+}
+
+// CalcLimit returns nil: bounce-tech has no shared inventory limit.
+func (s *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
+}
+
+// reserveToU256 converts a reserve. A nil, negative, or oversized reserve becomes zero.
+func reserveToU256(b *big.Int) *uint256.Int {
+	if b == nil || b.Sign() < 0 {
+		return new(uint256.Int)
+	}
+	u, overflow := uint256.FromBig(b)
+	if overflow {
+		return new(uint256.Int)
+	}
+	return u
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {

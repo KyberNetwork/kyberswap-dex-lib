@@ -10,7 +10,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 const (
@@ -18,20 +17,20 @@ const (
 	testLT   = "0x0000000000000000000000000000000000000002"
 )
 
-func TestCalcAmountOutRedeemUsesGrossAmountForReserveAndState(t *testing.T) {
+func TestCalcAmtOutRedeemUsesGrossAmountForReserveAndState(t *testing.T) {
 	s := newBounceTechTestSimulator(t, "1000000000")
-	amountIn := mustBig("100000000000000000000") // 100 LT
+	amountIn := uint256.MustFromDecimal("100000000000000000000") // 100 LT
 
-	res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testLT, Amount: amountIn},
+	res, err := s.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: testLT, Amount: *amountIn},
 		TokenOut:      testUSDC,
 	})
 	require.NoError(t, err)
-	require.Equal(t, "97000000", res.TokenAmountOut.Amount.String())
-	require.Equal(t, "3000000", res.Fee.Amount.String())
+	require.Equal(t, "97000000", res.TokenAmountOut.Amount.Dec())
+	require.Equal(t, "3000000", res.Fee.Amount.Dec())
 
-	s.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: testLT, Amount: amountIn},
+	s.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: testLT, Amount: *amountIn},
 		TokenAmountOut: *res.TokenAmountOut,
 		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
@@ -41,39 +40,123 @@ func TestCalcAmountOutRedeemUsesGrossAmountForReserveAndState(t *testing.T) {
 	require.Equal(t, "900000000000000000000", s.Info.Reserves[1].String())
 }
 
-func TestCalcAmountOut(t *testing.T) {
+func TestCalcAmtOut(t *testing.T) {
 	s := newBounceTechTestSimulator(t, "1000000000") // 1000 USDC base balance
 
-	testutil.TestCalcAmountOut(t, s, map[int]map[int]map[string]string{
-		0: { // USDC -> LT (mint)
-			1: {
-				"10000000": "10000000000000000000",    // exactly minTxSize: 10 USDC -> 10 LT
-				"9999999":  ErrBelowMinAmount.Error(), // below minTxSize
-			},
-		},
-		1: { // LT -> USDC (redeem)
-			0: {
-				"100000000000000000000":  "97000000",                     // 100 LT -> 97 USDC net (3% fee)
-				"2000000000000000000000": ErrInsufficientBalance.Error(), // gross exceeds base balance
-			},
-		},
-	})
+	cases := []struct {
+		name    string
+		tokenIn string
+		amtIn   string
+		wantOut string
+		wantErr error
+	}{
+		{"mint-at-min", testUSDC, "10000000", "10000000000000000000", nil},
+		{"mint-below-min", testUSDC, "9999999", "", ErrBelowMinAmount},
+		{"redeem-net-of-fee", testLT, "100000000000000000000", "97000000", nil},
+		{"redeem-gross-exceeds-balance", testLT, "2000000000000000000000", "", ErrInsufficientBalance},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := s.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tc.tokenIn, Amount: *uint256.MustFromDecimal(tc.amtIn)},
+				TokenOut:      otherToken(tc.tokenIn),
+			})
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.wantOut, res.TokenAmountOut.Amount.Dec())
+		})
+	}
 }
 
-func TestCloneState(t *testing.T) {
+// TestCalcAmtOutMatchesLegacyGolden pins the native quote to values the legacy big.Int CalcAmountOut produced
+// before the port. It checks out, fee, and gas, so a change to the shared quote core fails here.
+func TestCalcAmtOutMatchesLegacyGolden(t *testing.T) {
 	s := newBounceTechTestSimulator(t, "1000000000")
 
-	testutil.TestCloneState(t, s, pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testLT, Amount: mustBig("100000000000000000000")},
-		TokenOut:      testUSDC,
-	}, nil)
+	cases := []struct {
+		name             string
+		tokenIn, amtIn   string
+		wantOut, wantFee string
+		wantGas          int64
+		wantMint         bool
+	}{
+		{"redeem-100-lt", testLT, "100000000000000000000", "97000000", "3000000", redeemGas, false},
+		{"mint-10-usdc", testUSDC, "10000000", "10000000000000000000", "0", mintGas, true},
+		{"mint-1e18-usdc", testUSDC, "1000000000000000000", "1000000000000000000000000000000", "0", mintGas, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := s.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tc.tokenIn, Amount: *uint256.MustFromDecimal(tc.amtIn)},
+				TokenOut:      otherToken(tc.tokenIn),
+			})
+			require.NoError(t, err)
+			require.Equal(t, tc.wantOut, res.TokenAmountOut.Amount.Dec())
+			require.Equal(t, tc.wantFee, res.Fee.Amount.Dec())
+			require.Equal(t, tc.wantGas, res.Gas)
+			require.Equal(t, SwapInfo{IsMint: tc.wantMint}, res.SwapInfo)
+		})
+	}
 }
 
-func TestCalcAmountIn(t *testing.T) {
-	// minTransactionSize is disabled here: it's a hard floor that testutil's power-of-10
-	// exponent search isn't built to route around given the 18-decimal LT / 1e30 combined
-	// mint-redeem scale, and it's already covered by the dedicated min-size tests below.
-	testutil.TestCalcAmountIn(t, newBounceTechTestSimulator(t, "1000000000", "0"))
+func otherToken(token string) string {
+	if token == testUSDC {
+		return testLT
+	}
+	return testUSDC
+}
+
+// TestCloneStateIsIPoolSim checks the clone satisfies IPoolSim, the uint256 interface the factory returns.
+func TestCloneStateIsIPoolSim(t *testing.T) {
+	s := newBounceTechTestSimulator(t, "1000000000")
+
+	var clone pool.IPoolSim = s.CloneState()
+	require.NotNil(t, clone)
+	require.Equal(t, DexType, clone.GetType())
+}
+
+// TestCloneStateDeepCopies checks that UpdateState on the clone leaves the original reserves unchanged.
+func TestCloneStateDeepCopies(t *testing.T) {
+	s := newBounceTechTestSimulator(t, "1000000000")
+	origReserves := s.GetReserves()
+
+	clone := s.CloneState().(*PoolSimulator)
+	clone.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: testLT, Amount: *uint256.NewInt(1e18)},
+		TokenAmountOut: pool.TokenAmt{Token: testUSDC, Amount: *uint256.NewInt(970000)},
+		Fee:            pool.TokenAmt{Token: testUSDC, Amount: *uint256.NewInt(30000)},
+		SwapInfo:       SwapInfo{IsMint: false},
+	})
+
+	require.Equal(t, origReserves, s.GetReserves(), "UpdateState on the clone changed the original reserves")
+}
+
+// TestCalcAmountInCoversCalcAmtOut checks CalcAmountIn's amountIn yields at least the requested amountOut when
+// quoted forward. testutil.TestCalcAmountIn cannot run here: it takes IPoolSimulator, which this type no longer has.
+func TestCalcAmountInCoversCalcAmtOut(t *testing.T) {
+	s := newBounceTechTestSimulator(t, "1000000000", "0")
+
+	for _, tc := range []struct{ tokenIn, tokenOut, amountOut string }{
+		{testUSDC, testLT, "10000000000000000000"},
+		{testLT, testUSDC, "97000000"},
+	} {
+		in, err := s.CalcAmountIn(pool.CalcAmountInParams{
+			TokenAmountOut: pool.TokenAmount{Token: tc.tokenOut, Amount: mustBig(tc.amountOut)},
+			TokenIn:        tc.tokenIn,
+		})
+		require.NoError(t, err)
+
+		out, err := s.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: tc.tokenIn, Amount: *uint256.MustFromBig(in.TokenAmountIn.Amount)},
+			TokenOut:      tc.tokenOut,
+		})
+		require.NoError(t, err)
+		require.True(t, out.TokenAmountOut.Amount.Cmp(uint256.MustFromBig(mustBig(tc.amountOut))) >= 0,
+			"amountIn %s gives %s out, want at least %s", in.TokenAmountIn.Amount, out.TokenAmountOut.Amount.Dec(), tc.amountOut)
+	}
 }
 
 // TestCalcAmountInRedeemOnFixturePoolHitsInsufficientBalance documents that the fetched
