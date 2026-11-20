@@ -11,9 +11,11 @@ import (
 type Extra struct {
 	*shared.Extra
 	NormalizedWeights []*uint256.Int `json:"normalizedWeights"`
+	MinTokenBalances  []*uint256.Int `json:"minTokenBalances,omitempty"`
 }
 
 type RpcResult struct {
 	shared.RpcResult
 	NormalizedWeights []*big.Int
+	MinTokenBalances  []*big.Int
 }
