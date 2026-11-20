@@ -294,9 +294,15 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 	return &b.res, nil
 }
 
-// CalcAmtOut is CalcAmountOut with uint256 amounts and no price limit. It runs the same checks in
-// the same order; the input is already uint256, so it needs no overflow check.
+// CalcAmtOut is CalcAmtOutWithPriceLimit with no price limit.
 func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	return p.CalcAmtOutWithPriceLimit(params, uint256.Int{})
+}
+
+// CalcAmtOutWithPriceLimit is CalcAmtOut with an explicit sqrtPriceLimitX96. A zero limit means
+// "no limit". It runs the same checks in the same order as CalcAmountOutWithPriceLimit.
+func (p *PoolSimulator) CalcAmtOutWithPriceLimit(params pool.CalcAmtOutParams,
+	sqrtPriceLimitX96 uint256.Int) (*pool.CalcAmtOutResult, error) {
 	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 	tokenIn := tokenAmountIn.Token
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
@@ -309,8 +315,7 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	}
 
 	zeroForOne := tokenInIndex == 0
-	var noLimit uint256.Int
-	result, err := p.V3Pool.GetOutputAmountV2(zeroForOne, tokenAmountIn.Amount, noLimit)
+	result, err := p.V3Pool.GetOutputAmountV2(zeroForOne, tokenAmountIn.Amount, sqrtPriceLimitX96)
 	if err != nil {
 		return nil, err
 	} else if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {

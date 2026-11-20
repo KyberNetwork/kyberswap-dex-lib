@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -67,9 +68,9 @@ type SwapInfo struct {
 	V3 uniswapv3.SwapInfo `json:"v3"`
 
 	// PoolAmountIn is the input reaching the pool: amountIn minus buy tax on a buy, amountIn on a sell.
-	PoolAmountIn *big.Int `json:"poolAmountIn"`
+	PoolAmountIn uint256.Int `json:"poolAmountIn"`
 	// PoolAmountOut is the output leaving the pool, before sell tax is deducted.
-	PoolAmountOut *big.Int `json:"poolAmountOut"`
+	PoolAmountOut uint256.Int `json:"poolAmountOut"`
 }
 
 // TaxConfig mirrors IClankNow.TaxConfig for ABI decoding. Field order must match Solidity.

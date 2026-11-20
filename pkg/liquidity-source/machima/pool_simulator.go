@@ -21,7 +21,7 @@ import (
 //
 // The embedded simulator is what makes the tick math available, but every method that the tax
 // layer changes the result of MUST be overridden here — a promoted method silently bypasses tax.
-// That currently means CalcAmountOut, CalcAmountIn, UpdateBalance, CloneState and GetMetaInfo.
+// That currently means CalcAmtOut, CalcAmountIn, UpdateState, CloneState and GetMetaInfo.
 type PoolSimulator struct {
 	*uniswapv3.PoolSimulator
 
@@ -41,7 +41,7 @@ type PoolSimulator struct {
 }
 
 var (
-	_ pool.IPoolSimulator         = (*PoolSimulator)(nil)
+	_ pool.IPoolSim               = (*PoolSimulator)(nil)
 	_ pool.IPoolExactOutSimulator = (*PoolSimulator)(nil)
 
 	_ = pool.RegisterFactory1(DexType, NewPoolSimulator)
@@ -97,16 +97,10 @@ func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimul
 	return sim, nil
 }
 
-// CalcAmtOut is not native for this pool: the embedded v3 math would skip this pool's own CalcAmountOut.
-// ErrUnsupported sends the swap to CalcAmountOut.
-func (p *PoolSimulator) CalcAmtOut(pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
-	return nil, pool.ErrUnsupported
-}
-
-// CalcAmountOut applies Machima's tax layer around the V3 swap:
+// CalcAmtOut applies Machima's tax layer around the V3 swap:
 //   - buy (counter asset -> token): tax is taken off the input, the remainder is swapped
 //   - sell (token -> counter asset): the V3 output is swapped first, then tax is taken off it
-func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	if p.isInAntiSniperWindow() {
 		return nil, ErrAntiSniperActive
 	}
@@ -118,19 +112,22 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	amountIn := param.TokenAmountIn.Amount
-	poolAmountIn := amountIn
+	var poolAmountIn uint256.Int
+	poolAmountIn.Set(&amountIn)
 	if isBuy {
-		poolAmountIn = deductBps(amountIn, p.taxBps(true))
+		if err := deductBps(&poolAmountIn, p.taxBps(true)); err != nil {
+			return nil, err
+		}
 	}
-	if poolAmountIn.Sign() <= 0 {
+	if poolAmountIn.IsZero() {
 		return nil, ErrZeroAmount
 	}
 
 	// The embedded receiver is spelled out on purpose: this must reach the wrapped V3 simulator.
-	// If a Machima override of this method is ever added, the promoted form would recurse instead.
+	// A Machima override of CalcAmtOut would otherwise recurse.
 	//nolint:staticcheck // QF1008: explicit embedded selector is intentional, see above
-	res, err := p.PoolSimulator.CalcAmountOutWithPriceLimit(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: poolAmountIn},
+	res, err := p.PoolSimulator.CalcAmtOutWithPriceLimit(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: poolAmountIn},
 		TokenOut:      tokenOut,
 	}, p.sqrtPriceLimit(tokenIn, isBuy))
 	if err != nil {
@@ -145,9 +142,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	poolAmountOut := res.TokenAmountOut.Amount
 	amountOut := poolAmountOut
 	if !isBuy {
-		amountOut = deductBps(poolAmountOut, p.taxBps(false))
+		if err := deductBps(&amountOut, p.taxBps(false)); err != nil {
+			return nil, err
+		}
 	}
-	if amountOut.Sign() <= 0 {
+	if amountOut.IsZero() {
 		return nil, ErrZeroAmount
 	}
 
@@ -157,18 +156,52 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// far past the pool's liquidity, where the swap only partially fills.
 	remaining := res.RemainingTokenAmountIn.Amount
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut:         &pool.TokenAmount{Token: tokenOut, Amount: amountOut},
-		RemainingTokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: remaining},
-		Fee:                    &pool.TokenAmount{Token: tokenIn, Amount: new(big.Int).Sub(amountIn, poolAmountIn)},
+	var fee, poolAmountInUsed uint256.Int
+	fee.Sub(&amountIn, &poolAmountIn)
+	poolAmountInUsed.Sub(&poolAmountIn, &remaining)
+
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut:         &pool.TokenAmt{Token: tokenOut, Amount: amountOut},
+		RemainingTokenAmountIn: &pool.TokenAmt{Token: tokenIn, Amount: remaining},
+		Fee:                    &pool.TokenAmt{Token: tokenIn, Amount: fee},
 		Gas:                    res.Gas,
 		SwapInfo: SwapInfo{
-			V3: v3SwapInfo,
-			// Fresh values: with a zero tax the amounts above alias the caller's and the V3 leg's
-			// big.Ints, and SwapInfo outlives the result that UpdateBalance is called with.
-			PoolAmountIn:  new(big.Int).Sub(poolAmountIn, remaining),
-			PoolAmountOut: new(big.Int).Set(poolAmountOut),
+			V3:            v3SwapInfo,
+			PoolAmountIn:  poolAmountInUsed,
+			PoolAmountOut: poolAmountOut,
 		},
+	}, nil
+}
+
+// CalcAmountOut is the legacy big.Int entry point. It converts to uint256, quotes with CalcAmtOut, and
+// converts back, so the tax rules live only in CalcAmtOut.
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if param.TokenAmountIn.Amount == nil || param.TokenAmountIn.Amount.Sign() < 0 {
+		return nil, ErrZeroAmount
+	}
+	var amountIn uint256.Int
+	if overflow := amountIn.SetFromBig(param.TokenAmountIn.Amount); overflow {
+		return nil, ErrOverflow
+	}
+
+	res, err := p.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: param.TokenAmountIn.Token, Amount: amountIn},
+		TokenOut:      param.TokenOut,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
+			Token: res.TokenAmountOut.Token, Amount: res.TokenAmountOut.Amount.ToBig(),
+		},
+		RemainingTokenAmountIn: &pool.TokenAmount{
+			Token: res.RemainingTokenAmountIn.Token, Amount: res.RemainingTokenAmountIn.Amount.ToBig(),
+		},
+		Fee: &pool.TokenAmount{Token: res.Fee.Token, Amount: res.Fee.Amount.ToBig()},
+		Gas: res.Gas,
+		// SwapInfo is the uint256 form that UpdateState reads.
+		SwapInfo: res.SwapInfo,
 	}, nil
 }
 
@@ -217,35 +250,39 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		amountIn = grossUpBps(poolAmountIn, p.taxBps(true))
 	}
 
+	var poolInU, poolOutU uint256.Int
+	if poolInU.SetFromBig(poolAmountIn) || poolOutU.SetFromBig(poolAmountOut) {
+		return nil, ErrOverflow
+	}
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountIn},
 		Fee:           &pool.TokenAmount{Token: tokenIn, Amount: new(big.Int).Sub(amountIn, poolAmountIn)},
 		Gas:           res.Gas,
 		SwapInfo: SwapInfo{
 			V3:            v3SwapInfo,
-			PoolAmountIn:  new(big.Int).Set(poolAmountIn),
-			PoolAmountOut: new(big.Int).Set(poolAmountOut),
+			PoolAmountIn:  poolInU,
+			PoolAmountOut: poolOutU,
 		},
 	}, nil
 }
 
-// UpdateBalance forwards the pool-side amounts, not the user-facing ones: tax never reaches the
+// UpdateState forwards the pool-side amounts, not the user-facing ones: tax never reaches the
 // pool, so applying the taxed amounts to reserves would drift them on every update.
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	si, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warnf("failed to UpdateBalance for machima pool %s, wrong swapInfo type", p.GetAddress())
+		logger.Warnf("failed to UpdateState for machima pool %s, wrong swapInfo type", p.GetAddress())
 		return
 	}
 
-	p.PoolSimulator.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: si.PoolAmountIn},
-		TokenAmountOut: pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: si.PoolAmountOut},
+	p.PoolSimulator.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: params.TokenAmountIn.Token, Amount: si.PoolAmountIn},
+		TokenAmountOut: pool.TokenAmt{Token: params.TokenAmountOut.Token, Amount: si.PoolAmountOut},
 		SwapInfo:       si.V3,
 	})
 }
 
-func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (p *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *p
 	cloned.PoolSimulator = p.PoolSimulator.CloneState().(*uniswapv3.PoolSimulator)
 	return &cloned
@@ -320,14 +357,19 @@ func (p *PoolSimulator) isCounterAsset(token string) bool {
 	return token == p.weth || token == p.usdc || token == p.xma
 }
 
-// deductBps returns amount - floor(amount*bps/10000), matching the contract's rounding.
-func deductBps(amount *big.Int, bps uint16) *big.Int {
+// deductBps sets amount to amount - floor(amount*bps/10000). A product past 256 bits reverts on chain,
+// so it is an overflow error here.
+func deductBps(amount *uint256.Int, bps uint16) error {
 	if bps == 0 {
-		return amount
+		return nil
 	}
-	tax := new(big.Int).Mul(amount, big.NewInt(int64(bps)))
-	tax.Div(tax, bigBpsDenominator)
-	return tax.Sub(amount, tax)
+	var tax uint256.Int
+	if _, overflow := tax.MulOverflow(amount, uint256.NewInt(uint64(bps))); overflow {
+		return ErrOverflow
+	}
+	tax.Div(&tax, uint256.NewInt(bpsDenominator))
+	amount.Sub(amount, &tax)
+	return nil
 }
 
 // grossUpBps is the inverse of deductBps, rounded up so the grossed-up amount always clears the

@@ -90,10 +90,10 @@ func newSimWithTokens(t *testing.T, token0, token1, tradedToken string, mutate f
 	return sim
 }
 
-func calcOut(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut string, amountIn int64) *pool.CalcAmountOutResult {
+func calcOut(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut string, amountIn int64) *pool.CalcAmtOutResult {
 	t.Helper()
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: big.NewInt(amountIn)},
+	res, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: *uint256.NewInt(uint64(amountIn))},
 		TokenOut:      tokenOut,
 	})
 	require.NoError(t, err)
@@ -114,8 +114,8 @@ func TestBuyTaxDeductedFromInput(t *testing.T) {
 	got := calcOut(t, taxed, wethAddr, tokenAddr, amountIn)
 	want := calcOut(t, untaxed, wethAddr, tokenAddr, amountIn/10000*9500)
 
-	assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.String())
-	assert.Equal(t, big.NewInt(amountIn/10000*500).String(), got.Fee.Amount.String())
+	assert.Equal(t, want.TokenAmountOut.Amount.Dec(), got.TokenAmountOut.Amount.Dec())
+	assert.Equal(t, big.NewInt(amountIn/10000*500).String(), got.Fee.Amount.Dec())
 }
 
 // TestSellTaxDeductedFromOutput pins the sell semantics: the full input is swapped and the tax is
@@ -131,9 +131,11 @@ func TestSellTaxDeductedFromOutput(t *testing.T) {
 	got := calcOut(t, taxed, tokenAddr, wethAddr, amountIn)
 	raw := calcOut(t, untaxed, tokenAddr, wethAddr, amountIn)
 
-	assert.Equal(t, deductBps(raw.TokenAmountOut.Amount, 300).String(), got.TokenAmountOut.Amount.String())
+	rawOut := raw.TokenAmountOut.Amount
+	require.NoError(t, deductBps(&rawOut, 300))
+	assert.Equal(t, rawOut.Dec(), got.TokenAmountOut.Amount.Dec())
 	// Sell tax is charged on the output, so nothing is withheld from the input.
-	assert.Equal(t, "0", got.Fee.Amount.String())
+	assert.Equal(t, "0", got.Fee.Amount.Dec())
 }
 
 // TestNoTaxWhenHasTaxFalse guards against reading stale bps when the launchpad has cleared the tax.
@@ -145,7 +147,7 @@ func TestNoTaxWhenHasTaxFalse(t *testing.T) {
 
 	got := calcOut(t, sim, wethAddr, tokenAddr, 1e15)
 	want := calcOut(t, untaxed, wethAddr, tokenAddr, 1e15)
-	assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.String())
+	assert.Equal(t, want.TokenAmountOut.Amount.Dec(), got.TokenAmountOut.Amount.Dec())
 }
 
 // TestCalcAmountInIsTaxAware is the regression test for the promoted-method bug: an inherited
@@ -173,62 +175,65 @@ func TestCalcAmountInIsTaxAware(t *testing.T) {
 
 			// Feeding that amountIn back through CalcAmountOut must clear the target, otherwise
 			// ApproxAmountIn rejects the pool.
-			back, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: in.TokenAmountIn.Amount},
+			var inU uint256.Int
+			require.False(t, inU.SetFromBig(in.TokenAmountIn.Amount))
+			back, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tc.tokenIn, Amount: inU},
 				TokenOut:      tc.tokenOut,
 			})
 			require.NoError(t, err)
-			assert.GreaterOrEqual(t, back.TokenAmountOut.Amount.Cmp(wantOut), 0,
-				"round trip undershot: asked %s, got %s", wantOut, back.TokenAmountOut.Amount)
+			gotOut := back.TokenAmountOut.Amount.ToBig()
+			assert.GreaterOrEqual(t, gotOut.Cmp(wantOut), 0,
+				"round trip undershot: asked %s, got %s", wantOut, gotOut)
 
 			// And it must not overshoot wildly — an untaxed CalcAmountIn would be ~5% short,
 			// so bound the round trip well inside that.
 			upper := new(big.Int).Div(new(big.Int).Mul(wantOut, big.NewInt(10010)), big.NewInt(10000))
-			assert.LessOrEqual(t, back.TokenAmountOut.Amount.Cmp(upper), 0,
-				"round trip overshot: asked %s, got %s", wantOut, back.TokenAmountOut.Amount)
+			assert.LessOrEqual(t, gotOut.Cmp(upper), 0,
+				"round trip overshot: asked %s, got %s", wantOut, gotOut)
 		})
 	}
 }
 
-// TestUpdateBalanceUsesPoolSideAmounts is the regression test for reserve drift: the tax never
+// TestUpdateStateUsesPoolSideAmounts is the regression test for reserve drift: the tax never
 // reaches the pool, so reserves must move by the pool-side amounts, not the user-facing ones.
-func TestUpdateBalanceUsesPoolSideAmounts(t *testing.T) {
+func TestUpdateStateUsesPoolSideAmounts(t *testing.T) {
 	sim := newSim(t, func(e *Extra) {
 		e.HasTax, e.BuyTaxBps, e.SellTaxBps = true, 500, 300
 	})
 
 	const amountIn = int64(1e15)
-	before := new(big.Int).Set(sim.GetReserves()[0])
+	before := sim.GetReserves()[0]
 
 	res := calcOut(t, sim, wethAddr, tokenAddr, amountIn)
-	sim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: wethAddr, Amount: big.NewInt(amountIn)},
+	sim.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: wethAddr, Amount: *uint256.NewInt(uint64(amountIn))},
 		TokenAmountOut: *res.TokenAmountOut,
 		SwapInfo:       res.SwapInfo,
 	})
 
 	// 5% buy tax: the pool receives 0.95e15, not 1e15.
-	gained := new(big.Int).Sub(sim.GetReserves()[0], before)
-	assert.Equal(t, big.NewInt(amountIn/10000*9500).String(), gained.String())
+	gained := new(uint256.Int).Sub(&sim.GetReserves()[0], &before)
+	assert.Equal(t, big.NewInt(amountIn/10000*9500).String(), gained.Dec())
 }
 
-// TestUpdateBalanceMovesPrice makes sure the V3 state transition is actually applied — a dropped
+// TestUpdateStateMovesPrice makes sure the V3 state transition is actually applied — a dropped
 // SwapInfo would leave consecutive quotes identical and let the router over-fill the pool.
-func TestUpdateBalanceMovesPrice(t *testing.T) {
+func TestUpdateStateMovesPrice(t *testing.T) {
 	sim := newSim(t, func(e *Extra) {
 		e.HasTax, e.BuyTaxBps, e.SellTaxBps = true, 500, 300
 	})
 
 	const amountIn = int64(1e15)
 	first := calcOut(t, sim, wethAddr, tokenAddr, amountIn)
-	sim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: wethAddr, Amount: big.NewInt(amountIn)},
+	sim.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: wethAddr, Amount: *uint256.NewInt(uint64(amountIn))},
 		TokenAmountOut: *first.TokenAmountOut,
 		SwapInfo:       first.SwapInfo,
 	})
 	second := calcOut(t, sim, wethAddr, tokenAddr, amountIn)
 
-	assert.Less(t, second.TokenAmountOut.Amount.Cmp(first.TokenAmountOut.Amount), 0,
+	assert.Less(t, second.TokenAmountOut.Amount.Cmp(&first.TokenAmountOut.Amount), 0,
 		"price should worsen after a buy, got %s then %s", first.TokenAmountOut.Amount, second.TokenAmountOut.Amount)
 }
 
@@ -242,18 +247,18 @@ func TestCloneStateIsolatesUpdates(t *testing.T) {
 	baseline := calcOut(t, sim, wethAddr, tokenAddr, amountIn)
 
 	clone := sim.CloneState().(*PoolSimulator)
-	clone.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: wethAddr, Amount: big.NewInt(amountIn)},
+	clone.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: wethAddr, Amount: *uint256.NewInt(uint64(amountIn))},
 		TokenAmountOut: *baseline.TokenAmountOut,
 		SwapInfo:       baseline.SwapInfo,
 	})
 
 	after := calcOut(t, sim, wethAddr, tokenAddr, amountIn)
-	assert.Equal(t, baseline.TokenAmountOut.Amount.String(), after.TokenAmountOut.Amount.String(),
+	assert.Equal(t, baseline.TokenAmountOut.Amount.Dec(), after.TokenAmountOut.Amount.Dec(),
 		"original simulator was mutated through its clone")
 }
 
-// TestCalcAmountOutIsPure re-quotes the same input twice without an UpdateBalance in between.
+// TestCalcAmountOutIsPure re-quotes the same input twice without an UpdateState in between.
 func TestCalcAmountOutIsPure(t *testing.T) {
 	sim := newSim(t, func(e *Extra) {
 		e.HasTax, e.BuyTaxBps, e.SellTaxBps = true, 500, 300
@@ -261,23 +266,23 @@ func TestCalcAmountOutIsPure(t *testing.T) {
 
 	first := calcOut(t, sim, wethAddr, tokenAddr, 1e15)
 	second := calcOut(t, sim, wethAddr, tokenAddr, 1e15)
-	assert.Equal(t, first.TokenAmountOut.Amount.String(), second.TokenAmountOut.Amount.String())
+	assert.Equal(t, first.TokenAmountOut.Amount.Dec(), second.TokenAmountOut.Amount.Dec())
 }
 
 func TestClassifyPair(t *testing.T) {
 	sim := newSim(t, nil)
 
 	t.Run("neither side is a counter asset", func(t *testing.T) {
-		_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokenAddr, Amount: big.NewInt(1e15)},
+		_, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: tokenAddr, Amount: *uint256.NewInt(uint64(1e15))},
 			TokenOut:      "0xdead000000000000000000000000000000000000",
 		})
 		assert.ErrorIs(t, err, ErrInvalidPair)
 	})
 
 	t.Run("both sides are counter assets and neither is XMA", func(t *testing.T) {
-		_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: wethAddr, Amount: big.NewInt(1e15)},
+		_, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: wethAddr, Amount: *uint256.NewInt(uint64(1e15))},
 			TokenOut:      usdcAddr,
 		})
 		assert.ErrorIs(t, err, ErrInvalidPair)
@@ -304,8 +309,8 @@ func TestAntiSniperWindow(t *testing.T) {
 		sim := newSim(t, func(e *Extra) {
 			e.PoolDeploymentTime = uint64(time.Now().Unix())
 		})
-		_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: wethAddr, Amount: big.NewInt(1e15)},
+		_, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: wethAddr, Amount: *uint256.NewInt(uint64(1e15))},
 			TokenOut:      tokenAddr,
 		})
 		assert.ErrorIs(t, err, ErrAntiSniperActive)
@@ -326,8 +331,8 @@ func TestAntiSniperWindow(t *testing.T) {
 		sim := newSim(t, func(e *Extra) {
 			e.PoolDeploymentTime = uint64(time.Now().Unix()) - AntiSniperWindowSeconds - 1
 		})
-		_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: wethAddr, Amount: big.NewInt(1e15)},
+		_, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: wethAddr, Amount: *uint256.NewInt(uint64(1e15))},
 			TokenOut:      tokenAddr,
 		})
 		assert.NoError(t, err)
@@ -377,7 +382,10 @@ func TestGrossUpBpsInvertsDeductBps(t *testing.T) {
 		for _, amount := range []int64{1, 7, 1e6, 1e15, 123456789} {
 			target := big.NewInt(amount)
 			gross := grossUpBps(target, bps)
-			assert.GreaterOrEqual(t, deductBps(gross, bps).Cmp(target), 0,
+			var after uint256.Int
+			after.SetFromBig(gross)
+			require.NoError(t, deductBps(&after, bps))
+			assert.GreaterOrEqual(t, after.ToBig().Cmp(target), 0,
 				"grossUpBps(%d, %d) undershoots after deductBps", amount, bps)
 		}
 	}
@@ -398,33 +406,36 @@ func TestXmaSellFloorPartialFill(t *testing.T) {
 	})
 
 	const amountIn = int64(1e18)
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: xmaAddr, Amount: big.NewInt(amountIn)},
+	res, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: xmaAddr, Amount: *uint256.NewInt(uint64(amountIn))},
 		TokenOut:      wethAddr,
 	})
 	require.NoError(t, err)
-	require.Positive(t, res.RemainingTokenAmountIn.Amount.Sign(),
+	require.False(t, res.RemainingTokenAmountIn.Amount.IsZero(),
 		"sell should stop at the floor and refund the remainder")
 
 	si := res.SwapInfo.(SwapInfo)
 
 	// A sell is not taxed on the input, so everything not consumed is refunded raw.
-	assert.Equal(t, "0", res.Fee.Amount.String())
-	consumed := new(big.Int).Add(si.PoolAmountIn, res.RemainingTokenAmountIn.Amount)
-	assert.Equal(t, big.NewInt(amountIn).String(), consumed.String(),
+	assert.Equal(t, "0", res.Fee.Amount.Dec())
+	var consumed uint256.Int
+	consumed.Add(&si.PoolAmountIn, &res.RemainingTokenAmountIn.Amount)
+	assert.Equal(t, big.NewInt(amountIn).String(), consumed.Dec(),
 		"pool-side input plus refund must equal the full input")
 
 	// Sell tax applies to whatever the partial fill actually produced.
-	assert.Equal(t, deductBps(si.PoolAmountOut, 300).String(), res.TokenAmountOut.Amount.String())
+	poolOut := si.PoolAmountOut
+	require.NoError(t, deductBps(&poolOut, 300))
+	assert.Equal(t, poolOut.Dec(), res.TokenAmountOut.Amount.Dec())
 
-	// And the state transition still round-trips through UpdateBalance.
-	sim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: xmaAddr, Amount: big.NewInt(amountIn)},
+	// And the state transition still round-trips through UpdateState.
+	sim.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: xmaAddr, Amount: *uint256.NewInt(uint64(amountIn))},
 		TokenAmountOut: *res.TokenAmountOut,
 		SwapInfo:       res.SwapInfo,
 	})
-	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: xmaAddr, Amount: big.NewInt(1e15)},
+	_, err = sim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: xmaAddr, Amount: *uint256.NewInt(uint64(1e15))},
 		TokenOut:      wethAddr,
 	})
 	// The price now sits exactly on the floor, so the pool rejects any further sell rather than
@@ -465,7 +476,7 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	// And the round-tripped simulator must still quote identically.
 	want := calcOut(t, sim, wethAddr, tokenAddr, 1e15)
 	got := calcOut(t, &decoded, wethAddr, tokenAddr, 1e15)
-	assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.String())
+	assert.Equal(t, want.TokenAmountOut.Amount.Dec(), got.TokenAmountOut.Amount.Dec())
 }
 
 // TestExtraRoundTripsBothDirections guards the load-bearing assumption of the tracker: Machima and
