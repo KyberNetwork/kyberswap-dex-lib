@@ -173,7 +173,7 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 		return nil, ErrInvalidToken
 	} else if p.isBuyRestricted(tokenOut) {
 		return nil, ErrBuyRestricted
-	} else if tokenAmountOut.Amount.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
+	} else if tokenAmountOut.Amount.Cmp(p.Info.Reserves[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientBalance
 	} else if p.exceedsMaxTx(tokenOut, tokenAmountOut.Amount) {
 		// tokenAmountOut is the launched token here (a buy): it moves pool -> user, the same
@@ -266,7 +266,7 @@ func (p *PoolSimulator) CalcAmountOutWithPriceLimit(param pool.CalcAmountOutPara
 	}
 	b := &calcAmountOutBacking{remainingIn: result.RemainingAmountIn, sqrtPrice: result.SqrtRatioX96}
 	amountOutBI := big256.ToBigBacked(&b.outBI, &b.outWords, &result.AmountCalculated)
-	if amountOutBI.Cmp(p.GetReserves()[tokenOutIndex]) > 0 {
+	if amountOutBI.Cmp(p.Info.Reserves[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientBalance
 	} else if p.exceedsMaxTx(tokenOut, amountOutBI) {
 		// tokenOut is the launched token here (a buy): it moves pool -> user, the same leg
@@ -316,7 +316,7 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	} else if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {
 		return nil, ErrZeroAmount
 	}
-	if cmpU256Big(&result.AmountCalculated, p.GetReserves()[tokenOutIndex]) > 0 {
+	if cmpU256Big(&result.AmountCalculated, p.Info.Reserves[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientBalance
 	} else if p.exceedsMaxTxU256(tokenOut, &result.AmountCalculated) {
 		return nil, ErrMaxTxExceeded
@@ -367,17 +367,17 @@ type calcAmountInBacking struct {
 	inWords, remainingWords [4]big.Word
 }
 
-func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (p *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *p
 	v3Pool := *p.V3Pool
 	cloned.V3Pool = &v3Pool
 	return &cloned
 }
 
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	si, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warn("failed to UpdateBalance for UniV3 pool, wrong swapInfo type")
+		logger.Warn("failed to UpdateState for UniV3 pool, wrong swapInfo type")
 		return
 	}
 	p.V3Pool.SqrtRatioX96.Set(si.NextStateSqrtRatioX96)
@@ -385,12 +385,37 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.V3Pool.TickCurrent = si.NextStateTickCurrent
 	tokenAmtIn, tokenAmtOut := params.TokenAmountIn, params.TokenAmountOut
 	if p.GetTokenIndex(tokenAmtIn.Token) == 0 {
-		p.Info.Reserves = []*big.Int{new(big.Int).Add(p.Info.Reserves[0], tokenAmtIn.Amount),
-			new(big.Int).Sub(p.Info.Reserves[1], tokenAmtOut.Amount)}
+		p.Info.Reserves = []*big.Int{new(big.Int).Add(p.Info.Reserves[0], tokenAmtIn.Amount.ToBig()),
+			new(big.Int).Sub(p.Info.Reserves[1], tokenAmtOut.Amount.ToBig())}
 	} else {
-		p.Info.Reserves = []*big.Int{new(big.Int).Sub(p.Info.Reserves[0], tokenAmtOut.Amount),
-			new(big.Int).Add(p.Info.Reserves[1], tokenAmtIn.Amount)}
+		p.Info.Reserves = []*big.Int{new(big.Int).Sub(p.Info.Reserves[0], tokenAmtOut.Amount.ToBig()),
+			new(big.Int).Add(p.Info.Reserves[1], tokenAmtIn.Amount.ToBig())}
 	}
+}
+
+func (p *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(p.Info.Reserves))
+	for i, r := range p.Info.Reserves {
+		out[i] = *reserveToU256(r)
+	}
+	return out
+}
+
+// CalcLimit returns nil: uniswap-v3 pools have no shared inventory limit.
+func (p *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
+}
+
+// reserveToU256 converts a reserve. A nil, negative, or oversized reserve becomes zero.
+func reserveToU256(b *big.Int) *uint256.Int {
+	if b == nil || b.Sign() < 0 {
+		return new(uint256.Int)
+	}
+	u, overflow := uint256.FromBig(b)
+	if overflow {
+		return new(uint256.Int)
+	}
+	return u
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {

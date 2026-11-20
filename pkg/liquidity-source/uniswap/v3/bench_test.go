@@ -1,9 +1,7 @@
 package uniswapv3
 
 import (
-	"context"
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -11,7 +9,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -53,33 +50,33 @@ func mustNewPoolSimulatorBench() *PoolSimulator {
 	return sim
 }
 
-func benchmarkCalcAmountOut(b *testing.B, amount *big.Int, sim pool.IPoolSimulator) {
+func benchmarkCalcAmountOut(b *testing.B, amount *uint256.Int, sim *PoolSimulator) {
 	for b.Loop() {
-		_, _ = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{
-			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			Amount: amount,
-		}, "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", nil)
+		_, _ = sim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Amount: *amount},
+			TokenOut:      "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b",
+		})
 
-		_, _ = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{
-			Token:  "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b",
-			Amount: amount,
-		}, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", nil)
+		_, _ = sim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: "0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b", Amount: *amount},
+			TokenOut:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+		})
 	}
 }
 
 func BenchmarkCalcAmountOutV2(b *testing.B) {
 	// not cross tick
-	benchmarkCalcAmountOut(b, bignumber.NewBig10("1000000000"), simV2)
+	benchmarkCalcAmountOut(b, uint256.MustFromDecimal("1000000000"), simV2)
 }
 
 func BenchmarkCalcAmountOutCrossFewTickV2(b *testing.B) {
 	// cross 6 ticks
-	benchmarkCalcAmountOut(b, bignumber.NewBig10("10000000000000000000"), simV2)
+	benchmarkCalcAmountOut(b, uint256.MustFromDecimal("10000000000000000000"), simV2)
 }
 
 func BenchmarkCalcAmountOutCrossManyTickV2(b *testing.B) {
 	// cross 79 ticks
-	benchmarkCalcAmountOut(b, bignumber.NewBig10("100000000000000000000"), simV2)
+	benchmarkCalcAmountOut(b, uint256.MustFromDecimal("100000000000000000000"), simV2)
 }
 
 func BenchmarkNewPoolSimulatorV2(b *testing.B) {

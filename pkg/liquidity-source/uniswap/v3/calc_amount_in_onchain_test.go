@@ -199,9 +199,9 @@ func TestCalcAmountInNextStateMatchesChain(t *testing.T) {
 
 				_, out := q.tokens(sim)
 				next := sim.CloneState().(*PoolSimulator)
-				next.UpdateBalance(pool.UpdateBalanceParams{
-					TokenAmountIn:  *res.TokenAmountIn,
-					TokenAmountOut: pool.TokenAmount{Token: out, Amount: bigInt(t, q.ExactIn.AmountOut)},
+				next.UpdateState(pool.UpdateStateParams{
+					TokenAmountIn:  pool.TokenAmt{Token: res.TokenAmountIn.Token, Amount: *uint256.MustFromBig(res.TokenAmountIn.Amount)},
+					TokenAmountOut: pool.TokenAmt{Token: out, Amount: *uint256.MustFromDecimal(q.ExactIn.AmountOut)},
 					SwapInfo:       res.SwapInfo,
 				})
 				assert.Equal(t, q.ExactIn.SqrtPriceX96After, next.V3Pool.SqrtRatioX96.Dec(), "%s: price", q)

@@ -1,7 +1,9 @@
 package uniswapv3
 
 import (
+	"math"
 	"math/big"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -12,7 +14,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -56,25 +57,34 @@ func TestCalcAmountOut(t *testing.T) {
 	poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
 	require.NoError(t, err)
 
-	// map[idxIn]map[idxOut]map[amtIn]expectedOut  (empty string = error expected)
 	// token0 = UNI (0x1f98...), token1 = WETH (0xc02a...)
-	testutil.TestCalcAmountOut(t, poolSim, map[int]map[int]map[string]string{
-		1: { // WETH -> UNI
-			0: {
-				"100000000000000000":           "37545796267979064399",      // 0.1 WETH
-				"1000000000000000000":          "375443790259475125204",     // 1 WETH
-				"10000000000000000000":         "3753021248804497424805",    // 10 WETH
-				"5000000000000000000000000000": "3379794010779937772256805", // 5e9 WETH (near full range)
-			},
-		},
-		0: { // UNI -> WETH
-			1: {
-				"10000000000000000000":   "26474434492819241",   // 10 UNI
-				"100000000000000000000":  "264741691210056513",  // 100 UNI
-				"1000000000000000000000": "2647151569544127171", // 1000 UNI
-			},
-		},
-	})
+	cases := []struct {
+		tokenIn, amtIn, wantOut string
+	}{
+		{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "100000000000000000", "37545796267979064399"},                // 0.1 WETH
+		{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "1000000000000000000", "375443790259475125204"},              // 1 WETH
+		{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "10000000000000000000", "3753021248804497424805"},            // 10 WETH
+		{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "5000000000000000000000000000", "3379794010779937772256805"}, // 5e9 WETH
+		{"0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", "10000000000000000000", "26474434492819241"},                 // 10 UNI
+		{"0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", "100000000000000000000", "264741691210056513"},               // 100 UNI
+		{"0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", "1000000000000000000000", "2647151569544127171"},             // 1000 UNI
+	}
+	for _, tc := range cases {
+		res, err := poolSim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: tc.tokenIn, Amount: *uint256.MustFromDecimal(tc.amtIn)},
+			TokenOut:      otherToken(poolSim, tc.tokenIn),
+		})
+		require.NoError(t, err, "%s in %s", tc.tokenIn, tc.amtIn)
+		assert.Equal(t, tc.wantOut, res.TokenAmountOut.Amount.Dec(), "%s in %s", tc.tokenIn, tc.amtIn)
+	}
+}
+
+// otherToken returns the pool token that is not tokenIn.
+func otherToken(sim *PoolSimulator, tokenIn string) string {
+	if sim.Info.Tokens[0] == tokenIn {
+		return sim.Info.Tokens[1]
+	}
+	return sim.Info.Tokens[0]
 }
 
 func TestCalcAmountIn(t *testing.T) {
@@ -85,7 +95,33 @@ func TestCalcAmountIn(t *testing.T) {
 	poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
 	require.NoError(t, err)
 
-	testutil.TestCalcAmountIn(t, poolSim)
+	// Each exact-out amount must round-trip: CalcAmtOut of the quoted amountIn returns about the
+	// requested amountOut. The fixed seed keeps the sweep the same on every run.
+	rng := rand.New(rand.NewPCG(1, 2))
+	tokens := poolSim.GetTokens()
+	for idxIn, tokenIn := range tokens {
+		tokenOut := tokens[1-idxIn]
+		for range 32 {
+			amountOut := big.NewInt(int64(1e12 * (1 + rng.Float64()*1e3)))
+			res, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
+				TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: amountOut},
+				TokenIn:        tokenIn,
+			})
+			require.NoError(t, err)
+			amountIn := uint256.MustFromBig(res.TokenAmountIn.Amount)
+			got, err := poolSim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: *amountIn},
+				TokenOut:      tokenOut,
+			})
+			require.NoError(t, err)
+			gotOut := got.TokenAmountOut.Amount.ToBig()
+			diff := new(big.Int).Sub(gotOut, amountOut)
+			diffF, _ := new(big.Float).SetInt(diff).Float64()
+			outF, _ := new(big.Float).SetInt(amountOut).Float64()
+			require.True(t, diff.CmpAbs(big.NewInt(3)) <= 0 || math.Abs(diffF) <= 2e-4*outF,
+				"exact-out %s of %s: the quoted amountIn pays %s", amountOut, tokenOut, gotOut)
+		}
+	}
 }
 
 // TestCalcAmountInSolidlyV3 pins the exact-output path against a fixed expectation.
@@ -295,13 +331,31 @@ func TestCloneState(t *testing.T) {
 	poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
 	require.NoError(t, err)
 
-	testutil.TestCloneState(t, poolSim, pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
-			Amount: bignumber.NewBig10("1000000000000000000"),
-		},
-		TokenOut: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-	}, nil)
+	clone := poolSim.CloneState()
+	tokenIn := "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
+	amtIn := uint256.MustFromDecimal("1000000000000000000")
+	tokenOut := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+
+	before, err := poolSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: *amtIn},
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+
+	clone.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: tokenIn, Amount: *amtIn},
+		TokenAmountOut: *before.TokenAmountOut,
+		Fee:            *before.Fee,
+		SwapInfo:       before.SwapInfo,
+	})
+
+	after, err := poolSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: *amtIn},
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, before.TokenAmountOut.Amount, after.TokenAmountOut.Amount,
+		"CloneState: UpdateState on clone mutated the original")
 }
 
 // TestMaxTxGuard exercises the odys-fun launch guard (see forks/odys-fun.Guard): a launched
