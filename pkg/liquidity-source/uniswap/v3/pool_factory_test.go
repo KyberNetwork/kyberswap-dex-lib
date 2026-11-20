@@ -83,3 +83,34 @@ func TestPoolFactory_IsEventSupported(t *testing.T) {
 	assert.True(t, factory.IsEventSupported(poolCreatedEventIDNoFee))
 	assert.False(t, factory.IsEventSupported(mintEventID))
 }
+
+// TestDecodePoolCreated_OwlSwapV3 decodes the PoolCreated log of the OwlSwap V3
+// USDT/OWL 1% pool emitted by the BNB Chain factory at 0x8d33...2F7B. OwlSwap V3
+// is an unmodified Uniswap V3 fork, so the canonical event layout applies.
+func TestDecodePoolCreated_OwlSwapV3(t *testing.T) {
+	t.Parallel()
+
+	event := types.Log{
+		Address: common.HexToAddress("0x8d33DA172e5A27C9661286Ef1c9740de87Aa2F7B"),
+		Topics: []common.Hash{
+			common.HexToHash("0x783cca1c0412dd0d695e784568c96da2e9c22ff989357a2e8b1d9b2b4e6b7118"),
+			common.HexToHash("0x00000000000000000000000055d398326f99059ff775485246999027b3197955"),
+			common.HexToHash("0x000000000000000000000000a911a4d51c1a5e36a2bb2e0d676ad0f6672d9165"),
+			common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000002710"),
+		},
+		Data: common.Hex2Bytes("00000000000000000000000000000000000000000000000000000000000000c8" +
+			"0000000000000000000000005b3bd48ea1e737a15198905d357f108f2d9a669e"),
+	}
+
+	factory := NewPoolFactory(&Config{DexID: DexTypeOwlSwapV3})
+	require.True(t, factory.IsEventSupported(event.Topics[0]))
+
+	p, err := factory.DecodePoolCreated(event)
+	require.NoError(t, err)
+
+	assert.Equal(t, "0x55d398326f99059ff775485246999027b3197955", p.Tokens[0].Address)
+	assert.Equal(t, "0xa911a4d51c1a5e36a2bb2e0d676ad0f6672d9165", p.Tokens[1].Address)
+	assert.Equal(t, "0x5b3bd48ea1e737a15198905d357f108f2d9a669e", p.Address)
+	assert.Equal(t, DexTypeUniswapV3, p.Type)
+	assert.Equal(t, DexTypeOwlSwapV3, p.Exchange)
+}
