@@ -7,6 +7,19 @@ import (
 	"github.com/goccy/go-json"
 )
 
+// afterSwap gas of a rehype doppler hook. Measured 2026-11-19/20 on robinhood and base (4 pools, both directions, 0.01%
+// to 20% of the reserve; size does not change it): a fee paid out by transfers only fits rehypeGas, the LP share
+// (rebalance search of up to 15 simulated swaps, a swap, a full-range liquidity add) adds about 400k, a buyback into
+// the other token adds about 60k.
+const (
+	rehypeGas            int64 = 198835
+	rehypeLpGas          int64 = 400_000
+	rehypeBuybackSwapGas int64 = 60_000
+
+	feeLegLp          uint8 = 1
+	feeLegBuybackSwap uint8 = 2
+)
+
 var (
 	h = common.HexToAddress
 
