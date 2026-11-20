@@ -26,7 +26,7 @@ func (s *regularSimulator) _swapGivenIn(
 	balances []*uint256.Int,
 	indexIn int,
 	indexOut int,
-) (*uint256.Int, *poolpkg.TokenAmount, *SwapInfo, error) {
+) (*uint256.Int, *poolpkg.TokenAmt, *SwapInfo, error) {
 	feeAmount, err := math.FixedPoint.MulUp(amountIn, s.swapFeePercentage)
 	if err != nil {
 		return nil, nil, nil, err
@@ -56,9 +56,9 @@ func (s *regularSimulator) _swapGivenIn(
 		return nil, nil, nil, err
 	}
 
-	fee := poolpkg.TokenAmount{
+	fee := poolpkg.TokenAmt{
 		Token:  s.Info.Tokens[indexIn],
-		Amount: feeAmount.ToBig(),
+		Amount: *feeAmount,
 	}
 
 	return amountOut, &fee, &SwapInfo{}, nil
@@ -72,7 +72,7 @@ func (s *regularSimulator) _swapGivenOut(
 	balances []*uint256.Int,
 	indexIn int,
 	indexOut int,
-) (*uint256.Int, *poolpkg.TokenAmount, *SwapInfo, error) {
+) (*uint256.Int, *poolpkg.TokenAmt, *SwapInfo, error) {
 	balances, err := _upscaleArray(balances, s.scalingFactors)
 	if err != nil {
 		return nil, nil, nil, err
@@ -104,9 +104,9 @@ func (s *regularSimulator) _swapGivenOut(
 		return nil, nil, nil, err
 	}
 
-	fee := poolpkg.TokenAmount{
+	fee := poolpkg.TokenAmt{
 		Token:  s.Info.Tokens[indexIn],
-		Amount: feeAmount.ToBig(),
+		Amount: *feeAmount,
 	}
 
 	return amountIn, &fee, &SwapInfo{}, nil
@@ -181,20 +181,14 @@ func (s *regularSimulator) _onRegularSwap(
 	)
 }
 
-func (s *regularSimulator) updateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *regularSimulator) updateState(params poolpkg.UpdateStateParams) {
 	for idx, token := range s.Info.Tokens {
 		if token == params.TokenAmountIn.Token {
-			s.Info.Reserves[idx] = new(big.Int).Add(
-				s.Info.Reserves[idx],
-				params.TokenAmountIn.Amount,
-			)
+			s.Info.Reserves[idx] = new(big.Int).Add(s.Info.Reserves[idx], params.TokenAmountIn.Amount.ToBig())
 		}
 
 		if token == params.TokenAmountOut.Token {
-			s.Info.Reserves[idx] = new(big.Int).Sub(
-				s.Info.Reserves[idx],
-				params.TokenAmountOut.Amount,
-			)
+			s.Info.Reserves[idx] = new(big.Int).Sub(s.Info.Reserves[idx], params.TokenAmountOut.Amount.ToBig())
 		}
 	}
 }

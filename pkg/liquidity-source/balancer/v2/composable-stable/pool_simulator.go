@@ -29,7 +29,10 @@ type PoolSimulator struct {
 	poolTypeVer int
 }
 
-var _ shared.IBasePool = (*PoolSimulator)(nil)
+var (
+	_ shared.IBasePool = (*PoolSimulator)(nil)
+	_ pool.IPoolSim    = (*PoolSimulator)(nil)
+)
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
@@ -153,7 +156,7 @@ func (s *PoolSimulator) OnSwap(tokenIn, tokenOut string, amountIn *uint256.Int) 
 	return amountOut, err
 }
 
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
 	}
@@ -171,10 +174,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrUnknownToken
 	}
 
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrOverflow
-	}
+	amountIn := &tokenAmountIn.Amount
 
 	balances := make([]*uint256.Int, len(s.Info.Reserves))
 	for i, reserve := range s.Info.Reserves {
@@ -187,7 +187,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	var (
 		amountOut *uint256.Int
-		fee       *pool.TokenAmount
+		fee       *pool.TokenAmt
 		swapInfo  *SwapInfo
 		err       error
 	)
@@ -200,10 +200,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{
 			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
+			Amount: *amountOut,
 		},
 		Fee:      fee,
 		Gas:      DefaultGas.Swap,
@@ -245,7 +245,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 
 	var (
 		amountOut *uint256.Int
-		fee       *pool.TokenAmount
+		fee       *pool.TokenAmt
 		swapInfo  *SwapInfo
 		err       error
 	)
@@ -263,7 +263,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Token:  tokenIn,
 			Amount: amountOut.ToBig(),
 		},
-		Fee:      fee,
+		Fee:      tokenAmountPtrFromAmt(fee),
 		Gas:      DefaultGas.Swap,
 		SwapInfo: swapInfo,
 	}, nil
@@ -284,8 +284,8 @@ func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
 }
 
 // CloneState gives the clone one reserves slice shared by all three pools, as NewPoolSimulator does.
-// UpdateBalance writes reserves and bptSimulator's tokenRateCaches by index, so both are copied.
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+// UpdateState writes reserves and bptSimulator's tokenRateCaches by index, so both are copied.
+func (s *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *s
 	reserves := slices.Clone(s.Info.Reserves)
 	cloned.Info.Reserves = reserves
@@ -303,13 +303,50 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return &cloned
 }
 
-func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	if params.TokenAmountIn.Token == s.Info.Address || params.TokenAmountOut.Token == s.Info.Address {
-		s.bptSimulator.updateBalance(params)
+		s.bptSimulator.updateState(params)
 		return
 	}
 
-	s.regularSimulator.updateBalance(params)
+	s.regularSimulator.updateState(params)
+}
+
+func (s *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(s.Info.Reserves))
+	for i, r := range s.Info.Reserves {
+		out[i] = *reserveToU256(r)
+	}
+	return out
+}
+
+func (s *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	tokens, reserves := s.GetTokens(), s.GetReserves()
+	inventory := make(map[string]*uint256.Int, len(tokens))
+	for i, token := range tokens {
+		inventory[token] = &reserves[i]
+	}
+	return inventory
+}
+
+// tokenAmountPtrFromAmt converts a uint256 fee to the legacy big.Int TokenAmount that CalcAmountIn returns.
+func tokenAmountPtrFromAmt(t *pool.TokenAmt) *pool.TokenAmount {
+	if t == nil {
+		return nil
+	}
+	return &pool.TokenAmount{Token: t.Token, Amount: t.Amount.ToBig(), AmountUsd: t.AmountUsd}
+}
+
+// reserveToU256 converts a reserve. A nil, negative, or oversized reserve becomes zero.
+func reserveToU256(b *big.Int) *uint256.Int {
+	if b == nil || b.Sign() < 0 {
+		return new(uint256.Int)
+	}
+	u, overflow := uint256.FromBig(b)
+	if overflow {
+		return new(uint256.Int)
+	}
+	return u
 }
 
 // https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F22#L696

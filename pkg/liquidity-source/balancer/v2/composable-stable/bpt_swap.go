@@ -46,7 +46,7 @@ func (s *bptSimulator) _swapWithBpt(
 	balances []*uint256.Int,
 	registeredIndexIn int,
 	registeredIndexOut int,
-) (*uint256.Int, *poolpkg.TokenAmount, *SwapInfo, error) {
+) (*uint256.Int, *poolpkg.TokenAmt, *SwapInfo, error) {
 	balances, err := _upscaleArray(balances, s.scalingFactors)
 	if err != nil {
 		return nil, nil, nil, err
@@ -107,7 +107,7 @@ func (s *bptSimulator) _swapWithBpt(
 		return nil, nil, nil, err
 	}
 
-	return downscaledAmountCalculated, &poolpkg.TokenAmount{}, swapInfo, nil
+	return downscaledAmountCalculated, &poolpkg.TokenAmt{}, swapInfo, nil
 }
 
 // https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L362
@@ -821,22 +821,16 @@ func (s *bptSimulator) initSwapInfo(
 	return swapInfo, nil
 }
 
-func (s *bptSimulator) updateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *bptSimulator) updateState(params poolpkg.UpdateStateParams) {
 	for idx, token := range s.Info.Tokens {
 		// update reserves
 
 		if token == params.TokenAmountIn.Token {
-			s.Info.Reserves[idx] = new(big.Int).Add(
-				s.Info.Reserves[idx],
-				params.TokenAmountIn.Amount,
-			)
+			s.Info.Reserves[idx] = new(big.Int).Add(s.Info.Reserves[idx], params.TokenAmountIn.Amount.ToBig())
 		}
 
 		if token == params.TokenAmountOut.Token {
-			s.Info.Reserves[idx] = new(big.Int).Sub(
-				s.Info.Reserves[idx],
-				params.TokenAmountOut.Amount,
-			)
+			s.Info.Reserves[idx] = new(big.Int).Sub(s.Info.Reserves[idx], params.TokenAmountOut.Amount.ToBig())
 		}
 
 		// update rates

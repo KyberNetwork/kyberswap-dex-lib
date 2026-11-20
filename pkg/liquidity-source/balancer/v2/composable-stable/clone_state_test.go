@@ -7,6 +7,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -33,9 +34,9 @@ func TestCloneStateRegularSwapIsIndependent(t *testing.T) {
 	orig := newCloneTestSimulator()
 	c := orig.CloneState().(*PoolSimulator)
 
-	c.UpdateBalance(poolpkg.UpdateBalanceParams{
-		TokenAmountIn:  poolpkg.TokenAmount{Token: "0xaaa", Amount: big.NewInt(10)},
-		TokenAmountOut: poolpkg.TokenAmount{Token: "0xbbb", Amount: big.NewInt(20)},
+	c.UpdateState(poolpkg.UpdateStateParams{
+		TokenAmountIn:  poolpkg.TokenAmt{Token: "0xaaa", Amount: *uint256.NewInt(10)},
+		TokenAmountOut: poolpkg.TokenAmt{Token: "0xbbb", Amount: *uint256.NewInt(20)},
 	})
 
 	require.Zero(t, orig.Info.Reserves[0].Cmp(big.NewInt(1000)), "original reserve 0 changed")
@@ -52,13 +53,23 @@ func TestCloneStateBptSwapIsIndependent(t *testing.T) {
 	orig := newCloneTestSimulator()
 	c := orig.CloneState().(*PoolSimulator)
 
-	c.UpdateBalance(poolpkg.UpdateBalanceParams{
-		TokenAmountIn:  poolpkg.TokenAmount{Token: "0xbbb", Amount: big.NewInt(10)},
-		TokenAmountOut: poolpkg.TokenAmount{Token: "0xbpt", Amount: big.NewInt(20)},
+	c.UpdateState(poolpkg.UpdateStateParams{
+		TokenAmountIn:  poolpkg.TokenAmt{Token: "0xbbb", Amount: *uint256.NewInt(10)},
+		TokenAmountOut: poolpkg.TokenAmt{Token: "0xbpt", Amount: *uint256.NewInt(20)},
 	})
 
 	require.Zero(t, orig.Info.Reserves[1].Cmp(big.NewInt(2000)), "original reserve 1 changed")
 	require.Equal(t, uint64(7), orig.bptSimulator.tokenRateCaches[1].OldRate.Uint64(), "original OldRate changed")
 	require.Equal(t, uint64(5), c.bptSimulator.tokenRateCaches[1].OldRate.Uint64(), "clone OldRate not updated")
 	require.Zero(t, c.Info.Reserves[1].Cmp(big.NewInt(2010)), "clone reserve 1 not updated")
+}
+
+// TestBasePoolAssertion checks the factory-built pool satisfies shared.IBasePool. Weighted and stable meta pools
+// type-assert their base pools to shared.IBasePool, so a composable-stable base must pass that assertion.
+func TestBasePoolAssertion(t *testing.T) {
+	t.Parallel()
+	var sim poolpkg.IPoolSim = newCloneTestSimulator()
+	base, ok := sim.CloneState().(shared.IBasePool)
+	require.True(t, ok, "composable-stable clone must satisfy shared.IBasePool")
+	require.Equal(t, "0xbpt", base.GetAddress())
 }

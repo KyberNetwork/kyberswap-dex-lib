@@ -6,7 +6,7 @@ import (
 )
 
 type IBasePool interface {
-	pool.IPoolSimulator
+	pool.IPoolSim
 
 	GetPoolId() string
 	OnJoin(tokenIn string, amountIn *uint256.Int) (*uint256.Int, error)
