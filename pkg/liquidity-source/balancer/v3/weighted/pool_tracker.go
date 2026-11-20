@@ -93,6 +93,9 @@ func (t *PoolTracker) getNewPoolState(
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)
 	extra.Buffers = res.Buffers()
 	extra.NormalizedWeights = shared.FromBigs(res.NormalizedWeights)
+	if len(res.MinTokenBalances) > 0 {
+		extra.MinTokenBalances = shared.FromBigs(res.MinTokenBalances)
+	}
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -160,7 +163,12 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetNormalizedWeights,
-	}, []any{&rpcRes.NormalizedWeights})
+	}, []any{&rpcRes.NormalizedWeights}).AddCall(&ethrpc.Call{
+		// WeightedPool v2 exposes getMinTokenBalances; v1 pools revert harmlessly and leave MinTokenBalances nil.
+		ABI:    PoolABI,
+		Target: poolAddress,
+		Method: PoolMethodGetMinTokenBalances,
+	}, []any{&rpcRes.MinTokenBalances})
 	rpcRes.Buffers = shared.GetBufferTokens(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
 
 	res, err := req.TryBlockAndAggregate()

@@ -153,6 +153,12 @@ func addRPCCalls(
 		Target: poolAddress,
 		Method: weighted.PoolMethodGetNormalizedWeights,
 	}, []any{&rpcRes.NormalizedWeights})
+	// WeightedPool v2 exposes getMinTokenBalances; v1 pools revert harmlessly and leave MinTokenBalances nil.
+	addFn(&ethrpc.Call{
+		ABI:    weighted.PoolABI,
+		Target: poolAddress,
+		Method: weighted.PoolMethodGetMinTokenBalances,
+	}, []any{&rpcRes.MinTokenBalances})
 	rpcRes.Buffers = shared.GetBufferTokens(addFn, chainID, dexID, staticExtra.BufferTokens)
 }
 
@@ -173,6 +179,9 @@ func buildPoolState(
 	extra.TokenRates = shared.FromBigs(rpcRes.PoolData.TokenRates)
 	extra.Buffers = rpcRes.Buffers()
 	extra.NormalizedWeights = shared.FromBigs(rpcRes.NormalizedWeights)
+	if len(rpcRes.MinTokenBalances) > 0 {
+		extra.MinTokenBalances = shared.FromBigs(rpcRes.MinTokenBalances)
+	}
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
