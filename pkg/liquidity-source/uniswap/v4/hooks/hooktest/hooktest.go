@@ -76,7 +76,7 @@ func RequireRoundTrip(t testing.TB, pSim *uniswapv4.PoolSimulator) {
 	for idxOut := range tokens {
 		tokenIn, tokenOut := tokens[1-idxOut], tokens[idxOut]
 		for _, frac := range []int64{1e6, 1e3, 10} {
-			amountOut := new(big.Int).Quo(reserves[idxOut], big.NewInt(frac))
+			amountOut := new(big.Int).Quo(reserves[idxOut].ToBig(), big.NewInt(frac))
 			resIn, err := pSim.CalcAmountIn(pool.CalcAmountInParams{
 				TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: new(big.Int).Set(amountOut)},
 				TokenIn:        tokenIn,

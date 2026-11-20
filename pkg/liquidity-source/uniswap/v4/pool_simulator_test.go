@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -36,29 +37,29 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 		Amount: bignumber.NewBig10("15497045801"),
 	}
-	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
+	got, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokenAmountIn.Token, Amount: *big256.FromBig(tokenAmountIn.Amount)},
 		TokenOut:      "0x3b50805453023a91a8bf641e279401a0b23fa6f9",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("1070524829112273927801315"), got.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("1070524829112273927801315"), got.TokenAmountOut.Amount.ToBig())
 
-	pSim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  tokenAmountIn,
+	pSim.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: tokenAmountIn.Token, Amount: *big256.FromBig(tokenAmountIn.Amount)},
 		TokenAmountOut: *got.TokenAmountOut,
 		Fee:            *got.Fee,
 		SwapInfo:       got.SwapInfo,
 	})
 
-	got, err = pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err = pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			Amount: bignumber.NewBig10("15500255685"),
+			Amount: *big256.FromBig(bignumber.NewBig10("15500255685")),
 		},
 		TokenOut: "0x3b50805453023a91a8bf641e279401a0b23fa6f9",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("871374850342807317560423"), got.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("871374850342807317560423"), got.TokenAmountOut.Amount.ToBig())
 }
 
 // swappingHook swaps in BeforeSwap, so the simulator must not quote it natively.
@@ -152,29 +153,29 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 		Token:  "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
 		Amount: bignumber.NewBig10("15497045801"),
 	}
-	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountOut,
+	got, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokenAmountOut.Token, Amount: *big256.FromBig(tokenAmountOut.Amount)},
 		TokenOut:      "0xb688ba096b7bb75d7841e47163cd12d18b36a5bf",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("39047802574032313"), got.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("39047802574032313"), got.TokenAmountOut.Amount.ToBig())
 
-	pSim.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  tokenAmountOut,
+	pSim.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: tokenAmountOut.Token, Amount: *big256.FromBig(tokenAmountOut.Amount)},
 		TokenAmountOut: *got.TokenAmountOut,
 		Fee:            *got.Fee,
 		SwapInfo:       got.SwapInfo,
 	})
 
-	got, err = pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	gotOut, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
-			Amount: bignumber.NewBig10("15500255685"),
+			Amount: *big256.FromBig(bignumber.NewBig10("15500255685")),
 		},
 		TokenOut: "0xb688ba096b7bb75d7841e47163cd12d18b36a5bf",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("3823278233713"), got.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("3823278233713"), gotOut.TokenAmountOut.Amount.ToBig())
 }
 
 // arcNativePoolJSON is a Uniswap v4 pool on Arc whose native-flagged token reserves at 6 decimals.

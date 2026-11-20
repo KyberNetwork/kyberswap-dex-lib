@@ -1,15 +1,16 @@
 package uniswapv4
 
 import (
-	"context"
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -93,16 +94,19 @@ func TestFewUnwrap_UpdateBalanceSpendsBalance(t *testing.T) {
 	// 100k USDT unwraps ~99.7k fwUSDC, within the balance.
 	res, err := p.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: usdtIn(100_000e6), TokenOut: fewTestUSDC})
 	require.NoError(t, err)
-	p.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  usdtIn(100_000e6),
-		TokenAmountOut: *res.TokenAmountOut,
+	p.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: fewTestUSDT, Amount: *uint256.NewInt(100_000e6)},
+		TokenAmountOut: pool.TokenAmt{Token: res.TokenAmountOut.Token, Amount: *big256.FromBig(res.TokenAmountOut.Amount)},
 		SwapInfo:       res.SwapInfo,
 	})
 
 	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: usdtIn(100_000e6), TokenOut: fewTestUSDC})
 	assert.ErrorIs(t, err, ErrFewUnwrapExceeded, "only ~32.5k USDC is left to unwrap")
 
-	_, err = pool.DefaultCalcAmtOut(context.Background(), clone, usdtIn(100_000e6), fewTestUSDC, nil)
+	_, err = clone.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: fewTestUSDT, Amount: *uint256.NewInt(100_000e6)},
+		TokenOut:      fewTestUSDC,
+	})
 	assert.NoError(t, err, "clone keeps the pre-swap balance")
 }
 

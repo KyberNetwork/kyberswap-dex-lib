@@ -1,10 +1,10 @@
 package uniswapv4
 
 import (
-	"math/big"
 	"slices"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -71,11 +71,15 @@ func TestTokenListsSurviveCloneAndSwap(t *testing.T) {
 	t.Parallel()
 	sim := newTokenListsTestPool(t, "fwWETH", "fwUNI")
 	clone := sim.CloneState().(*PoolSimulator)
-	amountIn := pool.TokenAmount{Token: tokens["fwWETH"].Address, Amount: big.NewInt(1e15)}
-	res, err := clone.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: amountIn, TokenOut: tokens["fwUNI"].Address})
+	amountIn := pool.TokenAmt{Token: tokens["fwWETH"].Address, Amount: *uint256.NewInt(1e15)}
+	res, err := clone.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: amountIn, TokenOut: tokens["fwUNI"].Address})
 	require.NoError(t, err)
-	clone.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: amountIn, TokenAmountOut: *res.TokenAmountOut,
-		Fee: *res.Fee, SwapInfo: res.SwapInfo})
+	clone.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  amountIn,
+		TokenAmountOut: *res.TokenAmountOut,
+		Fee:            *res.Fee,
+		SwapInfo:       res.SwapInfo,
+	})
 	require.Equal(t, sim.GetTokens(), clone.GetTokens())
 	for _, token := range sim.GetTokens() {
 		require.Equal(t, sim.CanSwapTo(token), clone.CanSwapTo(token))

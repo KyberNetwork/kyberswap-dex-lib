@@ -675,7 +675,7 @@ func (p *PoolSimulator) computeTokens() []string {
 	return tokens
 }
 
-func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (p *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *p
 	cloned.PoolSimulator = p.PoolSimulator.CloneState().(*uniswapv3.PoolSimulator)
 	if cloned.hook != nil {
@@ -689,7 +689,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return &cloned
 }
 
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	if params.SwapInfo == nil {
 		return
 	}
@@ -710,13 +710,13 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// for a native-flagged leg, so rescale before applying, mirroring the Unwrap/WrapNativeAmount
 	// pair CalcAmountOut/CalcAmountIn apply around the same v3 math.
 	if idx := p.GetTokenIndex(params.TokenAmountIn.Token); idx >= 0 && p.staticExtra.IsNative[idx] {
-		params.TokenAmountIn.Amount = valueobject.UnwrapNativeAmount(p.chainID, params.TokenAmountIn.Amount)
+		p.unwrapNativeU256(&params.TokenAmountIn.Amount)
 	}
 	if idx := p.GetTokenIndex(params.TokenAmountOut.Token); idx >= 0 && p.staticExtra.IsNative[idx] {
-		params.TokenAmountOut.Amount = valueobject.UnwrapNativeAmount(p.chainID, params.TokenAmountOut.Amount)
+		p.unwrapNativeU256(&params.TokenAmountOut.Amount)
 	}
 
-	p.PoolSimulator.UpdateBalance(params)
+	p.PoolSimulator.UpdateState(params)
 	if provider, ok := p.hook.(HookPoolStateProvider); ok {
 		state := provider.PoolState()
 		p.Info.Reserves = []*big.Int{new(big.Int).Set(state.Reserves[0]), new(big.Int).Set(state.Reserves[1])}

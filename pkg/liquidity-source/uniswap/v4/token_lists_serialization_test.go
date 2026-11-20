@@ -1,16 +1,44 @@
 package uniswapv4_test
 
 import (
+	"bytes"
 	"testing"
 
+	"github.com/KyberNetwork/msgpack/v5"
+	"github.com/holiman/uint256"
+	"github.com/klauspost/compress/snappy"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpack"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
+
+// roundTripSims encodes and decodes the native uint256 simulators with the same msgpack options as
+// pkg/msgpack. EncodePoolSimulatorsMap takes the legacy pool.IPoolSimulator, which a native
+// simulator no longer satisfies, so the test calls the msgpack library directly.
+func roundTripSims(t *testing.T, sims map[string]pool.IPoolSim) map[string]pool.IPoolSim {
+	t.Helper()
+	require.NoError(t, msgpack.RegisterConcreteType(few.TokenWrapper{}))
+	require.NoError(t, msgpack.RegisterConcreteType(&few.TokenWrapper{}))
+	require.NoError(t, msgpack.RegisterConcreteType(&uniswapv4.PoolSimulator{}))
+	var buf bytes.Buffer
+	zw := snappy.NewBufferedWriter(&buf)
+	en := msgpack.NewEncoder(zw)
+	en.IncludeUnexported(true)
+	en.SetForceAsArray(true)
+	require.NoError(t, en.Encode(sims))
+	require.NoError(t, zw.Close())
+
+	out := make(map[string]pool.IPoolSim)
+	de := msgpack.NewDecoder(snappy.NewReader(&buf))
+	de.IncludeUnexported(true)
+	de.SetForceAsArray(true)
+	require.NoError(t, de.Decode(&out))
+	return out
+}
 
 // The token-list caches are not serialized, so a decoded simulator computes the lists per call. It
 // must still answer like the original, wrapped tokens included: an fwWETH/fwUNI pool (FEW v1).
@@ -32,11 +60,7 @@ func TestTokenListsAfterMsgpackRoundTrip(t *testing.T) {
 	}
 	sim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDEthereum)
 	require.NoError(t, err)
-	encoded, err := msgpack.EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{p.Address: sim})
-	require.NoError(t, err)
-	sims, err := msgpack.DecodePoolSimulatorsMap(encoded)
-	require.NoError(t, err)
-	decoded := sims[p.Address]
+	decoded := roundTripSims(t, map[string]pool.IPoolSim{p.Address: sim})[p.Address]
 
 	require.ElementsMatch(t, []string{fwWETH, weth, fwUNI, uni}, decoded.GetTokens())
 	require.ElementsMatch(t, sim.GetTokens(), decoded.GetTokens())
@@ -45,4 +69,11 @@ func TestTokenListsAfterMsgpackRoundTrip(t *testing.T) {
 		require.ElementsMatch(t, sim.CanSwapFrom(token), decoded.CanSwapFrom(token), token)
 	}
 	require.ElementsMatch(t, []string{fwUNI, uni}, decoded.CanSwapFrom(weth))
+
+	in := pool.TokenAmt{Token: fwWETH, Amount: *uint256.NewInt(1e15)}
+	want, err := sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: in, TokenOut: fwUNI})
+	require.NoError(t, err)
+	got, err := decoded.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: in, TokenOut: fwUNI})
+	require.NoError(t, err)
+	require.Equal(t, want.TokenAmountOut, got.TokenAmountOut)
 }
