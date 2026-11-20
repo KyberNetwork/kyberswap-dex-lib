@@ -1,9 +1,9 @@
 package stable
 
 import (
-	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -44,8 +44,8 @@ func TestBasePoolBptSwapRejected(t *testing.T) {
 		{"usdc", "bpt"}, // swapFromBase2Main
 		{"bpt", "usdc"}, // swapFromMain2Base
 	} {
-		_, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: big.NewInt(1e6)},
+		_, err := s.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: tc.tokenIn, Amount: *uint256.NewInt(1e6)},
 			TokenOut:      tc.tokenOut,
 		})
 		assert.ErrorIs(t, err, ErrBasePoolBptSwapNotAllowed, "%s -> %s", tc.tokenIn, tc.tokenOut)

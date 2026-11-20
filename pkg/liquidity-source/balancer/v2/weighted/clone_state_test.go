@@ -12,8 +12,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-// TestCloneStateIsIndependent checks that UpdateBalance on a clone changes neither the original's reserves
-// nor the totals. Both are slices UpdateBalance writes by index.
+// TestCloneStateIsIndependent checks that UpdateState on a clone changes neither the original's reserves
+// nor the totals. Both are slices UpdateState writes by index.
 func TestCloneStateIsIndependent(t *testing.T) {
 	t.Parallel()
 	orig := &PoolSimulator{
@@ -24,7 +24,7 @@ func TestCloneStateIsIndependent(t *testing.T) {
 		Reserves: []*big.Int{big.NewInt(1000), big.NewInt(2000)}}
 
 	c := orig.CloneState().(*PoolSimulator)
-	c.updateBalance("0xaaa", "0xbbb", big.NewInt(10), big.NewInt(20))
+	c.updateBalance("0xaaa", "0xbbb", uint256.NewInt(10), uint256.NewInt(20))
 
 	require.Equal(t, big.NewInt(1000).Cmp(orig.Info.Reserves[0]), 0, "original reserve 0 changed")
 	require.Equal(t, big.NewInt(2000).Cmp(orig.Info.Reserves[1]), 0, "original reserve 1 changed")
@@ -33,18 +33,18 @@ func TestCloneStateIsIndependent(t *testing.T) {
 	require.Equal(t, big.NewInt(1010).Cmp(c.Info.Reserves[0]), 0, "clone reserve 0 not updated")
 }
 
-// stableBasePool embeds a stable pool, so it has no CloneState (nil from pool.Pool). Its UpdateBalance
-// writes reserves directly, since weighted passes no SwapInfo and stable's own UpdateBalance is a no-op.
+// stableBasePool embeds a stable pool, so it has no CloneState (nil from stable.CloneState). Its UpdateState
+// writes reserves directly, since weighted passes no SwapInfo and stable's own UpdateState is a no-op.
 type stableBasePool struct {
 	*stable.PoolSimulator
 }
 
-func (b *stableBasePool) UpdateBalance(params pool.UpdateBalanceParams) {
-	b.Info.Reserves[0] = new(big.Int).Add(b.Info.Reserves[0], params.TokenAmountIn.Amount)
-	b.Info.Reserves[1] = new(big.Int).Sub(b.Info.Reserves[1], params.TokenAmountOut.Amount)
+func (b *stableBasePool) UpdateState(params pool.UpdateStateParams) {
+	b.Info.Reserves[0] = new(big.Int).Add(b.Info.Reserves[0], params.TokenAmountIn.Amount.ToBig())
+	b.Info.Reserves[1] = new(big.Int).Sub(b.Info.Reserves[1], params.TokenAmountOut.Amount.ToBig())
 }
 
-// TestCloneStateStableBasePoolIsIndependent checks that a clone's UpdateBalance does not write into the
+// TestCloneStateStableBasePoolIsIndependent checks that a clone's UpdateState does not write into the
 // original's stable base pool. Stable has no CloneState, so the clone must not share it.
 func TestCloneStateStableBasePoolIsIndependent(t *testing.T) {
 	t.Parallel()
@@ -58,9 +58,9 @@ func TestCloneStateStableBasePoolIsIndependent(t *testing.T) {
 
 	c := orig.CloneState()
 	if c != nil {
-		c.UpdateBalance(pool.UpdateBalanceParams{
-			TokenAmountIn:  pool.TokenAmount{Token: "0xaaa", Amount: big.NewInt(10)},
-			TokenAmountOut: pool.TokenAmount{Token: "0xbbb", Amount: big.NewInt(20)},
+		c.UpdateState(pool.UpdateStateParams{
+			TokenAmountIn:  pool.TokenAmt{Token: "0xaaa", Amount: *uint256.NewInt(10)},
+			TokenAmountOut: pool.TokenAmt{Token: "0xbbb", Amount: *uint256.NewInt(20)},
 			SwapInfo: shared.SwapInfo{Hops: []shared.Hop{{
 				Pool: "stable", TokenIn: "0xaaa", TokenOut: "0xbbb",
 				AmountIn: uint256.NewInt(10), AmountOut: uint256.NewInt(20),

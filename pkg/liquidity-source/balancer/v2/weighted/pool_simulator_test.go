@@ -51,9 +51,9 @@ func Test_CalcAmountOut(t *testing.T) {
 			poolTypeVer: 3,
 		}
 
-		tokenAmountIn := poolpkg.TokenAmount{
+		tokenAmountIn := poolpkg.TokenAmt{
 			Token:  "0xac3E018457B222d93114458476f3E3416Abbe38F",
-			Amount: big.NewInt(3311),
+			Amount: *uint256.NewInt(3311),
 		}
 		tokenOut := "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"
 
@@ -61,8 +61,8 @@ func Test_CalcAmountOut(t *testing.T) {
 		amountOut := "3442"
 
 		// calculation
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmtOutResult, error) {
+			return s.CalcAmtOut(poolpkg.CalcAmtOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -108,9 +108,9 @@ func Test_CalcAmountOut(t *testing.T) {
 		}
 
 		amountIn, _ := new(big.Int).SetString("60160080014532471350474", 10)
-		tokenAmountIn := poolpkg.TokenAmount{
+		tokenAmountIn := poolpkg.TokenAmt{
 			Token:  "0x5a8F45b943A7E6a4BEA463A98de68940A153c78a",
-			Amount: amountIn,
+			Amount: *uint256.MustFromBig(amountIn),
 		}
 		tokenOut := "0xbE666bB32a8e4B6b2f2D0fb053d965bdfA277223"
 
@@ -118,8 +118,8 @@ func Test_CalcAmountOut(t *testing.T) {
 		amountOut := "76143667376405160244"
 
 		// calculation
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmtOutResult, error) {
+			return s.CalcAmtOut(poolpkg.CalcAmtOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -165,9 +165,9 @@ func Test_CalcAmountOut(t *testing.T) {
 		}
 
 		amountIn, _ := new(big.Int).SetString("6016008001453247", 10)
-		tokenAmountIn := poolpkg.TokenAmount{
+		tokenAmountIn := poolpkg.TokenAmt{
 			Token:  "0xbE666bB32a8e4B6b2f2D0fb053d965bdfA277223",
-			Amount: amountIn,
+			Amount: *uint256.MustFromBig(amountIn),
 		}
 		tokenOut := "0x5a8F45b943A7E6a4BEA463A98de68940A153c78a"
 
@@ -175,8 +175,8 @@ func Test_CalcAmountOut(t *testing.T) {
 		amountOut := "4538893010907736440"
 
 		// calculation
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmtOutResult, error) {
+			return s.CalcAmtOut(poolpkg.CalcAmtOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -233,11 +233,11 @@ func Test_CalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(pool, nil)
 		assert.Nil(t, err)
 		amountIn, _ := new(big.Int).SetString("2000000000000000000000", 10)
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmtOutResult, error) {
+			return simulator.CalcAmtOut(poolpkg.CalcAmtOutParams{
+				TokenAmountIn: poolpkg.TokenAmt{
 					Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					Amount: amountIn,
+					Amount: *uint256.MustFromBig(amountIn),
 				},
 				TokenOut: "0xba100000625a3754423978a60c9317c58a424e3d",
 			})
@@ -348,11 +348,11 @@ func Test_CalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(pool, nil)
 		assert.Nil(t, err)
 		amountIn, _ := new(big.Int).SetString("77000000000000000000", 10)
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmtOutResult, error) {
+			return simulator.CalcAmtOut(poolpkg.CalcAmtOutParams{
+				TokenAmountIn: poolpkg.TokenAmt{
 					Token:  "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
-					Amount: amountIn,
+					Amount: *uint256.MustFromBig(amountIn),
 				},
 				TokenOut: "0x580a84c73811e1839f75d86d75d88cca0c241ff4",
 			})

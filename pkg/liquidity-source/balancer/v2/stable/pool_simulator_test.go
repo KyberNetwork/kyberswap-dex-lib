@@ -40,13 +40,13 @@ func TestCalcAmountOut(t *testing.T) {
 			poolTypeVer: 1,
 		}
 
-		tokenAmountIn := pool.TokenAmount{
+		tokenAmountIn := pool.TokenAmt{
 			Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
-			Amount: new(big.Int).SetUint64(99999910000000),
+			Amount: *uint256.NewInt(99999910000000),
 		}
 		tokenOut := "0x6b175474e89094c44da98b954eedeac495271d0f"
-		_, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(pool.CalcAmountOutParams{
+		_, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+			return s.CalcAmtOut(pool.CalcAmtOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -78,9 +78,9 @@ func TestCalcAmountOut(t *testing.T) {
 			poolTypeVer: 1,
 		}
 
-		tokenAmountIn := pool.TokenAmount{
+		tokenAmountIn := pool.TokenAmt{
 			Token:  "0x6b175474e89094c44da98b954eedeac495271d0f",
-			Amount: new(big.Int).SetUint64(12000000000000000000),
+			Amount: *uint256.NewInt(12000000000000000000),
 		}
 		tokenOut := "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 
@@ -88,8 +88,8 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "1000000000000000000"
 
 		// actual
-		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(pool.CalcAmountOutParams{
+		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+			return s.CalcAmtOut(pool.CalcAmtOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -124,9 +124,9 @@ func TestCalcAmountOut(t *testing.T) {
 			poolTypeVer: 1,
 		}
 
-		tokenAmountIn := pool.TokenAmount{
+		tokenAmountIn := pool.TokenAmt{
 			Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
-			Amount: new(big.Int).SetUint64(12111222333444555666),
+			Amount: *uint256.NewInt(12111222333444555666),
 		}
 		tokenOut := "0x6b175474e89094c44da98b954eedeac495271d0f"
 
@@ -134,8 +134,8 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "590000000000000000"
 
 		// actual
-		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(pool.CalcAmountOutParams{
+		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+			return s.CalcAmtOut(pool.CalcAmtOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -184,9 +184,9 @@ func TestCalcAmountOut(t *testing.T) {
 		s, err := NewPoolSimulator(entityPool, nil)
 		assert.Nil(t, err)
 
-		tokenAmountIn := pool.TokenAmount{
+		tokenAmountIn := pool.TokenAmt{
 			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			Amount: big.NewInt(73183418984294781),
+			Amount: *uint256.NewInt(73183418984294781),
 		}
 		tokenOut := "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0"
 
@@ -194,8 +194,8 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "63551050657042642"
 
 		// actual
-		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(pool.CalcAmountOutParams{
+		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+			return s.CalcAmtOut(pool.CalcAmtOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
