@@ -86,5 +86,59 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getFeeDistributionInfo",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "PoolId"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "assetFeesToAssetBuybackWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assetFeesToNumeraireBuybackWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assetFeesToBeneficiaryWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assetFeesToLpWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "numeraireFeesToAssetBuybackWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "numeraireFeesToNumeraireBuybackWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "numeraireFeesToBeneficiaryWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "numeraireFeesToLpWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   }
 ]
