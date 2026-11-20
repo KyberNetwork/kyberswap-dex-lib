@@ -46,6 +46,15 @@ type Extra struct {
 	// prices against this full value; only the resulting tokensOut is
 	// clamped against sellableTokens() (TokenReserve - ReservedTokens).
 	TokenReserve *uint256.Int `json:"tokenReserve"`
+	// TrackedQuote is PonsV2BondingCurve.trackedQuote(): the real quote the
+	// curve holds and can pay out (the ERC-20 quote balance of the curve),
+	// while QuoteReserve also contains the virtual phantomQuote. A sell pays
+	// quoteOut (grossQuoteOut - fee - tax) from it and reverts with an
+	// arithmetic underflow when quoteOut > TrackedQuote. Pending fee/tax
+	// balances stay counted in TrackedQuote: they do not lower the limit.
+	// nil for a pool tracked before this field existed: the simulator then
+	// skips the check.
+	TrackedQuote *uint256.Int `json:"trackedQuote,omitempty"`
 	// Graduated mirrors PonsV2BondingCurve.graduated(). Once true, buy()
 	// reverts unconditionally on-chain; sell() also reverts once
 	// sellableTokens()==0 even before this flips (see readyToGraduate in
@@ -74,6 +83,8 @@ type SwapInfo struct {
 	// decode to false downstream (matches why IsBuy above also has a real tag).
 	IsNativeQuote   bool         `json:"isNativeQuote"`
 	NewQuoteReserve *uint256.Int `json:"-"`
+	// NewTrackedQuote is nil when the pool has no TrackedQuote (see Extra).
+	NewTrackedQuote *uint256.Int `json:"-"`
 	NewTokenReserve *uint256.Int `json:"-"`
 	NewGraduated    bool         `json:"-"`
 }
