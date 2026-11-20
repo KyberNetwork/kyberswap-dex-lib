@@ -158,18 +158,16 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		extraBytes, _ := json.Marshal(ExtraTickU256{})
-		staticExtraBytes, _ := json.Marshal(StaticExtra{PoolId: p.ID})
 
 		pools = append(pools, entity.Pool{
-			Address:     p.ID,
-			SwapFee:     swapFee,
-			Exchange:    d.config.DexID,
-			Type:        DexTypeUniswapV3,
-			Timestamp:   createdAtTimestamp,
-			Reserves:    reserves,
-			Tokens:      tokens,
-			Extra:       string(extraBytes),
-			StaticExtra: string(staticExtraBytes),
+			Address:   p.ID,
+			SwapFee:   swapFee,
+			Exchange:  d.config.DexID,
+			Type:      DexTypeUniswapV3,
+			Timestamp: createdAtTimestamp,
+			Reserves:  reserves,
+			Tokens:    tokens,
+			Extra:     string(extraBytes),
 		})
 	}
 
