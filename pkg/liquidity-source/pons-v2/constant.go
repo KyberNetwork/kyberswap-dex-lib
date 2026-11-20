@@ -20,12 +20,13 @@ const (
 	buyGas  = 180_000
 	sellGas = 115_000
 
-	curveMethodGetReserves = "getReserves"
-	curveMethodFeeBps      = "feeBps"
-	curveMethodCreatorTax  = "creatorTaxBps"
-	curveMethodIsNative    = "isNativeQuote"
-	curveMethodGraduated   = "graduated"
-	curveMethodReserved    = "reservedTokens"
+	curveMethodGetReserves  = "getReserves"
+	curveMethodFeeBps       = "feeBps"
+	curveMethodCreatorTax   = "creatorTaxBps"
+	curveMethodIsNative     = "isNativeQuote"
+	curveMethodGraduated    = "graduated"
+	curveMethodReserved     = "reservedTokens"
+	curveMethodTrackedQuote = "trackedQuote"
 )
 
 var (
