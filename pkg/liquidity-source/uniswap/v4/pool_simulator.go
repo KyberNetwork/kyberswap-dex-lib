@@ -178,11 +178,25 @@ func (p *PoolSimulator) hookSwaps() bool {
 		p.hook.CanAfterSwap(p.staticExtra.HooksAddress))
 }
 
-// CalcAmtOut is CalcAmountOut with uint256 amounts for pools whose hook does not swap. A pool with a
-// swapping hook returns pool.ErrUnsupported, so the engine falls back to CalcAmountOut.
+// CalcAmtOut is CalcAmountOut with uint256 amounts. The no-hook path runs natively; a swapping hook runs
+// the shared CalcAmountOut body through the big.Int boundary, since Hook takes big.Int amounts.
 func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	if p.hookSwaps() {
-		return nil, pool.ErrUnsupported
+		res, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: params.TokenAmountIn.Amount.ToBig()},
+			TokenOut:      params.TokenOut,
+			Limit:         pool.AsSwapLimitBig(params.Limit),
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &pool.CalcAmtOutResult{
+			TokenAmountOut:         tokenAmtFromBigV4(res.TokenAmountOut),
+			Fee:                    tokenAmtFromBigV4(res.Fee),
+			RemainingTokenAmountIn: tokenAmtFromBigV4(res.RemainingTokenAmountIn),
+			Gas:                    res.Gas,
+			SwapInfo:               res.SwapInfo,
+		}, nil
 	}
 	originalTokenIn, originalTokenOut := params.TokenAmountIn.Token, params.TokenOut
 	amountIn := params.TokenAmountIn.Amount
@@ -245,6 +259,19 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	}
 	swapResult.SwapInfo = v4SwapInfo
 	return swapResult, nil
+}
+
+// tokenAmtFromBigV4 converts a big.Int amount to uint256 at the hook boundary. Amounts from the shared
+// CalcAmountOut body are non-negative and fit 256 bits, so a nil result is returned only for a nil input.
+func tokenAmtFromBigV4(t *pool.TokenAmount) *pool.TokenAmt {
+	if t == nil {
+		return nil
+	}
+	out := &pool.TokenAmt{Token: t.Token, AmountUsd: t.AmountUsd}
+	if t.Amount != nil {
+		out.Amount = *uint256.MustFromBig(t.Amount)
+	}
+	return out
 }
 
 // unwrapNativeU256 rescales a native-flagged amount to the wrapped-native decimals of valueobject's

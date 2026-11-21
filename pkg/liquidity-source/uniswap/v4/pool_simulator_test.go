@@ -67,9 +67,9 @@ type swappingHook struct{ *BaseHook }
 
 func (*swappingHook) CanBeforeSwap(common.Address) bool { return true }
 
-// TestPoolSimulator_CalcAmtOutFallsBackOnSwappingHook: a swapping hook is not native, so CalcAmtOut
-// returns ErrUnsupported and the engine uses CalcAmountOut.
-func TestPoolSimulator_CalcAmtOutFallsBackOnSwappingHook(t *testing.T) {
+// TestPoolSimulator_CalcAmtOutSwappingHookIsNative: a swapping hook quotes natively, so CalcAmtOut
+// returns a quote, not ErrUnsupported. The engine no longer falls back to CalcAmountOut for it.
+func TestPoolSimulator_CalcAmtOutSwappingHookIsNative(t *testing.T) {
 	t.Parallel()
 	var poolEnt entity.Pool
 	assert.NoError(t, json.Unmarshal([]byte(poolData), &poolEnt))
@@ -78,11 +78,12 @@ func TestPoolSimulator_CalcAmtOutFallsBackOnSwappingHook(t *testing.T) {
 
 	hooked := *pSim
 	hooked.hook = &swappingHook{&BaseHook{}}
-	_, err = hooked.CalcAmtOut(pool.CalcAmtOutParams{
-		TokenAmountIn: pool.TokenAmt{Token: "0x3b50805453023a91a8bf641e279401a0b23fa6f9", Amount: *uint256.NewInt(1)},
-		TokenOut:      "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+	got, err := hooked.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Amount: *uint256.NewInt(15497045801)},
+		TokenOut:      "0x3b50805453023a91a8bf641e279401a0b23fa6f9",
 	})
-	assert.ErrorIs(t, err, pool.ErrUnsupported)
+	assert.NoError(t, err)
+	assert.NotNil(t, got)
 }
 
 // TestCalcAmtOutParity: on the no-hook path CalcAmtOut must match CalcAmountOut on amount, gas, fee,
