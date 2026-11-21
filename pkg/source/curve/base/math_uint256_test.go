@@ -288,3 +288,45 @@ func sumBig(xs []*big.Int) *big.Int {
 	}
 	return s
 }
+
+func TestCalculateTokenAmountU256Parity(t *testing.T) {
+	t.Parallel()
+	rng := rand.New(rand.NewSource(7))
+	var cells, matched, boundary int
+	for _, xp := range parityXPs(rng) {
+		n := len(xp)
+		rates := make([]*big.Int, n)
+		for i := range rates {
+			rates[i] = bignumber.NewBig10("1000000000000000000")
+		}
+		supply := new(big.Int).Add(sumBig(xp), bignumber.One)
+		p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
+		p.Rates = rates
+		p.Multipliers = rates
+		p.Info.Tokens = make([]string, n)
+		p.Info.Reserves = xp
+		p.LpSupply = supply
+		for _, deposit := range []bool{true, false} {
+			amounts := make([]*big.Int, n)
+			for i := range amounts {
+				amounts[i] = new(big.Int).Div(xp[i], big.NewInt(7))
+			}
+			want, wantErr := p.CalculateTokenAmount(amounts, deposit)
+			cells++
+			got, gotErr := p.calculateTokenAmountU256(toU256s(amounts), deposit, toU256s(xp), toU256s(rates), uint256.NewInt(150000), big256.FromBig(supply))
+			if wantErr != nil {
+				require.Error(t, gotErr)
+				continue
+			}
+			if errors.Is(gotErr, errU256Overflow) || errors.Is(gotErr, errU256Underflow) {
+				boundary++
+				continue
+			}
+			require.NoError(t, gotErr)
+			require.Equal(t, want.String(), got.Dec(), "xp=%v deposit=%v", xp, deposit)
+			matched++
+		}
+	}
+	require.Positive(t, matched)
+	t.Logf("CalculateTokenAmount grid: cells=%d matched=%d boundary=%d", cells, matched, boundary)
+}

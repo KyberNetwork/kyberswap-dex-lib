@@ -496,3 +496,79 @@ func (t *PoolSimulator) calculateWithdrawOneCoinU256(
 	}
 	return &dy, &dyFee, nil
 }
+
+// xpMemU256 mirrors _xpMem: xp[i] = rates[i] * balances[i] / PRECISION, floored per token.
+func xpMemU256(balances, rates []*uint256.Int, precision *uint256.Int) ([]*uint256.Int, error) {
+	var xp = make([]*uint256.Int, len(balances))
+	for i := range balances {
+		var v uint256.Int
+		if err := mulU256(&v, rates[i], balances[i]); err != nil {
+			return nil, err
+		}
+		v.Div(&v, precision)
+		xp[i] = &v
+	}
+	return xp, nil
+}
+
+// calculateTokenAmountU256 mirrors CalculateTokenAmount. Balances and xp are passed in as
+// uint256 so the caller controls the rescale.
+func (t *PoolSimulator) calculateTokenAmountU256(
+	amounts []*uint256.Int,
+	deposit bool,
+	reserves, rates []*uint256.Int,
+	a, totalSupply *uint256.Int,
+) (*uint256.Int, error) {
+	var precision = big256.FromBig(Precision)
+	var numTokens = len(reserves)
+	var xp0, err = xpMemU256(reserves, rates, precision)
+	if err != nil {
+		return nil, err
+	}
+	d0, err := t.getDU256(xp0, a)
+	if err != nil {
+		return nil, err
+	}
+
+	var balances1 = make([]*uint256.Int, numTokens)
+	for i := range numTokens {
+		var v uint256.Int
+		if deposit {
+			if err := addU256(&v, reserves[i], amounts[i]); err != nil {
+				return nil, err
+			}
+		} else {
+			if reserves[i].Lt(amounts[i]) {
+				return nil, ErrWithdrawMoreThanAvailable
+			}
+			if err := subU256(&v, reserves[i], amounts[i]); err != nil {
+				return nil, err
+			}
+		}
+		balances1[i] = &v
+	}
+	xp1, err := xpMemU256(balances1, rates, precision)
+	if err != nil {
+		return nil, err
+	}
+	d1, err := t.getDU256(xp1, a)
+	if err != nil {
+		return nil, err
+	}
+
+	var diff uint256.Int
+	if deposit {
+		if err := subU256(&diff, d1, d0); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := subU256(&diff, d0, d1); err != nil {
+			return nil, err
+		}
+	}
+	if err := mulU256(&diff, &diff, totalSupply); err != nil {
+		return nil, err
+	}
+	diff.Div(&diff, d0)
+	return &diff, nil
+}
