@@ -88,6 +88,12 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (pools.Pool, err
 		poolKey := staticExtra.PoolKey.ToConcentrated(config)
 
 		switch staticExtra.ExtensionType {
+		case ExtensionTypeZeroSeedLaunch:
+			state, err := unmarshalExtra[pools.ZeroSeedLaunchPoolState](extraBytes)
+			if err != nil {
+				return nil, fmt.Errorf("parsing zero-seed launch state: %w", err)
+			}
+			return pools.NewZeroSeedLaunchPool(poolKey, state)
 		case ExtensionTypeNoSwapCallPoints:
 			state, err := unmarshalExtra[pools.ConcentratedPoolState](extraBytes)
 			if err != nil {

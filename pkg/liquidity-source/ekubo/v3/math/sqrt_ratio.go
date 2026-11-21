@@ -61,13 +61,13 @@ func nextSqrtRatioFromAmount0(sqrtRatio, liquidity, amount0 *uint256.Int) (*uint
 
 	if amount0.Sign() < 0 {
 		amount0Abs := tmp.Neg(amount0)
-		product := amount0Abs.Mul(amount0Abs, sqrtRatio)
-		if product.BitLen() > 256 {
+		product, overflow := amount0Abs.MulOverflow(amount0Abs, sqrtRatio)
+		if overflow {
 			return nil, ErrOverflow
 		}
 
-		denominator := product.Sub(&num, product)
-		if denominator.Sign() < 0 {
+		denominator, underflow := product.SubOverflow(&num, product)
+		if underflow {
 			return nil, ErrUnderflow
 		}
 
@@ -75,8 +75,8 @@ func nextSqrtRatioFromAmount0(sqrtRatio, liquidity, amount0 *uint256.Int) (*uint
 	} else {
 		denomP1 := tmp.Div(&num, sqrtRatio)
 
-		denom := denomP1.Add(denomP1, amount0)
-		if denom.BitLen() > 256 {
+		denom, overflow := denomP1.AddOverflow(denomP1, amount0)
+		if overflow {
 			return nil, ErrOverflow
 		}
 
@@ -113,4 +113,40 @@ func nextSqrtRatioFromAmount1(sqrtRatio, liquidity, amount1 *uint256.Int) (*uint
 		}
 		return res, nil
 	}
+}
+
+var sqrtRatioRegions = [...]struct {
+	shift uint
+	bound *uint256.Int
+}{
+	{2, big256.U2Pow96},
+	{34, big256.U2Pow128},
+	{66, big256.U2Pow160},
+	{98, big256.U2Pow192},
+}
+
+// RoundSqrtRatio rounds a fixed point sqrt ratio to the precision Core stores it with, in the given direction, like
+// `toSqrtRatio` in the contracts: the region is chosen after rounding, so rounding up can move a ratio into the next,
+// coarser region. Ratios too large to be stored round to the maximum uint256.
+func RoundSqrtRatio(sqrtRatio *uint256.Int, roundUp bool) *uint256.Int {
+	var rounded uint256.Int
+	for _, region := range sqrtRatioRegions {
+		rounded.Set(sqrtRatio)
+		if roundUp {
+			var mask uint256.Int
+			mask.Lsh(big256.U1, region.shift).SubUint64(&mask, 1)
+			if _, overflow := rounded.AddOverflow(&rounded, &mask); overflow {
+				rounded.SetAllOne()
+			}
+		}
+		if rounded.Lt(region.bound) {
+			return rounded.Lsh(rounded.Rsh(&rounded, region.shift), region.shift)
+		}
+	}
+	return rounded.SetAllOne()
+}
+
+// IsValidSqrtRatio reports whether a fixed point sqrt ratio is a sqrt ratio Core can store and swap to.
+func IsValidSqrtRatio(sqrtRatio *uint256.Int) bool {
+	return !sqrtRatio.Lt(MinSqrtRatio) && !sqrtRatio.Gt(MaxSqrtRatio) && RoundSqrtRatio(sqrtRatio, false).Eq(sqrtRatio)
 }
