@@ -21,6 +21,11 @@ type PoolSimulator struct {
 	proxy string
 }
 
+// AmountInRange is promoted from the embedded *ladder.PoolSimulator. Asserted here so the
+// promotion cannot be lost silently: embedding by value, or shadowing the method, stops
+// compiling at this line instead of quietly making the pool unable to state its range.
+var _ pool.IAmountInRange = (*PoolSimulator)(nil)
+
 var (
 	_ = pool.RegisterFactory(DexType, NewPoolSimulator)
 	_ = pool.RegisterUseSwapLimit(valueobject.ExchangeNemoProp)
