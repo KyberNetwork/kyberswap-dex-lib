@@ -43,6 +43,7 @@ func (t *PoolTracker) GetNewPoolState(
 		creatorTaxBps  *big.Int
 		reservedTokens *big.Int
 		isNativeQuote  bool
+		trackedQuote   *big.Int
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -56,6 +57,13 @@ func (t *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: curveMethodGraduated,
 	}, []any{&graduated})
+	// trackedQuote is the real quote the curve can pay a seller; it must come
+	// from the same multicall (same block) as getReserves.
+	req.AddCall(&ethrpc.Call{
+		ABI:    curveABI,
+		Target: p.Address,
+		Method: curveMethodTrackedQuote,
+	}, []any{&trackedQuote})
 	// FeeBps/CreatorTaxBps/ReservedTokens/IsNativeQuote are immutable
 	// on-chain, but re-fetched every pass rather than only once at discovery:
 	// discovery (pool_factory.go's DecodePoolCreated) is a pure log decode
@@ -87,7 +95,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	if reserves.QuoteReserve == nil || reserves.TokenReserve == nil ||
-		feeBps == nil || creatorTaxBps == nil || reservedTokens == nil {
+		feeBps == nil || creatorTaxBps == nil || reservedTokens == nil || trackedQuote == nil {
 		return p, ErrInvalidReserve
 	}
 
@@ -97,6 +105,7 @@ func (t *PoolTracker) GetNewPoolState(
 	extra := Extra{
 		QuoteReserve: quoteReserve,
 		TokenReserve: tokenReserve,
+		TrackedQuote: uint256.MustFromBig(trackedQuote),
 		Graduated:    graduated,
 	}
 	extraBytes, err := json.Marshal(extra)

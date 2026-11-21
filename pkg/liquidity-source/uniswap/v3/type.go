@@ -51,10 +51,6 @@ type SubgraphPool struct {
 
 type TickResp = ticklens.TickResp
 
-type StaticExtra struct {
-	PoolId string `json:"poolId"`
-}
-
 type Tick struct {
 	Index          int      `json:"index"`
 	LiquidityGross *big.Int `json:"liquidityGross"`

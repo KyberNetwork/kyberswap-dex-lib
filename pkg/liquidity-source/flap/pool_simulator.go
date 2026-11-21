@@ -211,7 +211,7 @@ func (s *PoolSimulator) calcBuy(amountIn *uint256.Int) (*pool.CalcAmountOutResul
 	result := &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: tokensOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: new(big.Int).Sub(amountIn.ToBig(), amountInAfterFee.ToBig())},
-		Gas:            defaultGas,
+		Gas:            buyGas,
 		SwapInfo:       SwapInfo{NewCirculatingSupply: newSupply, NewStatus: s.newStatusAfterBuy(newSupply)},
 	}
 	if remainingAmountIn != nil && !remainingAmountIn.IsZero() {
@@ -257,7 +257,7 @@ func (s *PoolSimulator) calcSell(amountIn *uint256.Int) (*pool.CalcAmountOutResu
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: new(big.Int).Sub(grossOut.ToBig(), amountOut.ToBig())},
-		Gas:            defaultGas,
+		Gas:            sellGas,
 		SwapInfo:       SwapInfo{NewCirculatingSupply: newSupply, NewStatus: s.status},
 	}, nil
 }
@@ -307,7 +307,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			return &pool.CalcAmountInResult{
 				TokenAmountIn: &pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
 				Fee:           out.Fee,
-				Gas:           defaultGas,
+				Gas:           out.Gas,
 				SwapInfo:      out.SwapInfo,
 			}, nil
 		}

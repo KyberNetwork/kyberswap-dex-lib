@@ -5,10 +5,13 @@ import "errors"
 const DexType = "flap"
 
 const (
-	// defaultGas is a placeholder until measured against a real swap; the swap flows through the
-	// Portal contract's swapExactInput/swapExactInputV3 entrypoints, dispatched internally to
-	// PortalTradeV2 for bonding-curve tokens.
-	defaultGas = 200000
+	// buyGas and sellGas are the gas of one swap through the Portal (swapExactInput/swapExactInputV3,
+	// dispatched to PortalTradeV2 for bonding-curve tokens) in the KyberSwap executor, the executor's
+	// per-edge overhead included. Measured on bsc (2026-11-19): a buy (quote -> token) spends about
+	// 287k in its executor frame, a sell (token -> quote) about 120k more for the whole swap; the executor
+	// adds about 13k per edge. Size does not change them (bonding curve, no tick crossing).
+	buyGas  = 300_000
+	sellGas = 410_000
 
 	// bpsDenominator is the basis-point denominator used by Portal.getFeeRate() (buyFeeRate=100,
 	// sellFeeRate=100 observed on-chain == 1%), confirmed by magnitude against a bps scale rather

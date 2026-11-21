@@ -11,7 +11,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis"
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
@@ -76,8 +75,8 @@ func (f *PoolFactory) newPool(p *abis.FactoryPool, blockNbr uint64) (*entity.Poo
 		"0", "0",
 	}
 
-	staticExtraBytes, err := json.Marshal(uniswapv3.StaticExtra{
-		PoolId: poolAddress,
+	staticExtraBytes, err := json.Marshal(StaticExtra{
+		UseBasePluginV2: f.config.UseBasePluginV2,
 	})
 	if err != nil {
 		return nil, err
@@ -110,8 +109,8 @@ func (f *PoolFactory) newCustomPool(p *abis.FactoryCustomPool, blockNbr uint64) 
 		"0", "0",
 	}
 
-	staticExtraBytes, err := json.Marshal(uniswapv3.StaticExtra{
-		PoolId: poolAddress,
+	staticExtraBytes, err := json.Marshal(StaticExtra{
+		UseBasePluginV2: f.config.UseBasePluginV2,
 	})
 	if err != nil {
 		return nil, err
