@@ -51,6 +51,7 @@ var (
 	_ = pool.RegisterFactory1(DexTypeSolidlyV3, NewPoolSimulator)
 	_ = pool.RegisterFactory1(DexTypeSlipstream, NewPoolSimulator)
 	_ = pool.RegisterFactory1(DexTypeNuriV2, NewPoolSimulator)
+	_ = pool.RegisterFactory1(DexTypeOwlSwapV3, NewPoolSimulator)
 )
 
 func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimulator, error) {

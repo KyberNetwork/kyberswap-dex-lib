@@ -236,6 +236,7 @@ const (
 	ExchangeOneInchAqua                 = "1inch-aqua"
 	ExchangeOneSwap                     = "oneswap"
 	ExchangeOvernightUsdp               = "overnight-usdp"
+	ExchangeOwlSwapV3                   = "owlswap-v3"
 	ExchangePancake                     = "pancake"
 	ExchangePancakeInfinityBin          = "pancake-infinity-bin"
 	ExchangePancakeInfinityBinBrevis    = "pancake-infinity-bin-brevis"

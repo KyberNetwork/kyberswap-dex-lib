@@ -23,6 +23,7 @@ var (
 	_ = poolfactory.RegisterFactoryC(DexTypeSolidlyV3, NewPoolFactory)
 	_ = poolfactory.RegisterFactoryC(DexTypeSlipstream, NewPoolFactory)
 	_ = poolfactory.RegisterFactoryC(DexTypeNuriV2, NewPoolFactory)
+	_ = poolfactory.RegisterFactoryC(DexTypeOwlSwapV3, NewPoolFactory)
 )
 
 // PoolFactory decodes PoolCreated events for every uniswap-v3 fork merged into this
