@@ -182,3 +182,53 @@ func TestGetYU256Parity(t *testing.T) {
 	require.Positive(t, matched)
 	t.Logf("GetY grid: cells=%d matched=%d overflowBoundary=%d", cells, matched, overflowBoundary)
 }
+
+func TestGetDyU256Parity(t *testing.T) {
+	t.Parallel()
+	rng := rand.New(rand.NewSource(5))
+	var cells, matched, overflowBoundary int
+	for _, xp := range parityXPs(rng) {
+		n := len(xp)
+		rates := make([]*big.Int, n)
+		for i := range rates {
+			rates[i] = bignumber.NewBig10("1000000000000000000")
+		}
+		p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
+		p.Rates = rates
+		p.Multipliers = rates
+		p.Info.Tokens = make([]string, n)
+		p.Info.Reserves = xp
+		p.Info.SwapFee = bignumber.NewBig10("3000000")
+		p.AdminFee = bignumber.NewBig10("5000000000")
+		d, err := p.getD(xp, big.NewInt(150000))
+		if err != nil {
+			continue
+		}
+		for i := range n {
+			for j := range n {
+				if i == j {
+					continue
+				}
+				for _, dx := range []*big.Int{big.NewInt(1000), big.NewInt(1 << 40)} {
+					wantDy, wantFee, wantErr := p.GetDy(i, j, dx, d)
+					gotDy, gotFee, gotErr := p.getDyU256(i, j, big256.FromBig(dx), toU256s(xp), uint256.NewInt(150000), big256.FromBig(d))
+					cells++
+					if wantErr != nil {
+						require.Error(t, gotErr)
+						continue
+					}
+					if errors.Is(gotErr, errU256Overflow) || errors.Is(gotErr, errU256Underflow) {
+						overflowBoundary++
+						continue
+					}
+					require.NoError(t, gotErr)
+					require.Equal(t, wantDy.String(), gotDy.Dec(), "xp=%v i=%d j=%d dx=%v", xp, i, j, dx)
+					require.Equal(t, wantFee.String(), gotFee.Dec(), "xp=%v i=%d j=%d dx=%v", xp, i, j, dx)
+					matched++
+				}
+			}
+		}
+	}
+	require.Positive(t, matched)
+	t.Logf("GetDy grid: cells=%d matched=%d overflowBoundary=%d", cells, matched, overflowBoundary)
+}

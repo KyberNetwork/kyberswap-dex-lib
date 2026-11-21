@@ -360,3 +360,54 @@ func (t *PoolSimulator) getYU256(
 	}
 	return nil, ErrAmountOutNotConverge
 }
+
+// getDyU256 mirrors GetDy. xp is recomputed from rates and reserves, as in math.go.
+func (t *PoolSimulator) getDyU256(i, j int, dx *uint256.Int, xp []*uint256.Int, a, d *uint256.Int) (*uint256.Int, *uint256.Int, error) {
+	var rateI = big256.FromBig(t.Rates[i])
+	var rateJ = big256.FromBig(t.Rates[j])
+	var precision = big256.FromBig(Precision)
+	var feeDen = big256.FromBig(FeeDenominator)
+	var swapFee = big256.FromBig(t.Info.SwapFee)
+
+	var x, tmp uint256.Int
+	if err := mulU256(&tmp, dx, rateI); err != nil {
+		return nil, nil, err
+	}
+	tmp.Div(&tmp, precision)
+	if err := addU256(&x, xp[i], &tmp); err != nil {
+		return nil, nil, err
+	}
+
+	var y, err = t.getYU256(i, j, &x, xp, a, d)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var dy, fee uint256.Int
+	if err := subU256(&dy, xp[j], y); err != nil {
+		return nil, nil, err
+	}
+	if err := subU256(&dy, &dy, u256One); err != nil {
+		return nil, nil, err
+	}
+
+	if err := mulU256(&fee, swapFee, &dy); err != nil {
+		return nil, nil, err
+	}
+	fee.Div(&fee, feeDen)
+
+	if err := subU256(&dy, &dy, &fee); err != nil {
+		return nil, nil, err
+	}
+	if err := mulU256(&dy, &dy, precision); err != nil {
+		return nil, nil, err
+	}
+	dy.Div(&dy, rateJ)
+
+	if err := mulU256(&fee, &fee, precision); err != nil {
+		return nil, nil, err
+	}
+	fee.Div(&fee, rateJ)
+
+	return &dy, &fee, nil
+}
