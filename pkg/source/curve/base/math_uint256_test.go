@@ -146,3 +146,39 @@ func TestGetYDU256Parity(t *testing.T) {
 	require.Positive(t, matched)
 	t.Logf("getYD grid: cells=%d matched=%d overflowBoundary=%d", cells, matched, overflowBoundary)
 }
+
+func TestGetYU256Parity(t *testing.T) {
+	t.Parallel()
+	rng := rand.New(rand.NewSource(4))
+	var cells, matched, overflowBoundary int
+	for _, xp := range parityXPs(rng) {
+		for _, a := range []int64{100, 150000, 1000000} {
+			p := parityPool(len(xp), 100, big.NewInt(a), big.NewInt(a), 0, 0)
+			d, err := p.getD(xp, big.NewInt(a))
+			if err != nil {
+				continue
+			}
+			for i := range xp {
+				for j := range xp {
+					x := new(big.Int).Set(xp[i])
+					wantY, wantErr := p.GetY(i, j, x, xp, d)
+					gotY, gotErr := p.getYU256(i, j, big256.FromBig(x), toU256s(xp), uint256.NewInt(uint64(a)), big256.FromBig(d))
+					cells++
+					if wantErr != nil {
+						require.Error(t, gotErr, "xp=%v a=%d i=%d j=%d", xp, a, i, j)
+						continue
+					}
+					if errors.Is(gotErr, errU256Overflow) {
+						overflowBoundary++
+						continue
+					}
+					require.NoError(t, gotErr, "xp=%v a=%d i=%d j=%d", xp, a, i, j)
+					require.Equal(t, wantY.String(), gotY.Dec(), "xp=%v a=%d i=%d j=%d", xp, a, i, j)
+					matched++
+				}
+			}
+		}
+	}
+	require.Positive(t, matched)
+	t.Logf("GetY grid: cells=%d matched=%d overflowBoundary=%d", cells, matched, overflowBoundary)
+}

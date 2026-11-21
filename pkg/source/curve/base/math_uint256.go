@@ -255,3 +255,108 @@ func (t *PoolSimulator) getYDU256(a *uint256.Int, tokenIndex int, xp []*uint256.
 	}
 	return nil, ErrAmountOutNotConverge
 }
+
+// getYU256 mirrors GetY. It takes a as a parameter and uses x for tokenIndexFrom.
+func (t *PoolSimulator) getYU256(
+	tokenIndexFrom, tokenIndexTo int,
+	x *uint256.Int,
+	xp []*uint256.Int,
+	a, d *uint256.Int,
+) (*uint256.Int, error) {
+	var numTokens = len(xp)
+	if tokenIndexFrom == tokenIndexTo {
+		return nil, ErrTokenFromEqualsTokenTo
+	}
+	if tokenIndexFrom >= numTokens && tokenIndexTo >= numTokens {
+		return nil, ErrTokenIndexesOutOfRange
+	}
+	var n = big256.FromBig(t.numTokensBI)
+	var aPrecision = big256.FromBig(t.APrecision)
+
+	var c, s, tmp, denom uint256.Int
+	c.Set(d)
+	for i := range numTokens {
+		var v *uint256.Int
+		if i == tokenIndexFrom {
+			v = x
+		} else if i != tokenIndexTo {
+			v = xp[i]
+		} else {
+			continue
+		}
+		if v.IsZero() {
+			return nil, ErrZero
+		}
+		if err := addU256(&s, &s, v); err != nil {
+			return nil, err
+		}
+		if err := mulU256(&tmp, &c, d); err != nil {
+			return nil, err
+		}
+		if err := mulU256(&denom, v, n); err != nil {
+			return nil, err
+		}
+		c.Div(&tmp, &denom)
+	}
+
+	var nA uint256.Int
+	if err := mulU256(&nA, a, n); err != nil {
+		return nil, err
+	}
+	if nA.IsZero() {
+		return nil, ErrZero
+	}
+	if err := mulU256(&tmp, &c, d); err != nil {
+		return nil, err
+	}
+	if err := mulU256(&tmp, &tmp, aPrecision); err != nil {
+		return nil, err
+	}
+	if err := mulU256(&denom, &nA, n); err != nil {
+		return nil, err
+	}
+	c.Div(&tmp, &denom)
+
+	var b, dA uint256.Int
+	if err := mulU256(&dA, d, aPrecision); err != nil {
+		return nil, err
+	}
+	dA.Div(&dA, &nA)
+	if err := addU256(&b, &s, &dA); err != nil {
+		return nil, err
+	}
+
+	var y, yPrev, denomY, num uint256.Int
+	y.Set(d)
+	for range MaxLoopLimit {
+		yPrev.Set(&y)
+		if err := mulU256(&denomY, &y, u256Two); err != nil {
+			return nil, err
+		}
+		if err := addU256(&denomY, &denomY, &b); err != nil {
+			return nil, err
+		}
+		if !denomY.Gt(d) {
+			return nil, ErrDenominatorZero
+		}
+		denomY.Sub(&denomY, d)
+		if err := mulU256(&num, &y, &y); err != nil {
+			return nil, err
+		}
+		if err := addU256(&num, &num, &c); err != nil {
+			return nil, err
+		}
+		y.Div(&num, &denomY)
+
+		var diff uint256.Int
+		if y.Gt(&yPrev) {
+			diff.Sub(&y, &yPrev)
+		} else {
+			diff.Sub(&yPrev, &y)
+		}
+		if !diff.Gt(u256One) {
+			return &y, nil
+		}
+	}
+	return nil, ErrAmountOutNotConverge
+}
