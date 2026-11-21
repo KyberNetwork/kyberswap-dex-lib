@@ -2,12 +2,12 @@
 package hooktest
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -75,22 +75,29 @@ func RequireRoundTrip(t testing.TB, pSim *uniswapv4.PoolSimulator) {
 	tokens, reserves := pSim.GetTokens(), pSim.GetReserves()
 	for idxOut := range tokens {
 		tokenIn, tokenOut := tokens[1-idxOut], tokens[idxOut]
-		for _, frac := range []int64{1e6, 1e3, 10} {
-			amountOut := new(big.Int).Quo(reserves[idxOut].ToBig(), big.NewInt(frac))
-			resIn, err := pSim.CalcAmountIn(pool.CalcAmountInParams{
-				TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: new(big.Int).Set(amountOut)},
+		for _, frac := range []uint64{1e6, 1e3, 10} {
+			var amountOut uint256.Int
+			amountOut.Div(&reserves[idxOut], uint256.NewInt(frac))
+			resIn, err := pSim.CalcAmtIn(pool.CalcAmtInParams{
+				TokenAmountOut: pool.TokenAmt{Token: tokenOut, Amount: amountOut},
 				TokenIn:        tokenIn,
 			})
-			require.NoError(t, err, "amountOut %s of token%d", amountOut, idxOut)
-			resOut, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: resIn.TokenAmountIn.Amount},
+			require.NoError(t, err, "amountOut %s of token%d", &amountOut, idxOut)
+			resOut, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: resIn.TokenAmountIn.Amount},
 				TokenOut:      tokenOut,
 			})
 			require.NoError(t, err)
-			diff := new(big.Int).Sub(resOut.TokenAmountOut.Amount, amountOut)
-			require.LessOrEqual(t, new(big.Int).Abs(diff).Cmp(new(big.Int).Quo(amountOut, big.NewInt(1e9))), 0,
-				"token%d: amountOut %s, amountIn %s gives %s", idxOut, amountOut, resIn.TokenAmountIn.Amount,
-				resOut.TokenAmountOut.Amount)
+			var diff, tol uint256.Int
+			if resOut.TokenAmountOut.Amount.Gt(&amountOut) {
+				diff.Sub(&resOut.TokenAmountOut.Amount, &amountOut)
+			} else {
+				diff.Sub(&amountOut, &resOut.TokenAmountOut.Amount)
+			}
+			tol.Div(&amountOut, uint256.NewInt(1e9))
+			require.LessOrEqual(t, diff.Cmp(&tol), 0,
+				"token%d: amountOut %s, amountIn %s gives %s", idxOut, &amountOut, &resIn.TokenAmountIn.Amount,
+				&resOut.TokenAmountOut.Amount)
 		}
 	}
 }
