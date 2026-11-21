@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,57 +41,19 @@ func TestCalcAmountOut(t *testing.T) {
 	pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainID(chainID))
 	assert.NoError(t, err)
 
-	tests := []struct {
-		name            string
-		tokenIn         string
-		tokenOut        string
-		amountIn        string
-		expectAmountOut string
-		expectError     error
-	}{
-		{
-			name:            "small amount in",
-			tokenIn:         "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", // USDC
-			tokenOut:        "0x55d398326f99059ff775485246999027b3197955", // BUSD
-			amountIn:        "1000000000000000",                           // 0.001 USDC
-			expectAmountOut: "999801019898010",                            // ~0.00099 BUSD
-			expectError:     nil,
+	testutil.TestCalcAmtOutIPoolSim(t, pSim, map[int]map[int]map[string]string{
+		1: {
+			0: {
+				"1000000000000000":    "999801019898010",
+				"1000000000000000000": "999801019898010198",
+			},
 		},
-		{
-			name:            "normal amount in",
-			tokenIn:         "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", // USDC
-			tokenOut:        "0x55d398326f99059ff775485246999027b3197955", // BUSD
-			amountIn:        "1000000000000000000",                        // 1 USDC
-			expectAmountOut: "999801019898010198",                         // ~0.99 BUSD
-			expectError:     nil,
+		0: {
+			1: {
+				"1000000000000000000000000000": "",
+			},
 		},
-		{
-			name:        "large amount in",
-			tokenIn:     "0x55d398326f99059ff775485246999027b3197955", // BUSD
-			tokenOut:    "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", // USDC
-			amountIn:    "1000000000000000000000000000",               // 1M USDC (USDC reserve is lower than 1M)
-			expectError: ErrBinIDNotFound,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			out, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{
-					Token:  tc.tokenIn,
-					Amount: bignumber.NewBig10(tc.amountIn),
-				},
-				TokenOut: tc.tokenOut,
-			})
-
-			if tc.expectError != nil {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tc.expectAmountOut, out.TokenAmountOut.Amount.String())
-			}
-		})
-	}
+	})
 }
 
 func TestCalcAmountIn(t *testing.T) {
@@ -142,13 +105,13 @@ func TestMergeSwap(t *testing.T) {
 		pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainID(chainID))
 		assert.NoError(t, err)
 
-		result, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountInTotal},
+		result, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: *uint256.MustFromBig(amountInTotal)},
 			TokenOut:      tokenOut,
 		})
 		require.NoError(t, err)
 
-		amountOutSingle = result.TokenAmountOut.Amount
+		amountOutSingle = result.TokenAmountOut.Amount.ToBig()
 	})
 
 	var totalAmountOutMulti = big.NewInt(0)
@@ -156,21 +119,22 @@ func TestMergeSwap(t *testing.T) {
 		pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainID(chainID))
 		assert.NoError(t, err)
 
+		in := *uint256.MustFromBig(amountIn)
 		for range loop {
-			result, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
+			result, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: in},
 				TokenOut:      tokenOut,
 			})
 			require.NoError(t, err)
 
-			pSim.UpdateBalance(pool.UpdateBalanceParams{
-				TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: amountIn},
-				TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: result.TokenAmountOut.Amount},
+			pSim.UpdateState(pool.UpdateStateParams{
+				TokenAmountIn:  pool.TokenAmt{Token: tokenIn, Amount: in},
+				TokenAmountOut: *result.TokenAmountOut,
 				Fee:            *result.Fee,
 				SwapInfo:       result.SwapInfo,
 			})
 
-			totalAmountOutMulti.Add(totalAmountOutMulti, result.TokenAmountOut.Amount)
+			totalAmountOutMulti.Add(totalAmountOutMulti, result.TokenAmountOut.Amount.ToBig())
 		}
 	})
 
