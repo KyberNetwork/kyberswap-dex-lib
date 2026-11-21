@@ -145,6 +145,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mento"
 	metricpropamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/metric-propamm"
 	metronomeswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/metronome/swap"
+	mhocdesk "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mhoc-desk"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	miromigrator "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/miro-migrator"
@@ -529,6 +530,7 @@ type Types struct {
 	BiconomyProp               string
 	DaikonProp                 string
 	EfraProp                   string
+	MhocDesk                   string
 	FermiProp                  string
 	Machima                    string
 	MetronomeSwap              string
@@ -805,6 +807,7 @@ var (
 		BiconomyProp:               biconomyprop.DexType,
 		DaikonProp:                 daikonprop.DexType,
 		EfraProp:                   efraprop.DexType,
+		MhocDesk:                   mhocdesk.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
 		MetronomeSwap:              metronomeswap.DexType,

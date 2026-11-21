@@ -139,6 +139,7 @@ import (
 	pkg_liquiditysource_mento "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mento"
 	pkg_liquiditysource_metricpropamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/metric-propamm"
 	pkg_liquiditysource_metronome_swap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/metronome/swap"
+	pkg_liquiditysource_mhocdesk "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mhoc-desk"
 	pkg_liquiditysource_midas "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
 	pkg_liquiditysource_miromigrator "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/miro-migrator"
 	pkg_liquiditysource_mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
@@ -452,6 +453,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mento.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_metricpropamm.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_metronome_swap.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mhocdesk.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_midas.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_miromigrator.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mkrsky.PoolSimulator{})
