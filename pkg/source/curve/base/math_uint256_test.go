@@ -330,3 +330,78 @@ func TestCalculateTokenAmountU256Parity(t *testing.T) {
 	require.Positive(t, matched)
 	t.Logf("CalculateTokenAmount grid: cells=%d matched=%d boundary=%d", cells, matched, boundary)
 }
+
+func TestAddLiquidityU256Parity(t *testing.T) {
+	t.Parallel()
+	rng := rand.New(rand.NewSource(8))
+	var cells, matched, boundary int
+	for _, xp := range parityXPs(rng) {
+		n := len(xp)
+		rates := make([]*big.Int, n)
+		for i := range rates {
+			rates[i] = bignumber.NewBig10("1000000000000000000")
+		}
+		for _, supply := range []*big.Int{sumBig(xp), big.NewInt(0)} {
+			amounts := make([]*big.Int, n)
+			for i := range amounts {
+				amounts[i] = new(big.Int).Div(xp[i], big.NewInt(5))
+			}
+			p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
+			p.Rates = rates
+			p.Multipliers = rates
+			p.Info.Tokens = make([]string, n)
+			p.Info.Reserves = cloneBigs(xp)
+			p.Info.SwapFee = bignumber.NewBig10("3000000")
+			p.AdminFee = bignumber.NewBig10("5000000000")
+			p.LpSupply = new(big.Int).Set(supply)
+
+			d0, err := p.getD(xp, big.NewInt(150000))
+			if err != nil {
+				continue
+			}
+			_ = d0
+			want, wantErr := p.addLiquidityRef(amounts)
+			cells++
+			got, gotReserves, gotErr := p.addLiquidityU256(
+				toU256s(amounts), toU256s(xp), uint256.NewInt(150000),
+				big256.FromBig(supply), big256.FromBig(p.Info.SwapFee), big256.FromBig(p.AdminFee))
+			if wantErr != nil {
+				require.Error(t, gotErr)
+				continue
+			}
+			if errors.Is(gotErr, errU256Overflow) || errors.Is(gotErr, errU256Underflow) {
+				boundary++
+				continue
+			}
+			require.NoError(t, gotErr)
+			require.Equal(t, want.String(), got.Dec(), "xp=%v supply=%v", xp, supply)
+			for i := range n {
+				require.Equal(t, p.Info.Reserves[i].String(), gotReserves[i].Dec(), "reserve i=%d xp=%v", i, xp)
+			}
+			matched++
+		}
+	}
+	require.Positive(t, matched)
+	t.Logf("AddLiquidity grid: cells=%d matched=%d boundary=%d", cells, matched, boundary)
+}
+
+func cloneBigs(xs []*big.Int) []*big.Int {
+	out := make([]*big.Int, len(xs))
+	for i, x := range xs {
+		out[i] = new(big.Int).Set(x)
+	}
+	return out
+}
+
+// addLiquidityRef calls the big.Int AddLiquidity and turns its nil-deref panic (it ignores the
+// get_D_mem error at math.go:519) into a distinct error, so the grid can count that cell.
+func (p *PoolSimulator) addLiquidityRef(amounts []*big.Int) (res *big.Int, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			res, err = nil, errRefPanic
+		}
+	}()
+	return p.AddLiquidity(amounts)
+}
+
+var errRefPanic = errors.New("reference AddLiquidity panicked")

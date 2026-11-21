@@ -572,3 +572,97 @@ func (t *PoolSimulator) calculateTokenAmountU256(
 	diff.Div(&diff, d0)
 	return &diff, nil
 }
+
+// addLiquidityU256 mirrors AddLiquidity without writing to t. It returns the mint amount and
+// the reserves and LP supply the reference would store, so the caller decides whether to commit.
+func (t *PoolSimulator) addLiquidityU256(
+	amounts, oldBalances []*uint256.Int,
+	a, lpSupply, swapFee, adminFee *uint256.Int,
+) (*uint256.Int, []*uint256.Int, error) {
+	var nCoins = len(amounts)
+	var newBalances = make([]*uint256.Int, nCoins)
+	for i := range nCoins {
+		var v uint256.Int
+		if err := addU256(&v, oldBalances[i], amounts[i]); err != nil {
+			return nil, nil, err
+		}
+		newBalances[i] = &v
+	}
+	d0, err := t.getDU256(oldBalances, a)
+	if err != nil {
+		return nil, nil, err
+	}
+	d1, err := t.getDU256(newBalances, a)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !d1.Gt(d0) {
+		return nil, nil, ErrD1LowerThanD0
+	}
+	var reserves = make([]*uint256.Int, nCoins)
+	if lpSupply.IsZero() {
+		copy(reserves, newBalances)
+		return d1, reserves, nil
+	}
+
+	var fee, feeDen uint256.Int
+	if err := mulU256(&fee, swapFee, uint256.NewInt(uint64(nCoins))); err != nil {
+		return nil, nil, err
+	}
+	if err := mulU256(&feeDen, u256Four, uint256.NewInt(uint64(nCoins-1))); err != nil {
+		return nil, nil, err
+	}
+	var _fee uint256.Int
+	_fee.Div(&fee, &feeDen)
+
+	var ideal, difference, tmp uint256.Int
+	for i := range nCoins {
+		if err := mulU256(&ideal, d1, oldBalances[i]); err != nil {
+			return nil, nil, err
+		}
+		ideal.Div(&ideal, d0)
+		if ideal.Gt(newBalances[i]) {
+			if err := subU256(&difference, &ideal, newBalances[i]); err != nil {
+				return nil, nil, err
+			}
+		} else {
+			if err := subU256(&difference, newBalances[i], &ideal); err != nil {
+				return nil, nil, err
+			}
+		}
+		var feeI uint256.Int
+		if err := mulU256(&feeI, &_fee, &difference); err != nil {
+			return nil, nil, err
+		}
+		feeI.Div(&feeI, u256FeeDenominator)
+
+		if err := mulU256(&tmp, &feeI, adminFee); err != nil {
+			return nil, nil, err
+		}
+		tmp.Div(&tmp, u256FeeDenominator)
+		var reserve uint256.Int
+		if err := subU256(&reserve, newBalances[i], &tmp); err != nil {
+			return nil, nil, err
+		}
+		reserves[i] = &reserve
+
+		var nb uint256.Int
+		if err := subU256(&nb, newBalances[i], &feeI); err != nil {
+			return nil, nil, err
+		}
+		newBalances[i] = &nb
+	}
+	d2, err := t.getDU256(newBalances, a)
+	if err != nil {
+		return nil, nil, err
+	}
+	var mint uint256.Int
+	if err := subU256(&mint, d2, d0); err != nil {
+		return nil, nil, err
+	}
+	if err := mulU256(&mint, lpSupply, &mint); err != nil {
+		return nil, nil, err
+	}
+	mint.Div(&mint, d0)
+	return &mint, reserves, nil
+}
