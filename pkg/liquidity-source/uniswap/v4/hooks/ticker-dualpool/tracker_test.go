@@ -24,6 +24,7 @@ import (
 )
 
 func TestTrackerPublishesPinnedSnapshot(t *testing.T) {
+	address := productionHookAddress
 	readABI := func(path string) abi.ABI {
 		b, err := os.ReadFile(path)
 		require.NoError(t, err)
@@ -90,7 +91,6 @@ func TestTrackerPublishesPinnedSnapshot(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": hexutil.Encode(out)})
 	}))
 	defer server.Close()
-	address := productionHookAddress
 	static, err := json.Marshal(uniswapv4.StaticExtra{Fee: 2000, TickSpacing: 10, HooksAddress: address})
 	require.NoError(t, err)
 	p := &uniswapv4.HookParam{HookAddress: address, BlockNumber: big.NewInt(123),
@@ -113,14 +113,11 @@ func TestTrackerPublishesPinnedSnapshot(t *testing.T) {
 	require.Equal(t, s.Total1.Dec(), next.Total1.Dec())
 	require.Equal(t, s.Pool.Balance0.Dec(), next.Pool.Balance0.Dec())
 	// Exercise the full refresh with direct token balances and test-only bytecode.
-	oldProxy, oldHook := tickerProxyFingerprint, tickerHookFingerprint
-	tickerProxyFingerprint = runtimeFingerprint{Size: 1, Hash: crypto.Keccak256Hash([]byte{0x60})}
-	tickerHookFingerprint = tickerProxyFingerprint
-	t.Cleanup(func() { tickerProxyFingerprint, tickerHookFingerprint = oldProxy, oldHook })
-	implementation := common.HexToAddress("0x7890")
+	oldHash := hookCodeHash
+	hookCodeHash = crypto.Keccak256Hash([]byte{0x60, 0, 0})
+	t.Cleanup(func() { hookCodeHash = oldHash })
 	p.Overrides = map[common.Address]gethclient.OverrideAccount{
-		address:        {Code: []byte{0x60, 0, 0}, State: map[common.Hash]common.Hash{implementationSlot: common.BytesToHash(implementation.Bytes())}},
-		implementation: {Code: []byte{0x60, 0, 0}},
+		address: {Code: []byte{0x60, 0, 0}, State: map[common.Hash]common.Hash{}},
 	}
 	batches[1][3] = pack(tickerABI, "vaults", empty)
 	batches = append(batches, [][]byte{pack(accountingABI, "poolManager", monadPoolManager)},

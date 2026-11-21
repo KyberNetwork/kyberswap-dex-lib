@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
@@ -17,7 +18,8 @@ import (
 )
 
 func TestRegistrationUsesPons(t *testing.T) {
-	hook, ok := uniswapv4.GetHook(ticker.HookAddress, &uniswapv4.HookParam{HookExtra: uniswapv4.HookExtra(`{"r":true,"f":200}`)})
+	address := ticker.HookAddress
+	hook, ok := uniswapv4.GetHook(address, &uniswapv4.HookParam{HookExtra: uniswapv4.HookExtra(`{"r":true,"f":200}`)})
 	require.True(t, ok)
 	require.Equal(t, "uniswap-v4-ticker-meme", hook.GetExchange())
 	require.True(t, hook.CanBeforeSwap(ticker.HookAddress), "simulator-only: runs the exact-out gross-up")
@@ -86,4 +88,9 @@ func TestExactOutIsSmallestInputSurvivingOutputFee(t *testing.T) {
 	require.Greater(t, got.Cmp(in(free)), 0, "the output fee must raise the required input")
 	require.GreaterOrEqual(t, out(got).Cmp(want), 0)
 	require.Less(t, out(new(big.Int).Sub(got, big.NewInt(1))).Cmp(want), 0)
+}
+
+func TestLegacyHookIsNotRegistered(t *testing.T) {
+	_, ok := uniswapv4.GetHook(common.HexToAddress("0x223f8b1b43aeec86d2659cce36169f72f7fc2044"), &uniswapv4.HookParam{})
+	require.False(t, ok)
 }

@@ -57,14 +57,15 @@ type Hook struct {
 
 var _ uniswapv4.Hook = (*Hook)(nil)
 
-var productionHookAddress = common.HexToAddress("0x047ea2f55148b7601fdde0d28588b55c09192ac4")
+var productionHookAddress = common.HexToAddress("0x1e7bd27b3951887ed2da1ce1740c62747aa7eac4")
+var hookCodeHash = common.HexToHash("0x2762ceec816168dc641d1db3d1759c41701f485c8a784648bfa1f9d850a906ca")
 
 var _ = uniswapv4.RegisterHooksFactory(NewHook, productionHookAddress)
 
-// NewHook loads the tracked snapshot; Track validates the proxy implementation.
+// NewHook loads the tracked snapshot; Track validates the selected deployment.
 func NewHook(p *uniswapv4.HookParam) uniswapv4.Hook {
 	h := &Hook{address: p.HookAddress}
-	if p.HookAddress == productionHookAddress && (p.Cfg == nil || p.Cfg.ChainID != valueobject.ChainIDMonad) {
+	if p.HookAddress != productionHookAddress || p.Cfg == nil || p.Cfg.ChainID != valueobject.ChainIDMonad {
 		h.invalidate(ErrInvalidState)
 		return h
 	}
