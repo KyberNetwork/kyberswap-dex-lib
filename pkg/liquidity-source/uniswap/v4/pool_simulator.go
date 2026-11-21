@@ -611,6 +611,26 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 	return
 }
 
+// CalcAmtIn is CalcAmountIn with uint256 amounts. Like CalcAmtOut's hook path, it runs the shared big.Int
+// CalcAmountIn body and converts at the boundary, so exact-out math keeps one copy.
+func (p *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
+	res, err := p.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: params.TokenAmountOut.Amount.ToBig()},
+		TokenIn:        params.TokenIn,
+		Limit:          pool.AsSwapLimitBig(params.Limit),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmtInResult{
+		TokenAmountIn:           tokenAmtFromBigV4(res.TokenAmountIn),
+		RemainingTokenAmountOut: tokenAmtFromBigV4(res.RemainingTokenAmountOut),
+		Fee:                     tokenAmtFromBigV4(res.Fee),
+		Gas:                     res.Gas,
+		SwapInfo:                res.SwapInfo,
+	}, nil
+}
+
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	return p.CanSwapTo(address)
 }
