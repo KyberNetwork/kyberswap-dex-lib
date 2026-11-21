@@ -1,14 +1,12 @@
 package meta
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func (t *PoolSimulator) _xp_mem(_balances []*uint256.Int, vPrice *uint256.Int) ([]*uint256.Int, error) {
@@ -135,8 +133,7 @@ func (t *PoolSimulator) _get_y(
 
 func (t *PoolSimulator) _get_dy_mem(i int, j int, _dx *uint256.Int, _balances []*uint256.Int) (*uint256.Int,
 	*uint256.Int, error) {
-	bVPrice, _, err := t.basePool.GetVirtualPrice()
-	vPrice, _ := uint256.FromBig(bVPrice)
+	vPrice, _, err := t.basePool.GetVirtualPrice()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -175,8 +172,7 @@ func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *uint256.Int) (*uint25
 	nCoins := len(t.Info.Tokens)
 	maxCoin := nCoins - 1
 	baseNCoins := len(t.basePool.GetInfo().Tokens)
-	bVPrice, D, err := t.basePool.GetVirtualPrice()
-	vPrice, _ := uint256.FromBig(bVPrice)
+	vPrice, D, err := t.basePool.GetVirtualPrice()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -199,32 +195,26 @@ func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *uint256.Int) (*uint25
 	if baseI < 0 {
 		x.Add(xp[i], x.Mul(_dx, x.Div(rates[i], Precision)))
 	} else if baseJ < 0 {
-		baseInputs := make([]*big.Int, baseNCoins)
+		baseInputs := make([]*uint256.Int, baseNCoins)
 		for k := range baseNCoins {
-			baseInputs[k] = bignumber.ZeroBI
+			baseInputs[k] = new(uint256.Int)
 		}
-		baseInputs[baseI] = _dx.ToBig()
+		baseInputs[baseI] = _dx
 		tokenAmt, err := t.basePool.CalculateTokenAmount(baseInputs, true)
 		if err != nil {
 			return nil, nil, err
 		}
 		var tmp, tmp2 uint256.Int
-		tmp.SetFromBig(tokenAmt)
+		tmp.Set(tokenAmt)
 		x.MulDivOverflow(&tmp, rates[maxCoin], Precision)
-		tmp.SetFromBig(t.basePool.GetInfo().SwapFee)
+		tmp.Set(t.basePool.GetInfo().SwapFee)
 		// x = new(uint256.Int).Sub(x,
 		// 	new(uint256.Int).Div(new(uint256.Int).Mul(x, &tmp), new(uint256.Int).Mul(big256.U2, FeeDenominator)))
 		// x = new(uint256.Int).Add(x, xp[maxCoin])
 		tmp.MulDivOverflow(&x, &tmp, tmp2.Mul(big256.U2, FeeDenominator))
 		x.Add(x.Sub(&x, &tmp), xp[maxCoin])
 	} else {
-		bAmtOut, bFee, err := t.basePool.GetDy(baseI, baseJ, _dx.ToBig(), D)
-		if err != nil {
-			return nil, nil, err
-		}
-		amtOut, _ := uint256.FromBig(bAmtOut)
-		fee, _ := uint256.FromBig(bFee)
-		return amtOut, fee, nil
+		return t.basePool.GetDy(baseI, baseJ, _dx, D)
 	}
 	y, err := t._get_y(metaI, metaJ, &x, xp)
 	if err != nil {
@@ -244,23 +234,22 @@ func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *uint256.Int) (*uint25
 		dyFee.MulDivOverflow(&dyFee, Precision, rates[j])
 	} else {
 		dy.MulDivOverflow(&dy, Precision, rates[maxCoin])
-		bDy, bdyFee, err := t.basePool.CalculateWithdrawOneCoin(dy.ToBig(), baseJ)
+		bDy, bdyFee, err := t.basePool.CalculateWithdrawOneCoin(&dy, baseJ)
 		if err != nil {
 			return nil, nil, err
 		}
-		dy.SetFromBig(bDy)
-		dyFee.SetFromBig(bdyFee)
+		dy.Set(bDy)
+		dyFee.Set(bdyFee)
 	}
 	return &dy, &dyFee, err
 }
 
 func (t *PoolSimulator) Exchange(i int, j int, dx *uint256.Int) (*uint256.Int, error) {
 	nCoins := len(t.Info.Tokens)
-	bVPrice, _, err := t.basePool.GetVirtualPrice()
+	vPrice, _, err := t.basePool.GetVirtualPrice()
 	if err != nil {
 		return nil, err
 	}
-	vPrice, _ := uint256.FromBig(bVPrice)
 	rates := []*uint256.Int{t.RateMultiplier, vPrice}
 	oldBalances := make([]*uint256.Int, nCoins)
 	for k := range nCoins {
@@ -298,11 +287,10 @@ func (t *PoolSimulator) ExchangeUnderlying(i int, j int, dx *uint256.Int) (*uint
 	nCoins := len(t.Info.Tokens)
 	maxCoins := nCoins - 1
 	baseNCoins := len(t.basePool.GetInfo().Tokens)
-	bVPrice, _, err := t.basePool.GetVirtualPrice()
+	vPrice, _, err := t.basePool.GetVirtualPrice()
 	if err != nil {
 		return nil, err
 	}
-	vPrice, _ := uint256.FromBig(bVPrice)
 	rates := []*uint256.Int{t.RateMultiplier, vPrice}
 	baseI, baseJ, metaI := i-maxCoins, j-maxCoins, maxCoins
 	metaJ := maxCoins
@@ -327,16 +315,16 @@ func (t *PoolSimulator) ExchangeUnderlying(i int, j int, dx *uint256.Int) (*uint
 			x.MulDivOverflow(dx, rates[i], Precision)
 			x.Add(xp[i], &x)
 		} else {
-			baseInputs := make([]*big.Int, baseNCoins)
+			baseInputs := make([]*uint256.Int, baseNCoins)
 			for k := range baseNCoins {
-				baseInputs[k] = bignumber.ZeroBI
+				baseInputs[k] = new(uint256.Int)
 			}
-			baseInputs[baseI] = dx.ToBig()
+			baseInputs[baseI] = dx
 			temp, err := t.basePool.AddLiquidity(baseInputs)
 			if err != nil {
 				return nil, err
 			}
-			dx, _ = uint256.FromBig(temp)
+			dx = temp
 			x.MulDivOverflow(dx, rates[maxCoins], Precision)
 			x.Add(&x, xp[maxCoins])
 		}
@@ -360,11 +348,11 @@ func (t *PoolSimulator) ExchangeUnderlying(i int, j int, dx *uint256.Int) (*uint
 		t.Info.Reserves[metaI], t.Info.Reserves[metaJ] = t.Reserves[metaI].ToBig(), t.Reserves[metaJ].ToBig()
 
 		if baseJ >= 0 {
-			bDy, err := t.basePool.RemoveLiquidityOneCoin(dy.ToBig(), baseJ)
+			bDy, err := t.basePool.RemoveLiquidityOneCoin(&dy, baseJ)
 			if err != nil {
 				return nil, err
 			}
-			dy.SetFromBig(bDy)
+			dy.Set(bDy)
 		}
 	} else {
 		return nil, ErrBasePoolExchangeNotSupported

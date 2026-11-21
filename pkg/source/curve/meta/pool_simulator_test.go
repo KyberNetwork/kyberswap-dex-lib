@@ -58,7 +58,7 @@ func TestCalcAmountOut(t *testing.T) {
 		StaticExtra: `{"lpToken":"LPBase","aPrecision":"1","precisionMultipliers":["1","1000000000000","1000000000000"],"rates":["1000000000000000000","1000000000000000000000000000000","1000000000000000000000000000000"]}`,
 	})
 	require.Nil(t, err)
-	basePoolMap := map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool}
+	basePoolMap := map[string]pool.IPoolSim{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool}
 
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange:    "",
@@ -110,7 +110,7 @@ func TestCalcAmountOut_Underflow(t *testing.T) {
 		StaticExtra: `{"LpToken":"LPBase","APrecision":"100","IsNativeCoin":[false,false]}`,
 	})
 	require.Nil(t, err)
-	basePoolMap := map[string]pool.IPoolSimulator{"LPBase": basePool}
+	basePoolMap := map[string]pool.IPoolSim{"LPBase": basePool}
 
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange:    "curve",
@@ -149,7 +149,7 @@ func TestSwappable(t *testing.T) {
 		StaticExtra: `{"lpToken":"LPBase","aPrecision":"1","precisionMultipliers":["1","1000000000000","1000000000000"],"rates":["1000000000000000000","1000000000000000000000000000000","1000000000000000000000000000000"]}`,
 	})
 	require.Nil(t, err)
-	basePoolMap := map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool}
+	basePoolMap := map[string]pool.IPoolSim{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool}
 
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange:    "",
@@ -234,7 +234,7 @@ func TestUpdateBalance(t *testing.T) {
 		StaticExtra: `{"lpToken":"LPBase","aPrecision":"1","precisionMultipliers":["1","1000000000000","1000000000000"],"rates":["1000000000000000000","1000000000000000000000000000000","1000000000000000000000000000000"]}`,
 	})
 	require.Nil(t, err)
-	basePoolMap := map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool}
+	basePoolMap := map[string]pool.IPoolSim{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool}
 
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange:    "",
@@ -313,7 +313,7 @@ func TestBBTCPoolOverquote(t *testing.T) {
 		},
 		Extra:       `{"initialA":"20000","futureA":"20000","initialATime":0,"futureATime":0,"swapFee":"4000000","adminFee":"5000000000"}`,
 		StaticExtra: `{"lpToken":"0x071c661b4deefb59e2a3ddb20db036821eee8f4b","basePool":"0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714","rateMultiplier":"10000000000000000000000000000","aPrecision":"100","underlyingTokens":["0x9be89d2a4cd102d8fecc6bf9da793be995c22541","0xeb4c2781e4eba804ce9a9803c67d0893436bb27d","0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","0xfe18be6b3bd88a2d2a7f928d00292e7a9963cfc6"],"precisionMultipliers":["10000000000","1"],"rates":["",""]}`,
-	}, map[string]pool.IPoolSimulator{
+	}, map[string]pool.IPoolSim{
 		"0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714": basePool,
 	})
 	require.NoError(t, err)
@@ -343,7 +343,7 @@ func BenchmarkGetDyUnderlying(b *testing.B) {
 		StaticExtra: `{"lpToken":"LPBase","aPrecision":"1","precisionMultipliers":["1","1000000000000","1000000000000"],"rates":["1000000000000000000","1000000000000000000000000000000","1000000000000000000000000000000"]}`,
 	})
 	require.Nil(b, err)
-	basePoolMap := map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool}
+	basePoolMap := map[string]pool.IPoolSim{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool}
 
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange:    "",
@@ -379,7 +379,7 @@ func TestRAISwap(t *testing.T) {
 	basePoolSimulator, err := plain.NewPoolSimulator(basePool)
 	assert.NoError(t, err)
 
-	simulator, _ := NewPoolSimulator(p, map[string]pool.IPoolSimulator{
+	simulator, _ := NewPoolSimulator(p, map[string]pool.IPoolSim{
 		"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePoolSimulator,
 	})
 	assert.NoError(t, err)
@@ -420,7 +420,7 @@ func TestCloneState(t *testing.T) {
 		Extra:    `{"initialA":"10000","futureA":"25000","initialATime":1649327847,"futureATime":1649925962,"swapFee":"4000000","adminFee":"0"}`,
 		StaticExtra: `{"lpToken":"LPMeta","basePool":"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7","rateMultiplier":"1000000000000000000",` +
 			`"aPrecision":"100","underlyingTokens":["0x1","0x2","0x3","0x4"],"precisionMultipliers":["1","1"],"rates":["",""]}`,
-	}, map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool})
+	}, map[string]pool.IPoolSim{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": basePool})
 	require.NoError(t, err)
 
 	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{

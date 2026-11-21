@@ -10,30 +10,26 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// ICurveBasePool is the interface for curve base pool inside a meta pool
-// It can be:
-// 1. base/plain pool
-// 2. plain oracle pool
-// 3. lending pool
-// 4. or even meta pool
-// At the moment, our code can only support base/plain pool and plain oracle pool
+// ICurveBasePool is the uint256 curve base pool inside a meta pool. It holds only the methods curve/base
+// implements.
 type ICurveBasePool interface {
-	pool.IPoolSimulator
-	GetInfo() pool.PoolInfo
+	pool.IPoolSim
+	GetInfo() base.PoolInfo
 
 	// GetVirtualPrice returns both vPrice and D
-	GetVirtualPrice() (vPrice *big.Int, D *big.Int, err error)
+	GetVirtualPrice() (vPrice *uint256.Int, D *uint256.Int, err error)
 	// GetDy recalculates `dCached` if it is nil
-	GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error)
-	CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error)
-	CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.Int, *big.Int, error)
-	AddLiquidity(amounts []*big.Int) (*big.Int, error)
-	RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error)
+	GetDy(i int, j int, dx *uint256.Int, dCached *uint256.Int) (*uint256.Int, *uint256.Int, error)
+	CalculateTokenAmount(amounts []*uint256.Int, deposit bool) (*uint256.Int, error)
+	CalculateWithdrawOneCoin(tokenAmount *uint256.Int, i int) (*uint256.Int, *uint256.Int, error)
+	AddLiquidity(amounts []*uint256.Int) (*uint256.Int, error)
+	RemoveLiquidityOneCoin(tokenAmount *uint256.Int, i int) (*uint256.Int, error)
 }
 
 type PoolSimulator struct {
@@ -55,7 +51,7 @@ type PoolSimulator struct {
 
 var _ = pool.RegisterFactoryMeta(curve.PoolTypeMeta, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolSimulator) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolSim) (*PoolSimulator, error) {
 	var staticExtra curve.PoolMetaStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
@@ -136,11 +132,11 @@ func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return &cloned
 }
 
-func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
-	return []pool.IPoolSimulator{t.basePool}
+func (t *PoolSimulator) GetBasePools() []pool.IPoolSim {
+	return []pool.IPoolSim{t.basePool}
 }
 
-func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
+func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSim) {
 	if curveBasePool, ok := basePool.(ICurveBasePool); ok {
 		t.basePool = curveBasePool
 	}
