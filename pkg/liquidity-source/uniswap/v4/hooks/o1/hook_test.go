@@ -7,11 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/b20"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/hooktest"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+	"github.com/holiman/uint256"
 )
 
 // reference values from a real o1 launch on Base (poolId
@@ -116,37 +119,67 @@ func TestAfterSwap_TokenSpecified_ChargesFeeOnOutput(t *testing.T) {
 }
 
 // CalcAmountIn reverses exact-in through the shared b20.Extra fee logic. Goldens are the legacy CalcAmountIn output
-// over the amountOut grid, per TokenIsCurrency0 direction and NowFn offset (2 is the legacy pin; 0, 1, 3, 10, 20 and a
-// post-window offset cover the decay edges). 14 tables x 28 cases = 392 cases.
+// over the amountOut grid, per TokenIsCurrency0 direction and NowFn offset. 14 tables x 28 cases = 392 cases.
+// insufficient pins four 1/10-reserve cases that hit ErrInsufficientBalance, with their exact-in quote.
 func TestCalcAmountIn(t *testing.T) {
 	e := refExtra()
 	for _, tc := range []struct {
 		tokenIsCurrency0 bool
 		elapsed          int64
+		insufficient     map[int]string
 		golden           map[int]map[int]map[string]string
 	}{
-		{false, 0, goldenO1False0},
-		{false, 1, goldenO1False1},
-		{false, 2, goldenO1False2},
-		{false, 3, goldenO1False3},
-		{false, 10, goldenO1False10},
-		{false, 20, goldenO1False20},
-		{false, 1000000, goldenO1False1000000},
-		{true, 0, goldenO1True0},
-		{true, 1, goldenO1True1},
-		{true, 2, goldenO1True2},
-		{true, 3, goldenO1True3},
-		{true, 10, goldenO1True10},
-		{true, 20, goldenO1True20},
-		{true, 1000000, goldenO1True1000000},
+		{false, 0, map[int]string{0: "834990613032476756457852683"}, goldenO1False0},
+		{false, 1, map[int]string{0: "4926444616891612863101330827"}, goldenO1False1},
+		{false, 2, nil, goldenO1False2},
+		{false, 3, nil, goldenO1False3},
+		{false, 10, nil, goldenO1False10},
+		{false, 20, nil, goldenO1False20},
+		{false, 1000000, nil, goldenO1False1000000},
+		{true, 0, map[int]string{1: "217254"}, goldenO1True0},
+		{true, 1, map[int]string{1: "1281797"}, goldenO1True1},
+		{true, 2, nil, goldenO1True2},
+		{true, 3, nil, goldenO1True3},
+		{true, 10, nil, goldenO1True10},
+		{true, 20, nil, goldenO1True20},
+		{true, 1000000, nil, goldenO1True1000000},
 	} {
 		e.TokenIsCurrency0 = tc.tokenIsCurrency0
 		b20.NowFn = func() int64 { return e.LaunchTime + tc.elapsed }
 		pSim := hooktest.NewPoolSimulator(t, HookAddresses[0], e)
-		if !tc.tokenIsCurrency0 && tc.elapsed == 2 {
-			hooktest.RequireRoundTrip(t, pSim)
-		}
+		requireExactOutAtTenth(t, pSim, tc.insufficient)
+		hooktest.RequireRoundTrip(t, pSim)
 		testutil.TestCalcAmountInIPoolSim(t, pSim, tc.golden)
+	}
+}
+
+// requireExactOutAtTenth requires CalcAmountIn at 1/10 of each output reserve to succeed, except for the token indices
+// in insufficient. There it requires ErrInsufficientBalance and the exact-in quote of the same amount to be the pinned
+// value.
+func requireExactOutAtTenth(t *testing.T, pSim *uniswapv4.PoolSimulator, insufficient map[int]string) {
+	t.Helper()
+	tokens, reserves := pSim.GetTokens(), pSim.GetReserves()
+	for idxOut := range tokens {
+		var amountOut uint256.Int
+		amountOut.Div(&reserves[idxOut], uint256.NewInt(10))
+		tokenIn, tokenOut := tokens[1-idxOut], tokens[idxOut]
+		_, err := pSim.CalcAmtIn(pool.CalcAmtInParams{
+			TokenAmountOut: pool.TokenAmt{Token: tokenOut, Amount: amountOut},
+			TokenIn:        tokenIn,
+		})
+		want, ok := insufficient[idxOut]
+		if !ok {
+			require.NoError(t, err, "token%d out, amountOut %s", idxOut, &amountOut)
+			continue
+		}
+		require.ErrorIs(t, err, uniswapv3.ErrInsufficientBalance, "token%d out, amountOut %s", idxOut, &amountOut)
+		exactIn, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: amountOut},
+			TokenOut:      tokenOut,
+		})
+		require.NoError(t, err, "exact-in token%d out, amountIn %s", idxOut, &amountOut)
+		require.Equal(t, want, exactIn.TokenAmountOut.Amount.Dec(), "exact-in token%d out, amountIn %s", idxOut,
+			&amountOut)
 	}
 }
 
