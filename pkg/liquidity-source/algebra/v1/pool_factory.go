@@ -6,11 +6,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1/abis"
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
@@ -59,13 +57,6 @@ func (f *PoolFactory) newPool(p *abis.FactoryPool, blockNumber uint64) (*entity.
 		"0", "0",
 	}
 
-	staticExtraBytes, err := json.Marshal(uniswapv3.StaticExtra{
-		PoolId: poolAddress,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	return &entity.Pool{
 		Address:     poolAddress,
 		Exchange:    f.config.DexID,
@@ -73,7 +64,6 @@ func (f *PoolFactory) newPool(p *abis.FactoryPool, blockNumber uint64) (*entity.
 		Timestamp:   time.Now().Unix(),
 		Reserves:    reserves,
 		Tokens:      []*entity.PoolToken{&token0, &token1},
-		StaticExtra: string(staticExtraBytes),
 		BlockNumber: blockNumber,
 	}, nil
 }
