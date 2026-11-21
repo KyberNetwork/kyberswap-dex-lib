@@ -232,3 +232,59 @@ func TestGetDyU256Parity(t *testing.T) {
 	require.Positive(t, matched)
 	t.Logf("GetDy grid: cells=%d matched=%d overflowBoundary=%d", cells, matched, overflowBoundary)
 }
+
+func TestCalculateWithdrawOneCoinU256Parity(t *testing.T) {
+	t.Parallel()
+	rng := rand.New(rand.NewSource(6))
+	var cells, matched, boundary int
+	for _, xp := range parityXPs(rng) {
+		n := len(xp)
+		rates := make([]*big.Int, n)
+		for i := range rates {
+			rates[i] = bignumber.NewBig10("1000000000000000000")
+		}
+		supply := new(big.Int).Add(sumBig(xp), bignumber.One)
+		p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
+		p.Rates = rates
+		p.Multipliers = rates
+		p.Info.Tokens = make([]string, n)
+		p.Info.Reserves = xp
+		p.Info.SwapFee = bignumber.NewBig10("3000000")
+		p.AdminFee = bignumber.NewBig10("5000000000")
+		p.LpSupply = supply
+		for i := range n {
+			for _, amt := range []*big.Int{big.NewInt(1000), new(big.Int).Div(supply, big.NewInt(3))} {
+				wantDy, wantFee, wantErr := p.CalculateWithdrawOneCoin(amt, i)
+				cells++
+				d0, err := p.getD(xp, big.NewInt(150000))
+				if err != nil {
+					continue
+				}
+				gotDy, gotFee, gotErr := p.calculateWithdrawOneCoinU256(
+					big256.FromBig(amt), i, toU256s(xp), uint256.NewInt(150000), big256.FromBig(d0), big256.FromBig(supply))
+				if wantErr != nil {
+					require.Error(t, gotErr)
+					continue
+				}
+				if errors.Is(gotErr, errU256Overflow) || errors.Is(gotErr, errU256Underflow) {
+					boundary++
+					continue
+				}
+				require.NoError(t, gotErr)
+				require.Equal(t, wantDy.String(), gotDy.Dec(), "xp=%v i=%d amt=%v", xp, i, amt)
+				require.Equal(t, wantFee.String(), gotFee.Dec(), "xp=%v i=%d amt=%v", xp, i, amt)
+				matched++
+			}
+		}
+	}
+	require.Positive(t, matched)
+	t.Logf("CalculateWithdrawOneCoin grid: cells=%d matched=%d boundary=%d", cells, matched, boundary)
+}
+
+func sumBig(xs []*big.Int) *big.Int {
+	s := new(big.Int)
+	for _, x := range xs {
+		s.Add(s, x)
+	}
+	return s
+}

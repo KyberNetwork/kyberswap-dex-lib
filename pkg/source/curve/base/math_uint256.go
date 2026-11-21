@@ -14,8 +14,10 @@ var (
 	errU256Overflow  = errors.New("uint256 overflow")
 	errU256Underflow = errors.New("uint256 underflow")
 
-	u256One = uint256.NewInt(1)
-	u256Two = uint256.NewInt(2)
+	u256One            = uint256.NewInt(1)
+	u256Two            = uint256.NewInt(2)
+	u256Four           = uint256.NewInt(4)
+	u256FeeDenominator = big256.FromBig(FeeDenominator)
 )
 
 func mulU256(z, x, y *uint256.Int) error {
@@ -410,4 +412,87 @@ func (t *PoolSimulator) getDyU256(i, j int, dx *uint256.Int, xp []*uint256.Int, 
 	fee.Div(&fee, rateJ)
 
 	return &dy, &fee, nil
+}
+
+// calculateWithdrawOneCoinU256 mirrors CalculateWithdrawOneCoin. xp and the withdrawn-token index come in
+// from the caller, and it returns (dy, dyFee) as big.Int math does.
+func (t *PoolSimulator) calculateWithdrawOneCoinU256(
+	tokenAmount *uint256.Int,
+	i int,
+	xp []*uint256.Int,
+	amp, d0, totalSupply *uint256.Int,
+) (*uint256.Int, *uint256.Int, error) {
+	var tmp, d1 uint256.Int
+	if err := mulU256(&tmp, tokenAmount, d0); err != nil {
+		return nil, nil, err
+	}
+	tmp.Div(&tmp, totalSupply)
+	if err := subU256(&d1, d0, &tmp); err != nil {
+		return nil, nil, err
+	}
+	newY, err := t.getYDU256(amp, i, xp, &d1)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var nCoins = len(xp)
+	var nCoinBI = uint256.NewInt(uint64(nCoins))
+	var fee, feeDen uint256.Int
+	if err := mulU256(&fee, big256.FromBig(t.Info.SwapFee), nCoinBI); err != nil {
+		return nil, nil, err
+	}
+	if err := subU256(&feeDen, nCoinBI, u256One); err != nil {
+		return nil, nil, err
+	}
+	if err := mulU256(&feeDen, u256Four, &feeDen); err != nil {
+		return nil, nil, err
+	}
+	fee.Div(&fee, &feeDen)
+
+	var xpReduced = make([]*uint256.Int, nCoins)
+	var dxExpected, a, b uint256.Int
+	for j := range nCoins {
+		if err := mulU256(&a, xp[j], &d1); err != nil {
+			return nil, nil, err
+		}
+		a.Div(&a, d0)
+		if j == i {
+			if err := subU256(&dxExpected, &a, newY); err != nil {
+				return nil, nil, err
+			}
+		} else {
+			if err := subU256(&dxExpected, xp[j], &a); err != nil {
+				return nil, nil, err
+			}
+		}
+		if err := mulU256(&b, &fee, &dxExpected); err != nil {
+			return nil, nil, err
+		}
+		b.Div(&b, u256FeeDenominator)
+		xpReduced[j] = new(uint256.Int)
+		if err := subU256(xpReduced[j], xp[j], &b); err != nil {
+			return nil, nil, err
+		}
+	}
+	newYD, err := t.getYDU256(amp, i, xpReduced, &d1)
+	if err != nil {
+		return nil, nil, err
+	}
+	var dy, dy0 uint256.Int
+	if err := subU256(&dy, xpReduced[i], newYD); err != nil {
+		return nil, nil, err
+	}
+	if err := subU256(&dy, &dy, u256One); err != nil {
+		return nil, nil, err
+	}
+	dy.Div(&dy, big256.FromBig(t.Multipliers[i]))
+	if err := subU256(&dy0, xp[i], newY); err != nil {
+		return nil, nil, err
+	}
+	dy0.Div(&dy0, big256.FromBig(t.Multipliers[i]))
+	var dyFee uint256.Int
+	if err := subU256(&dyFee, &dy0, &dy); err != nil {
+		return nil, nil, err
+	}
+	return &dy, &dyFee, nil
 }
