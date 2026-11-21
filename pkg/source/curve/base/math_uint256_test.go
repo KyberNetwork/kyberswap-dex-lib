@@ -405,3 +405,93 @@ func (p *PoolSimulator) addLiquidityRef(amounts []*big.Int) (res *big.Int, err e
 }
 
 var errRefPanic = errors.New("reference AddLiquidity panicked")
+
+func TestRemoveLiquidityOneCoinU256Parity(t *testing.T) {
+	t.Parallel()
+	rng := rand.New(rand.NewSource(9))
+	var cells, matched, boundary int
+	for _, xp := range parityXPs(rng) {
+		n := len(xp)
+		rates := make([]*big.Int, n)
+		for i := range rates {
+			rates[i] = bignumber.NewBig10("1000000000000000000")
+		}
+		supply := new(big.Int).Add(sumBig(xp), bignumber.One)
+		for i := range n {
+			for _, amt := range []*big.Int{big.NewInt(1000), new(big.Int).Div(supply, big.NewInt(4))} {
+				p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
+				p.Rates = rates
+				p.Multipliers = rates
+				p.Info.Tokens = make([]string, n)
+				p.Info.Reserves = cloneBigs(xp)
+				p.Info.SwapFee = bignumber.NewBig10("3000000")
+				p.AdminFee = bignumber.NewBig10("5000000000")
+				p.LpSupply = new(big.Int).Set(supply)
+
+				d0, err := p.getD(xp, big.NewInt(150000))
+				if err != nil {
+					continue
+				}
+				wantDy, wantErr := p.RemoveLiquidityOneCoin(amt, i)
+				cells++
+				gotDy, gotRes, gotSupply, gotErr := p.removeLiquidityOneCoinU256(
+					big256.FromBig(amt), i, toU256s(xp), toU256s(xp), uint256.NewInt(150000),
+					big256.FromBig(d0), big256.FromBig(supply), big256.FromBig(p.AdminFee))
+				if wantErr != nil {
+					require.Error(t, gotErr)
+					continue
+				}
+				if errors.Is(gotErr, errU256Overflow) || errors.Is(gotErr, errU256Underflow) {
+					boundary++
+					continue
+				}
+				require.NoError(t, gotErr)
+				require.Equal(t, wantDy.String(), gotDy.Dec(), "xp=%v i=%d amt=%v", xp, i, amt)
+				require.Equal(t, p.Info.Reserves[i].String(), gotRes.Dec(), "reserve xp=%v i=%d", xp, i)
+				require.Equal(t, p.LpSupply.String(), gotSupply.Dec(), "supply xp=%v i=%d", xp, i)
+				matched++
+			}
+		}
+	}
+	require.Positive(t, matched)
+	t.Logf("RemoveLiquidityOneCoin grid: cells=%d matched=%d boundary=%d", cells, matched, boundary)
+}
+
+func TestGetVirtualPriceU256Parity(t *testing.T) {
+	t.Parallel()
+	rng := rand.New(rand.NewSource(10))
+	var cells, matched int
+	for _, xp := range parityXPs(rng) {
+		n := len(xp)
+		rates := make([]*big.Int, n)
+		for i := range rates {
+			rates[i] = bignumber.NewBig10("1000000000000000000")
+		}
+		for _, supply := range []*big.Int{sumBig(xp), big.NewInt(0)} {
+			p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
+			p.Rates = rates
+			p.Multipliers = rates
+			p.Info.Tokens = make([]string, n)
+			p.Info.Reserves = cloneBigs(xp)
+			p.LpSupply = new(big.Int).Set(supply)
+
+			d, err := p.getD(xp, big.NewInt(150000))
+			if err != nil {
+				continue
+			}
+			wantV, wantD, wantErr := p.GetVirtualPrice()
+			cells++
+			gotV, gotD, gotErr := p.getVirtualPriceU256(big256.FromBig(d), big256.FromBig(supply))
+			if wantErr != nil {
+				require.ErrorIs(t, gotErr, wantErr)
+				continue
+			}
+			require.NoError(t, gotErr)
+			require.Equal(t, wantV.String(), gotV.Dec(), "xp=%v supply=%v", xp, supply)
+			require.Equal(t, wantD.String(), gotD.Dec())
+			matched++
+		}
+	}
+	require.Positive(t, matched)
+	t.Logf("GetVirtualPrice grid: cells=%d matched=%d", cells, matched)
+}

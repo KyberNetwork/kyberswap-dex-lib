@@ -18,6 +18,7 @@ var (
 	u256Two            = uint256.NewInt(2)
 	u256Four           = uint256.NewInt(4)
 	u256FeeDenominator = big256.FromBig(FeeDenominator)
+	u256Precision      = big256.FromBig(Precision)
 )
 
 func mulU256(z, x, y *uint256.Int) error {
@@ -665,4 +666,49 @@ func (t *PoolSimulator) addLiquidityU256(
 	}
 	mint.Div(&mint, d0)
 	return &mint, reserves, nil
+}
+
+// removeLiquidityOneCoinU256 mirrors RemoveLiquidityOneCoin without writing to t. It returns dy and
+// the reserve and LP supply the reference would store.
+func (t *PoolSimulator) removeLiquidityOneCoinU256(
+	tokenAmount *uint256.Int,
+	i int,
+	xp []*uint256.Int,
+	reserves []*uint256.Int,
+	amp, d0, totalSupply, adminFee *uint256.Int,
+) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
+	dy, dyFee, err := t.calculateWithdrawOneCoinU256(tokenAmount, i, xp, amp, d0, totalSupply)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var tmp, fee uint256.Int
+	if err := mulU256(&tmp, dyFee, adminFee); err != nil {
+		return nil, nil, nil, err
+	}
+	tmp.Div(&tmp, u256FeeDenominator)
+	if err := addU256(&fee, dy, &tmp); err != nil {
+		return nil, nil, nil, err
+	}
+	var reserve uint256.Int
+	if err := subU256(&reserve, reserves[i], &fee); err != nil {
+		return nil, nil, nil, err
+	}
+	var lpSupply uint256.Int
+	if err := subU256(&lpSupply, totalSupply, tokenAmount); err != nil {
+		return nil, nil, nil, err
+	}
+	return dy, &reserve, &lpSupply, nil
+}
+
+// getVirtualPriceU256 mirrors GetVirtualPrice: D*PRECISION / LpSupply, and D.
+func (t *PoolSimulator) getVirtualPriceU256(d, lpSupply *uint256.Int) (*uint256.Int, *uint256.Int, error) {
+	if lpSupply.IsZero() {
+		return nil, nil, ErrDenominatorZero
+	}
+	var v uint256.Int
+	if err := mulU256(&v, d, u256Precision); err != nil {
+		return nil, nil, err
+	}
+	v.Div(&v, lpSupply)
+	return &v, d, nil
 }
