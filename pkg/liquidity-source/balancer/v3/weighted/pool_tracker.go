@@ -81,6 +81,12 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
+	minTokenBalances, err := ResolveMinTokenBalances(p.Extra, res.Version, res.MinTokenBalances)
+	if err != nil {
+		l.WithFields(klog.Fields{"error": err}).Error("failed to resolve weighted pool version")
+		return p, err
+	}
+
 	extra := Extra{Extra: &shared.Extra{}}
 	extra.EnableHookAdjustedAmounts = res.HooksConfigData.EnableHookAdjustedAmounts
 	extra.ShouldCallComputeDynamicSwapFee = res.HooksConfigData.ShouldCallComputeDynamicSwapFee
@@ -93,9 +99,7 @@ func (t *PoolTracker) getNewPoolState(
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)
 	extra.Buffers = res.Buffers()
 	extra.NormalizedWeights = shared.FromBigs(res.NormalizedWeights)
-	if len(res.MinTokenBalances) > 0 {
-		extra.MinTokenBalances = shared.FromBigs(res.MinTokenBalances)
-	}
+	extra.MinTokenBalances = minTokenBalances
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -164,7 +168,10 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		Target: poolAddress,
 		Method: PoolMethodGetNormalizedWeights,
 	}, []any{&rpcRes.NormalizedWeights}).AddCall(&ethrpc.Call{
-		// WeightedPool v2 exposes getMinTokenBalances; v1 pools revert harmlessly and leave MinTokenBalances nil.
+		ABI:    PoolABI,
+		Target: poolAddress,
+		Method: PoolMethodVersion,
+	}, []any{&rpcRes.Version}).AddCall(&ethrpc.Call{
 		ABI:    PoolABI,
 		Target: poolAddress,
 		Method: PoolMethodGetMinTokenBalances,

@@ -3,6 +3,7 @@ package weighted
 import (
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/math"
@@ -39,11 +40,9 @@ func (p *PoolSimulator) BaseGas() int64 {
 	return baseGas
 }
 
-// OnSwap mirrors WeightedPool.onSwap for both v1 and v2 deployments:
-//   - v1: https://etherscan.io/address/0xb9b144b5678ff6527136b2c12a86c9ee5dd12a85#code#F1#L150
-//   - v2 (when minTokenBalances is present): rounds balanceTokenInScaled18 up by +1 on both
-//     ExactIn and ExactOut swaps and enforces getMinTokenBalances() before and after the swap.
-func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error) {
+// OnSwap from https://etherscan.io/address/0xb9b144b5678ff6527136b2c12a86c9ee5dd12a85#code#F1#L150
+// WeightedPool v2 (when minTokenBalances is set) rounds balanceTokenInScaled18 up by +1 and enforces minTokenBalances.
+func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *uint256.Int, err error) {
 	balanceTokenInScaled18 := param.BalancesScaled18[param.IndexIn]
 	balanceTokenOutScaled18 := param.BalancesScaled18[param.IndexOut]
 
@@ -64,39 +63,28 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error
 			return nil, math.ErrAddOverflow
 		}
 		balanceTokenInScaled18 = &balanceInPlusOne
-
 		if err := p.ensureMinimumBalance(param.IndexIn, balanceTokenInScaled18); err != nil {
 			return nil, err
 		}
 	}
 
-	var calculatedAmountScaled18, amountOutScaled18 *uint256.Int
-	if param.Kind == shared.ExactIn {
-		calculatedAmountScaled18, err = math.WeightedMath.ComputeOutGivenExactIn(
-			balanceTokenInScaled18,
-			weightIn,
-			balanceTokenOutScaled18,
-			weightOut,
-			param.AmountGivenScaled18,
-		)
-		amountOutScaled18 = calculatedAmountScaled18
-	} else {
-		calculatedAmountScaled18, err = math.WeightedMath.ComputeInGivenExactOut(
-			balanceTokenInScaled18,
-			weightIn,
-			balanceTokenOutScaled18,
-			weightOut,
-			param.AmountGivenScaled18,
-		)
-		amountOutScaled18 = param.AmountGivenScaled18
-	}
+	calculatedAmountScaled18, err := lo.Ternary(param.Kind == shared.ExactIn,
+		math.WeightedMath.ComputeOutGivenExactIn, math.WeightedMath.ComputeInGivenExactOut,
+	)(
+		balanceTokenInScaled18,
+		weightIn,
+		balanceTokenOutScaled18,
+		weightOut,
+		param.AmountGivenScaled18,
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	if isV2 {
+		swapOutScaled18 := lo.Ternary(param.Kind == shared.ExactIn, calculatedAmountScaled18, param.AmountGivenScaled18)
 		var endingBalanceOut uint256.Int
-		if _, underflow := endingBalanceOut.SubOverflow(balanceTokenOutScaled18, amountOutScaled18); underflow {
+		if _, underflow := endingBalanceOut.SubOverflow(balanceTokenOutScaled18, swapOutScaled18); underflow {
 			return nil, math.ErrSubOverflow
 		}
 		if err := p.ensureMinimumBalance(param.IndexOut, &endingBalanceOut); err != nil {
@@ -119,10 +107,8 @@ func (p *PoolSimulator) ensureMinimumBalance(tokenIndex int, balanceScaled18 *ui
 	if tokenIndex < 0 || tokenIndex >= len(p.minTokenBalances) {
 		return ErrInvalidToken
 	}
-
 	if minBal := p.minTokenBalances[tokenIndex]; minBal != nil && balanceScaled18.Lt(minBal) {
 		return ErrTokenBalanceBelowMin
 	}
-
 	return nil
 }

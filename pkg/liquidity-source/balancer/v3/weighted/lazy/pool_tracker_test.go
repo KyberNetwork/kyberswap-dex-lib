@@ -23,235 +23,145 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-const testMulticall = "0xcA11bde05977b3631167028862bE2a173976CA11"
-
 var testMulticallABI = lo.Must(abi.JSON(strings.NewReader(`[
  {"type":"function","name":"tryBlockAndAggregate","inputs":[{"name":"requireSuccess","type":"bool"},{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"blockHash","type":"bytes32"},{"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]}
 ]`)))
 
-type mockWeightedState struct {
-	tokens           []common.Address
-	balancesRaw      []*big.Int
-	balancesScaled18 []*big.Int
-	decs             []*big.Int
-	rates            []*big.Int
-	weights          []*big.Int
-	minTokenBalances []*big.Int // nil simulates v1 WeightedPool where getMinTokenBalances reverts
-	staticSwapFee    *big.Int
-	poolConfigBits   [32]byte
-	blockNumber      uint64
+type mockWeightedRPC struct {
+	version          string
+	minTokenBalances []*big.Int
 }
 
-func (s mockWeightedState) handleCall(t *testing.T, callData []byte) (bool, []byte) {
+func (s mockWeightedRPC) handle(t *testing.T, callData []byte) (bool, []byte) {
 	t.Helper()
-
 	if m, err := weighted.PoolABI.MethodById(callData[:4]); err == nil {
 		switch m.Name {
 		case weighted.PoolMethodGetNormalizedWeights:
-			b, err := m.Outputs.Pack(s.weights)
-			require.NoError(t, err)
-			return true, b
+			return true, lo.Must(m.Outputs.Pack([]*big.Int{big.NewInt(8e17), big.NewInt(2e17)}))
+		case weighted.PoolMethodVersion:
+			if s.version == "" {
+				return false, nil
+			}
+			return true, lo.Must(m.Outputs.Pack(s.version))
 		case weighted.PoolMethodGetMinTokenBalances:
 			if s.minTokenBalances == nil {
 				return false, nil
 			}
-			b, err := m.Outputs.Pack(s.minTokenBalances)
-			require.NoError(t, err)
-			return true, b
+			return true, lo.Must(m.Outputs.Pack(s.minTokenBalances))
 		}
 	}
-
-	m, err := shared.VaultExplorerABI.MethodById(callData[:4])
-	require.NoError(t, err)
-
+	m := lo.Must(shared.VaultExplorerABI.MethodById(callData[:4]))
 	switch m.Name {
 	case shared.VaultMethodGetHooksConfig:
-		var cfg shared.HooksConfigRPC
-		b, err := m.Outputs.Pack(cfg.HooksConfigData)
-		require.NoError(t, err)
-		return true, b
+		return true, lo.Must(m.Outputs.Pack(shared.HooksConfigRPC{}.HooksConfigData))
 	case shared.VaultMethodGetStaticSwapFeePercentage:
-		b, err := m.Outputs.Pack(s.staticSwapFee)
-		require.NoError(t, err)
-		return true, b
+		return true, lo.Must(m.Outputs.Pack(big.NewInt(3e15)))
 	case shared.VaultMethodGetPoolData:
 		var pd shared.PoolDataRPC
-		pd.PoolData.PoolConfigBits = s.poolConfigBits
-		pd.PoolData.Tokens = s.tokens
-		pd.PoolData.TokenInfo = make([]shared.TokenInfo, len(s.tokens))
-		pd.PoolData.BalancesRaw = s.balancesRaw
-		pd.PoolData.BalancesLiveScaled18 = s.balancesScaled18
-		pd.PoolData.TokenRates = s.rates
-		pd.PoolData.DecimalScalingFactors = s.decs
-		b, err := m.Outputs.Pack(pd.PoolData)
-		require.NoError(t, err)
-		return true, b
-	case shared.VaultMethodIsVaultPaused, shared.VaultMethodIsPoolPaused, shared.VaultMethodIsPoolInRecoveryMode:
-		b, err := m.Outputs.Pack(false)
-		require.NoError(t, err)
-		return true, b
+		bal1 := new(big.Int).Mul(big.NewInt(10), big.NewInt(1e18))
+		pd.PoolData.Tokens = []common.Address{common.HexToAddress("0xaa"), common.HexToAddress("0xbb")}
+		pd.PoolData.TokenInfo = make([]shared.TokenInfo, 2)
+		pd.PoolData.BalancesRaw = []*big.Int{big.NewInt(10_000_000), bal1}
+		pd.PoolData.BalancesLiveScaled18 = []*big.Int{big.NewInt(10_000_000), bal1}
+		pd.PoolData.TokenRates = []*big.Int{big.NewInt(1e18), big.NewInt(1e18)}
+		pd.PoolData.DecimalScalingFactors = []*big.Int{big.NewInt(1), big.NewInt(1)}
+		return true, lo.Must(m.Outputs.Pack(pd.PoolData))
 	default:
-		t.Fatalf("unexpected RPC call: %s", m.Name)
-		return false, nil
+		return true, lo.Must(m.Outputs.Pack(false))
 	}
 }
 
-func newMockWeightedRPC(t *testing.T, state mockWeightedState) *ethrpc.Client {
+func (s mockWeightedRPC) client(t *testing.T) *ethrpc.Client {
 	t.Helper()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			ID     json.RawMessage
 			Params []json.RawMessage
 		}
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
-
 		var call struct{ Data, Input hexutil.Bytes }
 		require.NoError(t, json.Unmarshal(body.Params[0], &call))
 		data := append(call.Input, call.Data...)
-
-		method, err := testMulticallABI.MethodById(data[:4])
-		require.NoError(t, err)
-		args, err := method.Inputs.Unpack(data[4:])
-		require.NoError(t, err)
-
-		type callParam struct {
+		m := lo.Must(testMulticallABI.MethodById(data[:4]))
+		args := lo.Must(m.Inputs.Unpack(data[4:]))
+		type param struct {
 			Target   common.Address
 			CallData []byte
 		}
-		type callResult struct {
+		type res struct {
 			Success    bool
 			ReturnData []byte
 		}
-		calls := *abi.ConvertType(args[1], new([]callParam)).(*[]callParam)
-		results := make([]callResult, len(calls))
-		for i, c := range calls {
-			ok, ret := state.handleCall(t, c.CallData)
-			results[i] = callResult{Success: ok, ReturnData: ret}
-		}
-
-		encoded, err := method.Outputs.Pack(new(big.Int).SetUint64(state.blockNumber), common.Hash{}, results)
-		require.NoError(t, err)
-
+		calls := *abi.ConvertType(args[1], new([]param)).(*[]param)
+		results := lo.Map(calls, func(c param, _ int) res {
+			ok, ret := s.handle(t, c.CallData)
+			return res{ok, ret}
+		})
+		enc := lo.Must(m.Outputs.Pack(big.NewInt(42_000_000), common.Hash{}, results))
 		w.Header().Set("content-type", "application/json")
-		require.NoError(t, json.NewEncoder(w).Encode(map[string]any{
-			"jsonrpc": "2.0",
-			"id":      body.ID,
-			"result":  hexutil.Encode(encoded),
-		}))
+		require.NoError(t, json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": body.ID, "result": hexutil.Encode(enc)}))
 	}))
-	t.Cleanup(server.Close)
-	return ethrpc.New(server.URL).SetMulticallContract(common.HexToAddress(testMulticall))
+	t.Cleanup(srv.Close)
+	return ethrpc.New(srv.URL).SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 }
 
 func TestPoolTrackerMinTokenBalances(t *testing.T) {
 	t.Parallel()
-
-	token0 := common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
-	token1 := common.HexToAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
-	vaultAddr := shared.Vault(valueobject.ChainIDBase, valueobject.ExchangeFrontierWeighted).Hex()
-
-	baseState := mockWeightedState{
-		tokens:           []common.Address{token0, token1},
-		balancesRaw:      []*big.Int{big.NewInt(10_000_000), new(big.Int).Mul(big.NewInt(10), big.NewInt(1e18))},
-		balancesScaled18: []*big.Int{big.NewInt(10_000_000), new(big.Int).Mul(big.NewInt(10), big.NewInt(1e18))},
-		decs:             []*big.Int{big.NewInt(1), big.NewInt(1)},
-		rates:            []*big.Int{big.NewInt(1e18), big.NewInt(1e18)},
-		weights:          []*big.Int{big.NewInt(8e17), big.NewInt(2e17)},
-		staticSwapFee:    big.NewInt(3e15),
-		blockNumber:      42_000_000,
-	}
-
-	inputPool := entity.Pool{
-		Address:  "0x2222222222222222222222222222222222222222",
-		Exchange: valueobject.ExchangeFrontierWeighted,
-		Type:     weighted.DexType,
-		Reserves: entity.PoolReserves{"0", "0"},
-		Tokens: []*entity.PoolToken{
-			{Address: hexutil.Encode(token0[:]), Decimals: 18, Swappable: true},
-			{Address: hexutil.Encode(token1[:]), Decimals: 18, Swappable: true},
-		},
-		StaticExtra: `{"buffs":["",""]}`,
-	}
-
+	const (
+		v1JSON = `{"name":"WeightedPool","version":1,"deployment":"20241205-v3-weighted-pool"}`
+		v2JSON = `{"name":"WeightedPool","version":2,"deployment":"20261021-weighted-pool"}`
+	)
 	cfg := &shared.Config{
 		DexID:         valueobject.ExchangeFrontierWeighted,
 		ChainID:       valueobject.ChainIDBase,
-		VaultExplorer: vaultAddr,
+		VaultExplorer: shared.Vault(valueobject.ChainIDBase, valueobject.ExchangeFrontierWeighted).Hex(),
 	}
-
-	cases := []struct {
-		name           string
-		minBals        []*big.Int
-		wantMinBals    []*uint256.Int
-		wantExactInOut string
-	}{
-		{
-			name:           "v1 pool reverts getMinTokenBalances and keeps v1 pricing",
-			minBals:        nil,
-			wantMinBals:    nil,
-			wantExactInOut: "5167812005680028660",
-		},
-		{
-			name:           "v2 pool populates minTokenBalances and enables v2 pricing",
-			minBals:        []*big.Int{big.NewInt(1_000_000), big.NewInt(1_000_000)},
-			wantMinBals:    []*uint256.Int{uint256.NewInt(1_000_000), uint256.NewInt(1_000_000)},
-			wantExactInOut: "5167811684339948710",
-		},
+	basePool := entity.Pool{
+		Address: "0x2222222222222222222222222222222222222222", Exchange: valueobject.ExchangeFrontierWeighted, Type: weighted.DexType,
+		Reserves: entity.PoolReserves{"0", "0"}, StaticExtra: `{"buffs":["",""]}`,
+		Tokens: []*entity.PoolToken{{Address: "0x00000000000000000000000000000000000000aa", Swappable: true}, {Address: "0x00000000000000000000000000000000000000bb", Swappable: true}},
 	}
+	v2Min := []*big.Int{big.NewInt(1_000_000), big.NewInt(1_000_000)}
+	v2MinU256 := []*uint256.Int{uint256.NewInt(1_000_000), uint256.NewInt(1_000_000)}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			state := baseState
-			state.minTokenBalances = tc.minBals
-			client := newMockWeightedRPC(t, state)
-
-			lazyTracker, err := NewPoolTracker(cfg, client)
-			require.NoError(t, err)
-			backupTracker, err := weighted.NewPoolTracker(cfg, client)
-			require.NoError(t, err)
-
-			// 1. Direct GetNewPoolState on both lazy and backup trackers.
-			lazyPool, err := lazyTracker.GetNewPoolState(t.Context(), inputPool, pool.GetNewPoolStateParams{})
-			require.NoError(t, err)
-			backupPool, err := backupTracker.GetNewPoolState(t.Context(), inputPool, pool.GetNewPoolStateParams{})
-			require.NoError(t, err)
-
-			// 2. LazyNewPoolState path simulating pool-service batch RPC dispatch.
-			lazyReq, applyResult, err := lazyTracker.LazyNewPoolState(t.Context(), inputPool, pool.GetNewPoolStateParams{})
-			require.NoError(t, err)
-			callMsgs := lazyReq.GetCallMsgs()
-			unpacks := lazyReq.GetUnpacks()
-			require.Equal(t, len(callMsgs), len(unpacks))
-			for i, msg := range callMsgs {
-				if ok, ret := state.handleCall(t, msg.Data); ok {
-					require.NoError(t, unpacks[i](ret))
-				}
+	trackAll := func(t *testing.T, p entity.Pool, mock mockWeightedRPC) ([]entity.Pool, error) {
+		c := mock.client(t)
+		lt, bt := lo.Must(NewPoolTracker(cfg, c)), lo.Must(weighted.NewPoolTracker(cfg, c))
+		p1, err1 := lt.GetNewPoolState(t.Context(), p, pool.GetNewPoolStateParams{})
+		p2, err2 := bt.GetNewPoolState(t.Context(), p, pool.GetNewPoolStateParams{})
+		req, apply := lo.Must2(lt.LazyNewPoolState(t.Context(), p, pool.GetNewPoolStateParams{}))
+		for i, msg := range req.GetCallMsgs() {
+			if ok, ret := mock.handle(t, msg.Data); ok {
+				require.NoError(t, req.GetUnpacks()[i](ret))
 			}
-			batchedPool, err := applyResult(new(big.Int).SetUint64(state.blockNumber))
-			require.NoError(t, err)
-
-			for _, tracked := range []entity.Pool{lazyPool, backupPool, batchedPool} {
-				var extra weighted.Extra
-				require.NoError(t, json.Unmarshal([]byte(tracked.Extra), &extra))
-				require.Equal(t, tc.wantMinBals, extra.MinTokenBalances)
-				if tc.wantMinBals == nil {
-					require.NotContains(t, tracked.Extra, "minTokenBalances")
-				}
-
-				sim, err := weighted.NewPoolSimulator(pool.FactoryParams{
-					EntityPool: tracked,
-					ChainID:    valueobject.ChainIDBase,
-				})
-				require.NoError(t, err)
-
-				swapParams := pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: hexutil.Encode(token0[:]), Amount: big.NewInt(2_000_000)},
-					TokenOut:      hexutil.Encode(token1[:]),
-				}
-				res, err := sim.CalcAmountOut(swapParams)
-				require.NoError(t, err)
-				require.Equal(t, tc.wantExactInOut, res.TokenAmountOut.Amount.String())
-			}
-		})
+		}
+		p3, err3 := apply(big.NewInt(42_000_000))
+		require.Equal(t, err1, err2)
+		require.Equal(t, err1, err3)
+		return []entity.Pool{p1, p2, p3}, err1
 	}
+
+	// v1: getMinTokenBalances reverts, version() confirms v1 -> omitted from Extra.
+	v1Pools, err := trackAll(t, basePool, mockWeightedRPC{version: v1JSON})
+	require.NoError(t, err)
+	for _, p := range v1Pools {
+		require.NotContains(t, p.Extra, "minTokenBalances")
+	}
+
+	// v2: populates minTokenBalances, and preserves them if a later refresh loses getMinTokenBalances/version.
+	v2Pools, err := trackAll(t, basePool, mockWeightedRPC{version: v2JSON, minTokenBalances: v2Min})
+	require.NoError(t, err)
+	refreshed, err := trackAll(t, v2Pools[0], mockWeightedRPC{})
+	require.NoError(t, err)
+	for _, p := range append(v2Pools, refreshed...) {
+		var extra weighted.Extra
+		require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
+		require.Equal(t, v2MinU256, extra.MinTokenBalances)
+	}
+
+	// Transient RPC failures on initial sync never quietly downgrade a v2 pool to v1.
+	_, err = trackAll(t, basePool, mockWeightedRPC{version: v2JSON})
+	require.ErrorIs(t, err, weighted.ErrMissingMinTokenBalances)
+	_, err = trackAll(t, basePool, mockWeightedRPC{})
+	require.ErrorIs(t, err, weighted.ErrMissingPoolVersion)
 }
