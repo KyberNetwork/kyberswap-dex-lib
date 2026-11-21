@@ -4,8 +4,6 @@ import (
 	"errors"
 
 	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // uint256 port of math.go. Intermediate overflow returns an error because
@@ -14,11 +12,9 @@ var (
 	errU256Overflow  = errors.New("uint256 overflow")
 	errU256Underflow = errors.New("uint256 underflow")
 
-	u256One            = uint256.NewInt(1)
-	u256Two            = uint256.NewInt(2)
-	u256Four           = uint256.NewInt(4)
-	u256FeeDenominator = big256.FromBig(FeeDenominator)
-	u256Precision      = big256.FromBig(Precision)
+	u256One  = uint256.NewInt(1)
+	u256Two  = uint256.NewInt(2)
+	u256Four = uint256.NewInt(4)
 )
 
 func mulU256(z, x, y *uint256.Int) error {
@@ -44,11 +40,11 @@ func subU256(z, x, y *uint256.Int) error {
 
 // _AU256 mirrors _A with now passed in, so tests can pin the clock.
 func (t *PoolSimulator) _AU256(now int64) (*uint256.Int, error) {
-	var a1 = big256.FromBig(t.FutureA)
+	var a1 = t.FutureA
 	if t.FutureATime <= now {
 		return a1, nil
 	}
-	var a0 = big256.FromBig(t.InitialA)
+	var a0 = t.InitialA
 	if now < t.InitialATime {
 		return nil, errU256Underflow
 	}
@@ -89,9 +85,9 @@ func (t *PoolSimulator) getDU256(xp []*uint256.Int, a *uint256.Int) (*uint256.In
 		return &s, nil
 	}
 
-	var n = big256.FromBig(t.numTokensBI)
+	var n = t.numTokensBI
 	var nPlus1 = uint256.NewInt(uint64(numTokens + 1))
-	var aPrecision = big256.FromBig(t.APrecision)
+	var aPrecision = t.APrecision
 	if aPrecision.IsZero() {
 		return nil, ErrZero
 	}
@@ -171,8 +167,8 @@ func (t *PoolSimulator) getYDU256(a *uint256.Int, tokenIndex int, xp []*uint256.
 	if tokenIndex >= numTokens {
 		return nil, ErrTokenNotFound
 	}
-	var n = big256.FromBig(t.numTokensBI)
-	var aPrecision = big256.FromBig(t.APrecision)
+	var n = t.numTokensBI
+	var aPrecision = t.APrecision
 
 	var c, s, tmp uint256.Int
 	c.Set(d)
@@ -273,8 +269,8 @@ func (t *PoolSimulator) getYU256(
 	if tokenIndexFrom >= numTokens && tokenIndexTo >= numTokens {
 		return nil, ErrTokenIndexesOutOfRange
 	}
-	var n = big256.FromBig(t.numTokensBI)
-	var aPrecision = big256.FromBig(t.APrecision)
+	var n = t.numTokensBI
+	var aPrecision = t.APrecision
 
 	var c, s, tmp, denom uint256.Int
 	c.Set(d)
@@ -366,11 +362,11 @@ func (t *PoolSimulator) getYU256(
 
 // getDyU256 mirrors GetDy. xp is recomputed from rates and reserves, as in math.go.
 func (t *PoolSimulator) getDyU256(i, j int, dx *uint256.Int, xp []*uint256.Int, a, d *uint256.Int) (*uint256.Int, *uint256.Int, error) {
-	var rateI = big256.FromBig(t.Rates[i])
-	var rateJ = big256.FromBig(t.Rates[j])
-	var precision = big256.FromBig(Precision)
-	var feeDen = big256.FromBig(FeeDenominator)
-	var swapFee = big256.FromBig(t.Info.SwapFee)
+	var rateI = t.Rates[i]
+	var rateJ = t.Rates[j]
+	var precision = Precision
+	var feeDen = FeeDenominator
+	var swapFee = t.Info.SwapFee
 
 	var x, tmp uint256.Int
 	if err := mulU256(&tmp, dx, rateI); err != nil {
@@ -439,7 +435,7 @@ func (t *PoolSimulator) calculateWithdrawOneCoinU256(
 	var nCoins = len(xp)
 	var nCoinBI = uint256.NewInt(uint64(nCoins))
 	var fee, feeDen uint256.Int
-	if err := mulU256(&fee, big256.FromBig(t.Info.SwapFee), nCoinBI); err != nil {
+	if err := mulU256(&fee, t.Info.SwapFee, nCoinBI); err != nil {
 		return nil, nil, err
 	}
 	if err := subU256(&feeDen, nCoinBI, u256One); err != nil {
@@ -469,7 +465,7 @@ func (t *PoolSimulator) calculateWithdrawOneCoinU256(
 		if err := mulU256(&b, &fee, &dxExpected); err != nil {
 			return nil, nil, err
 		}
-		b.Div(&b, u256FeeDenominator)
+		b.Div(&b, FeeDenominator)
 		xpReduced[j] = new(uint256.Int)
 		if err := subU256(xpReduced[j], xp[j], &b); err != nil {
 			return nil, nil, err
@@ -486,11 +482,11 @@ func (t *PoolSimulator) calculateWithdrawOneCoinU256(
 	if err := subU256(&dy, &dy, u256One); err != nil {
 		return nil, nil, err
 	}
-	dy.Div(&dy, big256.FromBig(t.Multipliers[i]))
+	dy.Div(&dy, t.Multipliers[i])
 	if err := subU256(&dy0, xp[i], newY); err != nil {
 		return nil, nil, err
 	}
-	dy0.Div(&dy0, big256.FromBig(t.Multipliers[i]))
+	dy0.Div(&dy0, t.Multipliers[i])
 	var dyFee uint256.Int
 	if err := subU256(&dyFee, &dy0, &dy); err != nil {
 		return nil, nil, err
@@ -520,7 +516,7 @@ func (t *PoolSimulator) calculateTokenAmountU256(
 	reserves, rates []*uint256.Int,
 	a, totalSupply *uint256.Int,
 ) (*uint256.Int, error) {
-	var precision = big256.FromBig(Precision)
+	var precision = Precision
 	var numTokens = len(reserves)
 	var xp0, err = xpMemU256(reserves, rates, precision)
 	if err != nil {
@@ -576,6 +572,15 @@ func (t *PoolSimulator) calculateTokenAmountU256(
 
 // addLiquidityU256 mirrors AddLiquidity without writing to t. It returns the mint amount and
 // the reserves and LP supply the reference would store, so the caller decides whether to commit.
+// getDMemU256 mirrors get_D_mem: it rescales balances by rates, then takes D.
+func (t *PoolSimulator) getDMemU256(balances []*uint256.Int, a *uint256.Int) (*uint256.Int, error) {
+	xp, err := xpMemU256(balances, t.Rates, Precision)
+	if err != nil {
+		return nil, err
+	}
+	return t.getDU256(xp, a)
+}
+
 func (t *PoolSimulator) addLiquidityU256(
 	amounts, oldBalances []*uint256.Int,
 	a, lpSupply, swapFee, adminFee *uint256.Int,
@@ -589,11 +594,11 @@ func (t *PoolSimulator) addLiquidityU256(
 		}
 		newBalances[i] = &v
 	}
-	d0, err := t.getDU256(oldBalances, a)
+	d0, err := t.getDMemU256(oldBalances, a)
 	if err != nil {
 		return nil, nil, err
 	}
-	d1, err := t.getDU256(newBalances, a)
+	d1, err := t.getDMemU256(newBalances, a)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -635,12 +640,12 @@ func (t *PoolSimulator) addLiquidityU256(
 		if err := mulU256(&feeI, &_fee, &difference); err != nil {
 			return nil, nil, err
 		}
-		feeI.Div(&feeI, u256FeeDenominator)
+		feeI.Div(&feeI, FeeDenominator)
 
 		if err := mulU256(&tmp, &feeI, adminFee); err != nil {
 			return nil, nil, err
 		}
-		tmp.Div(&tmp, u256FeeDenominator)
+		tmp.Div(&tmp, FeeDenominator)
 		var reserve uint256.Int
 		if err := subU256(&reserve, newBalances[i], &tmp); err != nil {
 			return nil, nil, err
@@ -653,7 +658,7 @@ func (t *PoolSimulator) addLiquidityU256(
 		}
 		newBalances[i] = &nb
 	}
-	d2, err := t.getDU256(newBalances, a)
+	d2, err := t.getDMemU256(newBalances, a)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -685,7 +690,7 @@ func (t *PoolSimulator) removeLiquidityOneCoinU256(
 	if err := mulU256(&tmp, dyFee, adminFee); err != nil {
 		return nil, nil, nil, err
 	}
-	tmp.Div(&tmp, u256FeeDenominator)
+	tmp.Div(&tmp, FeeDenominator)
 	if err := addU256(&fee, dy, &tmp); err != nil {
 		return nil, nil, nil, err
 	}
@@ -706,7 +711,7 @@ func (t *PoolSimulator) getVirtualPriceU256(d, lpSupply *uint256.Int) (*uint256.
 		return nil, nil, ErrDenominatorZero
 	}
 	var v uint256.Int
-	if err := mulU256(&v, d, u256Precision); err != nil {
+	if err := mulU256(&v, d, Precision); err != nil {
 		return nil, nil, err
 	}
 	v.Div(&v, lpSupply)

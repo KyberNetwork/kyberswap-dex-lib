@@ -1,497 +1,141 @@
 package base
 
 import (
-	"errors"
-	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
-func parityPool(numTokens int, aPrecision int64, initialA, futureA *big.Int, initialT, futureT int64) *PoolSimulator {
-	return &PoolSimulator{
-		InitialA:     initialA,
-		FutureA:      futureA,
-		InitialATime: initialT,
-		FutureATime:  futureT,
-		APrecision:   big.NewInt(aPrecision),
-		numTokensBI:  big.NewInt(int64(numTokens)),
-	}
+// golden values were captured from the big.Int math before the uint256 port. They pin the uint256 path to the
+// legacy results. The pool is the two-coin fixture below.
+func goldenP2(t *testing.T) *PoolSimulator {
+	t.Helper()
+	p, err := NewPoolSimulator(entity.Pool{
+		Reserves: entity.PoolReserves{"101940884", "107546110", "208092128367874420986"},
+		Tokens:   []*entity.PoolToken{{Address: "T0"}, {Address: "T1"}},
+		Extra:    `{"swapFee":"3000000","adminFee":"5000000000","initialA":"150000","futureA":"150000"}`,
+		StaticExtra: `{"lpToken":"LP","aPrecision":"100","precisionMultipliers":["1000000000000","1000000000000"],` +
+			`"rates":["1000000000000000000000000000000","1000000000000000000000000000000"]}`,
+	})
+	require.NoError(t, err)
+	return p
 }
 
-// parityXPs returns golden and seeded-random xp vectors with balances up to 2^100.
-func parityXPs(rng *rand.Rand) [][]*big.Int {
-	var out = [][]*big.Int{
-		{bignumber.NewBig10("101940884000000000000000000000000000000"), bignumber.NewBig10("107546110000000000000000000000000000000"), bignumber.NewBig10("208092128367874420986")},
-		{bignumber.NewBig10("69265278000000000000000000000000000000"), bignumber.NewBig10("140296574000000000000000000000000000000")},
-		{bignumber.NewBig10("100000000000000000"), bignumber.NewBig10("100000000000000000"), bignumber.NewBig10("1000000000000000000000000000000000000")},
-	}
-	for range 2000 {
-		var n = 2 + rng.Intn(3)
-		var xp = make([]*big.Int, n)
-		for i := range xp {
-			xp[i] = new(big.Int).Rand(rng, new(big.Int).Lsh(big.NewInt(1), uint(1+rng.Intn(100))))
-			if xp[i].Sign() == 0 {
-				xp[i].SetInt64(1)
-			}
-		}
-		out = append(out, xp)
-	}
-	return out
-}
-
-func toU256s(xs []*big.Int) []*uint256.Int {
-	var out = make([]*uint256.Int, len(xs))
-	for i, x := range xs {
-		out[i] = big256.FromBig(x)
-	}
-	return out
-}
-
-// TestGetDU256Parity checks exact match where both sides succeed. Where big.Int succeeds but
-// an intermediate exceeds 2^256, the uint256 port must return errU256Overflow (on-chain revert).
-func TestGetDU256Parity(t *testing.T) {
+func TestGoldenVirtualPrice(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(1))
-	var cells, matched, overflowBoundary int
-	for _, xp := range parityXPs(rng) {
-		for _, a := range []int64{1, 100, 150000, 1000000} {
-			for _, aPrec := range []int64{1, 100} {
-				if a < aPrec {
-					continue
-				}
-				p := parityPool(len(xp), aPrec, big.NewInt(a), big.NewInt(a), 0, 0)
-				wantD, wantErr := p.getD(xp, big.NewInt(a))
-				gotD, gotErr := p.getDU256(toU256s(xp), uint256.NewInt(uint64(a)))
-				cells++
-				switch {
-				case wantErr == nil && gotErr == nil:
-					require.Equal(t, wantD.String(), gotD.Dec(), "xp=%v a=%d aPrec=%d", xp, a, aPrec)
-					matched++
-				case wantErr == nil:
-					require.ErrorIs(t, gotErr, errU256Overflow, "xp=%v a=%d aPrec=%d", xp, a, aPrec)
-					overflowBoundary++
-				default:
-					require.Error(t, gotErr, "big.Int errored, uint256 must too: xp=%v a=%d aPrec=%d", xp, a, aPrec)
-				}
-			}
-		}
-	}
-	require.Positive(t, matched)
-	t.Logf("getD grid: cells=%d matched=%d overflowBoundary=%d", cells, matched, overflowBoundary)
+	p := goldenP2(t)
+	v, d, err := p.GetVirtualPrice()
+	require.NoError(t, err)
+	require.Equal(t, "1006702875537675272", v.Dec())
+	require.Equal(t, "209486944004694229067", d.Dec())
 }
 
-func TestAU256Parity(t *testing.T) {
+func TestGoldenGetDy(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(2))
-	var cases int
-	for range 5000 {
-		// _A reads time.Now() itself; retry if the second ticks between the two reads.
-		for {
-			var now = time.Now().Unix()
-			var initialT = now - rng.Int63n(1<<20)
-			var futureT = now + 1 + rng.Int63n(1<<20)
-			var p = parityPool(2, 100,
-				big.NewInt(1+rng.Int63n(1000000)), big.NewInt(1+rng.Int63n(1000000)),
-				initialT, futureT)
-			var want = p._A()
-			got, err := p._AU256(now)
-			if now != time.Now().Unix() {
-				continue
-			}
-			require.NoError(t, err)
-			require.Equal(t, want.String(), got.Dec())
-			break
-		}
-		cases++
+	p := goldenP2(t)
+	for _, tc := range []struct {
+		i, j        int
+		dx, dy, fee string
+	}{
+		{0, 1, "1000", "999", "0"},
+		{0, 1, "5000000", "4998519", "1500"},
+		{0, 1, "100000000000", "107513846", "32263"},
+		{1, 0, "1000", "999", "0"},
+		{1, 0, "5000000", "4998160", "1499"},
+		{1, 0, "100000000000", "101910301", "30582"},
+	} {
+		var dx uint256.Int
+		require.NoError(t, dx.SetFromDecimal(tc.dx))
+		dy, fee, err := p.GetDy(tc.i, tc.j, &dx, nil)
+		require.NoError(t, err)
+		require.Equal(t, tc.dy, dy.Dec(), "dy %d->%d dx=%s", tc.i, tc.j, tc.dx)
+		require.Equal(t, tc.fee, fee.Dec(), "fee %d->%d dx=%s", tc.i, tc.j, tc.dx)
 	}
-	require.Positive(t, cases)
 }
 
-func TestGetYDU256Parity(t *testing.T) {
+func TestGoldenCalculateTokenAmount(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(3))
-	var cells, matched, overflowBoundary int
-	for _, xp := range parityXPs(rng) {
-		for _, a := range []int64{100, 150000, 1000000} {
-			p := parityPool(len(xp), 100, big.NewInt(a), big.NewInt(a), 0, 0)
-			d, err := p.getD(xp, big.NewInt(a))
-			if err != nil {
-				continue
-			}
-			for idx := range xp {
-				wantY, wantErr := p.getYD(big.NewInt(a), idx, xp, d)
-				gotY, gotErr := p.getYDU256(uint256.NewInt(uint64(a)), idx, toU256s(xp), big256.FromBig(d))
-				cells++
-				if wantErr != nil {
-					require.Error(t, gotErr, "xp=%v a=%d idx=%d", xp, a, idx)
-					continue
-				}
-				if wantErr == nil && errors.Is(gotErr, errU256Overflow) {
-					overflowBoundary++
-					continue
-				}
-				require.NoError(t, gotErr, "xp=%v a=%d idx=%d", xp, a, idx)
-				require.Equal(t, wantY.String(), gotY.Dec(), "xp=%v a=%d idx=%d", xp, a, idx)
-				matched++
-			}
-		}
-	}
-	require.Positive(t, matched)
-	t.Logf("getYD grid: cells=%d matched=%d overflowBoundary=%d", cells, matched, overflowBoundary)
+	p := goldenP2(t)
+	deposit := []*uint256.Int{uint256.NewInt(1000000), uint256.NewInt(2000000)}
+	got, err := p.CalculateTokenAmount(deposit, true)
+	require.NoError(t, err)
+	require.Equal(t, "2980006917492527526", got.Dec())
+
+	got, err = p.CalculateTokenAmount(deposit, false)
+	require.NoError(t, err)
+	require.Equal(t, "2980009601820768067", got.Dec())
 }
 
-func TestGetYU256Parity(t *testing.T) {
+func TestGoldenCalculateWithdrawOneCoin(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(4))
-	var cells, matched, overflowBoundary int
-	for _, xp := range parityXPs(rng) {
-		for _, a := range []int64{100, 150000, 1000000} {
-			p := parityPool(len(xp), 100, big.NewInt(a), big.NewInt(a), 0, 0)
-			d, err := p.getD(xp, big.NewInt(a))
-			if err != nil {
-				continue
-			}
-			for i := range xp {
-				for j := range xp {
-					x := new(big.Int).Set(xp[i])
-					wantY, wantErr := p.GetY(i, j, x, xp, d)
-					gotY, gotErr := p.getYU256(i, j, big256.FromBig(x), toU256s(xp), uint256.NewInt(uint64(a)), big256.FromBig(d))
-					cells++
-					if wantErr != nil {
-						require.Error(t, gotErr, "xp=%v a=%d i=%d j=%d", xp, a, i, j)
-						continue
-					}
-					if errors.Is(gotErr, errU256Overflow) {
-						overflowBoundary++
-						continue
-					}
-					require.NoError(t, gotErr, "xp=%v a=%d i=%d j=%d", xp, a, i, j)
-					require.Equal(t, wantY.String(), gotY.Dec(), "xp=%v a=%d i=%d j=%d", xp, a, i, j)
-					matched++
-				}
-			}
-		}
+	p := goldenP2(t)
+	burn, err := uint256.FromDecimal("50000000000000000000")
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		i       int
+		dy, fee string
+	}{
+		{0, "50319975", "7749"},
+		{1, "50323302", "7346"},
+	} {
+		dy, fee, err := p.CalculateWithdrawOneCoin(burn, tc.i)
+		require.NoError(t, err)
+		require.Equal(t, tc.dy, dy.Dec(), "dy coin %d", tc.i)
+		require.Equal(t, tc.fee, fee.Dec(), "fee coin %d", tc.i)
 	}
-	require.Positive(t, matched)
-	t.Logf("GetY grid: cells=%d matched=%d overflowBoundary=%d", cells, matched, overflowBoundary)
 }
 
-func TestGetDyU256Parity(t *testing.T) {
+func TestGoldenAddLiquidity(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(5))
-	var cells, matched, overflowBoundary int
-	for _, xp := range parityXPs(rng) {
-		n := len(xp)
-		rates := make([]*big.Int, n)
-		for i := range rates {
-			rates[i] = bignumber.NewBig10("1000000000000000000")
-		}
-		p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
-		p.Rates = rates
-		p.Multipliers = rates
-		p.Info.Tokens = make([]string, n)
-		p.Info.Reserves = xp
-		p.Info.SwapFee = bignumber.NewBig10("3000000")
-		p.AdminFee = bignumber.NewBig10("5000000000")
-		d, err := p.getD(xp, big.NewInt(150000))
-		if err != nil {
-			continue
-		}
-		for i := range n {
-			for j := range n {
-				if i == j {
-					continue
-				}
-				for _, dx := range []*big.Int{big.NewInt(1000), big.NewInt(1 << 40)} {
-					wantDy, wantFee, wantErr := p.GetDy(i, j, dx, d)
-					gotDy, gotFee, gotErr := p.getDyU256(i, j, big256.FromBig(dx), toU256s(xp), uint256.NewInt(150000), big256.FromBig(d))
-					cells++
-					if wantErr != nil {
-						require.Error(t, gotErr)
-						continue
-					}
-					if errors.Is(gotErr, errU256Overflow) || errors.Is(gotErr, errU256Underflow) {
-						overflowBoundary++
-						continue
-					}
-					require.NoError(t, gotErr)
-					require.Equal(t, wantDy.String(), gotDy.Dec(), "xp=%v i=%d j=%d dx=%v", xp, i, j, dx)
-					require.Equal(t, wantFee.String(), gotFee.Dec(), "xp=%v i=%d j=%d dx=%v", xp, i, j, dx)
-					matched++
-				}
-			}
-		}
-	}
-	require.Positive(t, matched)
-	t.Logf("GetDy grid: cells=%d matched=%d overflowBoundary=%d", cells, matched, overflowBoundary)
+	p := goldenP2(t)
+	mint, err := p.AddLiquidity([]*uint256.Int{uint256.NewInt(5000000), uint256.NewInt(10000000)})
+	require.NoError(t, err)
+	require.Equal(t, "14899326398466847830", mint.Dec())
+	require.Equal(t, "106940712", p.Info.Reserves[0].Dec())
+	require.Equal(t, "117545938", p.Info.Reserves[1].Dec())
+	require.Equal(t, "222991454766341268816", p.LpSupply.Dec())
 }
 
-func TestCalculateWithdrawOneCoinU256Parity(t *testing.T) {
+func TestGoldenRemoveLiquidityOneCoin(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(6))
-	var cells, matched, boundary int
-	for _, xp := range parityXPs(rng) {
-		n := len(xp)
-		rates := make([]*big.Int, n)
-		for i := range rates {
-			rates[i] = bignumber.NewBig10("1000000000000000000")
-		}
-		supply := new(big.Int).Add(sumBig(xp), bignumber.One)
-		p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
-		p.Rates = rates
-		p.Multipliers = rates
-		p.Info.Tokens = make([]string, n)
-		p.Info.Reserves = xp
-		p.Info.SwapFee = bignumber.NewBig10("3000000")
-		p.AdminFee = bignumber.NewBig10("5000000000")
-		p.LpSupply = supply
-		for i := range n {
-			for _, amt := range []*big.Int{big.NewInt(1000), new(big.Int).Div(supply, big.NewInt(3))} {
-				wantDy, wantFee, wantErr := p.CalculateWithdrawOneCoin(amt, i)
-				cells++
-				d0, err := p.getD(xp, big.NewInt(150000))
-				if err != nil {
-					continue
-				}
-				gotDy, gotFee, gotErr := p.calculateWithdrawOneCoinU256(
-					big256.FromBig(amt), i, toU256s(xp), uint256.NewInt(150000), big256.FromBig(d0), big256.FromBig(supply))
-				if wantErr != nil {
-					require.Error(t, gotErr)
-					continue
-				}
-				if errors.Is(gotErr, errU256Overflow) || errors.Is(gotErr, errU256Underflow) {
-					boundary++
-					continue
-				}
-				require.NoError(t, gotErr)
-				require.Equal(t, wantDy.String(), gotDy.Dec(), "xp=%v i=%d amt=%v", xp, i, amt)
-				require.Equal(t, wantFee.String(), gotFee.Dec(), "xp=%v i=%d amt=%v", xp, i, amt)
-				matched++
-			}
-		}
-	}
-	require.Positive(t, matched)
-	t.Logf("CalculateWithdrawOneCoin grid: cells=%d matched=%d boundary=%d", cells, matched, boundary)
+	p := goldenP2(t)
+	burn, err := uint256.FromDecimal("50000000000000000000")
+	require.NoError(t, err)
+	dy, err := p.RemoveLiquidityOneCoin(burn, 0)
+	require.NoError(t, err)
+	require.Equal(t, "50319975", dy.Dec())
+	require.Equal(t, "51617035", p.Info.Reserves[0].Dec())
+	require.Equal(t, "107546110", p.Info.Reserves[1].Dec())
+	require.Equal(t, "158092128367874420986", p.LpSupply.Dec())
 }
 
-func sumBig(xs []*big.Int) *big.Int {
-	s := new(big.Int)
-	for _, x := range xs {
-		s.Add(s, x)
-	}
-	return s
-}
-
-func TestCalculateTokenAmountU256Parity(t *testing.T) {
+// TestAu256Ramp pins the A ramp to the on-chain interpolation. A moves linearly from initialA to futureA over
+// [initialATime, futureATime], and the uint256 port must match it exactly.
+func TestAu256Ramp(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(7))
-	var cells, matched, boundary int
-	for _, xp := range parityXPs(rng) {
-		n := len(xp)
-		rates := make([]*big.Int, n)
-		for i := range rates {
-			rates[i] = bignumber.NewBig10("1000000000000000000")
-		}
-		supply := new(big.Int).Add(sumBig(xp), bignumber.One)
-		p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
-		p.Rates = rates
-		p.Multipliers = rates
-		p.Info.Tokens = make([]string, n)
-		p.Info.Reserves = xp
-		p.LpSupply = supply
-		for _, deposit := range []bool{true, false} {
-			amounts := make([]*big.Int, n)
-			for i := range amounts {
-				amounts[i] = new(big.Int).Div(xp[i], big.NewInt(7))
-			}
-			want, wantErr := p.CalculateTokenAmount(amounts, deposit)
-			cells++
-			got, gotErr := p.calculateTokenAmountU256(toU256s(amounts), deposit, toU256s(xp), toU256s(rates), uint256.NewInt(150000), big256.FromBig(supply))
-			if wantErr != nil {
-				require.Error(t, gotErr)
-				continue
-			}
-			if errors.Is(gotErr, errU256Overflow) || errors.Is(gotErr, errU256Underflow) {
-				boundary++
-				continue
-			}
-			require.NoError(t, gotErr)
-			require.Equal(t, want.String(), got.Dec(), "xp=%v deposit=%v", xp, deposit)
-			matched++
-		}
+	now := time.Now().Unix()
+	p := &PoolSimulator{
+		InitialA:     uint256.NewInt(100000),
+		FutureA:      uint256.NewInt(200000),
+		InitialATime: 0,
+		FutureATime:  now * 2,
 	}
-	require.Positive(t, matched)
-	t.Logf("CalculateTokenAmount grid: cells=%d matched=%d boundary=%d", cells, matched, boundary)
-}
+	got, err := p._AU256(now)
+	require.NoError(t, err)
+	require.Equal(t, "150000", got.Dec())
 
-func TestAddLiquidityU256Parity(t *testing.T) {
-	t.Parallel()
-	rng := rand.New(rand.NewSource(8))
-	var cells, matched, boundary int
-	for _, xp := range parityXPs(rng) {
-		n := len(xp)
-		rates := make([]*big.Int, n)
-		for i := range rates {
-			rates[i] = bignumber.NewBig10("1000000000000000000")
-		}
-		for _, supply := range []*big.Int{sumBig(xp), big.NewInt(0)} {
-			amounts := make([]*big.Int, n)
-			for i := range amounts {
-				amounts[i] = new(big.Int).Div(xp[i], big.NewInt(5))
-			}
-			p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
-			p.Rates = rates
-			p.Multipliers = rates
-			p.Info.Tokens = make([]string, n)
-			p.Info.Reserves = cloneBigs(xp)
-			p.Info.SwapFee = bignumber.NewBig10("3000000")
-			p.AdminFee = bignumber.NewBig10("5000000000")
-			p.LpSupply = new(big.Int).Set(supply)
+	// Ramp down: 200k at zero to 100k at 2*now, so the midpoint is 150k.
+	p.InitialA, p.FutureA = uint256.NewInt(200000), uint256.NewInt(100000)
+	got, err = p._AU256(now)
+	require.NoError(t, err)
+	require.Equal(t, "150000", got.Dec())
 
-			d0, err := p.getD(xp, big.NewInt(150000))
-			if err != nil {
-				continue
-			}
-			_ = d0
-			want, wantErr := p.addLiquidityRef(amounts)
-			cells++
-			got, gotReserves, gotErr := p.addLiquidityU256(
-				toU256s(amounts), toU256s(xp), uint256.NewInt(150000),
-				big256.FromBig(supply), big256.FromBig(p.Info.SwapFee), big256.FromBig(p.AdminFee))
-			if wantErr != nil {
-				require.Error(t, gotErr)
-				continue
-			}
-			if errors.Is(gotErr, errU256Overflow) || errors.Is(gotErr, errU256Underflow) {
-				boundary++
-				continue
-			}
-			require.NoError(t, gotErr)
-			require.Equal(t, want.String(), got.Dec(), "xp=%v supply=%v", xp, supply)
-			for i := range n {
-				require.Equal(t, p.Info.Reserves[i].String(), gotReserves[i].Dec(), "reserve i=%d xp=%v", i, xp)
-			}
-			matched++
-		}
-	}
-	require.Positive(t, matched)
-	t.Logf("AddLiquidity grid: cells=%d matched=%d boundary=%d", cells, matched, boundary)
-}
-
-func cloneBigs(xs []*big.Int) []*big.Int {
-	out := make([]*big.Int, len(xs))
-	for i, x := range xs {
-		out[i] = new(big.Int).Set(x)
-	}
-	return out
-}
-
-// addLiquidityRef calls the big.Int AddLiquidity and turns its nil-deref panic (it ignores the
-// get_D_mem error at math.go:519) into a distinct error, so the grid can count that cell.
-func (p *PoolSimulator) addLiquidityRef(amounts []*big.Int) (res *big.Int, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			res, err = nil, errRefPanic
-		}
-	}()
-	return p.AddLiquidity(amounts)
-}
-
-var errRefPanic = errors.New("reference AddLiquidity panicked")
-
-func TestRemoveLiquidityOneCoinU256Parity(t *testing.T) {
-	t.Parallel()
-	rng := rand.New(rand.NewSource(9))
-	var cells, matched, boundary int
-	for _, xp := range parityXPs(rng) {
-		n := len(xp)
-		rates := make([]*big.Int, n)
-		for i := range rates {
-			rates[i] = bignumber.NewBig10("1000000000000000000")
-		}
-		supply := new(big.Int).Add(sumBig(xp), bignumber.One)
-		for i := range n {
-			for _, amt := range []*big.Int{big.NewInt(1000), new(big.Int).Div(supply, big.NewInt(4))} {
-				p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
-				p.Rates = rates
-				p.Multipliers = rates
-				p.Info.Tokens = make([]string, n)
-				p.Info.Reserves = cloneBigs(xp)
-				p.Info.SwapFee = bignumber.NewBig10("3000000")
-				p.AdminFee = bignumber.NewBig10("5000000000")
-				p.LpSupply = new(big.Int).Set(supply)
-
-				d0, err := p.getD(xp, big.NewInt(150000))
-				if err != nil {
-					continue
-				}
-				wantDy, wantErr := p.RemoveLiquidityOneCoin(amt, i)
-				cells++
-				gotDy, gotRes, gotSupply, gotErr := p.removeLiquidityOneCoinU256(
-					big256.FromBig(amt), i, toU256s(xp), toU256s(xp), uint256.NewInt(150000),
-					big256.FromBig(d0), big256.FromBig(supply), big256.FromBig(p.AdminFee))
-				if wantErr != nil {
-					require.Error(t, gotErr)
-					continue
-				}
-				if errors.Is(gotErr, errU256Overflow) || errors.Is(gotErr, errU256Underflow) {
-					boundary++
-					continue
-				}
-				require.NoError(t, gotErr)
-				require.Equal(t, wantDy.String(), gotDy.Dec(), "xp=%v i=%d amt=%v", xp, i, amt)
-				require.Equal(t, p.Info.Reserves[i].String(), gotRes.Dec(), "reserve xp=%v i=%d", xp, i)
-				require.Equal(t, p.LpSupply.String(), gotSupply.Dec(), "supply xp=%v i=%d", xp, i)
-				matched++
-			}
-		}
-	}
-	require.Positive(t, matched)
-	t.Logf("RemoveLiquidityOneCoin grid: cells=%d matched=%d boundary=%d", cells, matched, boundary)
-}
-
-func TestGetVirtualPriceU256Parity(t *testing.T) {
-	t.Parallel()
-	rng := rand.New(rand.NewSource(10))
-	var cells, matched int
-	for _, xp := range parityXPs(rng) {
-		n := len(xp)
-		rates := make([]*big.Int, n)
-		for i := range rates {
-			rates[i] = bignumber.NewBig10("1000000000000000000")
-		}
-		for _, supply := range []*big.Int{sumBig(xp), big.NewInt(0)} {
-			p := parityPool(n, 100, big.NewInt(150000), big.NewInt(150000), 0, 0)
-			p.Rates = rates
-			p.Multipliers = rates
-			p.Info.Tokens = make([]string, n)
-			p.Info.Reserves = cloneBigs(xp)
-			p.LpSupply = new(big.Int).Set(supply)
-
-			d, err := p.getD(xp, big.NewInt(150000))
-			if err != nil {
-				continue
-			}
-			wantV, wantD, wantErr := p.GetVirtualPrice()
-			cells++
-			gotV, gotD, gotErr := p.getVirtualPriceU256(big256.FromBig(d), big256.FromBig(supply))
-			if wantErr != nil {
-				require.ErrorIs(t, gotErr, wantErr)
-				continue
-			}
-			require.NoError(t, gotErr)
-			require.Equal(t, wantV.String(), gotV.Dec(), "xp=%v supply=%v", xp, supply)
-			require.Equal(t, wantD.String(), gotD.Dec())
-			matched++
-		}
-	}
-	require.Positive(t, matched)
-	t.Logf("GetVirtualPrice grid: cells=%d matched=%d", cells, matched)
+	// A ramp that has not started yet fails on chain (block.timestamp - initial_A_time underflows).
+	p.InitialATime = now + 10
+	_, err = p._AU256(now)
+	require.ErrorIs(t, err, errU256Underflow)
 }
