@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,7 +13,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -27,7 +27,7 @@ var (
 
 func TestCalcAmountOut(t *testing.T) {
 	t.Parallel()
-	testutil.TestCalcAmountOut(t, poolSim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, poolSim, map[int]map[int]map[string]string{
 		0: {
 			1: {
 				"12936925243928912": "14420",
@@ -43,34 +43,37 @@ func TestCalcAmountOut(t *testing.T) {
 	})
 }
 
-func Test_CloneState_UpdateBalance(t *testing.T) {
+func Test_CloneState_UpdateState(t *testing.T) {
 	cloned := poolSim.CloneState()
-	tokenAmountIn := pool.TokenAmount{
+	tokenAmountIn := pool.TokenAmt{
 		Token:  "0x4e74d4db6c0726ccded4656d0bce448876bb4c7a",
-		Amount: bignumber.NewBig10("12936925243928912"),
+		Amount: *uint256.MustFromDecimal("12936925243928912"),
 	}
 	tokenOut := "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
-	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+	result, err := poolSim.CalcAmtOut(pool.CalcAmtOutParams{
 		TokenAmountIn: tokenAmountIn,
 		TokenOut:      tokenOut,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("14420"), result.TokenAmountOut.Amount)
-	cloned.UpdateBalance(pool.UpdateBalanceParams{
+	assert.Equal(t, "14420", result.TokenAmountOut.Amount.Dec())
+	cloned.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  tokenAmountIn,
 		TokenAmountOut: *result.TokenAmountOut,
 		Fee:            *result.Fee,
 		SwapInfo:       result.SwapInfo,
 	})
 
-	result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+	result, err = poolSim.CalcAmtOut(pool.CalcAmtOutParams{
 		TokenAmountIn: tokenAmountIn,
 		TokenOut:      tokenOut,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("14420"), result.TokenAmountOut.Amount)
+	assert.Equal(t, "14420", result.TokenAmountOut.Amount.Dec())
 
-	result, err = pool.DefaultCalcAmtOut(context.Background(), cloned, tokenAmountIn, tokenOut, nil)
+	result, err = cloned.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      tokenOut,
+	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("14143"), result.TokenAmountOut.Amount)
+	assert.Equal(t, "14143", result.TokenAmountOut.Amount.Dec())
 }
