@@ -26,6 +26,8 @@ type BeforeSwapParams struct {
 	AmountSpecified *big.Int // CalcOut: amountIn; CalcIn: amountOut
 	// SqrtPriceX96 is the pool's current sqrt price, before this swap. Read-only; copy it to keep it.
 	SqrtPriceX96 *uint256.Int
+	// Tick is the pool's current tick (slot0.tick), before this swap.
+	Tick int
 }
 
 type BeforeSwapResult struct {
