@@ -316,6 +316,63 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}, nil
 }
 
+// CalcAmtOut is CalcAmountOut with uint256 amounts. It runs the shared big.Int CalcAmountOut body and converts at
+// the boundary, so the swap math keeps one copy.
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	res, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: params.TokenAmountIn.Amount.ToBig()},
+		TokenOut:      params.TokenOut,
+		Limit:         pool.AsSwapLimitBig(params.Limit),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut:         tokenAmtFromBigBin(res.TokenAmountOut),
+		Fee:                    tokenAmtFromBigBin(res.Fee),
+		RemainingTokenAmountIn: tokenAmtFromBigBin(res.RemainingTokenAmountIn),
+		Gas:                    res.Gas,
+		SwapInfo:               res.SwapInfo,
+	}, nil
+}
+
+// CalcAmtIn is CalcAmountIn with uint256 amounts. It runs the shared big.Int CalcAmountIn body and converts at the
+// boundary, so the swap math keeps one copy.
+func (p *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
+	res, err := p.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: params.TokenAmountOut.Amount.ToBig()},
+		TokenIn:        params.TokenIn,
+		Limit:          pool.AsSwapLimitBig(params.Limit),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmtInResult{
+		TokenAmountIn:           tokenAmtFromBigBin(res.TokenAmountIn),
+		RemainingTokenAmountOut: tokenAmtFromBigBin(res.RemainingTokenAmountOut),
+		Fee:                     tokenAmtFromBigBin(res.Fee),
+		Gas:                     res.Gas,
+		SwapInfo:                res.SwapInfo,
+	}, nil
+}
+
+// tokenAmtFromBigBin converts a legacy big.Int amount to uint256. A nil amount becomes zero.
+func tokenAmtFromBigBin(t *pool.TokenAmount) *pool.TokenAmt {
+	if t == nil {
+		return nil
+	}
+	out := &pool.TokenAmt{Token: t.Token, AmountUsd: t.AmountUsd}
+	if t.Amount != nil {
+		out.Amount = *uint256.MustFromBig(t.Amount)
+	}
+	return out
+}
+
+// UpdateState is UpdateBalance with uint256 amounts. The swap only needs SwapInfo, so the amounts are ignored.
+func (p *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
+	p.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: params.SwapInfo})
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
@@ -355,10 +412,28 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.bins = newBins
 }
 
-func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (p *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *p
 	cloned.bins = slices.Clone(p.bins)
 	return &cloned
+}
+
+// GetReserves returns the reserves as uint256. A nil, negative, or oversized reserve becomes zero.
+func (p *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(p.Info.Reserves))
+	for i, r := range p.Info.Reserves {
+		if r != nil && r.Sign() >= 0 {
+			if u, overflow := uint256.FromBig(r); !overflow {
+				out[i] = *u
+			}
+		}
+	}
+	return out
+}
+
+// CalcLimit returns nil: bin pools have no shared inventory limit.
+func (p *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {

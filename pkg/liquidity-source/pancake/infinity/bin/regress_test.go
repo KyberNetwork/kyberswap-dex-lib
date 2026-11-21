@@ -1,7 +1,6 @@
 package bin
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -99,16 +99,18 @@ func regressSimOutputs(t *testing.T) map[string]string {
 				}
 			}
 		}
-		// sequential swaps: UpdateBalance must move state identically
+		// sequential swaps: UpdateState must move state identically
 		cl := sim.CloneState()
 		for i := range 3 {
-			amt := big.NewInt(1e18)
-			res, err := pool.DefaultCalcAmtOut(context.Background(), cl, pool.TokenAmount{Token: tk[0].Address, Amount: amt}, tk[1].Address, nil)
+			var amt uint256.Int
+			amt.SetUint64(1e18)
+			res, err := cl.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: tk[0].Address, Amount: amt}, TokenOut: tk[1].Address})
 			require.NoError(t, err)
 			out[fmt.Sprintf("seq/%s/%d", name, i)] = res.TokenAmountOut.Amount.String()
-			cl.UpdateBalance(pool.UpdateBalanceParams{
-				TokenAmountIn:  pool.TokenAmount{Token: tk[0].Address, Amount: amt},
-				TokenAmountOut: pool.TokenAmount{Token: tk[1].Address, Amount: res.TokenAmountOut.Amount},
+			cl.UpdateState(pool.UpdateStateParams{
+				TokenAmountIn:  pool.TokenAmt{Token: tk[0].Address, Amount: amt},
+				TokenAmountOut: *res.TokenAmountOut,
 				Fee:            *res.Fee, SwapInfo: res.SwapInfo})
 		}
 	}

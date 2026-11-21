@@ -102,7 +102,24 @@ func TestCalcAmountIn(t *testing.T) {
 	pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainID(chainID))
 	assert.NoError(t, err)
 
-	testutil.TestCalcAmountIn(t, pSim)
+	testutil.TestCalcAmountInIPoolSim(t, pSim, map[int]map[int]map[string]string{
+		0: {
+			1: {
+				"1000000000000000":          "999999009900982",
+				"1000000000000000000":       "999999009900980298",
+				"100000000000000000000":     "99999900990098029705",
+				"1000000000000000000000000": "",
+			},
+		},
+		1: {
+			0: {
+				"1000000000000000":          "1000199019702951",
+				"1000000000000000000":       "1000199019702950593",
+				"100000000000000000000":     "100019901970295059211",
+				"1000000000000000000000000": "",
+			},
+		},
+	})
 }
 
 func TestMergeSwap(t *testing.T) {
