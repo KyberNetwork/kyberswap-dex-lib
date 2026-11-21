@@ -52,6 +52,50 @@ func testIPoolSim[TB interface {
 	})
 }
 
+// TestCalcAmountInIPoolSim tests native uint256 CalcAmtIn with given output and input amounts, like TestCalcAmtOutIPoolSim
+// but for exact-out. The map is keyed by tokenIn index, then tokenOut index, then the output amount; the value is the
+// expected input amount. Empty input means error expected.
+func TestCalcAmountInIPoolSim[TB interface {
+	testing.TB
+	Run(string, func(TB)) bool
+}](tb TB, poolSim pool.IPoolSim, expected map[int]map[int]map[string]string) {
+	tb.Helper()
+	tokens := poolSim.GetTokens()
+	for idxIn, expected := range expected {
+		for idxOut, expected := range expected {
+			for amtOut, expected := range expected {
+				testIPoolSimCalcAmtIn(tb, poolSim, amtOut, expected, idxIn, idxOut, tokens)
+			}
+		}
+	}
+}
+
+func testIPoolSimCalcAmtIn[TB interface {
+	testing.TB
+	Run(string, func(TB)) bool
+}](tb TB, poolSim pool.IPoolSim, amtOut string, expected string, idxIn, idxOut int, tokens []string) {
+	tb.Helper()
+	tb.Run(fmt.Sprintf("%s token%d <- ? token%d", amtOut, idxIn, idxOut), func(tb TB) {
+		tb.Helper()
+		var out uint256.Int
+		require.NoError(tb, out.SetFromDecimal(amtOut))
+		calc, ok := poolSim.(pool.ICalcAmtIn)
+		require.True(tb, ok, "pool does not implement native CalcAmtIn")
+		res, err := calc.CalcAmtIn(pool.CalcAmtInParams{
+			TokenAmountOut: pool.TokenAmt{Token: tokens[idxOut], Amount: out},
+			TokenIn:        tokens[idxIn],
+		})
+		if expected == "" {
+			require.Error(tb, err)
+			return
+		}
+		require.NoError(tb, err)
+		var want uint256.Int
+		require.NoError(tb, want.SetFromDecimal(expected))
+		assert.Equal(tb, want.String(), res.TokenAmountIn.Amount.String())
+	})
+}
+
 // TestCloneStateIPoolSim checks that UpdateState on a clone leaves the original's quote unchanged.
 func TestCloneStateIPoolSim(t testing.TB, sim pool.IPoolSim, params pool.CalcAmtOutParams) {
 	t.Helper()
