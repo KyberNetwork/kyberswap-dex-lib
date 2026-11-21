@@ -30,7 +30,7 @@ func TestFactoryBuildsSimulatorForOwnType(t *testing.T) {
 		StaticExtra: `{"lpToken":"LP","aPrecision":"100","precisionMultipliers":["1","1"],` +
 			`"rates":["1000000000000000000","1000000000000000000"]}`,
 	}
-	f := pool.Factory(DexType)
+	f := pool.FactoryPoolSim(DexType)
 	require.NotNil(t, f)
 	sim, err := f(pool.FactoryParams{EntityPool: ep})
 	require.NoError(t, err)
