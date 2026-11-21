@@ -22,7 +22,7 @@ var (
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	t.Parallel()
-	testutil.TestCalcAmountOut(t, poolSim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, poolSim, map[int]map[int]map[string]string{
 		0: {
 			1: {
 				"100000000000000000": "94920023483381004", // https://www.tdly.co/shared/simulation/823e01b9-6b2d-4ef2-8851-1ab2afb5ca86
@@ -36,5 +36,18 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	t.Parallel()
-	testutil.TestCalcAmountIn(t, poolSim)
+	testutil.TestCalcAmountInIPoolSim(t, poolSim, map[int]map[int]map[string]string{
+		0: {
+			1: {
+				"100000000000000000": "105351849225431883",
+				"94920023483381004":  "100000000000000000",
+				"1000000000000000":   "1053518487130520",
+			},
+		},
+		1: {0: {
+			"100000000000000000": "95152173406166714",
+			"94920023483381004":  "90318465320683786",
+			"1000000000000000":   "951521729668579",
+		}},
+	})
 }
