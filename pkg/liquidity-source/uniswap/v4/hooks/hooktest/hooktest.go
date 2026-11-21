@@ -2,6 +2,7 @@
 package hooktest
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -68,8 +70,8 @@ func NewPoolSimulatorAt(t testing.TB, hookAddress common.Address, hookExtra any,
 }
 
 // RequireRoundTrip requires CalcAmountOut(CalcAmountIn(amountOut)) to give amountOut to within 1e-9, both ways,
-// for amountOut at 1e-6, 1e-3 and 1e-1 of the output reserve. That is tight enough to catch a hook applying the
-// on-chain exact-out fee rule instead of inverting its exact-in fee, which is off by about fee^2.
+// for amountOut at 1e-6, 1e-3 and 1e-1 of the output reserve, tight enough to catch a wrong exact-out fee rule.
+// ErrInsufficientBalance from CalcAmountIn is a pool limit: it asserts that error, then exact-in must quote with no error.
 func RequireRoundTrip(t testing.TB, pSim *uniswapv4.PoolSimulator) {
 	t.Helper()
 	tokens, reserves := pSim.GetTokens(), pSim.GetReserves()
@@ -82,6 +84,16 @@ func RequireRoundTrip(t testing.TB, pSim *uniswapv4.PoolSimulator) {
 				TokenAmountOut: pool.TokenAmt{Token: tokenOut, Amount: amountOut},
 				TokenIn:        tokenIn,
 			})
+			if errors.Is(err, uniswapv3.ErrInsufficientBalance) {
+				exactIn, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: amountOut},
+					TokenOut:      tokenOut,
+				})
+				require.NoError(t, err, "exact-in of amountOut %s of token%d", &amountOut, idxOut)
+				require.False(t, exactIn.TokenAmountOut.Amount.IsZero(), "exact-in of amountOut %s of token%d",
+					&amountOut, idxOut)
+				continue
+			}
 			require.NoError(t, err, "amountOut %s of token%d", &amountOut, idxOut)
 			resOut, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
 				TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: resIn.TokenAmountIn.Amount},
