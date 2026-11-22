@@ -98,9 +98,11 @@ var (
 )
 
 // Bank policies (contracts/policies/YBOraclizedPolicy.vy, modular): same fee rules as above, but the
-// report comes from a Pyth bank and is read with get_report().
+// report comes from a Pyth bank and is read with get_report(). The WETH policy's runtime bytecode is
+// byte-identical to the crvUSD/cbBTC one except its pool-specific immutables.
 var bankPolicies = map[common.Address]struct{}{
 	common.HexToAddress("0xe28A23C5BfD057dd0Ed398Fa6bb9d33ABb41c044"): {}, // Yield Basis crvUSD/cbBTC
+	common.HexToAddress("0xC4561F25034Bc70CED5f034E863dD150f2bA763a"): {}, // Yield Basis WETH
 }
 
 // FetchPolicy reads the policy state get_fee needs, at block (nil = latest). It returns nil for

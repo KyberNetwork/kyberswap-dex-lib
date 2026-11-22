@@ -402,3 +402,39 @@ func TestYieldBasisBankPolicyDecode(t *testing.T) {
 	_, ok := bankPolicies[common.HexToAddress("0xe28A23C5BfD057dd0Ed398Fa6bb9d33ABb41c044")]
 	require.True(t, ok)
 }
+
+// The WETH pool's policy 0xC4561F25...763a runs the same bytecode as the crvUSD/cbBTC bank policy
+// (only pool immutables differ): returndata at ethereum block 26468613 decodes with the same ABI.
+func TestYieldBasisBankPolicyWETHDecode(t *testing.T) {
+	const (
+		cfgHex = "0000000000000000000000000000000000000000000000000000000003938700" +
+			"000000000000000000000000000000000000000000000000000b1a2bc2ec5000" +
+			"000000000000000000000000000000000000000000000000000000000bebc200" +
+			"000000000000000000000000000000000000000000000000000000000000005a" +
+			"0000000000000000000000000000000000000000000000000000000000001518" +
+			"0000000000000000000000000000000000000000000000000000000000002a30" +
+			"000000000000000000000000000000000000000000000000001aa535d3d0c000" +
+			"0000000000000000000000000000000000000000000000000011c37937e08000" +
+			"0000000000000000000000000000000000000000000000000000000000001518"
+		repHex = "000000000000000000000000000000000000000000000059583c83fb6e3e5400" +
+			"0000000000000000000000000000000000000000000000599806d6e4149e08b1" +
+			"000000000000000000000000000000000000000000000000000660d6dad628c0"
+	)
+	raw := func(h string) []byte {
+		b, err := hexutil.Decode("0x" + h)
+		require.NoError(t, err)
+		return b
+	}
+	var (
+		cfg  policyConfig
+		bank policyBankReport
+	)
+	require.NoError(t, YBBankPolicyABI.UnpackIntoInterface(&cfg, "config", raw(cfgHex)))
+	require.NoError(t, YBBankPolicyABI.UnpackIntoInterface(&bank, "get_report", raw(repHex)))
+	require.Equal(t, uint64(90), cfg.RelaxTime.Uint64())
+	require.Equal(t, "1652714901978862192817", bank.Coin0Price.String())
+	require.Equal(t, uint64(1795325771000000), bank.ObservationUs.Uint64())
+
+	_, ok := bankPolicies[common.HexToAddress("0xC4561F25034Bc70CED5f034E863dD150f2bA763a")]
+	require.True(t, ok)
+}
