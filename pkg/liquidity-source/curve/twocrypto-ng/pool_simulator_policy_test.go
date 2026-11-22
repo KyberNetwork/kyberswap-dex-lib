@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
@@ -329,14 +330,59 @@ func TestYieldBasisPolicyUpdateBalanceMovesSnapshot(t *testing.T) {
 	require.True(t, sim.Extra.Policy.SnapD.Eq(sim.Extra.D))
 }
 
-func TestPolicyFetchRejectsUnknown(t *testing.T) {
-	// A policy with unverified logic is rejected before any RPC call.
-	_, err := FetchPolicy(context.Background(), nil, nil, common.HexToAddress("0x57336cE442165ccDF19a820355a823238137170b"), nil)
-	require.ErrorIs(t, err, ErrUnsupportedPolicy)
-	// A verified native-fee policy (get_fee returns 0) keeps the pool's own fee.
-	st, err := FetchPolicy(context.Background(), nil, nil, common.HexToAddress("0x0436c0648AfD66de23f86f23cB42884304743EfA"), nil)
+// An unknown or unfetchable policy never errors (so the pool state still refreshes) and quotes
+// with the policy's highest fee. A native-fee policy keeps the pool's own fee.
+func TestPolicyFetchFallback(t *testing.T) {
+	unknown := common.HexToAddress("0x57336cE442165ccDF19a820355a823238137170b")
+	st, err := FetchPolicy(context.Background(), nil, nil, unknown, nil)
+	require.NoError(t, err)
+	require.Equal(t, policyFeeCap.String(), st.FallbackFee.String())
+	require.True(t, st.ReportPrice.IsZero())
+
+	// A failing RPC (transient error) falls back the same way instead of failing the refresh.
+	client := ethrpc.New("http://127.0.0.1:1")
+	st, err = FetchPolicy(context.Background(), client, nil, unknown, nil)
+	require.NoError(t, err)
+	require.Equal(t, policyFeeCap.String(), st.FallbackFee.String())
+
+	st, err = FetchPolicy(context.Background(), nil, nil, common.HexToAddress("0x0436c0648AfD66de23f86f23cB42884304743EfA"), nil)
 	require.NoError(t, err)
 	require.Nil(t, st)
+}
+
+// The fallback fee must never exceed the verified policy cap, and a garbage config must be refused.
+func TestPolicyConfigSane(t *testing.T) {
+	ok := policyConfig{BaseFee: big.NewInt(3e7), Capture: big.NewInt(1e18), FallbackFee: big.NewInt(2e8), RelaxTime: big.NewInt(90)}
+	require.True(t, configSane(&ok))
+	bad := ok
+	bad.FallbackFee = big.NewInt(1e9 + 1)
+	require.False(t, configSane(&bad))
+	bad = ok
+	bad.BaseFee = big.NewInt(3e8)
+	require.False(t, configSane(&bad))
+	bad = ok
+	bad.RelaxTime = big.NewInt(0)
+	require.False(t, configSane(&bad))
+}
+
+// A fallback policy state quotes (the pool is not disabled) and never beats the real policy quote
+// in either direction, including a corrective swap with a fresh report that earns a discount.
+func TestPolicyFallbackQuoteNeverAboveReal(t *testing.T) {
+	fb, _ := FetchPolicy(context.Background(), nil, nil, common.HexToAddress("0x57336cE442165ccDF19a820355a823238137170b"), nil)
+	real := ybPolicySim(t, func(*Extra) {})
+	fallback := ybPolicySim(t, func(e *Extra) { e.Policy = fb })
+	for _, tc := range []struct {
+		dir int
+		amt string
+	}{{0, "7234489014963216359320"}, {1, "3245910597495098043"}, {0, "1000000000000000000"}, {1, "100000000000000"}} {
+		r := bigFrom(ybPolicyQuote(t, real, tc.dir, tc.amt))
+		f := bigFrom(ybPolicyQuote(t, fallback, tc.dir, tc.amt))
+		require.Positive(t, f.Sign())
+		require.LessOrEqual(t, f.Cmp(r), 0, "dir=%d amt=%s fallback %s real %s", tc.dir, tc.amt, f, r)
+	}
+	// The discounted real case is strictly better, so the test fails if the fallback ignored the cap.
+	require.Equal(t, -1, bigFrom(ybPolicyQuote(t, fallback, 0, "7234489014963216359320")).
+		Cmp(bigFrom(ybPolicyQuote(t, real, 0, "7234489014963216359320"))))
 }
 
 // No report stored (price 0, as after a kill or before the first report): fallback fee.
@@ -398,9 +444,7 @@ func TestYieldBasisBankPolicyDecode(t *testing.T) {
 	require.Equal(t, "17714230579981145998206613", st.SnapXp[0].String())
 	require.Equal(t, "70567294391878767208360707", st.SnapD.String())
 
-	// Only the verified bank policy is accepted by address.
-	_, ok := bankPolicies[common.HexToAddress("0xe28A23C5BfD057dd0Ed398Fa6bb9d33ABb41c044")]
-	require.True(t, ok)
+	require.True(t, configSane(&cfg))
 }
 
 // The WETH pool's policy 0xC4561F25...763a runs the same bytecode as the crvUSD/cbBTC bank policy
@@ -434,7 +478,5 @@ func TestYieldBasisBankPolicyWETHDecode(t *testing.T) {
 	require.Equal(t, uint64(90), cfg.RelaxTime.Uint64())
 	require.Equal(t, "1652714901978862192817", bank.Coin0Price.String())
 	require.Equal(t, uint64(1795325771000000), bank.ObservationUs.Uint64())
-
-	_, ok := bankPolicies[common.HexToAddress("0xC4561F25034Bc70CED5f034E863dD150f2bA763a")]
-	require.True(t, ok)
+	require.True(t, configSane(&cfg))
 }

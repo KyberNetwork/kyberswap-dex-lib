@@ -2,12 +2,16 @@ package twocryptong
 
 import (
 	"context"
+	"errors"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/holiman/uint256"
 
@@ -80,33 +84,25 @@ type policySnapshot struct {
 	LastPrices   *big.Int    `abi:"last_prices"`
 }
 
-// Policies whose source is verified (Sourcify/Blockscout). Any other policy is rejected: its
-// get_fee logic is unknown, so no quote can be trusted.
-var (
-	// YBOraclizedPolicy: identical _get_fee in all three deployments.
-	oraclizedPolicies = map[common.Address]struct{}{
-		common.HexToAddress("0xAEa95d551154443E73565bE724d59D63d72f8A7d"): {}, // Yield Basis WETH
-		common.HexToAddress("0xb83697796A35998aF07B01258bBdA3a04caDe241"): {}, // oraclized crvUSD/WETH
-		common.HexToAddress("0xD746C005A827b7eA2D7D1fA80ce35e4E90eC1384"): {}, // oraclized crvUSD/WETH
-	}
-	// YBTwocryptoPolicy: get_fee returns 0, so the pool keeps its native fee.
-	nativeFeePolicies = map[common.Address]struct{}{
-		common.HexToAddress("0x0436c0648AfD66de23f86f23cB42884304743EfA"): {}, // Yield Basis WBTC
-		common.HexToAddress("0x038f549D21b9C22a26AdA4da2ebF7cFD1C3CA22d"): {}, // Yield Basis cbBTC
-		common.HexToAddress("0xE99ee179f1Cc62d4A1d3e67dD5541Ecb63acA396"): {}, // Yield Basis tBTC
-	}
-)
-
-// Bank policies (contracts/policies/YBOraclizedPolicy.vy, modular): same fee rules as above, but the
-// report comes from a Pyth bank and is read with get_report(). The WETH policy's runtime bytecode is
-// byte-identical to the crvUSD/cbBTC one except its pool-specific immutables.
-var bankPolicies = map[common.Address]struct{}{
-	common.HexToAddress("0xe28A23C5BfD057dd0Ed398Fa6bb9d33ABb41c044"): {}, // Yield Basis crvUSD/cbBTC
-	common.HexToAddress("0xC4561F25034Bc70CED5f034E863dD150f2bA763a"): {}, // Yield Basis WETH
+// YBTwocryptoPolicy (verified): get_fee returns 0, so the pool keeps its native fee. The only
+// address list left; it is a shortcut for a known-good policy, never a gate.
+var nativeFeePolicies = map[common.Address]struct{}{
+	common.HexToAddress("0x0436c0648AfD66de23f86f23cB42884304743EfA"): {}, // Yield Basis WBTC
+	common.HexToAddress("0x038f549D21b9C22a26AdA4da2ebF7cFD1C3CA22d"): {}, // Yield Basis cbBTC
+	common.HexToAddress("0xE99ee179f1Cc62d4A1d3e67dD5541Ecb63acA396"): {}, // Yield Basis tBTC
 }
 
-// FetchPolicy reads the policy state get_fee needs, at block (nil = latest). It returns nil for
-// a native-fee policy or a killed one, and ErrUnsupportedPolicy for an unverified policy.
+// policyFeeCap is the highest fee a verified YBOraclizedPolicy returns: set_config asserts
+// fallback_fee <= FEE_PRECISION/10 and _get_fee never exceeds fallback_fee.
+var policyFeeCap = uint256.NewInt(1e9)
+
+// warnedPolicies holds the policies already logged as falling back, so a refresh loop logs once.
+var warnedPolicies sync.Map
+
+// FetchPolicy reads the policy state get_fee needs, at block (nil = latest). It never fails: a
+// policy that cannot be decoded (unknown ABI, RPC error) yields a fallback state whose fee is the
+// highest the policy can charge, so the pool keeps quoting and never overquotes. It returns nil for
+// a native-fee policy or a killed one.
 func FetchPolicy(
 	ctx context.Context,
 	client *ethrpc.Client,
@@ -117,9 +113,78 @@ func FetchPolicy(
 	if _, ok := nativeFeePolicies[policy]; ok {
 		return nil, nil
 	}
-	_, isBank := bankPolicies[policy]
-	if _, ok := oraclizedPolicies[policy]; !ok && !isBank {
-		return nil, ErrUnsupportedPolicy
+	// Known ABI shapes: bank policy (get_report), then the older policy (report).
+	var firstErr error
+	for _, bank := range []bool{true, false} {
+		st, err := fetchPolicyABI(ctx, client, overrides, policy, block, bank)
+		if err == nil {
+			return st, nil
+		}
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
+	st := fallbackPolicyState(ctx, client, overrides, policy, block)
+	if _, warned := warnedPolicies.LoadOrStore(policy, struct{}{}); !warned && st != nil {
+		logger.WithFields(logger.Fields{"policy": hexutil.Encode(policy[:]), "error": firstErr,
+			"fallbackFee": st.FallbackFee.Dec()}).
+			Warn("unknown or unfetchable Yield Basis policy, quoting with its maximum fee")
+	}
+	return st, nil
+}
+
+// fallbackPolicyState returns a state that always charges FallbackFee: the policy's own
+// fallback_fee when config() decodes and is sane, else policyFeeCap. A killed policy returns nil.
+func fallbackPolicyState(
+	ctx context.Context,
+	client *ethrpc.Client,
+	overrides map[common.Address]gethclient.OverrideAccount,
+	policy common.Address,
+	block *big.Int,
+) *PolicyState {
+	fee := policyFeeCap
+	if client != nil {
+		var cfg policyConfig
+		var killed bool
+		call := func(m string) *ethrpc.Call {
+			return &ethrpc.Call{ABI: YBBankPolicyABI, Target: policy.Hex(), Method: m}
+		}
+		if _, err := client.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
+			SetBlockNumber(block).SetRequireSuccess(true).
+			AddCall(call("is_killed"), []any{&killed}).
+			AddCall(call("config"), []any{&cfg}).
+			TryBlockAndAggregate(); err == nil && configSane(&cfg) {
+			if killed {
+				return nil
+			}
+			fee = number.SetFromBig(cfg.FallbackFee)
+		}
+	}
+	return &PolicyState{
+		BaseFee: new(uint256.Int), Capture: new(uint256.Int), FallbackFee: fee, ReportPrice: new(uint256.Int),
+		CachedA: new(uint256.Int), SnapD: new(uint256.Int), SnapPriceScl: new(uint256.Int),
+	}
+}
+
+// configSane checks the set_config invariants of the verified policy, so a mis-decoded config
+// cannot lower the fallback fee.
+func configSane(cfg *policyConfig) bool {
+	return cfg.BaseFee != nil && cfg.FallbackFee != nil && cfg.Capture != nil && cfg.RelaxTime != nil &&
+		cfg.BaseFee.Cmp(cfg.FallbackFee) <= 0 && cfg.FallbackFee.Cmp(policyFeeCap.ToBig()) <= 0 &&
+		cfg.FallbackFee.Sign() > 0 && cfg.Capture.Cmp(big.NewInt(1e18)) <= 0 &&
+		cfg.RelaxTime.Sign() > 0 && cfg.RelaxTime.Cmp(big.NewInt(3600)) <= 0
+}
+
+func fetchPolicyABI(
+	ctx context.Context,
+	client *ethrpc.Client,
+	overrides map[common.Address]gethclient.OverrideAccount,
+	policy common.Address,
+	block *big.Int,
+	isBank bool,
+) (*PolicyState, error) {
+	if client == nil {
+		return nil, errors.New("nil rpc client")
 	}
 	var (
 		cfg    policyConfig
@@ -148,6 +213,9 @@ func FetchPolicy(
 	}
 	if isBank { // get_fee prices the report in coin0 at the crvUSD rate: Coin0Price
 		rep.AssetPrice, rep.ObservationUs = bank.Coin0Price, bank.ObservationUs
+	}
+	if !configSane(&cfg) {
+		return nil, ErrUnsupportedPolicy
 	}
 	return buildPolicyState(&cfg, &rep, &snap, cached, killed)
 }
