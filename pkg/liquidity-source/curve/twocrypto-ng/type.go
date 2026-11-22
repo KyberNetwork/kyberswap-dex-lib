@@ -36,7 +36,7 @@ type (
 		// Policy prices swaps through YBOraclizedPolicy.get_fee (report-aware discount).
 		Policy *PolicyState `json:",omitempty"`
 		// PolicyFee is a flat fee override kept for previously stored pool data; the trackers no
-		// longer set it (an unlisted policy errors in FetchPolicy). Both nil: the pool's native fee.
+		// longer set it (an unknown policy gets a fallback Policy state). Both nil: the pool's native fee.
 		PolicyFee *uint256.Int `json:",omitempty"`
 	}
 

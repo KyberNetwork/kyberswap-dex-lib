@@ -7,3 +7,6 @@ var curveTwocryptoNGABIBytes []byte
 
 //go:embed abi/YBPolicy.json
 var ybPolicyABIBytes []byte
+
+//go:embed abi/YBBankPolicy.json
+var ybBankPolicyABIBytes []byte
