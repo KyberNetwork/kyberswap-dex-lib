@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"slices"
+	"strings"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -13,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -54,12 +56,6 @@ type PoolSimulator struct {
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	// curve/base parses the pool exactly as before the port; its big.Int state is converted below.
-	curveBaseSimulator, err := base.NewPoolSimulator(entityPool)
-	if err != nil {
-		return nil, err
-	}
-
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
@@ -70,34 +66,48 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	decimals := make([]uint8, len(entityPool.Tokens))
-	for i, token := range entityPool.Tokens {
-		decimals[i] = token.Decimals
+	n := len(entityPool.Tokens)
+	if entityPool.Reserves == nil || len(entityPool.Reserves) < n {
+		return nil, errors.New("empty reserve")
 	}
 
-	n := len(curveBaseSimulator.Info.Tokens)
 	s := &PoolSimulator{
-		Pool:               curveBaseSimulator.Pool,
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:     strings.ToLower(entityPool.Address),
+			SwapFee:     bignumber.NewBig10(extra.SwapFee),
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      make([]string, n),
+			Reserves:    make([]*big.Int, n),
+			BlockNumber: entityPool.BlockNumber,
+		}},
 		reserves:           make([]uint256.Int, n),
 		rates:              make([]uint256.Int, n),
 		multipliers:        make([]uint256.Int, n),
-		initialATime:       curveBaseSimulator.InitialATime,
-		futureATime:        curveBaseSimulator.FutureATime,
+		initialATime:       extra.InitialATime,
+		futureATime:        extra.FutureATime,
 		gas:                base.DefaultGas.Exchange,
-		decimals:           decimals,
+		decimals:           make([]uint8, n),
 		isNativeCoins:      staticExtra.IsNativeCoins,
 		oraclePrices:       [2]*uint256.Int{uint256.MustFromBig(extra.OraclePrices[0]), uint256.MustFromBig(extra.OraclePrices[1])},
 		priceDiffThreshold: [2]*uint256.Int{uint256.MustFromBig(extra.PriceDiffThreshold[0]), uint256.MustFromBig(extra.PriceDiffThreshold[1])},
 	}
 	s.nCoins.SetUint64(uint64(n))
-	for i := range n {
-		if err := setU256(&s.reserves[i], curveBaseSimulator.Info.Reserves[i]); err != nil {
+	aPrecision := big.NewInt(1)
+	if len(staticExtra.APrecision) > 0 {
+		aPrecision = bignumber.NewBig10(staticExtra.APrecision)
+	}
+	for i, token := range entityPool.Tokens {
+		s.Info.Tokens[i] = token.Address
+		s.decimals[i] = token.Decimals
+		s.Info.Reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+		if err := setU256(&s.reserves[i], s.Info.Reserves[i]); err != nil {
 			return nil, err
 		}
-		if err := setU256(&s.rates[i], curveBaseSimulator.Rates[i]); err != nil {
+		if err := setU256(&s.multipliers[i], bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])); err != nil {
 			return nil, err
 		}
-		if err := setU256(&s.multipliers[i], curveBaseSimulator.Multipliers[i]); err != nil {
+		if err := setU256(&s.rates[i], bignumber.NewBig10(staticExtra.Rates[i])); err != nil {
 			return nil, err
 		}
 	}
@@ -105,9 +115,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		dst *uint256.Int
 		src *big.Int
 	}{
-		{&s.initialA, curveBaseSimulator.InitialA}, {&s.futureA, curveBaseSimulator.FutureA},
-		{&s.swapFee, curveBaseSimulator.Info.SwapFee}, {&s.adminFee, curveBaseSimulator.AdminFee},
-		{&s.aPrecision, curveBaseSimulator.APrecision},
+		{&s.initialA, bignumber.NewBig10(extra.InitialA)}, {&s.futureA, bignumber.NewBig10(extra.FutureA)},
+		{&s.swapFee, s.Info.SwapFee}, {&s.adminFee, bignumber.NewBig10(extra.AdminFee)},
+		{&s.aPrecision, aPrecision},
 	} {
 		if err := setU256(f.dst, f.src); err != nil {
 			return nil, err
