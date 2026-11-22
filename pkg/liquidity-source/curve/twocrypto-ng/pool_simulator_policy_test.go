@@ -3,8 +3,11 @@ package twocryptong
 import (
 	"context"
 	"encoding/json"
-	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
@@ -343,4 +346,59 @@ func TestYieldBasisPolicyNoReport(t *testing.T) {
 		e.Policy.ReportObsUs = ybPolicyBlockTs * 1_000_000
 	})
 	require.Equal(t, "3191960012245233840", ybPolicyQuote(t, sim, 0, "7234489014963216359320"))
+}
+
+// The crvUSD/cbBTC pool's policy 0xe28A23C5...c044 (bank policy): eth_call returndata at ethereum
+// block 26468586. The bank ABI must decode it, and ReportPrice must be get_report()'s coin0 price
+// (2nd word, at the crvUSD rate), not the USD price in the 1st.
+func TestYieldBasisBankPolicyDecode(t *testing.T) {
+	const (
+		cfgHex = "0000000000000000000000000000000000000000000000000000000001c9c380" +
+			"0000000000000000000000000000000000000000000000000c249fdd32778000" +
+			"000000000000000000000000000000000000000000000000000000000bebc200" +
+			"000000000000000000000000000000000000000000000000000000000000005a" +
+			"0000000000000000000000000000000000000000000000000000000000001c20" +
+			"0000000000000000000000000000000000000000000000000000000000004650" +
+			"000000000000000000000000000000000000000000000000000eebe0b40e8000" +
+			"000000000000000000000000000000000000000000000000000aa87bee538000" +
+			"0000000000000000000000000000000000000000000000000000000000001518"
+		repHex = "000000000000000000000000000000000000000000000c75667f5ccadb18f000" +
+			"000000000000000000000000000000000000000000000c7e4baa8db3056c4ad0" +
+			"000000000000000000000000000000000000000000000000000660d6a69f75c0"
+		snapHex = "000000000000000000000000000000000000000000000000000000006b027bc7" +
+			"000000000000000000000000000000000000000000000c9aba2e9bc09460e579" +
+			"000000000000000000000000000000000000000000000caee0a0195293f11c0c" +
+			"00000000000000000000000000000000000000000000103e92bee22a1abd6b13" +
+			"0000000000000000000000000000000000000000000ea7225d2aecd686bda695" +
+			"0000000000000000000000000000000000000000002d5cc4f5010c8fd4be6e1c" +
+			"0000000000000000000000000000000000000000003a5f34b1bdf835f1b0eb03" +
+			"000000000000000000000000000000000000000000000c8714402679f31c1e1e"
+	)
+	raw := func(h string) []byte {
+		b, err := hexutil.Decode("0x" + h)
+		require.NoError(t, err)
+		return b
+	}
+	var (
+		cfg  policyConfig
+		bank policyBankReport
+		snap policySnapshot
+	)
+	require.NoError(t, YBBankPolicyABI.UnpackIntoInterface(&cfg, "config", raw(cfgHex)))
+	require.NoError(t, YBBankPolicyABI.UnpackIntoInterface(&bank, "get_report", raw(repHex)))
+	require.NoError(t, YBBankPolicyABI.UnpackIntoInterface(&snap, "state", raw(snapHex)))
+
+	rep := policyReport{AssetPrice: bank.Coin0Price, ObservationUs: bank.ObservationUs}
+	st, err := buildPolicyState(&cfg, &rep, &snap, big.NewInt(50000), false)
+	require.NoError(t, err)
+	require.Equal(t, "200000000", st.FallbackFee.String())
+	require.Equal(t, uint64(90), st.RelaxTime)
+	require.Equal(t, "58998139873822061120208", st.ReportPrice.String())
+	require.Equal(t, uint64(1795324895000000), st.ReportObsUs)
+	require.Equal(t, "17714230579981145998206613", st.SnapXp[0].String())
+	require.Equal(t, "70567294391878767208360707", st.SnapD.String())
+
+	// Only the verified bank policy is accepted by address.
+	_, ok := bankPolicies[common.HexToAddress("0xe28A23C5BfD057dd0Ed398Fa6bb9d33ABb41c044")]
+	require.True(t, ok)
 }

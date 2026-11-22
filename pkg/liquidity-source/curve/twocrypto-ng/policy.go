@@ -55,11 +55,18 @@ type policyConfig struct {
 	TrendGate   *big.Int `abi:"trend_gate"`
 	StepCap     *big.Int `abi:"step_cap"`
 	ReportLife  *big.Int `abi:"report_lifetime"`
-	RatioTol    *big.Int `abi:"ratio_tolerance"`
 }
 
 type policyReport struct {
 	AssetPrice    *big.Int `abi:"asset_price"`
+	ObservationUs *big.Int `abi:"observation_us"`
+}
+
+// policyBankReport is get_report() of a bank policy: coin1 in USD, coin1 in coin0 at the current
+// crvUSD rate (0 when absent, killed or the rate is out of bounds), and the observation time.
+type policyBankReport struct {
+	AssetPrice    *big.Int `abi:"asset_price"`
+	Coin0Price    *big.Int `abi:"coin0_price"`
 	ObservationUs *big.Int `abi:"observation_us"`
 }
 
@@ -90,6 +97,12 @@ var (
 	}
 )
 
+// Bank policies (contracts/policies/YBOraclizedPolicy.vy, modular): same fee rules as above, but the
+// report comes from a Pyth bank and is read with get_report().
+var bankPolicies = map[common.Address]struct{}{
+	common.HexToAddress("0xe28A23C5BfD057dd0Ed398Fa6bb9d33ABb41c044"): {}, // Yield Basis crvUSD/cbBTC
+}
+
 // FetchPolicy reads the policy state get_fee needs, at block (nil = latest). It returns nil for
 // a native-fee policy or a killed one, and ErrUnsupportedPolicy for an unverified policy.
 func FetchPolicy(
@@ -102,29 +115,43 @@ func FetchPolicy(
 	if _, ok := nativeFeePolicies[policy]; ok {
 		return nil, nil
 	}
-	if _, ok := oraclizedPolicies[policy]; !ok {
+	_, isBank := bankPolicies[policy]
+	if _, ok := oraclizedPolicies[policy]; !ok && !isBank {
 		return nil, ErrUnsupportedPolicy
 	}
 	var (
 		cfg    policyConfig
 		rep    policyReport
+		bank   policyBankReport
 		snap   policySnapshot
 		cached *big.Int
 		killed bool
 	)
+	policyABI, reportMethod, reportOut := YBPolicyABI, "report", []any{&rep}
+	if isBank {
+		policyABI, reportMethod, reportOut = YBBankPolicyABI, "get_report", []any{&bank}
+	}
 	call := func(m string) *ethrpc.Call {
-		return &ethrpc.Call{ABI: YBPolicyABI, Target: policy.Hex(), Method: m}
+		return &ethrpc.Call{ABI: policyABI, Target: policy.Hex(), Method: m}
 	}
 	if _, err := client.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
 		SetBlockNumber(block).SetRequireSuccess(true).
 		AddCall(call("is_killed"), []any{&killed}).
 		AddCall(call("config"), []any{&cfg}).
-		AddCall(call("report"), []any{&rep}).
+		AddCall(call(reportMethod), reportOut).
 		AddCall(call("state"), []any{&snap}).
 		AddCall(call("cached_A"), []any{&cached}).
 		TryBlockAndAggregate(); err != nil {
 		return nil, err
 	}
+	if isBank { // get_fee prices the report in coin0 at the crvUSD rate: Coin0Price
+		rep.AssetPrice, rep.ObservationUs = bank.Coin0Price, bank.ObservationUs
+	}
+	return buildPolicyState(&cfg, &rep, &snap, cached, killed)
+}
+
+func buildPolicyState(cfg *policyConfig, rep *policyReport, snap *policySnapshot, cached *big.Int,
+	killed bool) (*PolicyState, error) {
 	if cfg.BaseFee == nil || cfg.Capture == nil || cfg.FallbackFee == nil || cfg.RelaxTime == nil ||
 		rep.AssetPrice == nil || rep.ObservationUs == nil || snap.D == nil || snap.PriceScale == nil ||
 		snap.Xp[0] == nil || snap.Xp[1] == nil || cached == nil {
