@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
@@ -99,10 +100,12 @@ var policyFeeCap = uint256.NewInt(1e9)
 // warnedPolicies holds the policies already logged as falling back, so a refresh loop logs once.
 var warnedPolicies sync.Map
 
-// FetchPolicy reads the policy state get_fee needs, at block (nil = latest). It never fails: a
-// policy that cannot be decoded (unknown ABI, RPC error) yields a fallback state whose fee is the
-// highest the policy can charge, so the pool keeps quoting and never overquotes. It returns nil for
-// a native-fee policy or a killed one.
+// FetchPolicy reads the policy state get_fee needs, at block (nil = latest), in one multicall.
+// It never fails: a policy that cannot be decoded (unknown ABI, RPC error) yields a fallback state
+// whose fee is the highest the policy can charge, so the pool keeps quoting and never overquotes.
+// It returns nil for a native-fee policy or a killed one.
+// TODO: calibrate against a sample policy.get_fee call to catch a same-ABI policy with changed
+// fee logic; a decoded policy is otherwise priced with the YBOraclizedPolicy port.
 func FetchPolicy(
 	ctx context.Context,
 	client *ethrpc.Client,
@@ -113,57 +116,71 @@ func FetchPolicy(
 	if _, ok := nativeFeePolicies[policy]; ok {
 		return nil, nil
 	}
-	// Known ABI shapes: bank policy (get_report), then the older policy (report).
-	var firstErr error
-	for _, bank := range []bool{true, false} {
-		st, err := fetchPolicyABI(ctx, client, overrides, policy, block, bank)
-		if err == nil {
+	var (
+		cfg    policyConfig
+		rep    policyReport
+		bank   policyBankReport
+		snap   policySnapshot
+		cached *big.Int
+		killed bool
+	)
+	var fetchErr error
+	if client == nil {
+		fetchErr = errors.New("nil rpc client")
+	} else {
+		// Both known report shapes go in the same batch (bank get_report, older report); the one
+		// that succeeds decides the ABI, so the old ABI costs no extra roundtrip.
+		call := func(a abi.ABI, m string) *ethrpc.Call {
+			return &ethrpc.Call{ABI: a, Target: policy.Hex(), Method: m}
+		}
+		res, err := client.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
+			SetBlockNumber(block).
+			AddCall(call(YBBankPolicyABI, "is_killed"), []any{&killed}).
+			AddCall(call(YBBankPolicyABI, "config"), []any{&cfg}).
+			AddCall(call(YBBankPolicyABI, "get_report"), []any{&bank}).
+			AddCall(call(YBPolicyABI, "report"), []any{&rep}).
+			AddCall(call(YBBankPolicyABI, "state"), []any{&snap}).
+			AddCall(call(YBBankPolicyABI, "cached_A"), []any{&cached}).
+			TryBlockAndAggregate()
+		switch {
+		case err != nil:
+			fetchErr = err
+		case !res.Result[0] || !res.Result[1] || !res.Result[4] || !res.Result[5]:
+			fetchErr = errors.New("policy config/state not readable")
+		case res.Result[2] && bank.Coin0Price != nil && bank.ObservationUs != nil:
+			// get_fee prices the report in coin0 at the crvUSD rate: Coin0Price
+			rep.AssetPrice, rep.ObservationUs = bank.Coin0Price, bank.ObservationUs
+		case !res.Result[3]:
+			fetchErr = errors.New("policy report not readable")
+		}
+	}
+	if fetchErr == nil {
+		if !configSane(&cfg) {
+			fetchErr = ErrUnsupportedPolicy
+		} else if st, err := buildPolicyState(&cfg, &rep, &snap, cached, killed); err == nil {
 			return st, nil
-		}
-		if firstErr == nil {
-			firstErr = err
+		} else {
+			fetchErr = err
 		}
 	}
-	st := fallbackPolicyState(ctx, client, overrides, policy, block)
-	if _, warned := warnedPolicies.LoadOrStore(policy, struct{}{}); !warned && st != nil {
-		logger.WithFields(logger.Fields{"policy": hexutil.Encode(policy[:]), "error": firstErr,
-			"fallbackFee": st.FallbackFee.Dec()}).
-			Warn("unknown or unfetchable Yield Basis policy, quoting with its maximum fee")
-	}
-	return st, nil
-}
 
-// fallbackPolicyState returns a state that always charges FallbackFee: the policy's own
-// fallback_fee when config() decodes and is sane, else policyFeeCap. A killed policy returns nil.
-func fallbackPolicyState(
-	ctx context.Context,
-	client *ethrpc.Client,
-	overrides map[common.Address]gethclient.OverrideAccount,
-	policy common.Address,
-	block *big.Int,
-) *PolicyState {
+	// Fallback: the policy's own fallback_fee when its config decoded, else the verified cap.
 	fee := policyFeeCap
-	if client != nil {
-		var cfg policyConfig
-		var killed bool
-		call := func(m string) *ethrpc.Call {
-			return &ethrpc.Call{ABI: YBBankPolicyABI, Target: policy.Hex(), Method: m}
+	if cfg.FallbackFee != nil && configSane(&cfg) {
+		if killed {
+			return nil, nil
 		}
-		if _, err := client.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
-			SetBlockNumber(block).SetRequireSuccess(true).
-			AddCall(call("is_killed"), []any{&killed}).
-			AddCall(call("config"), []any{&cfg}).
-			TryBlockAndAggregate(); err == nil && configSane(&cfg) {
-			if killed {
-				return nil
-			}
-			fee = number.SetFromBig(cfg.FallbackFee)
-		}
+		fee = number.SetFromBig(cfg.FallbackFee)
+	}
+	if _, warned := warnedPolicies.LoadOrStore(policy, struct{}{}); !warned {
+		logger.WithFields(logger.Fields{"policy": hexutil.Encode(policy[:]), "error": fetchErr,
+			"fallbackFee": fee.Dec()}).
+			Warn("unknown or unfetchable Yield Basis policy, quoting with its maximum fee")
 	}
 	return &PolicyState{
 		BaseFee: new(uint256.Int), Capture: new(uint256.Int), FallbackFee: fee, ReportPrice: new(uint256.Int),
 		CachedA: new(uint256.Int), SnapD: new(uint256.Int), SnapPriceScl: new(uint256.Int),
-	}
+	}, nil
 }
 
 // configSane checks the set_config invariants of the verified policy, so a mis-decoded config
@@ -173,51 +190,6 @@ func configSane(cfg *policyConfig) bool {
 		cfg.BaseFee.Cmp(cfg.FallbackFee) <= 0 && cfg.FallbackFee.Cmp(policyFeeCap.ToBig()) <= 0 &&
 		cfg.FallbackFee.Sign() > 0 && cfg.Capture.Cmp(big.NewInt(1e18)) <= 0 &&
 		cfg.RelaxTime.Sign() > 0 && cfg.RelaxTime.Cmp(big.NewInt(3600)) <= 0
-}
-
-func fetchPolicyABI(
-	ctx context.Context,
-	client *ethrpc.Client,
-	overrides map[common.Address]gethclient.OverrideAccount,
-	policy common.Address,
-	block *big.Int,
-	isBank bool,
-) (*PolicyState, error) {
-	if client == nil {
-		return nil, errors.New("nil rpc client")
-	}
-	var (
-		cfg    policyConfig
-		rep    policyReport
-		bank   policyBankReport
-		snap   policySnapshot
-		cached *big.Int
-		killed bool
-	)
-	policyABI, reportMethod, reportOut := YBPolicyABI, "report", []any{&rep}
-	if isBank {
-		policyABI, reportMethod, reportOut = YBBankPolicyABI, "get_report", []any{&bank}
-	}
-	call := func(m string) *ethrpc.Call {
-		return &ethrpc.Call{ABI: policyABI, Target: policy.Hex(), Method: m}
-	}
-	if _, err := client.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
-		SetBlockNumber(block).SetRequireSuccess(true).
-		AddCall(call("is_killed"), []any{&killed}).
-		AddCall(call("config"), []any{&cfg}).
-		AddCall(call(reportMethod), reportOut).
-		AddCall(call("state"), []any{&snap}).
-		AddCall(call("cached_A"), []any{&cached}).
-		TryBlockAndAggregate(); err != nil {
-		return nil, err
-	}
-	if isBank { // get_fee prices the report in coin0 at the crvUSD rate: Coin0Price
-		rep.AssetPrice, rep.ObservationUs = bank.Coin0Price, bank.ObservationUs
-	}
-	if !configSane(&cfg) {
-		return nil, ErrUnsupportedPolicy
-	}
-	return buildPolicyState(&cfg, &rep, &snap, cached, killed)
 }
 
 func buildPolicyState(cfg *policyConfig, rep *policyReport, snap *policySnapshot, cached *big.Int,
