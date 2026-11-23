@@ -14,6 +14,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/hooktest"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // hooktest's pool: token0 (0x109d...) is the pair's base here, token1 the quote.
@@ -65,7 +66,7 @@ func TestUpdateBalance_WalkPointerMatchesChain(t *testing.T) {
 		setNow(t, h, s.Now)
 		amt := u(s.In)
 		res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: s.ZeroForOne,
-			AmountSpecified: amt.ToBig()})
+			AmountSpecified: &amt})
 		if s.Out == "0" { // the chain still walks; the simulator refuses zero-output swaps
 			require.ErrorIs(t, err, ErrZeroOutput)
 			r, err := priceExactIn(&h.Book, &h.Cfg, s.ZeroForOne, &amt, s.Now)
@@ -75,7 +76,7 @@ func TestUpdateBalance_WalkPointerMatchesChain(t *testing.T) {
 			continue
 		}
 		require.NoError(t, err, "step %d", i)
-		assert.Equal(t, s.Out, new(big.Int).Neg(res.DeltaUnspecified).String(), "step %d out", i)
+		assert.Equal(t, s.Out, new(big.Int).Neg(big256.ToBig(res.DeltaUnspecified)).String(), "step %d out", i)
 		h.UpdateBalance(res.SwapInfo)
 	}
 }
@@ -87,7 +88,7 @@ func TestCloneState_Independent(t *testing.T) {
 	before := *h
 	clone := h.CloneState().(*Hook)
 	amt := u(f.Steps[0].In)
-	res, err := clone.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: amt.ToBig()})
+	res, err := clone.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: &amt})
 	require.NoError(t, err)
 	clone.UpdateBalance(res.SwapInfo)
 	assert.Equal(t, before.Book, h.Book)
@@ -101,7 +102,7 @@ func TestBeforeSwap_Refusals(t *testing.T) {
 	setNow(t, h, f.Steps[0].Now)
 	swap := func(zfo bool, amt string) error {
 		a := u(amt)
-		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zfo, AmountSpecified: a.ToBig()})
+		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zfo, AmountSpecified: &a})
 		return err
 	}
 	assert.ErrorIs(t, swap(true, "0"), ErrInvalidAmount)
@@ -118,7 +119,7 @@ func TestBeforeSwap_Refusals(t *testing.T) {
 	h.Inventory[1] = u("1000000000000000000000000")
 	assert.ErrorIs(t, swap(true, "1000000000000000000"), ErrZeroOutput)
 
-	_, err := (&Hook{}).BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: big.NewInt(1e9)})
+	_, err := (&Hook{}).BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: uint256.NewInt(1e9)})
 	assert.ErrorIs(t, err, ErrPairNotConfigured, "an untracked pair has no tick width")
 }
 

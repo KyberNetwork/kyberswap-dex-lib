@@ -134,10 +134,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if params.AmountSpecified == nil || params.AmountSpecified.Sign() <= 0 {
 		return nil, ErrInvalidAmount
 	}
-	var amt uint256.Int
-	if overflow := amt.SetFromBig(params.AmountSpecified); overflow {
-		return nil, ErrInvalidAmount
-	}
+	amt := params.AmountSpecified
 	now := h.now()
 
 	// quote prices an exact-in trade; the contract transfers the output from its balance.
@@ -155,20 +152,20 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}
 
 	if params.CalcOut {
-		info, err := quote(&amt)
+		info, err := quote(amt)
 		if err != nil {
 			return nil, err
 		}
 		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecified:   info.AmountIn.ToBig(),
-			DeltaUnspecified: new(big.Int).Neg(info.AmountOut.ToBig()),
+			DeltaSpecified:   new(uint256.Int).Set(&info.AmountIn),
+			DeltaUnspecified: new(uint256.Int).Neg(&info.AmountOut),
 			Gas:              gasBeforeSwap,
 			SwapInfo:         info,
 		}, nil
 	}
 
 	// CalcIn reverses exact-in (see uniswapv4.BeforeSwapParams): search the min amountIn.
-	amountIn, err := uniswapv4.MinAmountIn(params.AmountSpecified, nil, func(amountIn *big.Int) (*big.Int, error) {
+	amountIn, err := uniswapv4.MinAmountIn(amt.ToBig(), nil, func(amountIn *big.Int) (*big.Int, error) {
 		var in uint256.Int
 		if in.SetFromBig(amountIn) {
 			return nil, ErrOverflow
@@ -189,8 +186,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, err
 	}
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   new(big.Int).Neg(params.AmountSpecified),
-		DeltaUnspecified: amountIn,
+		DeltaSpecified:   new(uint256.Int).Neg(amt),
+		DeltaUnspecified: &in,
 		Gas:              gasBeforeSwap,
 		SwapInfo:         info,
 	}, nil
