@@ -10,15 +10,13 @@
 package hook
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	few_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/v1"
 	few_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/v2"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -65,10 +63,10 @@ func (h *Hook) AllowEmptyTicks() bool {
 // entire unspecified (output) amount is supplied here too (DeltaUnspecified),
 // leaving nothing for the underlying v3 curve to price.
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	amt := new(big.Int).Set(params.AmountSpecified)
+	amt := new(uint256.Int).Set(params.AmountSpecified)
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   amt,
-		DeltaUnspecified: new(big.Int).Neg(amt),
+		DeltaUnspecified: new(uint256.Int).Neg(amt),
 	}, nil
 }
 
@@ -76,6 +74,6 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 // the full 1:1 outcome, so there is nothing left to charge on the output side.
 func (h *Hook) AfterSwap(*uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.ZeroBI,
+		HookFee: new(uint256.Int),
 	}, nil
 }
