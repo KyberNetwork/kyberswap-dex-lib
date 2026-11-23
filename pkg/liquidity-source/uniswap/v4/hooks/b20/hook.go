@@ -16,9 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -126,7 +127,7 @@ func (e *Extra) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Befor
 		// otherwise price this pool as fee-free instead of refusing to quote it.
 		return nil, ErrNotTracked
 	}
-	deltaSpecified := bignumber.ZeroBI
+	deltaSpecified := new(uint256.Int)
 	if quoteIsInput := e.QuoteIsSpecified(params.ZeroForOne); params.CalcOut && quoteIsInput {
 		deltaSpecified = FeeAmount(params.AmountSpecified, e.TotalFeeBps())
 	} else if !params.CalcOut && !quoteIsInput {
@@ -134,7 +135,7 @@ func (e *Extra) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Befor
 	}
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   deltaSpecified,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
@@ -145,7 +146,7 @@ func (e *Extra) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSw
 	if e.LaunchTime == 0 {
 		return nil, ErrNotTracked
 	}
-	hookFee := bignumber.ZeroBI
+	hookFee := new(uint256.Int)
 	if quoteIsInput := e.QuoteIsSpecified(params.ZeroForOne); params.CalcOut && !quoteIsInput {
 		hookFee = FeeAmount(params.AmountOut, e.TotalFeeBps())
 	} else if !params.CalcOut && quoteIsInput {
@@ -154,22 +155,26 @@ func (e *Extra) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSw
 	return &uniswapv4.AfterSwapResult{HookFee: hookFee}, nil
 }
 
+var uBps = uint256.NewInt(bps)
+
 // FeeAmount mirrors LaunchHook.sol's _feeAmount for the exact-in (non-exactOutput)
 // branch: floor(magnitude * feeBps / 10_000).
-func FeeAmount(magnitude *big.Int, feeBps int64) *big.Int {
-	if feeBps == 0 || magnitude == nil || magnitude.Sign() == 0 {
-		return bignumber.ZeroBI
+func FeeAmount(magnitude *uint256.Int, feeBps int64) *uint256.Int {
+	if feeBps == 0 || magnitude == nil || magnitude.IsZero() {
+		return new(uint256.Int)
 	}
-	return bignumber.MulDivDown(new(big.Int), magnitude, big.NewInt(feeBps), big.NewInt(bps))
+	return u256.MulDivDown(new(uint256.Int), magnitude, uint256.NewInt(uint64(feeBps)), uBps)
 }
 
 // feeGrossUp returns the fee to add to net so that deducting FeeAmount from the sum leaves net.
-func feeGrossUp(net *big.Int, feeBps int64) *big.Int {
-	if feeBps == 0 || net == nil || net.Sign() == 0 {
-		return bignumber.ZeroBI
+// It walks GrossBeforeFee in big.Int, the shared helper's type.
+func feeGrossUp(net *uint256.Int, feeBps int64) *uint256.Int {
+	if feeBps == 0 || net == nil || net.IsZero() {
+		return new(uint256.Int)
 	}
-	gross := uniswapv4.GrossBeforeFee(net, big.NewInt(feeBps), big.NewInt(bps))
-	return gross.Sub(gross, net)
+	netBig := u256.ToBig(net)
+	gross := uniswapv4.GrossBeforeFee(netBig, big.NewInt(feeBps), big.NewInt(bps))
+	return u256.FromBig(gross.Sub(gross, netBig))
 }
 
 // Delegate rather than rely on promotion: Hook embeds both the uniswapv4.Hook
