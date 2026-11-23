@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
@@ -81,10 +82,81 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}, nil
 }
 
-// CalcAmtOut is not native for this pool: the embedded v3 math would skip this pool's own CalcAmountOut.
-// ErrUnsupported sends the swap to CalcAmountOut.
-func (p *PoolSimulator) CalcAmtOut(pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
-	return nil, pool.ErrUnsupported
+// CalcAmtOut is CalcAmountOut with uint256 amounts. It shadows the embedded v3 CalcAmtOut, which would skip
+// this pool's hook logic. It runs the shared big.Int CalcAmountOut body and converts at the boundary.
+func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	res, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: params.TokenAmountIn.Amount.ToBig()},
+		TokenOut:      params.TokenOut,
+		Limit:         pool.AsSwapLimitBig(params.Limit),
+	})
+	if err != nil {
+		return nil, err
+	}
+	out, err := tokenAmtFromBigCL(res.TokenAmountOut)
+	if err != nil {
+		return nil, err
+	}
+	fee, err := tokenAmtFromBigCL(res.Fee)
+	if err != nil {
+		return nil, err
+	}
+	remaining, err := tokenAmtFromBigCL(res.RemainingTokenAmountIn)
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut:         out,
+		Fee:                    fee,
+		RemainingTokenAmountIn: remaining,
+		Gas:                    res.Gas,
+		SwapInfo:               res.SwapInfo,
+	}, nil
+}
+
+// CalcAmtIn is CalcAmountIn with uint256 amounts. It runs the shared big.Int CalcAmountIn body and converts at
+// the boundary.
+func (p *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
+	res, err := p.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: params.TokenAmountOut.Amount.ToBig()},
+		TokenIn:        params.TokenIn,
+		Limit:          pool.AsSwapLimitBig(params.Limit),
+	})
+	if err != nil {
+		return nil, err
+	}
+	in, err := tokenAmtFromBigCL(res.TokenAmountIn)
+	if err != nil {
+		return nil, err
+	}
+	fee, err := tokenAmtFromBigCL(res.Fee)
+	if err != nil {
+		return nil, err
+	}
+	remaining, err := tokenAmtFromBigCL(res.RemainingTokenAmountOut)
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmtInResult{
+		TokenAmountIn:           in,
+		RemainingTokenAmountOut: remaining,
+		Fee:                     fee,
+		Gas:                     res.Gas,
+		SwapInfo:                res.SwapInfo,
+	}, nil
+}
+
+// tokenAmtFromBigCL converts a legacy big.Int amount to uint256. A nil amount becomes zero, and an amount over
+// 256 bits is an overflow error.
+func tokenAmtFromBigCL(t *pool.TokenAmount) (*pool.TokenAmt, error) {
+	if t == nil {
+		return nil, nil
+	}
+	out := &pool.TokenAmt{Token: t.Token, AmountUsd: t.AmountUsd}
+	if t.Amount != nil && out.Amount.SetFromBig(t.Amount) {
+		return nil, uniswapv3.ErrOverflow
+	}
+	return out, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult,
@@ -347,7 +419,7 @@ func (p *PoolSimulator) GetExchange() string {
 	return p.hook.GetExchange()
 }
 
-func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (p *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *p
 	cloned.PoolSimulator = p.PoolSimulator.CloneState().(*uniswapv3.PoolSimulator)
 	if cloned.hook != nil {
@@ -361,7 +433,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return &cloned
 }
 
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	if params.SwapInfo == nil {
 		return
 	}
@@ -382,14 +454,26 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// for a native-flagged leg, so rescale before applying, mirroring the Unwrap/WrapNativeAmount
 	// pair CalcAmountOut applies around the same v3 math.
 	if idx := p.GetTokenIndex(params.TokenAmountIn.Token); idx >= 0 && p.staticExtra.IsNative[idx] {
-		params.TokenAmountIn.Amount = valueobject.UnwrapNativeAmount(p.chainID, params.TokenAmountIn.Amount)
+		p.unwrapNativeU256(&params.TokenAmountIn.Amount)
 	}
 	if idx := p.GetTokenIndex(params.TokenAmountOut.Token); idx >= 0 && p.staticExtra.IsNative[idx] {
-		params.TokenAmountOut.Amount = valueobject.UnwrapNativeAmount(p.chainID, params.TokenAmountOut.Amount)
+		p.unwrapNativeU256(&params.TokenAmountOut.Amount)
 	}
 
-	p.PoolSimulator.UpdateBalance(params)
+	p.PoolSimulator.UpdateState(params)
 }
+
+// unwrapNativeU256 rescales a native-flagged amount to the wrapped-native decimals, Arc only.
+// Mirrors valueobject.UnwrapNativeAmount on uint256. UpdateState has no error return, so an
+// overflowing product is left truncated.
+func (p *PoolSimulator) unwrapNativeU256(amount *uint256.Int) {
+	if p.chainID != valueobject.ChainIDArc {
+		return
+	}
+	amount.MulOverflow(amount, arcNativeScale)
+}
+
+var arcNativeScale = uint256.NewInt(1e12)
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	tokenInAddress, tokenOutAddress := valueobject.AddrZero, valueobject.AddrZero
