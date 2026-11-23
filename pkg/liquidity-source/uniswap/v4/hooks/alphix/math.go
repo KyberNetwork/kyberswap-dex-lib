@@ -1,9 +1,6 @@
 package alphix
 
 import (
-	"math/big"
-
-	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
@@ -97,7 +94,7 @@ func getLiquidityForAmount1(sqrtPriceAX96, sqrtPriceBX96, amount1 *uint256.Int) 
 // The V3 simulator handles the rest against non-rehypothecated tick liquidity.
 func computeJitSwap(
 	zeroForOne, exactIn bool,
-	amountSpecified *big.Int,
+	amountSpecified *uint256.Int,
 	sqrtPriceX96, sqrtPriceLowerX96, sqrtPriceUpperX96 *uint256.Int,
 	liquidity *uint256.Int,
 	swapFee uniswapv4.FeeAmount,
@@ -119,10 +116,9 @@ func computeJitSwap(
 	// Convert amountSpecified to int256 for the V3 SDK
 	// For exactIn: amountRemaining is positive
 	// For exactOut: amountRemaining is negative
-	var amountRemainingI256 int256.Int
-	amountRemainingI256.SetFromBig(amountSpecified)
+	amountRemainingI256 := big256.SInt256(amountSpecified)
 	if !exactIn {
-		amountRemainingI256.Neg(&amountRemainingI256)
+		amountRemainingI256.Neg(amountRemainingI256)
 	}
 
 	var sqrtPriceNextX96, amountIn, amountOut, feeAmount uint256.Int
@@ -130,7 +126,7 @@ func computeJitSwap(
 		sqrtPriceX96,
 		sqrtPriceTargetX96,
 		liquidity,
-		&amountRemainingI256,
+		amountRemainingI256,
 		constants.FeeAmount(swapFee),
 		&sqrtPriceNextX96, &amountIn, &amountOut, &feeAmount,
 	)

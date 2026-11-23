@@ -17,7 +17,6 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -150,8 +149,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		(h.Amount0Available.IsZero() && h.Amount1Available.IsZero()) {
 		return &uniswapv4.BeforeSwapResult{
 			SwapFee:          h.SwapFee,
-			DeltaSpecified:   bignumber.ZeroBI,
-			DeltaUnspecified: bignumber.ZeroBI,
+			DeltaSpecified:   new(uint256.Int),
+			DeltaUnspecified: new(uint256.Int),
 		}, nil
 	}
 
@@ -174,8 +173,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if h.jitLiquidity.IsZero() {
 		return &uniswapv4.BeforeSwapResult{
 			SwapFee:          h.SwapFee,
-			DeltaSpecified:   bignumber.ZeroBI,
-			DeltaUnspecified: bignumber.ZeroBI,
+			DeltaSpecified:   new(uint256.Int),
+			DeltaUnspecified: new(uint256.Int),
 		}, nil
 	}
 
@@ -192,10 +191,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, uniswapv4.ErrInvalidAmountOut
 	}
 
-	unspecified := deltaUnspecified.ToBig()
+	unspecified := deltaUnspecified
 	return &uniswapv4.BeforeSwapResult{
 		SwapFee:          h.SwapFee,
-		DeltaSpecified:   deltaSpecified.ToBig(),
+		DeltaSpecified:   deltaSpecified,
 		DeltaUnspecified: unspecified.Neg(unspecified), // negate to add to output
 		Gas:              gasJitBeforeSwap,
 		SwapInfo:         nextSqrtPriceX96,
@@ -205,7 +204,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 // AfterSwap is a no-op for Alphix — no additional fees are taken after the swap.
 func (h *Hook) AfterSwap(_ *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.ZeroBI,
+		HookFee: new(uint256.Int),
 		Gas:     gasJitAfterSwap,
 	}, nil
 }

@@ -1,7 +1,6 @@
 package alphix
 
 import (
-	"math/big"
 	"os"
 	"testing"
 
@@ -14,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -65,14 +65,14 @@ func TestBeforeSwap_ReturnsDynamicFee(t *testing.T) {
 	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
 		ZeroForOne:      true,
-		AmountSpecified: big.NewInt(1_000_000), // 1 USDC
+		AmountSpecified: uint256.NewInt(1_000_000), // 1 USDC
 	})
 	require.NoError(t, err)
 
 	// Alphix returns the dynamic fee but does NOT take a delta
 	assert.Equal(t, uniswapv4.FeeAmount(5000), result.SwapFee)
-	assert.Equal(t, int64(0), result.DeltaSpecified.Int64())
-	assert.Equal(t, int64(0), result.DeltaUnspecified.Int64())
+	assert.Equal(t, int64(0), u256.ToBig(result.DeltaSpecified).Int64())
+	assert.Equal(t, int64(0), u256.ToBig(result.DeltaUnspecified).Int64())
 }
 
 func TestAfterSwap_Noop(t *testing.T) {
@@ -84,13 +84,13 @@ func TestAfterSwap_Noop(t *testing.T) {
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
 			CalcOut:         true,
 			ZeroForOne:      true,
-			AmountSpecified: big.NewInt(1_000_000),
+			AmountSpecified: uint256.NewInt(1_000_000),
 		},
-		AmountIn:  big.NewInt(1_000_000),
-		AmountOut: big.NewInt(999_500),
+		AmountIn:  uint256.NewInt(1_000_000),
+		AmountOut: uint256.NewInt(999_500),
 	})
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), result.HookFee.Int64())
+	assert.Equal(t, int64(0), u256.ToBig(result.HookFee).Int64())
 }
 
 func TestBeforeSwap_JitSimulation(t *testing.T) {
@@ -119,17 +119,17 @@ func TestBeforeSwap_JitSimulation(t *testing.T) {
 	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
 		ZeroForOne:      true,
-		AmountSpecified: big.NewInt(1_000_000_000), // 1000 USDC
+		AmountSpecified: uint256.NewInt(1_000_000_000), // 1000 USDC
 	})
 	require.NoError(t, err)
 
 	// JIT should absorb some of the swap
 	assert.Equal(t, uniswapv4.FeeAmount(3000), result.SwapFee)
-	assert.True(t, result.DeltaSpecified.Sign() > 0, "JIT should consume some input")
-	assert.True(t, result.DeltaUnspecified.Sign() < 0, "JIT should produce output (negative)")
+	assert.True(t, u256.ToBig(result.DeltaSpecified).Sign() > 0, "JIT should consume some input")
+	assert.True(t, u256.ToBig(result.DeltaUnspecified).Sign() < 0, "JIT should produce output (negative)")
 
 	t.Logf("JIT deltaSpecified: %s, deltaUnspecified: %s",
-		result.DeltaSpecified.String(), result.DeltaUnspecified.String())
+		u256.ToBig(result.DeltaSpecified).String(), u256.ToBig(result.DeltaUnspecified).String())
 }
 
 func TestBeforeSwap_NoJitWhenNoReserves(t *testing.T) {
@@ -154,12 +154,12 @@ func TestBeforeSwap_NoJitWhenNoReserves(t *testing.T) {
 	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
 		ZeroForOne:      true,
-		AmountSpecified: big.NewInt(1_000_000),
+		AmountSpecified: uint256.NewInt(1_000_000),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, uniswapv4.FeeAmount(5000), result.SwapFee)
-	assert.Equal(t, int64(0), result.DeltaSpecified.Int64())
-	assert.Equal(t, int64(0), result.DeltaUnspecified.Int64())
+	assert.Equal(t, int64(0), u256.ToBig(result.DeltaSpecified).Int64())
+	assert.Equal(t, int64(0), u256.ToBig(result.DeltaUnspecified).Int64())
 }
 
 func TestCloneState_DeepCopy(t *testing.T) {
@@ -241,12 +241,12 @@ func TestLvrFeeHook_BeforeSwap(t *testing.T) {
 	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
 		ZeroForOne:      true,
-		AmountSpecified: big.NewInt(1_000_000),
+		AmountSpecified: uint256.NewInt(1_000_000),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, uniswapv4.FeeAmount(499), result.SwapFee)
-	assert.Equal(t, int64(0), result.DeltaSpecified.Int64())
-	assert.Equal(t, int64(0), result.DeltaUnspecified.Int64())
+	assert.Equal(t, int64(0), u256.ToBig(result.DeltaSpecified).Int64())
+	assert.Equal(t, int64(0), u256.ToBig(result.DeltaUnspecified).Int64())
 }
 
 func TestLvrFeeHook_AfterSwap_NoHookFee(t *testing.T) {
@@ -258,13 +258,13 @@ func TestLvrFeeHook_AfterSwap_NoHookFee(t *testing.T) {
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
 			CalcOut:         true,
 			ZeroForOne:      true,
-			AmountSpecified: big.NewInt(1_000_000),
+			AmountSpecified: uint256.NewInt(1_000_000),
 		},
-		AmountIn:  big.NewInt(1_000_000),
-		AmountOut: big.NewInt(999_500),
+		AmountIn:  uint256.NewInt(1_000_000),
+		AmountOut: uint256.NewInt(999_500),
 	})
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), result.HookFee.Int64())
+	assert.Equal(t, int64(0), u256.ToBig(result.HookFee).Int64())
 }
 
 func TestLvrFeeHook_AfterSwap_WithHookFee(t *testing.T) {
@@ -281,14 +281,14 @@ func TestLvrFeeHook_AfterSwap_WithHookFee(t *testing.T) {
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
 			CalcOut:         true,
 			ZeroForOne:      true,
-			AmountSpecified: big.NewInt(1_000_000_000),
+			AmountSpecified: uint256.NewInt(1_000_000_000),
 		},
-		AmountIn:  big.NewInt(1_000_000_000),
-		AmountOut: big.NewInt(999_500_000),
+		AmountIn:  uint256.NewInt(1_000_000_000),
+		AmountOut: uint256.NewInt(999_500_000),
 	})
 	require.NoError(t, err)
 	// 999_500_000 * 5000 / 1_000_000 = 4_997_500
-	assert.Equal(t, int64(4_997_500), result.HookFee.Int64())
+	assert.Equal(t, int64(4_997_500), u256.ToBig(result.HookFee).Int64())
 }
 
 func TestLvrFeeHook_CloneState(t *testing.T) {

@@ -8,15 +8,16 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // maxHookFee is 1e6, matching the on-chain MAX_HOOK_FEE constant.
-var maxHookFee = bignumber.TenPowInt(6)
+var maxHookFee = uint256.NewInt(1e6)
 
 // LvrFeeHook implements the AlphixLVRFee hook — a dynamic LP fee + protocol fee hook.
 // Unlike the JIT-based Hook, this hook has no BeforeSwap logic (no rehypothecation).
@@ -74,18 +75,18 @@ func (h *LvrFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (jso
 func (h *LvrFeeHook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	return &uniswapv4.BeforeSwapResult{
 		SwapFee:          h.SwapFee,
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
 func (h *LvrFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	if h.HookFee == 0 {
-		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI}, nil
+		return &uniswapv4.AfterSwapResult{HookFee: new(uint256.Int)}, nil
 	}
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.MulDivDown(new(big.Int),
-			lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn), big.NewInt(h.HookFee), maxHookFee),
+		HookFee: big256.MulDivDown(new(uint256.Int),
+			lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn), uint256.NewInt(uint64(h.HookFee)), maxHookFee),
 	}, nil
 }
 
