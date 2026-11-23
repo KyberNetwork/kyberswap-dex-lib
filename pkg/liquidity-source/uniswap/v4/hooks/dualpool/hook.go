@@ -12,7 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -133,8 +133,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if s.Balance0.IsZero() && s.Balance1.IsZero() {
 		return nil, ErrNoReserves
 	}
-	amountSpecified, overflow := uint256.FromBig(params.AmountSpecified)
-	if overflow || amountSpecified.IsZero() {
+	amountSpecified := params.AmountSpecified
+	if amountSpecified.IsZero() {
 		return nil, lo.Ternary(params.CalcOut, uniswapv4.ErrInvalidAmountIn, uniswapv4.ErrInvalidAmountOut)
 	}
 
@@ -157,8 +157,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, err
 	}
 	return h.beforeSwapResult(params.ZeroForOne, res,
-		res.amountIn.ToBig(),                    // the whole input is consumed here
-		new(big.Int).Neg(res.amountOut.ToBig()), // out -= (-amountOut)
+		res.amountIn,                        // the whole input is consumed here
+		new(uint256.Int).Neg(res.amountOut), // out -= (-amountOut)
 	), nil
 }
 
@@ -166,8 +166,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 // gives AmountSpecified out, and takes the whole swap off the pool.
 func (h *Hook) calcIn(params *uniswapv4.BeforeSwapParams,
 	swap func(amountIn *uint256.Int) (*swapResult, error)) (*uniswapv4.BeforeSwapResult, error) {
-	var amountIn uint256.Int
 	calcAmountOut := func(amountInBI *big.Int) (*big.Int, error) {
+		var amountIn uint256.Int
 		if amountIn.SetFromBig(amountInBI) {
 			return nil, uniswapv4.ErrInvalidAmountIn
 		}
@@ -178,30 +178,31 @@ func (h *Hook) calcIn(params *uniswapv4.BeforeSwapParams,
 		return res.amountOut.ToBig(), nil
 	}
 	// spot price guess: token1 per token0 = (sqrtPriceX96 / 2^96)^2
-	var guess, price big.Int
-	price.Mul(h.state.SqrtPriceX96.ToBig(), h.state.SqrtPriceX96.ToBig())
+	var guess, price uint256.Int
+	price.Mul(h.state.SqrtPriceX96, h.state.SqrtPriceX96)
 	if params.ZeroForOne {
-		bignumber.MulDivUp(&guess, params.AmountSpecified, q192, &price)
+		big256.MulDivUp(&guess, params.AmountSpecified, q192, &price)
 	} else {
-		bignumber.MulDivUp(&guess, params.AmountSpecified, &price, q192)
+		big256.MulDivUp(&guess, params.AmountSpecified, &price, q192)
 	}
-	amountInBI, err := uniswapv4.MinAmountIn(params.AmountSpecified, &guess, calcAmountOut)
+	amountInBI, err := uniswapv4.MinAmountIn(big256.ToBig(params.AmountSpecified), big256.ToBig(&guess), calcAmountOut)
 	if err != nil {
 		return nil, err
 	}
+	var amountIn uint256.Int
 	amountIn.SetFromBig(amountInBI)
 	res, err := swap(&amountIn)
 	if err != nil {
 		return nil, err
 	}
 	return h.beforeSwapResult(params.ZeroForOne, res,
-		new(big.Int).Neg(params.AmountSpecified), // out += (-amountOut): nothing left for the pool
-		res.amountIn.ToBig(),                     // in += amountIn
+		new(uint256.Int).Neg(params.AmountSpecified), // out += (-amountOut): nothing left for the pool
+		res.amountIn, // in += amountIn
 	), nil
 }
 
 func (h *Hook) beforeSwapResult(zeroForOne bool, res *swapResult, deltaSpecified,
-	deltaUnspecified *big.Int) *uniswapv4.BeforeSwapResult {
+	deltaUnspecified *uint256.Int) *uniswapv4.BeforeSwapResult {
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   deltaSpecified,
 		DeltaUnspecified: deltaUnspecified,

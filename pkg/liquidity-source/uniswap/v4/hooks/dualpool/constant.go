@@ -2,9 +2,9 @@ package dualpool
 
 import (
 	"errors"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 // DualPoolHook (Uniswap Labs, v4-hooks-public/src/alf/DualPoolHook.sol) is a
@@ -49,4 +49,4 @@ var (
 )
 
 // q192 is 2^192, to turn sqrtPriceX96^2 into a price.
-var q192 = new(big.Int).Lsh(big.NewInt(1), 192)
+var q192 = new(uint256.Int).Lsh(uint256.NewInt(1), 192)
