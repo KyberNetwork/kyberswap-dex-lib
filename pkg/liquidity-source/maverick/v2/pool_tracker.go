@@ -110,7 +110,7 @@ func (t *PoolTracker) getNewPoolState(
 		},
 	).Info("Finished getting new pool state")
 
-	return t.updatePool(p, state, blockNumber, overrides)
+	return t.updatePool(ctx, p, state, blockNumber, overrides)
 }
 
 func (t *PoolTracker) getState(
@@ -251,6 +251,7 @@ func (t *PoolTracker) getFullPoolState(
 }
 
 func (t *PoolTracker) updatePool(
+	ctx context.Context,
 	pool entity.Pool,
 	state State,
 	blockNumber *big.Int,
@@ -272,14 +273,13 @@ func (t *PoolTracker) updatePool(
 	}
 
 	// Fetch full pool state with bins and ticks data
-	bins, ticks, err := t.getFullPoolState(context.Background(), pool.Address, state.BinCounter, overrides)
+	bins, ticks, err := t.getFullPoolState(ctx, pool.Address, state.BinCounter, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"pool_address": pool.Address,
 			"error":        err,
-		}).Warn("Failed to fetch full pool state, using empty bins")
-		bins = make(map[uint32]Bin)
-		ticks = make(map[int32]Tick)
+		}).Error("Failed to fetch full pool state")
+		return pool, err
 	}
 
 	// Update extra data with actual values from the state and fetched data

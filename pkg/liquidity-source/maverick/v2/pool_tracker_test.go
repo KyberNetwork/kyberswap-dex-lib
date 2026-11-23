@@ -2,13 +2,25 @@ package maverickv2
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 func TestGetFullPoolState(t *testing.T) {
@@ -277,4 +289,154 @@ func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
 			}
 		}
 	})
+}
+
+const multicallABIJSON = `[{"name":"tryBlockAndAggregate","type":"function","stateMutability":"payable",
+"inputs":[{"name":"requireSuccess","type":"bool"},{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],
+"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"blockHash","type":"bytes32"},{"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]}]`
+
+func packMaverickStage1Response(t *testing.T, blockNumber uint64) string {
+	t.Helper()
+
+	mcABI, err := abi.JSON(strings.NewReader(multicallABIJSON))
+	require.NoError(t, err)
+
+	type abiPoolState struct {
+		ReserveA           *big.Int
+		ReserveB           *big.Int
+		LastTwaD8          int64
+		LastLogPriceD8     int64
+		LastTimestamp      *big.Int
+		ActiveTick         int32
+		IsLocked           bool
+		BinCounter         uint32
+		ProtocolFeeRatioD3 uint8
+	}
+
+	stateRet, err := maverickV2PoolABI.Methods[poolMethodGetState].Outputs.Pack(abiPoolState{
+		ReserveA:           big.NewInt(5000),
+		ReserveB:           big.NewInt(6000),
+		LastTwaD8:          10,
+		LastLogPriceD8:     12,
+		LastTimestamp:      big.NewInt(1700000000),
+		ActiveTick:         1,
+		IsLocked:           false,
+		BinCounter:         10,
+		ProtocolFeeRatioD3: 5,
+	})
+	require.NoError(t, err)
+
+	feeARet, err := maverickV2PoolABI.Methods["fee"].Outputs.Pack(big.NewInt(100))
+	require.NoError(t, err)
+
+	feeBRet, err := maverickV2PoolABI.Methods["fee"].Outputs.Pack(big.NewInt(200))
+	require.NoError(t, err)
+
+	type returnDataItem struct {
+		Success    bool
+		ReturnData []byte
+	}
+	packed, err := mcABI.Methods["tryBlockAndAggregate"].Outputs.Pack(
+		new(big.Int).SetUint64(blockNumber),
+		[32]byte{1},
+		[]returnDataItem{
+			{Success: true, ReturnData: stateRet},
+			{Success: true, ReturnData: feeARet},
+			{Success: true, ReturnData: feeBRet},
+		},
+	)
+	require.NoError(t, err)
+
+	return hexutil.Encode(packed)
+}
+
+func TestGetNewPoolState_Stage2Error(t *testing.T) {
+	t.Parallel()
+
+	stage1Hex := packMaverickStage1Response(t, 101)
+	var callCount atomic.Int32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ID json.RawMessage `json:"id"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		w.Header().Set("Content-Type", "application/json")
+
+		if callCount.Add(1) == 1 {
+			_, _ = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":%q}`, req.ID, stage1Hex)
+			return
+		}
+		_, _ = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"error":{"code":-32000,"message":"lens rpc error"}}`, req.ID)
+	}))
+	defer srv.Close()
+
+	ethrpcClient := ethrpc.New(srv.URL).
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	tracker, err := NewPoolTracker(&Config{
+		PoolLensAddress: "0x6A9EB38DE5D349Fe751E0aDb4c0D9D391f94cc8D",
+	}, ethrpcClient)
+	require.NoError(t, err)
+
+	origExtra := `{"feeAIn":100,"feeBIn":200,"protocolFeeRatio":5,"bins":{"1":{"tick":1,"totalSupply":"0x64","tickBalance":"0x64"}},"ticks":{"1":{"ReserveA":"0x32","ReserveB":"0x32","TotalSupply":"0x64","BinIdsByTick":{"0":1}}},"activeTick":1,"lastTwaD8":10}`
+	p := entity.Pool{
+		Address:     "0x31373595f40ea48a7aab6cbcb0d377c6066e2dca",
+		Exchange:    DexType,
+		Type:        DexType,
+		BlockNumber: 100,
+		Reserves:    entity.PoolReserves{"1000", "2000"},
+		Extra:       origExtra,
+		StaticExtra: `{"tickSpacing":10}`,
+	}
+
+	got, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+	require.Error(t, err)
+	assert.Equal(t, int32(2), callCount.Load())
+	assert.Equal(t, origExtra, got.Extra)
+}
+
+func TestUpdatePool_ContextPropagatedToStage2(t *testing.T) {
+	t.Parallel()
+
+	var callCount atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount.Add(1)
+		var req struct {
+			ID json.RawMessage `json:"id"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"error":{"code":-32000,"message":"should not reach server when ctx canceled"}}`, req.ID)
+	}))
+	defer srv.Close()
+
+	ethrpcClient := ethrpc.New(srv.URL).
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+	tracker, err := NewPoolTracker(&Config{
+		PoolLensAddress: "0x6A9EB38DE5D349Fe751E0aDb4c0D9D391f94cc8D",
+	}, ethrpcClient)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	origExtra := `{"bins":{"1":{"tick":1,"totalSupply":"0x64","tickBalance":"0x64"}}}`
+	p := entity.Pool{
+		Address:     "0x31373595f40ea48a7aab6cbcb0d377c6066e2dca",
+		Exchange:    DexType,
+		Type:        DexType,
+		BlockNumber: 100,
+		Reserves:    entity.PoolReserves{"1000", "2000"},
+		Extra:       origExtra,
+	}
+	state := State{
+		ReserveA:   big.NewInt(5000),
+		ReserveB:   big.NewInt(6000),
+		BinCounter: 10,
+	}
+
+	got, err := tracker.updatePool(ctx, p, state, big.NewInt(101), nil)
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Equal(t, int32(0), callCount.Load())
+	assert.Equal(t, origExtra, got.Extra)
 }
