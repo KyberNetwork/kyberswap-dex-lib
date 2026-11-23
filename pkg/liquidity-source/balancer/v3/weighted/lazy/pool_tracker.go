@@ -153,6 +153,16 @@ func addRPCCalls(
 		Target: poolAddress,
 		Method: weighted.PoolMethodGetNormalizedWeights,
 	}, []any{&rpcRes.NormalizedWeights})
+	addFn(&ethrpc.Call{
+		ABI:    weighted.PoolABI,
+		Target: poolAddress,
+		Method: weighted.PoolMethodVersion,
+	}, []any{&rpcRes.Version})
+	addFn(&ethrpc.Call{
+		ABI:    weighted.PoolABI,
+		Target: poolAddress,
+		Method: weighted.PoolMethodGetMinTokenBalances,
+	}, []any{&rpcRes.MinTokenBalances})
 	rpcRes.Buffers = shared.GetBufferTokens(addFn, chainID, dexID, staticExtra.BufferTokens)
 }
 
@@ -161,6 +171,11 @@ func buildPoolState(
 	staticExtra *shared.StaticExtra,
 	rpcRes *weighted.RpcResult,
 ) (entity.Pool, error) {
+	minTokenBalances, err := weighted.ResolveMinTokenBalances(p.Extra, rpcRes.Version, rpcRes.MinTokenBalances)
+	if err != nil {
+		return p, err
+	}
+
 	extra := weighted.Extra{Extra: &shared.Extra{}}
 	extra.EnableHookAdjustedAmounts = rpcRes.HooksConfigData.EnableHookAdjustedAmounts
 	extra.ShouldCallComputeDynamicSwapFee = rpcRes.HooksConfigData.ShouldCallComputeDynamicSwapFee
@@ -173,6 +188,7 @@ func buildPoolState(
 	extra.TokenRates = shared.FromBigs(rpcRes.PoolData.TokenRates)
 	extra.Buffers = rpcRes.Buffers()
 	extra.NormalizedWeights = shared.FromBigs(rpcRes.NormalizedWeights)
+	extra.MinTokenBalances = minTokenBalances
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
