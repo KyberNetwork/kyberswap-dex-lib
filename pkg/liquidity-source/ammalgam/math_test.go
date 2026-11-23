@@ -10,23 +10,14 @@ import (
 
 func mathInt(s string) *uint256.Int { return uint256.MustFromDecimal(s) }
 
-// These vectors come from core-v1 v1.1.0 QuadraticSwapFeesTests.sol.
-// Changing a fee region, its boundary comparison, or Q64 rounding must fail them.
-func TestTaggedQuadraticFees(t *testing.T) {
+// These vectors are literal outputs from core-v1 v1.1.1. They cover the new
+// N=40 quadratic curve and both strict quadratic-to-linear boundaries.
+func TestV111QuadraticFeeVectors(t *testing.T) {
 	tests := []struct{ name, input, current, reference, want string }{
-		{"zero", "0", "9000000000000000000", "9000000000000000000", "0x0"},
-		{"100 bips", "90000000000000000", "9000000000000000000", "9000000000000000000", "0x140000000000000000"},
-		{"150 bips", "135000000000000000", "9000000000000000000", "9000000000000000000", "0x1e0000000000000000"},
-		{"quadratic boundary", "18000000000000000000", "9000000000000000000", "9000000000000000000", "0xfa00000000000000000"},
-		{"linear", "24000000000000000000", "9000000000000000000", "9000000000000000000", "0x13880000000000000000"},
-		{"already deviated", "90000000000000000", "9090000000000000000", "9000000000000000000", "0x3c0000000000000000"},
-		{"already deviated 150", "135000000000000000", "9090000000000000000", "9000000000000000000", "0x460000000000000000"},
-		{"deviated boundary", "17820000000000000000", "9090000000000000000", "9000000000000000000", "0xfa00000000000000000"},
-		{"deviated linear", "23820000000000000000", "9090000000000000000", "9000000000000000000", "0x13880000000000000000"},
-		{"toward reference", "10000000000000000000", "90000000000000000000", "100000000000000000000", "0x1999999999999999"},
-		{"one wei crossing", "10000000000000000001", "90000000000000000000", "100000000000000000000", "0x1999999999999999"},
-		{"crossing quadratic boundary", "250000000000000000000", "50000000000000000000", "100000000000000000000", "0xc800000000000000000"},
-		{"crossing linear", "300000000000000000000", "50000000000000000000", "100000000000000000000", "0xfa00000000000000a6a"},
+		{"non-crossing quadratic boundary", "1000", "1000", "1000", "0xfa00000000000000000"},
+		{"non-crossing first linear unit", "1001", "1000", "1000", "0xfa3fefa1e2d85c125a0"},
+		{"crossing quadratic boundary", "1500", "500", "1000", "0xa6aaaaaaaaaaaaaaaaa"},
+		{"crossing first linear unit", "1501", "500", "1000", "0xa6e38485080417e1425"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -42,12 +33,63 @@ func TestTaggedQuadraticFees(t *testing.T) {
 	}
 }
 
+func TestV111ExactInUsesCeilFeeBeforeDepletion(t *testing.T) {
+	amountOut, fee, err := quoteExactInWithFee(
+		mathInt("4"), mathInt("96"), mathInt("1000"), mathInt("100"), mathInt("95"), mathInt("0"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !amountOut.Eq(mathInt("75")) {
+		t.Fatalf("out = %s, want 75", amountOut.Dec())
+	}
+	if !fee.Eq(mathInt("1")) {
+		t.Fatalf("effective fee = %s, want 1", fee.Dec())
+	}
+}
+
+func TestV111ExactOutBoundaryVectorsAreMinimum(t *testing.T) {
+	tests := []struct {
+		name, target, reserve, reference, reserveOut, missingIn, missingOut, want string
+	}{
+		{"equal-reserve quadratic boundary", "375000000000000000000", "1000000000000000000000", "1000000000000000000000", "1000000000000000000000", "0", "0", "1000000000000000000000"},
+		{"equal-reserve first linear output", "375000000000000000001", "1000000000000000000000", "1000000000000000000000", "1000000000000000000000", "0", "0", "1000000000000000000042"},
+		{"crossing quadratic boundary", "687500000000000000000", "500000000000000000000", "1000000000000000000000", "1000000000000000000000", "0", "0", "1500000000000000000000"},
+		{"crossing first linear output", "687500000000000000001", "500000000000000000000", "1000000000000000000000", "1000000000000000000000", "0", "0", "1500000000000000000083"},
+		{"depleted", "10000000000000000000", "1000000000000000000000", "1000000000000000000000", "1000000000000000000000", "960000000000000000000", "951000000000000000000", "10298836671121632293"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			target := mathInt(tc.target)
+			reserve, reference, reserveOut := mathInt(tc.reserve), mathInt(tc.reference), mathInt(tc.reserveOut)
+			missingIn, missingOut := mathInt(tc.missingIn), mathInt(tc.missingOut)
+			got, err := quoteExactOut(target, reserve, reference, reserveOut, missingIn, missingOut)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !got.Eq(mathInt(tc.want)) {
+				t.Fatalf("input = %s, want %s", got.Dec(), tc.want)
+			}
+			atMinimum, err := quoteExactIn(&got, reserve, reference, reserveOut, missingIn, missingOut)
+			if err != nil || atMinimum.Lt(target) {
+				t.Fatalf("quote(input) = %s, target %s: %v", atMinimum.Dec(), target.Dec(), err)
+			}
+			var previousInput uint256.Int
+			previousInput.SubUint64(&got, 1)
+			previous, err := quoteExactIn(&previousInput, reserve, reference, reserveOut, missingIn, missingOut)
+			if err != nil || !previous.Lt(target) {
+				t.Fatalf("quote(input-1) = %s, target %s: %v", previous.Dec(), target.Dec(), err)
+			}
+		})
+	}
+}
+
 func TestQuoteExactInTaggedAndDepletedThreshold(t *testing.T) {
 	for _, tc := range []struct{ name, input, reserveIn, reserveOut, missingIn, missingOut, want string }{
-		{"ordinary", "1000000000000000000", "1000000000000000000000", "1000000000000000000000", "0", "0", "998801398361917754"},
+		{"ordinary", "1000000000000000000", "1000000000000000000000", "1000000000000000000000", "0", "0", "998601797643075981"},
 		{"input at threshold", "10", "100", "100", "95", "0", "8"},
 		{"input above threshold", "10", "100", "100", "96", "0", "26"},
-		{"output at threshold", "100", "100", "100", "0", "95", "2"},
+		{"output at threshold", "100", "100", "100", "0", "95", "1"},
 		{"output above threshold", "100", "100", "100", "0", "96", "1"},
 		{"zero", "0", "100", "100", "0", "0", "0"},
 		{"one wei floors to zero", "1", "100", "100", "0", "0", "0"},
@@ -110,7 +152,7 @@ func TestExactOutputIsMinimumInput(t *testing.T) {
 }
 
 func TestTaggedExactOutputRoundTripAndDomainChecks(t *testing.T) {
-	// Parameters are the second fixture from core-v1 v1.1.0's
+	// Parameters are a historical depleted-pool fixture from core-v1's
 	// ComputeExpectedInAmountFuzzTest.fixtureRoundtripCase(). That Solidity test
 	// checks exact-output round trips and minimality rather than fixed outputs.
 	ri := mathInt("182813970261590293")

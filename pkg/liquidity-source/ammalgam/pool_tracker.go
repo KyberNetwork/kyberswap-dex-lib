@@ -18,23 +18,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	utileth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 const (
-	depositXIndex = 1
-	depositYIndex = 2
-	borrowXIndex  = 4
-	borrowYIndex  = 5
+	depositXIndex         = 1
+	depositYIndex         = 2
+	borrowXIndex          = 4
+	borrowYIndex          = 5
+	interestPeriodForSwap = uint32(86_399)
 
 	defaultRefreshInterval = 5 * time.Minute
-)
-
-var (
-	// AmmalgamPair v1.1.0 packs raw reserves and timestamps in these slots.
-	pairReservesSlot   = common.BigToHash(big.NewInt(16))
-	pairReferencesSlot = common.BigToHash(big.NewInt(17))
-	uint112Mask        = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 112), big.NewInt(1))
 )
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
@@ -44,12 +37,10 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-type pairStorage struct {
-	ReserveX            *big.Int
-	ReserveY            *big.Int
-	LastUpdateTimestamp uint32
-	ReferenceReserveX   *big.Int
-	ReferenceReserveY   *big.Int
+type getReservesRPC struct {
+	ReserveX             *big.Int
+	ReserveY             *big.Int
+	LastLendingTimestamp uint32
 }
 
 type referenceReservesRPC struct {
@@ -63,12 +54,13 @@ type totalAssetsAndSharesRPC struct {
 }
 
 type trackerSnapshot struct {
-	BlockNumber   uint64
-	Beacon        common.Address
-	Storage       pairStorage
-	References    referenceReservesRPC
-	RawTotals     totalAssetsAndSharesRPC
-	AccruedTotals totalAssetsAndSharesRPC
+	BlockNumber    uint64
+	BlockTimestamp uint64
+	Beacon         common.Address
+	Reserves       getReservesRPC
+	References     referenceReservesRPC
+	RawTotals      totalAssetsAndSharesRPC
+	AccruedTotals  totalAssetsAndSharesRPC
 }
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
@@ -109,15 +101,19 @@ func (t *PoolTracker) GetNewPoolState(
 
 	blockNumber := new(big.Int).Set(beaconResponse.BlockNumber)
 	snapshot := trackerSnapshot{BlockNumber: blockNumber.Uint64(), Beacon: beacon}
-
-	storageReads := []utileth.StorageRead{{Slot: pairReservesSlot}, {Slot: pairReferencesSlot}}
-	if err := utileth.BatchGetStorageAtAtBlock(ctx, t.ethrpcClient.GetETHClient().Client(),
-		common.HexToAddress(p.Address), storageReads, blockNumber, utileth.DefaultBatchRetry); err != nil {
-		return p, fmt.Errorf("read Ammalgam pair storage: %w", err)
+	header, err := t.ethrpcClient.GetETHClient().HeaderByNumber(ctx, blockNumber)
+	if err != nil {
+		return p, fmt.Errorf("read Ammalgam snapshot header: %w", err)
 	}
-	snapshot.Storage = decodePairStorageV110(storageReads[0].Result, storageReads[1].Result)
+	if header == nil || header.Number == nil || header.Number.Cmp(blockNumber) != 0 {
+		return p, errors.New("invalid Ammalgam snapshot header")
+	}
+	snapshot.BlockTimestamp = header.Time
 
 	stateResponse, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).
+		AddCall(&ethrpc.Call{
+			ABI: pairABI, Target: p.Address, Method: "getReserves",
+		}, []any{&snapshot.Reserves}).
 		AddCall(&ethrpc.Call{
 			ABI: pairABI, Target: p.Address, Method: "referenceReserves",
 		}, []any{&snapshot.References}).
@@ -131,7 +127,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if err != nil {
 		return p, fmt.Errorf("read Ammalgam pool state: %w", err)
 	}
-	if err := requireAllCallsSucceeded(stateResponse, 3); err != nil {
+	if err := requireAllCallsSucceeded(stateResponse, 4); err != nil {
 		return p, err
 	}
 
@@ -157,48 +153,15 @@ func isZeroLog(log ethtypes.Log) bool {
 		log.TxHash == (common.Hash{}) && len(log.Topics) == 0 && len(log.Data) == 0
 }
 
-func decodePairStorageV110(reservesWord, referencesWord common.Hash) pairStorage {
-	decode112 := func(word *big.Int, shift uint) *big.Int {
-		return new(big.Int).And(new(big.Int).Rsh(new(big.Int).Set(word), shift), uint112Mask)
-	}
-	reserves := reservesWord.Big()
-	references := referencesWord.Big()
-	return pairStorage{
-		ReserveX:            decode112(reserves, 0),
-		ReserveY:            decode112(reserves, 112),
-		LastUpdateTimestamp: uint32(new(big.Int).Rsh(new(big.Int).Set(reserves), 224).Uint64()),
-		ReferenceReserveX:   decode112(references, 0),
-		ReferenceReserveY:   decode112(references, 112),
-	}
-}
-
 func resolveSwapState(snapshot trackerSnapshot) ([2]*big.Int, totalAssetsAndSharesRPC, error) {
-	reserves := [2]*big.Int{snapshot.Storage.ReserveX, snapshot.Storage.ReserveY}
+	reserves := [2]*big.Int{snapshot.Reserves.ReserveX, snapshot.Reserves.ReserveY}
 	if reserves[0] == nil || reserves[1] == nil {
 		return reserves, totalAssetsAndSharesRPC{}, ErrInvalidPool
 	}
-	// executeAmmalgam checkpoints the pair first (validateOnUpdate, no throttle), so any elapsed
-	// lending time accrues; pair.swap alone would wait for INTEREST_PERIOD_FOR_SWAP (86399s).
-	selected := snapshot.AccruedTotals
-	for i, indices := range [2][2]int{{depositXIndex, borrowXIndex}, {depositYIndex, borrowYIndex}} {
-		depositIndex, borrowIndex := indices[0], indices[1]
-		rawDeposit, rawBorrow := snapshot.RawTotals.AllAssets[depositIndex], snapshot.RawTotals.AllAssets[borrowIndex]
-		accruedDeposit := snapshot.AccruedTotals.AllAssets[depositIndex]
-		accruedBorrow := snapshot.AccruedTotals.AllAssets[borrowIndex]
-		if rawDeposit == nil || rawBorrow == nil || accruedDeposit == nil || accruedBorrow == nil ||
-			accruedDeposit.Cmp(rawDeposit) < 0 || accruedBorrow.Cmp(rawBorrow) < 0 {
-			return reserves, totalAssetsAndSharesRPC{}, ErrInvalidPool
-		}
-		depositGrowth := new(big.Int).Sub(accruedDeposit, rawDeposit)
-		borrowGrowth := new(big.Int).Sub(accruedBorrow, rawBorrow)
-		if borrowGrowth.Cmp(depositGrowth) < 0 {
-			return reserves, totalAssetsAndSharesRPC{}, ErrInvalidPool
-		}
-		// Borrow growth is the full interest. totalAssetsAndShares(true) adds the
-		// protocol fee to the deposit total only, so deposit growth = lender
-		// share + protocol fee and LP interest = borrow growth - deposit growth.
-		lpInterest := new(big.Int).Sub(borrowGrowth, depositGrowth)
-		reserves[i] = new(big.Int).Add(reserves[i], lpInterest)
+	selected := snapshot.RawTotals
+	elapsed := uint32(snapshot.BlockTimestamp) - snapshot.Reserves.LastLendingTimestamp
+	if elapsed >= interestPeriodForSwap {
+		selected = snapshot.AccruedTotals
 	}
 	return reserves, selected, nil
 }
@@ -300,7 +263,7 @@ func updatePoolFromSnapshot(
 	}
 
 	extra := Extra{
-		LastUpdateTimestamp:  snapshot.Storage.LastUpdateTimestamp,
+		LastLendingTimestamp: snapshot.Reserves.LastLendingTimestamp,
 		LastRefreshTimestamp: now,
 	}
 	extra.ReferenceReserves[0] = *uint256.MustFromBig(snapshot.References.ReferenceReserveX)

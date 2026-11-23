@@ -17,15 +17,15 @@ var (
 var (
 	bipsQ64                   = uint256.MustFromHex("0x27100000000000000000")
 	minFeeQ64                 = uint256.MustFromHex("0x1999999999999999")
-	feeScaleQ64               = uint256.MustFromHex("0x7d00000000000000000") // N * 100 * Q64
+	feeScaleQ64               = uint256.MustFromHex("0xfa00000000000000000") // N * 100 * Q64
 	maxQuadraticFeeQ64        = uint256.MustFromHex("0x280000000000000000")
 	twoQ64                    = uint256.MustFromHex("0x20000000000000000")
 	buffer                    = uint256.NewInt(19)
 	bufferNumerator           = uint256.NewInt(20)
-	linearStartReferenceScale = uint256.NewInt(4)
+	linearStartReferenceScale = uint256.NewInt(3)
 	two                       = uint256.NewInt(2)
 	fourThousand              = uint256.NewInt(4000)
-	twenty                    = uint256.NewInt(20)
+	forty                     = uint256.NewInt(40)
 	one                       = uint256.NewInt(1)
 	maxUint256                = new(uint256.Int).SetAllOne()
 )
@@ -113,11 +113,7 @@ func calculateSwapFeeBipsQ64(input, currentReserve, referenceReserve *uint256.In
 		if err != nil {
 			return zero, err
 		}
-		twiceRef, err := mulChecked(referenceReserve, two)
-		if err != nil {
-			return zero, err
-		}
-		if pastBy.Gt(&twiceRef) {
+		if pastBy.Gt(referenceReserve) {
 			fee, err = calculateLinearFee(&pastBy, referenceReserve, referenceReserve)
 		} else {
 			fee, err = calculateQuadraticFee(&pastBy, referenceReserve, referenceReserve)
@@ -175,7 +171,7 @@ func calculateLinearFee(input, currentReserve, referenceReserve *uint256.Int) (u
 	if err != nil {
 		return result, err
 	}
-	denominator, err := mulChecked(twenty, &denomBase)
+	denominator, err := mulChecked(forty, &denomBase)
 	if err != nil {
 		return result, err
 	}
@@ -254,7 +250,19 @@ func calculateBalanceAfterFees(
 	if err != nil {
 		return zero, zero, err
 	}
-	left, err := mulChecked(balance, buffer)
+	feeAmountQ64, err := mulChecked(amountIn, &feeBipsQ64)
+	if err != nil {
+		return zero, zero, err
+	}
+	feeAmount, err := ceilDiv(&feeAmountQ64, bipsQ64)
+	if err != nil {
+		return zero, zero, err
+	}
+	feeAdjustedBalance, err := subChecked(balance, &feeAmount)
+	if err != nil {
+		return zero, zero, err
+	}
+	left, err := mulChecked(&feeAdjustedBalance, buffer)
 	if err != nil {
 		return zero, zero, err
 	}
@@ -262,47 +270,28 @@ func calculateBalanceAfterFees(
 	if err != nil {
 		return zero, zero, err
 	}
-	base := *balance
-	depleted := left.Lt(&right)
-	if depleted {
-		base, err = subChecked(&base, missing)
+	calculatedBalance := feeAdjustedBalance
+	if left.Lt(&right) {
+		calculatedBalance, err = subChecked(&feeAdjustedBalance, missing)
+		if err != nil {
+			return zero, zero, err
+		}
+		calculatedBalance, err = mulChecked(&calculatedBalance, bufferNumerator)
 		if err != nil {
 			return zero, zero, err
 		}
 	}
-	base, err = mulChecked(&base, bipsQ64)
-	if err != nil {
-		return zero, zero, err
-	}
-	feeAmountQ64, err := mulChecked(amountIn, &feeBipsQ64)
-	if err != nil {
-		return zero, zero, err
-	}
-	base, err = subChecked(&base, &feeAmountQ64)
-	if err != nil {
-		return zero, zero, err
-	}
-	if depleted {
-		base, err = mulChecked(&base, bufferNumerator)
-		if err != nil {
-			return zero, zero, err
-		}
-	}
-	calculatedBalance, err := divChecked(&base, bipsQ64)
-	if err != nil {
-		return zero, zero, err
-	}
-	return calculatedBalance, feeBipsQ64, nil
+	return calculatedBalance, feeAmount, nil
 }
 
 func quoteExactIn(amountIn, reserveIn, referenceReserveIn, reserveOut, missingIn, missingOut *uint256.Int) (uint256.Int, error) {
-	amountOut, _, err := quoteExactInWithFeeBipsQ64(
+	amountOut, _, err := quoteExactInWithFeeAmount(
 		amountIn, reserveIn, referenceReserveIn, reserveOut, missingIn, missingOut,
 	)
 	return amountOut, err
 }
 
-func quoteExactInWithFeeBipsQ64(
+func quoteExactInWithFeeAmount(
 	amountIn, reserveIn, referenceReserveIn, reserveOut, missingIn, missingOut *uint256.Int,
 ) (uint256.Int, uint256.Int, error) {
 	var zero uint256.Int
@@ -310,7 +299,7 @@ func quoteExactInWithFeeBipsQ64(
 	if err != nil {
 		return zero, zero, err
 	}
-	adjustedInput, feeBipsQ64, err := calculateBalanceAfterFees(
+	adjustedInput, feeAmount, err := calculateBalanceAfterFees(
 		amountIn, &balance, reserveIn, referenceReserveIn, missingIn,
 	)
 	if err != nil {
@@ -340,24 +329,16 @@ func quoteExactInWithFeeBipsQ64(
 	if err != nil {
 		return zero, zero, err
 	}
-	return amountOut, feeBipsQ64, nil
+	return amountOut, feeAmount, nil
 }
 
 func quoteExactInWithFee(
 	amountIn, reserveIn, referenceReserveIn, reserveOut, missingIn, missingOut *uint256.Int,
 ) (uint256.Int, uint256.Int, error) {
 	var zero uint256.Int
-	amountOut, feeBipsQ64, err := quoteExactInWithFeeBipsQ64(
+	amountOut, feeAmount, err := quoteExactInWithFeeAmount(
 		amountIn, reserveIn, referenceReserveIn, reserveOut, missingIn, missingOut,
 	)
-	if err != nil {
-		return zero, zero, err
-	}
-	feeAmountQ64, err := mulChecked(amountIn, &feeBipsQ64)
-	if err != nil {
-		return zero, zero, err
-	}
-	feeAmount, err := divChecked(&feeAmountQ64, bipsQ64)
 	if err != nil {
 		return zero, zero, err
 	}

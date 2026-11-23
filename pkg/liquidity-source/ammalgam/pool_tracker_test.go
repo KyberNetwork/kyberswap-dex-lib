@@ -1,29 +1,178 @@
 package ammalgam
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
+var trackerMulticallABI = func() abi.ABI {
+	parsed, err := abi.JSON(strings.NewReader(`[
+		{"type":"function","name":"tryAggregate","stateMutability":"payable","inputs":[{"name":"requireSuccess","type":"bool"},{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],"outputs":[{"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]},
+		{"type":"function","name":"tryBlockAndAggregate","stateMutability":"payable","inputs":[{"name":"requireSuccess","type":"bool"},{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"blockHash","type":"bytes32"},{"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]}
+	]`))
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}()
+
+type trackerMulticall struct {
+	Target   common.Address
+	CallData []byte
+}
+
+type trackerMulticallResult struct {
+	Success    bool
+	ReturnData []byte
+}
+
+type trackerRPCFixture struct {
+	t               *testing.T
+	header          *ethtypes.Header
+	beacon          common.Address
+	callBlocks      []string
+	headerBlock     string
+	rawAssets       [6]*big.Int
+	accruedAssets   [6]*big.Int
+	assetsAndShares [6]*big.Int
+}
+
+func (m *trackerRPCFixture) GetBlockByNumber(_ context.Context, block string, _ bool) (*ethtypes.Header, error) {
+	m.headerBlock = block
+	return m.header, nil
+}
+
+func (m *trackerRPCFixture) Call(_ context.Context, arg map[string]json.RawMessage, block string) (hexutil.Bytes, error) {
+	m.callBlocks = append(m.callBlocks, block)
+	var data hexutil.Bytes
+	payload := arg["input"]
+	if len(payload) == 0 {
+		payload = arg["data"]
+	}
+	require.NoError(m.t, json.Unmarshal(payload, &data))
+	return m.execute(data)
+}
+
+func (m *trackerRPCFixture) execute(data []byte) ([]byte, error) {
+	if method, err := trackerMulticallABI.MethodById(data[:4]); err == nil {
+		values, err := method.Inputs.Unpack(data[4:])
+		if err != nil {
+			return nil, err
+		}
+		calls := *abi.ConvertType(values[1], new([]trackerMulticall)).(*[]trackerMulticall)
+		results := make([]trackerMulticallResult, len(calls))
+		for i := range calls {
+			results[i].Success = true
+			results[i].ReturnData, err = m.execute(calls[i].CallData)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if method.Name == "tryBlockAndAggregate" {
+			return method.Outputs.Pack(m.header.Number, common.HexToHash("0x42"), results)
+		}
+		return method.Outputs.Pack(results)
+	}
+	if method, err := factoryABI.MethodById(data[:4]); err == nil && method.Name == "pairBeacon" {
+		return method.Outputs.Pack(m.beacon)
+	}
+	method, err := pairABI.MethodById(data[:4])
+	if err != nil {
+		return nil, err
+	}
+	switch method.Name {
+	case "getReserves":
+		return method.Outputs.Pack(big.NewInt(1_000), big.NewInt(2_000), uint32(1_000))
+	case "referenceReserves":
+		return method.Outputs.Pack(big.NewInt(900), big.NewInt(1_800))
+	case "totalAssetsAndShares":
+		values, err := method.Inputs.Unpack(data[4:])
+		if err != nil {
+			return nil, err
+		}
+		assets := m.rawAssets
+		if values[0].(bool) {
+			assets = m.accruedAssets
+		}
+		return method.Outputs.Pack(assets, m.assetsAndShares)
+	default:
+		return nil, errors.New("unexpected Ammalgam pair method")
+	}
+}
+
+func TestPoolTrackerPinsGetterSnapshotAndHeaderToOneBlock(t *testing.T) {
+	zeroes := [6]*big.Int{}
+	for i := range zeroes {
+		zeroes[i] = big.NewInt(0)
+	}
+	raw := zeroes
+	raw[depositXIndex], raw[depositYIndex] = big.NewInt(10), big.NewInt(8)
+	raw[borrowXIndex], raw[borrowYIndex] = big.NewInt(40), big.NewInt(5)
+	accrued := zeroes
+	accrued[depositXIndex], accrued[depositYIndex] = big.NewInt(15), big.NewInt(8)
+	accrued[borrowXIndex], accrued[borrowYIndex] = big.NewInt(55), big.NewInt(5)
+	fixture := &trackerRPCFixture{
+		t: t, header: &ethtypes.Header{
+			Number: big.NewInt(42), Difficulty: big.NewInt(0), Time: 1_000 + 86_399, GasLimit: 30_000_000,
+		},
+		beacon:          common.HexToAddress("0x2222222222222222222222222222222222222222"),
+		rawAssets:       raw,
+		accruedAssets:   accrued,
+		assetsAndShares: zeroes,
+	}
+	server := rpc.NewServer()
+	require.NoError(t, server.RegisterName("eth", fixture))
+	client := rpc.DialInProc(server)
+	t.Cleanup(client.Close)
+	t.Cleanup(server.Stop)
+	rpcClient := ethrpc.NewWithClient(ethclient.NewClient(client)).
+		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
+	tracker, err := NewPoolTracker(&Config{
+		FactoryAddress: "0x1111111111111111111111111111111111111111",
+	}, rpcClient)
+	require.NoError(t, err)
+
+	got, err := tracker.GetNewPoolState(t.Context(), entity.Pool{
+		Address: testPair, Reserves: entity.PoolReserves{"1", "2"}, StaticExtra: `{}`,
+	}, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	require.Equal(t, uint64(42), got.BlockNumber)
+	require.Equal(t, entity.PoolReserves{"1000", "2000"}, got.Reserves)
+	var extra Extra
+	require.NoError(t, json.Unmarshal([]byte(got.Extra), &extra))
+	require.Equal(t, "40", extra.MissingAssets[0].String())
+	require.Equal(t, []string{"latest", "0x2a"}, fixture.callBlocks)
+	require.Equal(t, "0x2a", fixture.headerBlock)
+}
+
 func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 	factory := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	beacon := common.HexToAddress("0x2222222222222222222222222222222222222222")
 	snapshot := trackerSnapshot{
-		BlockNumber: 10,
-		Beacon:      beacon,
-		Storage: pairStorage{
-			ReserveX:            big.NewInt(1_000),
-			ReserveY:            big.NewInt(2_000),
-			LastUpdateTimestamp: 77,
+		BlockNumber:    10,
+		BlockTimestamp: 100,
+		Beacon:         beacon,
+		Reserves: getReservesRPC{
+			ReserveX:             big.NewInt(1_000),
+			ReserveY:             big.NewInt(2_000),
+			LastLendingTimestamp: 77,
 		},
 		References: referenceReservesRPC{
 			ReferenceReserveX: big.NewInt(900),
@@ -58,7 +207,7 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 	require.Equal(t, "1800", extra.ReferenceReserves[1].String())
 	require.Equal(t, "30", extra.MissingAssets[0].String())
 	require.True(t, extra.MissingAssets[1].IsZero())
-	require.Equal(t, uint32(77), extra.LastUpdateTimestamp)
+	require.Equal(t, uint32(77), extra.LastLendingTimestamp)
 	require.Equal(t, int64(1_700_000_000), extra.LastRefreshTimestamp)
 
 	var staticExtra StaticExtra
@@ -67,47 +216,48 @@ func TestUpdatePoolFromSnapshotDerivesMissingAssets(t *testing.T) {
 	require.Equal(t, "0x2222222222222222222222222222222222222222", staticExtra.PairBeacon)
 }
 
-func TestResolveSwapStateAccruesAnyElapsedLendingTime(t *testing.T) {
-	snapshot := trackerSnapshot{
-		Storage: pairStorage{
-			ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000),
-		},
-		RawTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
-			big.NewInt(0), big.NewInt(100), big.NewInt(200),
-			big.NewInt(0), big.NewInt(200), big.NewInt(150),
-		}},
-		AccruedTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
-			big.NewInt(0), big.NewInt(107), big.NewInt(203),
-			big.NewInt(0), big.NewInt(212), big.NewInt(154),
-		}},
+func TestUpdatePoolFromSnapshotSelectsTotalsAtSwapThresholdAndTimestampWrap(t *testing.T) {
+	factory := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	beacon := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	const maxUint32 = uint64(1<<32 - 1)
+	for _, tc := range []struct {
+		name        string
+		last, now   uint64
+		wantMissing string
+	}{
+		{"ordinary/86398", 1_000, 1_000 + 86_398, "30"},
+		{"ordinary/86399", 1_000, 1_000 + 86_399, "40"},
+		{"ordinary/86400", 1_000, 1_000 + 86_400, "40"},
+		{"wrap/86398", maxUint32 - 100, maxUint32 - 100 + 86_398, "30"},
+		{"wrap/86399", maxUint32 - 100, maxUint32 - 100 + 86_399, "40"},
+		{"wrap/86400", maxUint32 - 100, maxUint32 - 100 + 86_400, "40"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			snapshot := trackerSnapshot{
+				BlockNumber:    10,
+				BlockTimestamp: tc.now,
+				Beacon:         beacon,
+				Reserves: getReservesRPC{
+					ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000), LastLendingTimestamp: uint32(tc.last),
+				},
+				References: referenceReservesRPC{ReferenceReserveX: big.NewInt(900), ReferenceReserveY: big.NewInt(1_800)},
+				RawTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
+					big.NewInt(0), big.NewInt(10), big.NewInt(8), big.NewInt(0), big.NewInt(40), big.NewInt(5),
+				}},
+				AccruedTotals: totalAssetsAndSharesRPC{AllAssets: [6]*big.Int{
+					big.NewInt(0), big.NewInt(15), big.NewInt(8), big.NewInt(0), big.NewInt(55), big.NewInt(5),
+				}},
+			}
+			got, err := updatePoolFromSnapshot(entity.Pool{}, &Config{FactoryAddress: factory.Hex()}, StaticExtra{},
+				snapshot, int64(tc.now), 0)
+			require.NoError(t, err)
+			require.Equal(t, entity.PoolReserves{"1000", "2000"}, got.Reserves,
+				"getReserves preview is authoritative; do not reconstruct LP interest")
+			var extra Extra
+			require.NoError(t, json.Unmarshal([]byte(got.Extra), &extra))
+			require.Equal(t, tc.wantMissing, extra.MissingAssets[0].String())
+		})
 	}
-
-	reserves, totals, err := resolveSwapState(snapshot)
-	require.NoError(t, err)
-	// X LP interest = (212 - 200) - (107 - 100) = 5.
-	// Y LP interest = (154 - 150) - (203 - 200) = 1.
-	require.Equal(t, int64(1_005), reserves[0].Int64())
-	require.Equal(t, int64(2_001), reserves[1].Int64())
-	require.Same(t, snapshot.AccruedTotals.AllAssets[borrowXIndex], totals.AllAssets[borrowXIndex])
-}
-
-func TestDecodePairStorageV110(t *testing.T) {
-	pack := func(low, middle *big.Int, high uint32) common.Hash {
-		word := new(big.Int).Set(low)
-		word.Or(word, new(big.Int).Lsh(new(big.Int).Set(middle), 112))
-		word.Or(word, new(big.Int).Lsh(new(big.Int).SetUint64(uint64(high)), 224))
-		return common.BigToHash(word)
-	}
-
-	storage := decodePairStorageV110(
-		pack(big.NewInt(11), big.NewInt(22), 33),
-		pack(big.NewInt(44), big.NewInt(55), 66),
-	)
-	require.Equal(t, int64(11), storage.ReserveX.Int64())
-	require.Equal(t, int64(22), storage.ReserveY.Int64())
-	require.Equal(t, uint32(33), storage.LastUpdateTimestamp)
-	require.Equal(t, int64(44), storage.ReferenceReserveX.Int64())
-	require.Equal(t, int64(55), storage.ReferenceReserveY.Int64())
 }
 
 func TestUpdatePoolFromSnapshotDoesNotOverwriteNewerBlock(t *testing.T) {
@@ -126,8 +276,8 @@ func TestUpdatePoolFromSnapshotScheduledRefreshPreservesActivityTimestamp(t *tes
 	factory := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	beacon := common.HexToAddress("0x2222222222222222222222222222222222222222")
 	snapshot := trackerSnapshot{
-		BlockNumber: 10, Beacon: beacon,
-		Storage: pairStorage{ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000)},
+		BlockNumber: 10, BlockTimestamp: 1_000, Beacon: beacon,
+		Reserves: getReservesRPC{ReserveX: big.NewInt(1_000), ReserveY: big.NewInt(2_000)},
 		References: referenceReservesRPC{
 			ReferenceReserveX: big.NewInt(900), ReferenceReserveY: big.NewInt(1_800),
 		},
@@ -199,8 +349,17 @@ func TestPoolTrackerNextUpdateAt(t *testing.T) {
 }
 
 func TestTrackerABIMultiReturnDecodeShape(t *testing.T) {
+	require.Contains(t, pairABI.Methods, "getReserves")
 	require.Contains(t, pairABI.Methods, "referenceReserves")
 	require.Contains(t, pairABI.Methods, "totalAssetsAndShares")
+
+	reservesData, err := pairABI.Methods["getReserves"].Outputs.Pack(big.NewInt(11), big.NewInt(22), uint32(33))
+	require.NoError(t, err)
+	var reserves getReservesRPC
+	require.NoError(t, pairABI.UnpackIntoInterface(&reserves, "getReserves", reservesData))
+	require.Equal(t, int64(11), reserves.ReserveX.Int64())
+	require.Equal(t, int64(22), reserves.ReserveY.Int64())
+	require.Equal(t, uint32(33), reserves.LastLendingTimestamp)
 
 	referencesData, err := pairABI.Methods["referenceReserves"].Outputs.Pack(big.NewInt(44), big.NewInt(55))
 	require.NoError(t, err)
