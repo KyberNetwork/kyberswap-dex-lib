@@ -373,6 +373,7 @@ const (
 	ExchangeUniswapV4OdysFun            = "uniswap-v4-odysfun"
 	ExchangeUniswapV4OneToken           = "uniswap-v4-onetoken"
 	ExchangeUniswapV4OzLimitOrder       = "uniswap-v4-lo"
+	ExchangeUniswapV4SellOnly           = "uniswap-v4-sellonly"
 	ExchangeUniswapV4PonsV2             = "uniswap-v4-pons-v2"
 	ExchangeUniswapV4Prm                = "uniswap-v4-prm"
 	ExchangeUniswapV4Reafund            = "uniswap-v4-reafund"
