@@ -2,8 +2,10 @@ package prop
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -12,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
@@ -20,18 +23,42 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+const (
+	defaultReservesCacheTTL     = 200 * time.Millisecond
+	defaultReservesFetchTimeout = 5 * time.Second
+)
+
+type reservesSnapshot struct {
+	balanceByAddr map[string]*big.Int // read-only after build
+	blockNumber   *big.Int
+	fetchedAt     time.Time
+}
+
+type reservesFetchFunc func(ctx context.Context, routerAddr string) (*reservesSnapshot, error)
+
 type PoolTracker struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
+
+	cacheMu       sync.RWMutex
+	reservesCache map[string]*reservesSnapshot
+	reservesGroup singleflight.Group
+
+	fetchReserves reservesFetchFunc
+	now           func() time.Time
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	return &PoolTracker{
-		cfg:          cfg,
-		ethrpcClient: ethrpcClient,
+	t := &PoolTracker{
+		cfg:           cfg,
+		ethrpcClient:  ethrpcClient,
+		reservesCache: make(map[string]*reservesSnapshot),
+		now:           time.Now,
 	}
+	t.fetchReserves = t.fetchRouterReserves
+	return t
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -71,9 +98,124 @@ func (t *PoolTracker) GetNewPoolState(
 	return t.persist(p, ladder.Extra{Ladders: ladders}, r0, r1, blockNumber), nil
 }
 
-// fetchBalances calls getAssetReserves on the router and returns the two balances
-// that correspond to the pool's token pair, in pool token order.
+// fetchBalances returns the two balances that correspond to the pool's token pair,
+// in pool token order, backed by a short-lived per-router reserves snapshot.
 func (t *PoolTracker) fetchBalances(ctx context.Context, routerAddr string, tokens []*entity.PoolToken) ([]*big.Int, *big.Int, error) {
+	snap, err := t.getReservesSnapshot(ctx, routerAddr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	balances := make([]*big.Int, len(tokens))
+	for i, tok := range tokens {
+		bal := snap.balanceByAddr[strings.ToLower(tok.Address)]
+		if bal == nil {
+			return nil, nil, ErrInsufficientLiquidity
+		}
+		balances[i] = new(big.Int).Set(bal)
+	}
+
+	var blockNumber *big.Int
+	if snap.blockNumber != nil {
+		blockNumber = new(big.Int).Set(snap.blockNumber)
+	}
+
+	return balances, blockNumber, nil
+}
+
+func (t *PoolTracker) reservesCacheTTL() time.Duration {
+	if t.cfg == nil || t.cfg.ReservesCacheTTLMs == 0 {
+		return defaultReservesCacheTTL
+	}
+	if t.cfg.ReservesCacheTTLMs < 0 {
+		return -1
+	}
+	return time.Duration(t.cfg.ReservesCacheTTLMs) * time.Millisecond
+}
+
+func (t *PoolTracker) currentTime() time.Time {
+	if t.now != nil {
+		return t.now()
+	}
+	return time.Now()
+}
+
+func (t *PoolTracker) getReservesFetcher() reservesFetchFunc {
+	if t.fetchReserves != nil {
+		return t.fetchReserves
+	}
+	return t.fetchRouterReserves
+}
+
+func (t *PoolTracker) getCachedReserves(key string, ttl time.Duration) *reservesSnapshot {
+	t.cacheMu.RLock()
+	snap := t.reservesCache[key]
+	t.cacheMu.RUnlock()
+	if snap != nil && t.currentTime().Sub(snap.fetchedAt) < ttl {
+		return snap
+	}
+	return nil
+}
+
+func (t *PoolTracker) getReservesSnapshot(ctx context.Context, routerAddr string) (*reservesSnapshot, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	ttl := t.reservesCacheTTL()
+	if ttl < 0 {
+		return t.getReservesFetcher()(ctx, routerAddr)
+	}
+
+	key := strings.ToLower(routerAddr)
+	if snap := t.getCachedReserves(key, ttl); snap != nil {
+		return snap, nil
+	}
+
+	ch := t.reservesGroup.DoChan(key, func() (any, error) {
+		if snap := t.getCachedReserves(key, ttl); snap != nil {
+			return snap, nil
+		}
+
+		fetchCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), defaultReservesFetchTimeout)
+		defer cancel()
+
+		snap, err := t.getReservesFetcher()(fetchCtx, routerAddr)
+		if err != nil {
+			return nil, err
+		}
+		if snap == nil {
+			return nil, errors.New("nil reserves snapshot")
+		}
+
+		cached := &reservesSnapshot{
+			balanceByAddr: snap.balanceByAddr,
+			blockNumber:   snap.blockNumber,
+			fetchedAt:     t.currentTime(),
+		}
+
+		t.cacheMu.Lock()
+		if t.reservesCache == nil {
+			t.reservesCache = make(map[string]*reservesSnapshot)
+		}
+		t.reservesCache[key] = cached
+		t.cacheMu.Unlock()
+
+		return cached, nil
+	})
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case res := <-ch:
+		if res.Err != nil {
+			return nil, res.Err
+		}
+		return res.Val.(*reservesSnapshot), nil
+	}
+}
+
+func (t *PoolTracker) fetchRouterReserves(ctx context.Context, routerAddr string) (*reservesSnapshot, error) {
 	var assetReserves AssetReserves
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
@@ -85,26 +227,20 @@ func (t *PoolTracker) fetchBalances(ctx context.Context, routerAddr string, toke
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	balanceByAddr := make(map[string]*big.Int, len(assetReserves.Tokens))
 	for i, addr := range assetReserves.Tokens {
 		if i < len(assetReserves.Balances) {
-			balanceByAddr[strings.ToLower(hexutil.Encode(addr[:]))] = assetReserves.Balances[i]
+			balanceByAddr[hexutil.Encode(addr[:])] = assetReserves.Balances[i]
 		}
 	}
 
-	balances := make([]*big.Int, len(tokens))
-	for i, tok := range tokens {
-		bal := balanceByAddr[strings.ToLower(tok.Address)]
-		if bal == nil {
-			return nil, nil, ErrInsufficientLiquidity
-		}
-		balances[i] = bal
-	}
-
-	return balances, res.BlockNumber, nil
+	return &reservesSnapshot{
+		balanceByAddr: balanceByAddr,
+		blockNumber:   res.BlockNumber,
+	}, nil
 }
 
 // fetchQuotes probes the router's quote(account, tokenIn, tokenOut, amountIn) for every
