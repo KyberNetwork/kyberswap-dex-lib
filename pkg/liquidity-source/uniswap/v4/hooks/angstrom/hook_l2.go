@@ -8,10 +8,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -70,26 +71,26 @@ func (h *L2Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.Ra
 	return json.Marshal(h)
 }
 
-var FactorE6 = bignumber.TenPowInt(6)
+var uFactorE6 = uint256.NewInt(1_000_000)
 
 func (h *L2Hook) BeforeSwap(param *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	deltaSpecified := bignumber.ZeroBI
+	deltaSpecified := new(uint256.Int)
 	if param.ZeroForOne {
-		fee := big.NewInt(h.SwapFeeE6)
-		deltaSpecified = bignumber.MulDivDown(fee, param.AmountSpecified, fee, FactorE6)
+		fee := uint256.NewInt(uint64(h.SwapFeeE6))
+		u256.MulDivDown(deltaSpecified, param.AmountSpecified, fee, uFactorE6)
 	}
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   deltaSpecified,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
 func (h *L2Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	hookFeeAmt := bignumber.ZeroBI
+	hookFeeAmt := new(uint256.Int)
 	if !params.ZeroForOne {
-		fee := big.NewInt(h.SwapFeeE6)
-		hookFeeAmt = bignumber.MulDivDown(fee, lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn),
-			fee, FactorE6)
+		fee := uint256.NewInt(uint64(h.SwapFeeE6))
+		u256.MulDivDown(hookFeeAmt, lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn),
+			fee, uFactorE6)
 	}
 	return &uniswapv4.AfterSwapResult{
 		HookFee: hookFeeAmt,

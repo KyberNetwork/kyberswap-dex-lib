@@ -9,14 +9,16 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/samber/lo"
+	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var ErrOutdatedAttestations = errors.New("outdated attestations")
+
+var uOneE6 = uint256.NewInt(1_000_000)
 
 type Hook struct {
 	uniswapv4.Hook
@@ -110,8 +112,8 @@ func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 	}
 
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int),
 		SwapFee:          uniswapv4.FeeAmount(h.extra.UnlockedFee.Uint64()),
 
 		SwapInfo: SwapInfo{
@@ -124,27 +126,19 @@ func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	exactIn := params.CalcOut
 	targetAmount := params.AmountOut
+	protocolFee := u256.FromBig(h.extra.ProtocolUnlockedFee)
 
-	var tmp big.Int
-
-	fee := lo.Ternary(
-		exactIn,
-
-		new(big.Int).Div(
-			tmp.Mul(targetAmount, h.extra.ProtocolUnlockedFee),
-			ONE_E6,
-		),
-
-		new(big.Int).Sub(
-			tmp.Div(
-				tmp.Mul(targetAmount, ONE_E6),
-				tmp.Sub(ONE_E6, h.extra.ProtocolUnlockedFee),
-			),
-			targetAmount,
-		),
-	)
+	var fee uint256.Int
+	if exactIn {
+		fee.Mul(targetAmount, protocolFee).Div(&fee, uOneE6)
+	} else {
+		// floor(t * 1e6 / (1e6 - p)) - t, two sequential floors.
+		var denom uint256.Int
+		denom.Sub(uOneE6, protocolFee)
+		fee.Mul(targetAmount, uOneE6).Div(&fee, &denom).Sub(&fee, targetAmount)
+	}
 
 	return &uniswapv4.AfterSwapResult{
-		HookFee: fee,
+		HookFee: &fee,
 	}, nil
 }
