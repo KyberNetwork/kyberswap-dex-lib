@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -42,15 +43,15 @@ func TestBeforeSwap_ReturnsOverrideFeeOnly(t *testing.T) {
 	h := &Hook{Hook: &uniswapv4.BaseHook{}, FeePips: 20_000, LaunchedAt: launchedAt}
 
 	NowFn = func() int64 { return launchedAt + 3600 }
-	res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: bignumber.TenPowInt(18)})
+	res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big256.FromBig(bignumber.TenPowInt(18))})
 	require.NoError(t, err)
 	require.NoError(t, uniswapv4.ValidateBeforeSwapResult(res))
 	assert.Equal(t, uniswapv4.FeeAmount(20_000), res.SwapFee)
-	assert.Zero(t, res.DeltaSpecified.Sign(), "no delta: the fee is an LP fee")
-	assert.Zero(t, res.DeltaUnspecified.Sign())
+	assert.True(t, res.DeltaSpecified.IsZero(), "no delta: the fee is an LP fee")
+	assert.True(t, res.DeltaUnspecified.IsZero())
 
 	NowFn = func() int64 { return launchedAt + 1 }
-	res, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: false, AmountSpecified: bignumber.TenPowInt(18)})
+	res, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: false, AmountSpecified: big256.FromBig(bignumber.TenPowInt(18))})
 	require.NoError(t, err)
 	assert.Equal(t, uniswapv4.FeeAmount(666_667), res.SwapFee)
 }
@@ -59,11 +60,11 @@ func TestBeforeSwap_ReturnsOverrideFeeOnly(t *testing.T) {
 // quote a fee-free swap that the hook would then charge 2%+ on.
 func TestBeforeSwap_UntrackedPoolRefusesToQuote(t *testing.T) {
 	h := &Hook{Hook: &uniswapv4.BaseHook{}}
-	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: bignumber.TenPowInt(18)})
+	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: big256.FromBig(bignumber.TenPowInt(18))})
 	assert.ErrorIs(t, err, ErrPoolNotRegistered)
 
 	h.Extra = Extra{FeePips: maxFeePips + 1, LaunchedAt: launchedAt}
-	_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: bignumber.TenPowInt(18)})
+	_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: big256.FromBig(bignumber.TenPowInt(18))})
 	assert.ErrorIs(t, err, ErrInvalidFee)
 }
 
@@ -72,11 +73,11 @@ func TestAfterSwap_NoHookFee(t *testing.T) {
 	h := &Hook{Hook: &uniswapv4.BaseHook{}, FeePips: 20_000, LaunchedAt: launchedAt}
 	res, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-		AmountIn:         bignumber.TenPowInt(18),
-		AmountOut:        bignumber.TenPowInt(18),
+		AmountIn:         big256.FromBig(bignumber.TenPowInt(18)),
+		AmountOut:        big256.FromBig(bignumber.TenPowInt(18)),
 	})
 	require.NoError(t, err)
-	assert.Zero(t, res.HookFee.Sign())
+	assert.True(t, res.HookFee.IsZero())
 }
 
 // The registered factory rebuilds the hook from the tracked extra, and the address's permission bits select
