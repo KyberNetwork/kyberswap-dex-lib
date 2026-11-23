@@ -8,10 +8,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -59,20 +60,20 @@ func (h *Hook) Track(ctx context.Context, param *cl.HookParam) ([]byte, error) {
 }
 
 func (h *Hook) BeforeSwap(params *cl.BeforeSwapParams) (*cl.BeforeSwapResult, error) {
-	deltaSpecific := bignumber.ZeroBI
+	deltaSpecific := new(uint256.Int)
 	if params.ZeroForOne == (h.TaxCurrencyIdx == 0) {
-		deltaSpecific = bignumber.MulDivDown(new(big.Int), params.AmountSpecified, h.TaxRate, bignumber.BasisPoint)
+		u256.MulDivDown(deltaSpecific, params.AmountSpecified, u256.FromBig(h.TaxRate), u256.UBasisPoint)
 	}
 	return &cl.BeforeSwapResult{
 		DeltaSpecified:   deltaSpecific,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
 func (h *Hook) AfterSwap(params *cl.AfterSwapParams) (*cl.AfterSwapResult, error) {
-	hookFeeAmt := bignumber.ZeroBI
+	hookFeeAmt := new(uint256.Int)
 	if params.ZeroForOne != (h.TaxCurrencyIdx == 0) {
-		hookFeeAmt = bignumber.MulDivDown(new(big.Int), params.AmountOut, h.TaxRate, bignumber.BasisPoint)
+		u256.MulDivDown(hookFeeAmt, params.AmountOut, u256.FromBig(h.TaxRate), u256.UBasisPoint)
 	}
 	return &cl.AfterSwapResult{
 		HookFee: hookFeeAmt,
