@@ -1,17 +1,16 @@
 package idle
 
 import (
-	"math/big"
-
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
-	feePct = bignumber.Three
+	feePct = uint256.NewInt(3)
 )
 
 // Hook of idle takes 3% fee of ETH token
@@ -26,21 +25,21 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 }, HookAddresses...)
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	deltaSpecified := bignumber.ZeroBI
+	deltaSpecified := new(uint256.Int)
 	if params.ZeroForOne {
-		deltaSpecified = bignumber.MulDivDown(new(big.Int), params.AmountSpecified, feePct, bignumber.B100)
+		big256.MulDivDown(deltaSpecified, params.AmountSpecified, feePct, big256.U100)
 	}
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   deltaSpecified,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	hookFeeAmt := bignumber.ZeroBI
+	hookFeeAmt := new(uint256.Int)
 	if !params.ZeroForOne {
-		hookFeeAmt = bignumber.MulDivDown(new(big.Int),
-			lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn), feePct, bignumber.B100)
+		big256.MulDivDown(hookFeeAmt,
+			lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn), feePct, big256.U100)
 	}
 	return &uniswapv4.AfterSwapResult{
 		HookFee: hookFeeAmt,
