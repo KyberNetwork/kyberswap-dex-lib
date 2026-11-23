@@ -2,17 +2,17 @@ package nftstrat
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -65,10 +65,10 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 }
 
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	fee := big.NewInt(h.calculateFee(params.ZeroForOne))
+	fee := uint256.NewInt(uint64(h.calculateFee(params.ZeroForOne)))
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.MulDivDown(fee,
-			lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn), fee, bignumber.BasisPoint),
+		HookFee: big256.MulDivDown(new(uint256.Int),
+			lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn), fee, big256.UBasisPoint),
 	}, nil
 }
 
