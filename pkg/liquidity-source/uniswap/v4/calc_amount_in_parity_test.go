@@ -28,7 +28,7 @@ func TestCalcAmtInParity(t *testing.T) {
 
 	swappingHook := func() *stubHook {
 		return &stubHook{BaseHook: &BaseHook{}, canBefore: true, before: &BeforeSwapResult{
-			DeltaSpecified: big.NewInt(100), DeltaUnspecified: big.NewInt(5000), SwapFee: 5000, Gas: 1234,
+			DeltaSpecified: uint256.NewInt(100), DeltaUnspecified: uint256.NewInt(5000), SwapFee: 5000, Gas: 1234,
 		}}
 	}
 	const usdc, rez = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0x3b50805453023a91a8bf641e279401a0b23fa6f9"

@@ -17,6 +17,7 @@ import (
 	few_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/v2"
 	sharedv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -327,13 +328,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			swapResult.TokenAmountOut.Token = originalTokenOut
 
 			if beforeSwapResult != nil {
-				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, beforeSwapResult.DeltaUnspecified)
+				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount,
+					big256.ToBig(beforeSwapResult.DeltaUnspecified))
 				swapResult.Gas += beforeSwapResult.Gas
 				v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
 			}
 
 			if afterSwapResult != nil {
-				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, afterSwapResult.HookFee)
+				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount,
+					big256.ToBig(afterSwapResult.HookFee))
 				swapResult.Gas += afterSwapResult.Gas
 			}
 
@@ -400,7 +403,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 		if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
 			CalcOut:         true,
 			ZeroForOne:      zeroForOne,
-			AmountSpecified: amountIn,
+			AmountSpecified: big256.FromBig(amountIn),
 			SqrtPriceX96:    &p.V3Pool.SqrtRatioX96,
 		}); err != nil {
 			return nil, fmt.Errorf("[BeforeSwap] %w", err)
@@ -408,7 +411,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			return nil, fmt.Errorf("[BeforeSwap] validation failed: %w", err)
 		}
 
-		if amountIn.Sub(amountIn, beforeSwapResult.DeltaSpecified).Sign() < 0 {
+		if amountIn.Sub(amountIn, big256.ToBig(beforeSwapResult.DeltaSpecified)).Sign() < 0 {
 			return nil, ErrInvalidAmountIn
 		}
 
@@ -439,11 +442,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			BeforeSwapParams: &BeforeSwapParams{
 				CalcOut:         true,
 				ZeroForOne:      zeroForOne,
-				AmountSpecified: amountIn,
+				AmountSpecified: big256.FromBig(amountIn),
 				SqrtPriceX96:    &p.V3Pool.SqrtRatioX96,
 			},
-			AmountIn:         amountIn,
-			AmountOut:        swapResult.TokenAmountOut.Amount,
+			AmountIn:         big256.FromBig(amountIn),
+			AmountOut:        big256.FromBig(swapResult.TokenAmountOut.Amount),
 			BeforeSwapResult: beforeSwapResult,
 		})
 		if err != nil {
@@ -486,13 +489,15 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			swapResult.TokenAmountIn.Token = originalTokenIn
 
 			if beforeSwapResult != nil {
-				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, beforeSwapResult.DeltaUnspecified)
+				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount,
+					big256.ToBig(beforeSwapResult.DeltaUnspecified))
 				swapResult.Gas += beforeSwapResult.Gas
 				v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
 			}
 
 			if afterSwapResult != nil {
-				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, afterSwapResult.HookFee)
+				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount,
+					big256.ToBig(afterSwapResult.HookFee))
 				swapResult.Gas += afterSwapResult.Gas
 			}
 
@@ -556,7 +561,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 		if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
 			CalcOut:         false,
 			ZeroForOne:      zeroForOne,
-			AmountSpecified: amountOut,
+			AmountSpecified: big256.FromBig(amountOut),
 			SqrtPriceX96:    &p.V3Pool.SqrtRatioX96,
 		}); err != nil {
 			return nil, fmt.Errorf("[BeforeSwap] %w", err)
@@ -564,7 +569,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			return nil, fmt.Errorf("[BeforeSwap] validation failed: %w", err)
 		}
 
-		if amountOut.Add(amountOut, beforeSwapResult.DeltaSpecified).Sign() < 0 {
+		if amountOut.Add(amountOut, big256.ToBig(beforeSwapResult.DeltaSpecified)).Sign() < 0 {
 			return nil, ErrInvalidAmountOut
 		}
 
@@ -595,11 +600,11 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			BeforeSwapParams: &BeforeSwapParams{
 				CalcOut:         false,
 				ZeroForOne:      zeroForOne,
-				AmountSpecified: amountOut,
+				AmountSpecified: big256.FromBig(amountOut),
 				SqrtPriceX96:    &p.V3Pool.SqrtRatioX96,
 			},
-			AmountIn:         swapResult.TokenAmountIn.Amount,
-			AmountOut:        amountOut,
+			AmountIn:         big256.FromBig(swapResult.TokenAmountIn.Amount),
+			AmountOut:        big256.FromBig(amountOut),
 			BeforeSwapResult: beforeSwapResult,
 		}); err != nil {
 			return nil, fmt.Errorf("[AfterSwap] %w", err)

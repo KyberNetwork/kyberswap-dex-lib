@@ -7,10 +7,10 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -158,14 +158,14 @@ func (h *BaseHook) Track(context.Context, *HookParam) ([]byte, error) {
 
 func (h *BaseHook) BeforeSwap(_ *BeforeSwapParams) (*BeforeSwapResult, error) {
 	return &BeforeSwapResult{
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
 func (h *BaseHook) AfterSwap(_ *AfterSwapParams) (*AfterSwapResult, error) {
 	return &AfterSwapResult{
-		HookFee: bignumber.ZeroBI,
+		HookFee: new(uint256.Int),
 	}, nil
 }
 

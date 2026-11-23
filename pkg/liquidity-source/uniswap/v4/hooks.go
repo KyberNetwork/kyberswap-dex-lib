@@ -14,7 +14,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -23,14 +22,15 @@ type BeforeSwapParams struct {
 	// Hooks must invert their exact-in fees then, NOT apply the contract's exact-out (amountSpecified > 0) branch.
 	CalcOut         bool
 	ZeroForOne      bool
-	AmountSpecified *big.Int // CalcOut: amountIn; CalcIn: amountOut
+	AmountSpecified *uint256.Int // CalcOut: amountIn; CalcIn: amountOut
 	// SqrtPriceX96 is the pool's current sqrt price, before this swap. Read-only; copy it to keep it.
 	SqrtPriceX96 *uint256.Int
 }
 
+// Deltas are two's complement: a negative delta is the uint256 whose Sign() is negative.
 type BeforeSwapResult struct {
-	DeltaSpecified   *big.Int // CalcOut: in -= specified   ; CalcIn: out += specified
-	DeltaUnspecified *big.Int // CalcOut: out -= unspecified; CalcIn: in += unspecified
+	DeltaSpecified   *uint256.Int // CalcOut: in -= specified   ; CalcIn: out += specified
+	DeltaUnspecified *uint256.Int // CalcOut: out -= unspecified; CalcIn: in += unspecified
 	SwapFee          FeeAmount
 	Gas              int64
 	SwapInfo         any
@@ -48,7 +48,7 @@ func ValidateBeforeSwapResult(result *BeforeSwapResult) error {
 }
 
 type AfterSwapResult struct {
-	HookFee *big.Int // CalcOut: out -= hook fee; CalcIn: in += hook fee
+	HookFee *uint256.Int // CalcOut: out -= hook fee; CalcIn: in += hook fee
 	Gas     int64
 }
 
@@ -66,8 +66,8 @@ func ValidateAfterSwapResult(result *AfterSwapResult) error {
 
 type AfterSwapParams struct {
 	*BeforeSwapParams
-	AmountIn  *big.Int
-	AmountOut *big.Int
+	AmountIn  *uint256.Int
+	AmountOut *uint256.Int
 	// BeforeSwapResult is this quote's BeforeSwap result (nil if the hook has none), so a hook can pass
 	// quote-scoped values to AfterSwap without writing its own state.
 	BeforeSwapResult *BeforeSwapResult
@@ -253,14 +253,14 @@ func (h *BaseHook) Track(context.Context, *HookParam) (json.RawMessage, error) {
 
 func (h *BaseHook) BeforeSwap(_ *BeforeSwapParams) (*BeforeSwapResult, error) {
 	return &BeforeSwapResult{
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
 func (h *BaseHook) AfterSwap(_ *AfterSwapParams) (*AfterSwapResult, error) {
 	return &AfterSwapResult{
-		HookFee: bignumber.ZeroBI,
+		HookFee: new(uint256.Int),
 	}, nil
 }
 

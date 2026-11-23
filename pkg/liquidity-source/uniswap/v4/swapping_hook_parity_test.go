@@ -46,8 +46,9 @@ func TestCalcAmtOutSwappingHookParity(t *testing.T) {
 	dynamic.staticExtra.Fee = 0x800000
 
 	z := func(v int64) *big.Int { return big.NewInt(v) }
-	beforeOnly := func(s, u int64, swapFee FeeAmount, gas int64) *BeforeSwapResult {
-		return &BeforeSwapResult{DeltaSpecified: z(s), DeltaUnspecified: z(u), SwapFee: swapFee, Gas: gas}
+	u := func(v int64) *uint256.Int { return uint256.NewInt(uint64(v)) }
+	beforeOnly := func(s, d int64, swapFee FeeAmount, gas int64) *BeforeSwapResult {
+		return &BeforeSwapResult{DeltaSpecified: u(s), DeltaUnspecified: u(d), SwapFee: swapFee, Gas: gas}
 	}
 	cases := []struct {
 		name    string
@@ -70,11 +71,11 @@ func TestCalcAmtOutSwappingHookParity(t *testing.T) {
 			&stubHook{BaseHook: &BaseHook{}, canBefore: true, before: beforeOnly(0, 0, 0, 1234)},
 			"1070524829112273927801315", 131103, nil},
 		{"after-hook-fee", *base,
-			&stubHook{BaseHook: &BaseHook{}, canAfter: true, after: &AfterSwapResult{HookFee: z(77), Gas: 999}},
+			&stubHook{BaseHook: &BaseHook{}, canAfter: true, after: &AfterSwapResult{HookFee: u(77), Gas: 999}},
 			"1070524829112273927801238", 130868, nil},
 		{"all-terms", dynamic,
 			&stubHook{BaseHook: &BaseHook{}, canBefore: true, canAfter: true,
-				before: beforeOnly(100, 5000, 5000, 1234), after: &AfterSwapResult{HookFee: z(77), Gas: 999}},
+				before: beforeOnly(100, 5000, 5000, 1234), after: &AfterSwapResult{HookFee: u(77), Gas: 999}},
 			"1075374018738589681063711", 132102, nil},
 		{"before-error", *base,
 			&stubHook{BaseHook: &BaseHook{}, canBefore: true, beforeErr: fmt.Errorf("boom")},
