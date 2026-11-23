@@ -1,15 +1,14 @@
 package flaunch
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func defaultHook() *Hook {
@@ -18,11 +17,11 @@ func defaultHook() *Hook {
 
 func TestHook_BeforeSwap_TakesNoFee(t *testing.T) {
 	for _, calcOut := range []bool{true, false} {
-		result, err := defaultHook().BeforeSwap(&uniswapv4.BeforeSwapParams{AmountSpecified: big.NewInt(1e18), CalcOut: calcOut})
+		result, err := defaultHook().BeforeSwap(&uniswapv4.BeforeSwapParams{AmountSpecified: uint256.NewInt(1e18), CalcOut: calcOut})
 		require.NoError(t, err)
 		assert.Equal(t, uniswapv4.FeeAmount(0), result.SwapFee)
-		assert.Equal(t, bignumber.ZeroBI, result.DeltaSpecified)
-		assert.Equal(t, bignumber.ZeroBI, result.DeltaUnspecified)
+		assert.Equal(t, uint256.NewInt(0), result.DeltaSpecified)
+		assert.Equal(t, uint256.NewInt(0), result.DeltaUnspecified)
 	}
 }
 
@@ -49,11 +48,11 @@ func TestHook_AfterSwap_FeeOnUnspecified(t *testing.T) {
 			h.SwapFee = c.swapFee
 			result, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 				BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: c.calcOut},
-				AmountIn:         big.NewInt(c.in),
-				AmountOut:        big.NewInt(c.out),
+				AmountIn:         uint256.NewInt(uint64(c.in)),
+				AmountOut:        uint256.NewInt(uint64(c.out)),
 			})
 			require.NoError(t, err)
-			assert.Zero(t, big.NewInt(c.want).Cmp(result.HookFee), "want %d got %s", c.want, result.HookFee)
+			assert.Equal(t, uint256.NewInt(uint64(c.want)), result.HookFee, "want %d", c.want)
 		})
 	}
 }
@@ -62,7 +61,7 @@ func TestHook_AfterSwap_RejectsFeeAbove100Percent(t *testing.T) {
 	h := defaultHook()
 	h.SwapFee = FeeDenom + 1
 	_, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
-		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true}, AmountIn: big.NewInt(1), AmountOut: big.NewInt(1e18),
+		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true}, AmountIn: uint256.NewInt(1), AmountOut: uint256.NewInt(1e18),
 	})
 	assert.ErrorIs(t, err, ErrFeeTooHigh)
 }
@@ -76,7 +75,7 @@ func TestHook_SpendGate(t *testing.T) {
 	t.Cleanup(func() { NowFn = func() int64 { return now } })
 
 	swap := &uniswapv4.AfterSwapParams{
-		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true}, AmountIn: big.NewInt(1), AmountOut: big.NewInt(1e18),
+		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true}, AmountIn: uint256.NewInt(1), AmountOut: uint256.NewInt(1e18),
 	}
 	cases := []struct {
 		name    string

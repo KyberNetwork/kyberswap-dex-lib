@@ -25,9 +25,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -35,7 +36,8 @@ var (
 	ErrGated      = errors.New("flaunch: pool is spend-gated, swaps without a signed authorization revert")
 	ErrFeeTooHigh = errors.New("flaunch: swapFee exceeds 100%")
 
-	feeDenom = big.NewInt(FeeDenom)
+	feeDenom  = big.NewInt(FeeDenom)
+	uFeeDenom = uint256.NewInt(FeeDenom)
 )
 
 // NowFn is a var so tests can pin the gate-expiry clock.
@@ -182,8 +184,8 @@ func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 	}
 	return &uniswapv4.BeforeSwapResult{
 		SwapFee:          uniswapv4.FeeAmount(0),
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
@@ -201,10 +203,10 @@ func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwa
 		unspecified = params.AmountOut
 	}
 	if h.SwapFee == 0 || unspecified == nil || unspecified.Sign() == 0 {
-		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI}, nil
+		return &uniswapv4.AfterSwapResult{HookFee: new(uint256.Int)}, nil
 	}
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.MulDivDown(new(big.Int), unspecified, big.NewInt(int64(h.SwapFee)), feeDenom),
+		HookFee: big256.MulDivDown(new(uint256.Int), unspecified, uint256.NewInt(uint64(h.SwapFee)), uFeeDenom),
 	}, nil
 }
 
