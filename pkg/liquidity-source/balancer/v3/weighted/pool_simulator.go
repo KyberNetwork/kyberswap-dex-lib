@@ -68,15 +68,15 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *
 		}
 	}
 
-	calculatedAmountScaled18, err := lo.Ternary(param.Kind == shared.ExactIn,
-		math.WeightedMath.ComputeOutGivenExactIn, math.WeightedMath.ComputeInGivenExactOut,
-	)(
-		balanceTokenInScaled18,
-		weightIn,
-		balanceTokenOutScaled18,
-		weightOut,
-		param.AmountGivenScaled18,
-	)
+	// Direct calls (not function values) keep balanceInPlusOne on the stack.
+	var calculatedAmountScaled18 *uint256.Int
+	if param.Kind == shared.ExactIn {
+		calculatedAmountScaled18, err = math.WeightedMath.ComputeOutGivenExactIn(balanceTokenInScaled18, weightIn,
+			balanceTokenOutScaled18, weightOut, param.AmountGivenScaled18)
+	} else {
+		calculatedAmountScaled18, err = math.WeightedMath.ComputeInGivenExactOut(balanceTokenInScaled18, weightIn,
+			balanceTokenOutScaled18, weightOut, param.AmountGivenScaled18)
+	}
 	if err != nil {
 		return nil, err
 	}
