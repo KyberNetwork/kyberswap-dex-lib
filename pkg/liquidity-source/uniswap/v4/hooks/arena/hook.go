@@ -2,24 +2,24 @@ package arena
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"golang.org/x/sync/singleflight"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type Hook struct {
 	uniswapv4.Hook
-	totalFeePpm *big.Int
+	totalFeePpm *uint256.Int
 }
 
 type Extra struct {
@@ -33,7 +33,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 
 	var extra Extra
 	if err := param.HookExtra.Unmarshal(&extra); err == nil {
-		hook.totalFeePpm = big.NewInt(extra.TotalFeePpm)
+		hook.totalFeePpm = uint256.NewInt(uint64(extra.TotalFeePpm))
 	}
 	return hook
 }, HookAddresses...)
@@ -78,11 +78,11 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	return json.Marshal(extra)
 }
 
-var MaxHookFee = bignumber.TenPowInt(6)
+var MaxHookFee = uint256.NewInt(1e6)
 
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.MulDivDown(new(big.Int),
+		HookFee: u256.MulDivDown(new(uint256.Int),
 			lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn), h.totalFeePpm, MaxHookFee),
 	}, nil
 }
