@@ -2,16 +2,16 @@ package aave
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -52,16 +52,17 @@ func TestCalcAmountOut(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(
-					pool.CalcAmountOutParams{
-						TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+				var in uint256.Int
+				in.SetUint64(uint64(tc.inAmount))
+				return p.CalcAmtOut(
+					pool.CalcAmtOutParams{
+						TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: in},
 						TokenOut:      tc.out,
-						Limit:         nil,
 					})
 			})
 			require.Nil(t, err)
-			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
+			assert.Equal(t, uint256.NewInt(uint64(tc.expectedOutAmount)).String(), out.TokenAmountOut.Amount.String())
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 			// no need to check fee, for aave fee has been subtracted from amountOut already
 			// if amountOut is correct then so is fee
@@ -96,9 +97,9 @@ func TestAddLiquidity(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			res, err := p.AddLiquidity(lo.Map(tc.amounts, func(s string, _ int) *big.Int { return bignumber.NewBig10(s) }))
+			res, err := p.AddLiquidity(lo.Map(tc.amounts, func(s string, _ int) *uint256.Int { return big256.New(s) }))
 			require.Nil(t, err)
-			assert.Equal(t, bignumber.NewBig10(tc.expectedLp), res)
+			assert.Equal(t, big256.New(tc.expectedLp).String(), res.String())
 			fmt.Println(p.Info.Reserves)
 		})
 	}
@@ -135,24 +136,24 @@ func TestGetDyVirtualPrice(t *testing.T) {
 
 	v, dCached, err := p.GetVirtualPrice()
 	require.Nil(t, err)
-	assert.Equal(t, bignumber.NewBig10("1077638023314146944"), v)
+	assert.Equal(t, "1077638023314146944", v.String())
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			dy, err := testutil.MustConcurrentSafe(t, func() (*big.Int, error) {
-				dy, _, err := p.GetDy(tc.i, tc.j, bignumber.NewBig10(tc.dx), nil)
+			dy, err := testutil.MustConcurrentSafe(t, func() (*uint256.Int, error) {
+				dy, _, err := p.GetDy(tc.i, tc.j, big256.New(tc.dx), nil)
 				return dy, err
 			})
 			require.Nil(t, err)
-			assert.Equal(t, bignumber.NewBig10(tc.expOut), dy)
+			assert.Equal(t, big256.New(tc.expOut).String(), dy.String())
 
 			// test using cached D
-			dy, err = testutil.MustConcurrentSafe(t, func() (*big.Int, error) {
-				dy, _, err := p.GetDy(tc.i, tc.j, bignumber.NewBig10(tc.dx), dCached)
+			dy, err = testutil.MustConcurrentSafe(t, func() (*uint256.Int, error) {
+				dy, _, err := p.GetDy(tc.i, tc.j, big256.New(tc.dx), dCached)
 				return dy, err
 			})
 			require.Nil(t, err)
-			assert.Equal(t, bignumber.NewBig10(tc.expOut), dy)
+			assert.Equal(t, big256.New(tc.expOut).String(), dy.String())
 		})
 	}
 }
@@ -168,8 +169,10 @@ func TestCloneState(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: "C", Amount: big.NewInt(100000000)},
+	var in uint256.Int
+	in.SetUint64(100000000)
+	testutil.TestCloneStateIPoolSim(t, p, pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: "C", Amount: in},
 		TokenOut:      "B",
-	}, nil)
+	})
 }

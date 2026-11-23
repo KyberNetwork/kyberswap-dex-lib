@@ -15,4 +15,7 @@ var (
 	ErrD1LowerThanD0                = errors.New("d1 <= d0")
 	ErrDenominatorZero              = errors.New("denominator should not be 0")
 	ErrInvalidAmountOut             = errors.New("invalid amount out")
+	ErrDivisionByZero               = errors.New("division by zero")
+	// ErrNegativeResult: legacy returned a negative value (or drove a reserve negative); uint256 cannot hold it.
+	ErrNegativeResult = errors.New("negative result")
 )
