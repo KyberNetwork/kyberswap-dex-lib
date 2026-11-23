@@ -2,11 +2,9 @@ package stableng
 
 import (
 	"fmt"
-	"math/big"
 	"slices"
 	"strings"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -14,15 +12,33 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+// Info is the pool identity and token list. Reserves live in PoolSimulator.Reserves, the uint256 source of truth.
+type Info struct {
+	Address     string
+	Exchange    string
+	Type        string
+	Tokens      []string
+	SwapFee     *uint256.Int
+	BlockNumber uint64
+}
+
+func (i *Info) GetTokenIndex(address string) int {
+	for idx, token := range i.Tokens {
+		if token == address {
+			return idx
+		}
+	}
+	return -1
+}
+
 type PoolSimulator struct {
-	pool.Pool
+	Info Info
 
 	precisionMultipliers []uint256.Int
-	Reserves             []uint256.Int // same as pool.Reserves but use uint256.Int
+	Reserves             []uint256.Int
 
 	LpSupply uint256.Int
 	gas      Gas
@@ -41,7 +57,10 @@ type Gas struct {
 	Exchange int64
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var (
+	_ pool.IPoolSim = (*PoolSimulator)(nil)
+	_               = pool.RegisterFactory0(DexType, NewPoolSimulator)
+)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	sim := &PoolSimulator{}
@@ -65,7 +84,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	var tokens = make([]string, numTokens)
-	var reservesBI = make([]*big.Int, numTokens)
 
 	sim.Reserves = make([]uint256.Int, numTokens)
 	sim.precisionMultipliers = make([]uint256.Int, numTokens)
@@ -73,7 +91,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 
-		reservesBI[i] = bignumber.NewBig10(entityPool.Reserves[i])
 		if err := sim.Reserves[i].SetFromDecimal(entityPool.Reserves[i]); err != nil {
 			return nil, err
 		}
@@ -84,16 +101,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		)
 	}
 
-	sim.Pool = pool.Pool{
-		Info: pool.PoolInfo{
-			Address:     strings.ToLower(entityPool.Address),
-			SwapFee:     sim.Extra.SwapFee.ToBig(),
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      tokens,
-			Reserves:    reservesBI,
-			BlockNumber: entityPool.BlockNumber,
-		},
+	sim.Info = Info{
+		Address:     strings.ToLower(entityPool.Address),
+		SwapFee:     sim.Extra.SwapFee.Clone(),
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	sim.gas = DefaultGas
@@ -108,50 +122,62 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return sim, nil
 }
 
-func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := param.TokenAmountIn
-	tokenOut := param.TokenOut
-	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
-	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
-	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		var amountOut, adminFee, amount uint256.Int
-		amount.SetFromBig(tokenAmountIn.Amount)
-		err := t.GetDy(
-			tokenIndexFrom,
-			tokenIndexTo,
-			&amount,
-			nil,
-			&amountOut, &adminFee,
-		)
-		if err != nil {
-			return nil, err
-		}
+func (t *PoolSimulator) GetTokens() []string {
+	return t.Info.Tokens
+}
 
-		if amountOut.IsZero() {
-			return &pool.CalcAmountOutResult{}, ErrZero
-		}
+func (t *PoolSimulator) GetAddress() string {
+	return t.Info.Address
+}
 
-		return &pool.CalcAmountOutResult{
-			TokenAmountOut: &pool.TokenAmount{
-				Token:  tokenOut,
-				Amount: amountOut.ToBig(),
-			},
-			Fee: &pool.TokenAmount{
-				Token:  tokenOut,
-				Amount: adminFee.ToBig(),
-			},
-			Gas: t.gas.Exchange,
-		}, nil
+func (t *PoolSimulator) GetExchange() string {
+	return t.Info.Exchange
+}
+
+func (t *PoolSimulator) GetType() string {
+	return t.Info.Type
+}
+
+func (t *PoolSimulator) GetTokenIndex(address string) int {
+	return t.Info.GetTokenIndex(address)
+}
+
+func (t *PoolSimulator) CanSwapTo(address string) []string {
+	if t.GetTokenIndex(address) == -1 {
+		return nil
 	}
+	result := make([]string, 0, len(t.Info.Tokens)-1)
+	for _, token := range t.Info.Tokens {
+		if token != address {
+			result = append(result, token)
+		}
+	}
+	return result
+}
 
-	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
+func (t *PoolSimulator) CanSwapFrom(address string) []string {
+	return t.CanSwapTo(address)
+}
+
+// GetApprovalAddress returns the empty string: stable-ng pools need no approval address.
+func (t *PoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
+	return ""
+}
+
+func (t *PoolSimulator) GetReserves() []uint256.Int {
+	return slices.Clone(t.Reserves)
+}
+
+// CalcLimit returns nil: stable-ng pools have no shared inventory limit.
+func (t *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
 }
 
 func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	tokenIndexFrom := t.Info.GetTokenIndex(param.TokenAmountIn.Token)
 	tokenIndexTo := t.Info.GetTokenIndex(param.TokenOut)
 	if tokenIndexFrom < 0 || tokenIndexTo < 0 {
-		return &pool.CalcAmtOutResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
+		return nil, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
 	}
 
 	var amountOut, adminFee uint256.Int
@@ -160,7 +186,14 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 		return nil, err
 	}
 	if amountOut.IsZero() {
-		return &pool.CalcAmtOutResult{}, ErrZero
+		return nil, ErrZero
+	}
+	// UpdateState subtracts amountOut plus its admin fee from the output reserve. Reject a quote that would drive
+	// that reserve negative, before any state is written (tricrypto-ng and compound pattern).
+	var need uint256.Int
+	need.Add(&amountOut, &adminFee)
+	if t.Reserves[tokenIndexTo].Lt(&need) {
+		return nil, ErrNegativeResult
 	}
 
 	return &pool.CalcAmtOutResult{
@@ -170,82 +203,46 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 	}, nil
 }
 
-func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	tokenAmountOut := param.TokenAmountOut
-	tokenIn := param.TokenIn
-	var tokenIndexFrom = t.Info.GetTokenIndex(tokenIn)
-	var tokenIndexTo = t.Info.GetTokenIndex(tokenAmountOut.Token)
-	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		var amountIn, adminFee, amountOut uint256.Int
-		amountOut.SetFromBig(tokenAmountOut.Amount)
-		err := t.GetDx(
-			tokenIndexFrom,
-			tokenIndexTo,
-			&amountOut,
-			nil,
-			&amountIn,
-			&adminFee,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if amountIn.IsZero() {
-			return &pool.CalcAmountInResult{}, ErrZero
-		}
-
-		return &pool.CalcAmountInResult{
-			TokenAmountIn: &pool.TokenAmount{
-				Token:  tokenIn,
-				Amount: amountIn.ToBig(),
-			},
-			Fee: &pool.TokenAmount{
-				Token:  tokenAmountOut.Token,
-				Amount: adminFee.ToBig(),
-			},
-			Gas: t.gas.Exchange,
-		}, nil
+func (t *PoolSimulator) CalcAmtIn(param pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
+	tokenIndexFrom := t.Info.GetTokenIndex(param.TokenIn)
+	tokenIndexTo := t.Info.GetTokenIndex(param.TokenAmountOut.Token)
+	if tokenIndexFrom < 0 || tokenIndexTo < 0 {
+		return nil, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
 	}
 
-	return &pool.CalcAmountInResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
+	var amountIn, adminFee uint256.Int
+	amountOut := param.TokenAmountOut.Amount
+	if err := t.GetDx(tokenIndexFrom, tokenIndexTo, &amountOut, nil, &amountIn, &adminFee); err != nil {
+		return nil, err
+	}
+	if amountIn.IsZero() {
+		return nil, ErrZero
+	}
+
+	return &pool.CalcAmtInResult{
+		TokenAmountIn: &pool.TokenAmt{Token: param.TokenIn, Amount: amountIn},
+		Fee:           &pool.TokenAmt{Token: param.TokenAmountOut.Token, Amount: adminFee},
+		Gas:           t.gas.Exchange,
+	}, nil
 }
 
-func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (t *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *t
-	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	cloned.Info.Tokens = slices.Clone(t.Info.Tokens)
 	cloned.Reserves = slices.Clone(t.Reserves)
 	return &cloned
 }
 
-func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	input, output := params.TokenAmountIn, params.TokenAmountOut
-	var inputAmount = input.Amount
-	outputAmount := new(big.Int).Add(output.Amount, params.Fee.Amount)
-	for i := range t.Info.Tokens {
-		if t.Info.Tokens[i] == input.Token {
-			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
-			t.Reserves[i].Add(&t.Reserves[i], number.SetFromBig(inputAmount))
-		}
-		if t.Info.Tokens[i] == output.Token {
-			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
-			t.Reserves[i].Sub(&t.Reserves[i], number.SetFromBig(outputAmount))
-		}
-	}
-	t.cacheD()
-}
-
-// UpdateState is UpdateBalance with uint256 amounts. The fee is a value, so it needs no nil check.
+// UpdateState applies a swap. CalcAmtOut has already rejected any write that would drive a reserve negative.
 func (t *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var outputAmount uint256.Int
 	outputAmount.Add(&output.Amount, &params.Fee.Amount)
 	for i := range t.Info.Tokens {
 		if t.Info.Tokens[i] == input.Token {
-			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], input.Amount.ToBig())
 			t.Reserves[i].Add(&t.Reserves[i], &input.Amount)
 		}
 		if t.Info.Tokens[i] == output.Token {
-			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount.ToBig())
 			t.Reserves[i].Sub(&t.Reserves[i], &outputAmount)
 		}
 	}

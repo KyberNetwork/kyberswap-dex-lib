@@ -61,26 +61,16 @@ func TestCalcAmountOut(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+				return p.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: *uint256.NewInt(uint64(tc.inAmount))},
 					TokenOut:      tc.out,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
-			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
-			native, err := p.CalcAmtOut(pool.CalcAmtOutParams{
-				TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: *uint256.NewInt(uint64(tc.inAmount))},
-				TokenOut:      tc.out,
-			})
-			require.Nil(t, err)
-			assert.Equal(t, out.TokenAmountOut.Amount.String(), native.TokenAmountOut.Amount.Dec(),
-				"native CalcAmtOut must match CalcAmountOut")
-			assert.Equal(t, out.Fee.Amount.String(), native.Fee.Amount.Dec(), "native fee must match")
-			assert.Equal(t, out.Gas, native.Gas, "native gas must match")
+			assert.Equal(t, uint256.NewInt(uint64(tc.expectedOutAmount)).Dec(), out.TokenAmountOut.Amount.Dec())
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
-			fmt.Println("fee", out.Fee.Amount)
+			fmt.Println("fee", out.Fee.Amount.Dec())
 		})
 	}
 }
@@ -107,9 +97,9 @@ func TestCalcAmountOutDegeneratePool(t *testing.T) {
 	require.NoError(t, err)
 
 	// 1e18 DAI → USDT: on-chain reverts because get_D oscillates; simulator must also error.
-	amtIn := new(big.Int).SetUint64(1_000_000_000_000_000_000)
-	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063", Amount: amtIn},
+	amtIn := *uint256.NewInt(1_000_000_000_000_000_000)
+	_, err = sim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063", Amount: amtIn},
 		TokenOut:      "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
 	})
 	require.ErrorIs(t, err, ErrDDoesNotConverge)
@@ -236,11 +226,12 @@ func TestCalcAmountIn(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			amountIn, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
-				return p.CalcAmountIn(pool.CalcAmountInParams{
-					TokenAmountOut: pool.TokenAmount{Token: tc.tokenOut, Amount: tc.amountOut},
+			var amountOut uint256.Int
+			require.NoError(t, amountOut.SetFromDecimal(tc.amountOut.String()))
+			amountIn, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtInResult, error) {
+				return p.CalcAmtIn(pool.CalcAmtInParams{
+					TokenAmountOut: pool.TokenAmt{Token: tc.tokenOut, Amount: amountOut},
 					TokenIn:        tc.tokenIn,
-					Limit:          nil,
 				})
 			})
 
@@ -250,13 +241,13 @@ func TestCalcAmountIn(t *testing.T) {
 			}
 
 			assert.Equal(t, tc.tokenIn, amountIn.TokenAmountIn.Token)
-			assert.Equalf(t, tc.expectedAmountIn, amountIn.TokenAmountIn.Amount, "expected amount in %s, got %s", tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.String())
-			fmt.Println("fee", amountIn.Fee.Amount)
+			assert.Equalf(t, tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.Dec(), "expected amount in %s, got %s", tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.Dec())
+			fmt.Println("fee", amountIn.Fee.Amount.Dec())
 		})
 	}
 }
 
-func TestUpdateBalance(t *testing.T) {
+func TestUpdateState(t *testing.T) {
 	t.Parallel()
 	pools := []string{
 		// https://arbiscan.io/address/0xdc40d14accd5629bbfa65d057f175871628d13c7#readContract
@@ -298,11 +289,10 @@ func TestUpdateBalance(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+				return p.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: *uint256.NewInt(uint64(tc.inAmount))},
 					TokenOut:      tc.out,
-					Limit:         nil,
 				})
 			})
 			if expErr, ok := tc.errorOrAmountOut.(error); ok {
@@ -311,15 +301,14 @@ func TestUpdateBalance(t *testing.T) {
 			}
 
 			require.Nil(t, err)
-			assert.Equal(t, tc.errorOrAmountOut, out.TokenAmountOut.Amount)
+			assert.Equal(t, tc.errorOrAmountOut.(*big.Int).String(), out.TokenAmountOut.Amount.Dec())
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 
-			p.UpdateBalance(pool.UpdateBalanceParams{
-				TokenAmountIn:  pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+			p.UpdateState(pool.UpdateStateParams{
+				TokenAmountIn:  pool.TokenAmt{Token: tc.in, Amount: *uint256.NewInt(uint64(tc.inAmount))},
 				TokenAmountOut: *out.TokenAmountOut,
 				Fee:            *out.Fee,
 				SwapInfo:       out.SwapInfo,
-				SwapLimitBig:   nil,
 			})
 		})
 	}
@@ -354,12 +343,8 @@ func TestCalcAmountOutError(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
-					TokenOut:      tc.out,
-					Limit:         nil,
-				})
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+				return p.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: *uint256.NewInt(uint64(tc.inAmount))}, TokenOut: tc.out})
 			})
 			if out != nil && out.TokenAmountOut != nil {
 				fmt.Println(out.TokenAmountOut.Amount)
@@ -391,11 +376,8 @@ func TestCalcAmountOutGetDOverflow(t *testing.T) {
 		{"0xa06b10db9f390990364a3984c04fadf1c13691b5", "0x078d782b760474a361dda0af3839290b0ef57ad6"}, // sUSDS → USDC
 	}
 	for _, pair := range pairs {
-		_, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: pair[0], Amount: big.NewInt(1e15)},
-				TokenOut:      pair[1],
-			})
+		_, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+			return p.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: pair[0], Amount: *uint256.NewInt(uint64(1e15))}, TokenOut: pair[1]})
 		})
 		require.ErrorIs(t, err, ErrDDoesNotConverge, "expected overflow-detected error for %s→%s", pair[0], pair[1])
 	}
@@ -417,14 +399,10 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 		StaticExtra: `{"lpToken": "LP", "aPrecision": "100"}`,
 	})
 	require.Nil(b, err)
-	ain := big.NewInt(5000)
+	ain := *uint256.NewInt(5000)
 
 	for i := 0; i < b.N; i++ {
-		_, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: "A", Amount: ain},
-			TokenOut:      "B",
-			Limit:         nil,
-		})
+		_, err := p.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: "A", Amount: ain}, TokenOut: "B"})
 		require.Nil(b, err)
 	}
 }
@@ -439,11 +417,11 @@ func Test_PanicCase(t *testing.T) {
 	p, err := NewPoolSimulator(poolEntity)
 	require.Nil(t, err)
 
-	out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-		return p.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{
+	out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+		return p.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{
 				Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
-				Amount: big.NewInt(1000000),
+				Amount: *uint256.NewInt(1000000),
 			},
 			TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			Limit:    nil,

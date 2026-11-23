@@ -579,7 +579,13 @@ func (t *PoolSimulator) CalculateWithdrawOneCoinU256(tokenAmount *uint256.Int, i
 	}
 	var totalSupply = &t.LpSupply
 	// D1: uint256 = D0 - _burn_amount * D0 / total_supply
-	number.SafeSubZ(&D0, number.Div(number.SafeMul(tokenAmount, &D0), totalSupply), &D1)
+	// A negative D1 is ErrNegativeResult (decision D): legacy computed it in signed math, uint256 cannot hold it.
+	var burnD0 uint256.Int
+	burnD0.Div(number.SafeMul(tokenAmount, &D0), totalSupply)
+	if D0.Lt(&burnD0) {
+		return ErrNegativeResult
+	}
+	number.SafeSubZ(&D0, &burnD0, &D1)
 	err = t.getYD(amp, i, xp, &D1, &newY)
 	if err != nil {
 		return err
@@ -700,7 +706,6 @@ func (t *PoolSimulator) ApplyRemoveLiquidityOneCoinU256(i int, tokenAmount, dy, 
 		&t.Reserves[i],
 		number.SafeAdd(dy, number.Div(number.SafeMul(dyFee, t.Extra.AdminFee), FeeDenominator)),
 		&t.Reserves[i])
-	number.FillBig(&t.Reserves[i], t.Info.Reserves[i]) // always sync back update to t.Info, will be removed later
 	t.LpSupply.Sub(&t.LpSupply, tokenAmount)
 	t.cacheD()
 	return nil
@@ -710,7 +715,6 @@ func (t *PoolSimulator) ApplyAddLiquidity(amounts, feeAmounts []uint256.Int, min
 	for i := 0; i < t.NumTokens; i++ {
 		number.SafeAddZ(&t.Reserves[i], &amounts[i], &t.Reserves[i])
 		number.SafeSubZ(&t.Reserves[i], &feeAmounts[i], &t.Reserves[i])
-		number.FillBig(&t.Reserves[i], t.Info.Reserves[i]) // always sync back update to t.Info, will be removed later
 	}
 
 	t.LpSupply.Add(&t.LpSupply, mintAmount)

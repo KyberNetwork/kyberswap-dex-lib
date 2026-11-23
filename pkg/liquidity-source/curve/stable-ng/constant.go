@@ -43,4 +43,6 @@ var (
 	ErrAmountOutNotConverge   = errors.New("approximation did not converge")
 	ErrExecutionReverted      = errors.New("execution reverted")
 	ErrPoolDrained            = errors.New("pool drained: y == 0 from get_y")
+	// ErrNegativeResult: legacy returned a negative value (or drove a reserve negative); uint256 cannot hold it.
+	ErrNegativeResult = errors.New("negative result")
 )

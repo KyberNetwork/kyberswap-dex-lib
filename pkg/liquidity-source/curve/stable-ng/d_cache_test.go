@@ -2,7 +2,6 @@ package stableng
 
 import (
 	"errors"
-	"math/big"
 	"math/rand/v2"
 	"testing"
 
@@ -51,22 +50,22 @@ func requireSameQuotes(t *testing.T, s *PoolSimulator, rng *rand.Rand) {
 				continue
 			}
 			for range 4 {
-				amount := new(big.Int).Div(s.Info.Reserves[i], big.NewInt(int64(5+rng.IntN(1_000_000))))
-				amount.Add(amount, big.NewInt(1))
-				in := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amount},
+				amount := divU256(&s.Reserves[i], uint64(5+rng.IntN(1_000_000)))
+				amount.AddUint64(&amount, 1)
+				in := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: amount},
 					TokenOut: tokenOut}
-				got, gotErr := s.CalcAmountOut(in)
-				want, wantErr := ref.CalcAmountOut(in)
+				got, gotErr := s.CalcAmtOut(in)
+				want, wantErr := ref.CalcAmtOut(in)
 				require.Equal(t, errMsg(wantErr), errMsg(gotErr))
 				if wantErr == nil {
-					require.Equal(t, want.TokenAmountOut.Amount, got.TokenAmountOut.Amount, "%s→%s %s", tokenIn, tokenOut, amount)
+					require.Equal(t, want.TokenAmountOut.Amount, got.TokenAmountOut.Amount, "%s→%s %s", tokenIn, tokenOut, amount.Dec())
 					require.Equal(t, want.Fee.Amount, got.Fee.Amount)
 				}
 
-				out := pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: amount},
+				out := pool.CalcAmtInParams{TokenAmountOut: pool.TokenAmt{Token: tokenOut, Amount: amount},
 					TokenIn: tokenIn}
-				gotIn, gotErr := s.CalcAmountIn(out)
-				wantIn, wantErr := ref.CalcAmountIn(out)
+				gotIn, gotErr := s.CalcAmtIn(out)
+				wantIn, wantErr := ref.CalcAmtIn(out)
 				require.Equal(t, errMsg(wantErr), errMsg(gotErr))
 				if wantErr == nil {
 					require.Equal(t, wantIn.TokenAmountIn.Amount, gotIn.TokenAmountIn.Amount)
@@ -82,6 +81,13 @@ func requireCacheMiss(t *testing.T, s *PoolSimulator) {
 	d, err := s.cachedD(XpMem(s.Extra.RateMultipliers, s.Reserves))
 	require.Nil(t, d)
 	require.NoError(t, err)
+}
+
+// divU256 returns x / d as a fresh uint256.Int.
+func divU256(x *uint256.Int, d uint64) uint256.Int {
+	var out uint256.Int
+	out.Div(x, uint256.NewInt(d))
+	return out
 }
 
 // errMsg compares errors by message: wrapped errors carry the stack they were raised from.
@@ -107,14 +113,14 @@ func TestDCacheMatchesUncachedThroughSwaps(t *testing.T) {
 
 			i := rng.IntN(len(s.Info.Tokens))
 			j := (i + 1 + rng.IntN(len(s.Info.Tokens)-1)) % len(s.Info.Tokens)
-			amountIn := pool.TokenAmount{Token: s.Info.Tokens[i],
-				Amount: new(big.Int).Div(s.Info.Reserves[i], big.NewInt(int64(20+rng.IntN(1000))))}
-			res, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: amountIn, TokenOut: s.Info.Tokens[j]})
+			amountIn := pool.TokenAmt{Token: s.Info.Tokens[i],
+				Amount: divU256(&s.Reserves[i], uint64(20+rng.IntN(1000)))}
+			res, err := s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: amountIn, TokenOut: s.Info.Tokens[j]})
 			if err != nil {
 				continue
 			}
 			s = s.CloneState().(*PoolSimulator)
-			s.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: amountIn, TokenAmountOut: *res.TokenAmountOut,
+			s.UpdateState(pool.UpdateStateParams{TokenAmountIn: amountIn, TokenAmountOut: *res.TokenAmountOut,
 				Fee: *res.Fee, SwapInfo: res.SwapInfo})
 		}
 	}
@@ -128,10 +134,10 @@ func TestDCacheKeepsDFailure(t *testing.T) {
 	require.True(t, s.dCache.ok)
 	require.ErrorIs(t, s.dCache.err, ErrDDoesNotConverge)
 	for _, token := range s.Info.Tokens { // same token in and out: ErrTokenFromEqualsTokenTo, not D's error
-		in := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: token, Amount: big.NewInt(1e6)},
+		in := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: token, Amount: *uint256.NewInt(1e6)},
 			TokenOut: token}
-		_, gotErr := s.CalcAmountOut(in)
-		_, wantErr := uncached(s).CalcAmountOut(in)
+		_, gotErr := s.CalcAmtOut(in)
+		_, wantErr := uncached(s).CalcAmtOut(in)
 		require.Error(t, wantErr)
 		require.Equal(t, errMsg(wantErr), errMsg(gotErr))
 	}
@@ -143,20 +149,20 @@ func TestDCacheKeepsDFailure(t *testing.T) {
 func TestDCacheIsUsed(t *testing.T) {
 	t.Parallel()
 	s := newDCacheTestPool(t, dCacheTestPools[0], nil)
-	in := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[0], Amount: big.NewInt(1e18)},
+	in := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *uint256.NewInt(1e18)},
 		TokenOut: s.Info.Tokens[1]}
-	want, err := s.CalcAmountOut(in)
+	want, err := s.CalcAmtOut(in)
 	require.NoError(t, err)
 	s.dCache.d.Add(&s.dCache.d, uint256.NewInt(1e15))
-	got, err := s.CalcAmountOut(in)
+	got, err := s.CalcAmtOut(in)
 	require.NoError(t, err)
 	require.NotEqual(t, want.TokenAmountOut.Amount, got.TokenAmountOut.Amount)
 
 	planted := errors.New("planted")
 	s.dCache.err = planted
-	_, err = s.CalcAmountOut(in)
+	_, err = s.CalcAmtOut(in)
 	require.ErrorIs(t, err, planted)
-	_, err = s.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: *want.TokenAmountOut, TokenIn: s.Info.Tokens[0]})
+	_, err = s.CalcAmtIn(pool.CalcAmtInParams{TokenAmountOut: *want.TokenAmountOut, TokenIn: s.Info.Tokens[0]})
 	require.ErrorIs(t, err, planted)
 }
 
@@ -166,7 +172,6 @@ func TestDCacheIgnoredAfterDirectReserveWrite(t *testing.T) {
 	t.Parallel()
 	s := newDCacheTestPool(t, dCacheTestPools[0], nil)
 	s.Reserves[0].Add(&s.Reserves[0], s.Reserves[0].Clone())
-	s.Info.Reserves[0] = s.Reserves[0].ToBig()
 	requireCacheMiss(t, s)
 	requireSameQuotes(t, s, rand.New(rand.NewPCG(3, 4)))
 }
@@ -192,13 +197,13 @@ func TestDCacheNotUsedWhileARamps(t *testing.T) {
 
 func BenchmarkCalcAmountOutDCache(b *testing.B) {
 	s := newDCacheTestPool(b, dCacheTestPools[0], nil)
-	in := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: s.Info.Tokens[0], Amount: big.NewInt(1e18)},
+	in := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *uint256.NewInt(1e18)},
 		TokenOut: s.Info.Tokens[1]}
 	for name, sim := range map[string]*PoolSimulator{"cached": s, "uncached": uncached(s)} {
 		b.Run(name, func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := sim.CalcAmountOut(in); err != nil {
+				if _, err := sim.CalcAmtOut(in); err != nil {
 					b.Fatal(err)
 				}
 			}
