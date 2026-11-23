@@ -5,12 +5,14 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -97,13 +99,13 @@ func TestHistoricalSwaps(t *testing.T) {
 			if !buy {
 				tokenIn, tokenOut, amountIn, wantOut = tokenOut, weth, new(big.Int).Neg(a1), new(big.Int).Sub(a0, tax)
 				fee, err := h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-					AmountOut: a0})
+					AmountOut: big256.FromBig(a0)})
 				require.NoError(t, err)
-				assert.Equal(t, tax, fee.HookFee, "sell tax on the pool's ETH output")
+				assert.Equal(t, tax, big256.ToBig(fee.HookFee), "sell tax on the pool's ETH output")
 			} else {
-				res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: amountIn})
+				res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big256.FromBig(amountIn)})
 				require.NoError(t, err)
-				assert.Equal(t, tax, res.DeltaSpecified, "buy tax on the ETH input")
+				assert.Equal(t, tax, big256.ToBig(res.DeltaSpecified), "buy tax on the ETH input")
 			}
 
 			res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
@@ -142,14 +144,14 @@ func TestFeeBips(t *testing.T) {
 }
 
 func TestUntrackedPoolRefusesToQuote(t *testing.T) {
-	_, err := (&Hook{}).BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1)})
+	_, err := (&Hook{}).BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1)})
 	assert.ErrorIs(t, err, ErrPoolNotRegistered)
 }
 
 func BenchmarkHook(b *testing.B) {
 	NowFn = func() int64 { return 1100 }
 	h := &Hook{StartFeeBips: 5000, EndFeeBips: 300, DecayDuration: 300, LaunchTime: 1000}
-	amt := bi("123456789012345678")
+	amt := uint256.MustFromDecimal("123456789012345678")
 	b.ReportAllocs()
 	for b.Loop() {
 		_, _ = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: amt})
