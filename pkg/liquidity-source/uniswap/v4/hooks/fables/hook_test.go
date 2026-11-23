@@ -1,13 +1,13 @@
 package fables
 
 import (
-	"math/big"
 	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -60,18 +60,18 @@ func TestBeforeSwap_ReturnsDirectionalFee(t *testing.T) {
 	res, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
 		ZeroForOne:      true,
-		AmountSpecified: big.NewInt(1_000_000),
+		AmountSpecified: uint256.NewInt(1_000_000),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, uniswapv4.FeeAmount(400), res.SwapFee)
-	assert.Equal(t, int64(0), res.DeltaSpecified.Int64())
-	assert.Equal(t, int64(0), res.DeltaUnspecified.Int64())
+	assert.Equal(t, uint64(0), res.DeltaSpecified.Uint64())
+	assert.Equal(t, uint64(0), res.DeltaUnspecified.Uint64())
 
 	// oneForZero -> Fee1For0
 	res, err = hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
 		ZeroForOne:      false,
-		AmountSpecified: big.NewInt(1_000_000),
+		AmountSpecified: uint256.NewInt(1_000_000),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, uniswapv4.FeeAmount(800), res.SwapFee)
@@ -86,13 +86,13 @@ func TestAfterSwap_Noop(t *testing.T) {
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
 			CalcOut:         true,
 			ZeroForOne:      true,
-			AmountSpecified: big.NewInt(1_000_000),
+			AmountSpecified: uint256.NewInt(1_000_000),
 		},
-		AmountIn:  big.NewInt(1_000_000),
-		AmountOut: big.NewInt(999_600),
+		AmountIn:  uint256.NewInt(1_000_000),
+		AmountOut: uint256.NewInt(999_600),
 	})
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), res.HookFee.Int64())
+	assert.Equal(t, uint64(0), res.HookFee.Uint64())
 }
 
 func TestCanSwapPermissions(t *testing.T) {
