@@ -3,14 +3,14 @@ package livo
 import (
 	"context"
 	"errors"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -88,27 +88,26 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		// For buys (zeroForOne=true): charge LP fee + buy tax on ETH input
 		// For sells (zeroForOne=false): no action in beforeSwap
 		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecified:   bignumber.ZeroBI,
-			DeltaUnspecified: bignumber.ZeroBI,
+			DeltaSpecified:   new(uint256.Int),
+			DeltaUnspecified: new(uint256.Int),
 		}, nil
 	}
 
 	// BUY: charge LP fee + buy tax
 	amountSpecified := params.AmountSpecified
 
-	var tmp, tmp2 big.Int
-	lpFee := bignumber.MulDivDown(&tmp, amountSpecified, tmp.SetUint64(LpFeeBps), bignumber.BasisPoint)
+	var lpFee, taxAmount uint256.Int
+	big256.MulDivDown(&lpFee, amountSpecified, uint256.NewInt(LpFeeBps), big256.UBasisPoint)
 
 	// Check if tax period has expired
 	currentTime := uint64(time.Now().Unix())
-	taxAmount := bignumber.ZeroBI
 	if h.GraduationTimestamp > 0 && currentTime <= h.GraduationTimestamp+h.TaxDurationSeconds && h.BuyTaxBps > 0 {
-		taxAmount = bignumber.MulDivDown(&tmp2, amountSpecified, tmp2.SetUint64(h.BuyTaxBps), bignumber.BasisPoint)
+		big256.MulDivDown(&taxAmount, amountSpecified, uint256.NewInt(h.BuyTaxBps), big256.UBasisPoint)
 	}
 
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   lpFee.Add(lpFee, taxAmount),
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   lpFee.Add(&lpFee, &taxAmount),
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
@@ -118,24 +117,23 @@ func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwa
 		return nil, ErrNoSwapsBeforeGraduation
 	} else if params.ZeroForOne { // For buys: fees already charged in beforeSwap, no additional fee
 		return &uniswapv4.AfterSwapResult{
-			HookFee: bignumber.ZeroBI,
+			HookFee: new(uint256.Int),
 		}, nil
 	}
 
 	// SELL: charge LP fee + sell tax on ETH output
 	amountOut := params.AmountOut
 
-	var tmp, tmp2 big.Int
-	lpFee := bignumber.MulDivDown(&tmp, amountOut, tmp.SetUint64(LpFeeBps), bignumber.BasisPoint)
+	var lpFee, taxAmount uint256.Int
+	big256.MulDivDown(&lpFee, amountOut, uint256.NewInt(LpFeeBps), big256.UBasisPoint)
 
 	// Check if tax period has expired
 	currentTime := uint64(time.Now().Unix())
-	taxAmount := bignumber.ZeroBI
 	if h.GraduationTimestamp > 0 && currentTime <= h.GraduationTimestamp+h.TaxDurationSeconds && h.SellTaxBps > 0 {
-		taxAmount = bignumber.MulDivDown(&tmp2, amountOut, tmp2.SetUint64(h.SellTaxBps), bignumber.BasisPoint)
+		big256.MulDivDown(&taxAmount, amountOut, uint256.NewInt(h.SellTaxBps), big256.UBasisPoint)
 	}
 
 	return &uniswapv4.AfterSwapResult{
-		HookFee: lpFee.Add(lpFee, taxAmount),
+		HookFee: lpFee.Add(&lpFee, &taxAmount),
 	}, nil
 }
