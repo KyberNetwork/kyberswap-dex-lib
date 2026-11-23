@@ -8,10 +8,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -90,7 +90,7 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswap
 	swappingForClanker := params.ZeroForOne != h.ClankerIsToken0
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   beforeSwapDelta(params, swappingForClanker, h.ProtocolFee),
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaUnspecified: new(uint256.Int),
 		SwapFee:          lo.Ternary(swappingForClanker, h.PairedFee, h.ClankerFee),
 	}, nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -273,11 +274,11 @@ func TestDynamicFeeHook_QuoteLeavesStateUntouched(t *testing.T) {
 	}).(*DynamicFeeHook)
 	fVars, protocolFee, lpFee := *h.PoolFVars, new(big.Int).Set(h.ProtocolFee), h.poolSim.V3Pool.Fee
 
-	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1e18)}
+	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1e18)}
 	res, err := h.BeforeSwap(params)
 	require.NoError(t, err)
 	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: params, AmountIn: params.AmountSpecified,
-		AmountOut: big.NewInt(1e9), BeforeSwapResult: res})
+		AmountOut: uint256.NewInt(1e9), BeforeSwapResult: res})
 	require.NoError(t, err)
 
 	require.Equal(t, fVars, *h.PoolFVars)
