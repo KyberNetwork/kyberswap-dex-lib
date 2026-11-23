@@ -9,10 +9,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -242,7 +243,7 @@ func (h *RehypeDHook) getCurrentFee() int64 {
 func (h *RehypeDHook) AfterSwap(params *uniswapv4.AfterSwapParams, _ *DHook) (*uniswapv4.AfterSwapResult, error) {
 	currentFee := h.getCurrentFee()
 	if currentFee == 0 {
-		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI, Gas: 198835}, nil
+		return &uniswapv4.AfterSwapResult{HookFee: new(uint256.Int), Gas: 198835}, nil
 	}
 	feeBase := lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn)
 	denominator := h.feeDenominator
@@ -250,7 +251,7 @@ func (h *RehypeDHook) AfterSwap(params *uniswapv4.AfterSwapParams, _ *DHook) (*u
 		denominator = maxSwapFeeV1
 	}
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.MulDivDown(new(big.Int), big.NewInt(currentFee), feeBase, big.NewInt(denominator)),
+		HookFee: big256.MulDivDown(new(uint256.Int), uint256.NewInt(uint64(currentFee)), feeBase, uint256.NewInt(uint64(denominator))),
 		Gas:     198835,
 	}, nil
 }

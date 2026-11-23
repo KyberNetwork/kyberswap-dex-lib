@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -139,7 +140,7 @@ func TestBaseRehypeDopplerHookChargesItsFeeOverOneMillion(t *testing.T) {
 	require.NotNil(t, newHook)
 
 	hook := newHook(json.RawMessage(`{"s":15000}`))
-	res, err := hook.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{}, AmountIn: big.NewInt(1_000_000)}, nil)
+	res, err := hook.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{}, AmountIn: uint256.NewInt(1_000_000)}, nil)
 	require.NoError(t, err)
-	assert.Equal(t, big.NewInt(15_000), res.HookFee)
+	assert.Equal(t, uint256.NewInt(15_000), res.HookFee)
 }
