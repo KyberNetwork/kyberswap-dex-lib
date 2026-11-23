@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // reference values are the live globals of the Base OneToken hook plus a real launch
@@ -87,8 +86,8 @@ func TestBeforeSwap_SetsSwapFee(t *testing.T) {
 		res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: true})
 		require.NoError(t, err)
 		assert.Equal(t, uniswapv4.FeeAmount(300*feePipsPerBps), res.SwapFee) // 30_000 pips = 3%
-		assert.Equal(t, bignumber.ZeroBI, res.DeltaSpecified)
-		assert.Equal(t, bignumber.ZeroBI, res.DeltaUnspecified)
+		assert.True(t, res.DeltaSpecified.IsZero())
+		assert.True(t, res.DeltaUnspecified.IsZero())
 	}
 }
 
