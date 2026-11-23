@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 // HookAddresses lists every ProtocolFeeHook deployment.
@@ -21,7 +22,7 @@ var HookAddresses = []common.Address{
 var (
 	// pipsDenominator is ProtocolFeeHook.PIPS_DENOMINATOR: 1e6 = 100%, the same unit
 	// Uniswap quotes PoolKey.fee in.
-	pipsDenominator = big.NewInt(1_000_000)
+	pipsDenominator = uint256.NewInt(1_000_000)
 
 	// maxFeePips is ProtocolFeeHook.MAX_FEE_PIPS, the ceiling the setter itself enforces:
 	// 10_000 = 1%. Lowered from 5% on 2026-09-19 precisely so an aggregator integrating

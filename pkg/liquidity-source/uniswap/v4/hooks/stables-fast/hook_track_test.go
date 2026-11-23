@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -123,10 +124,10 @@ func TestTrack_UnregisteredPoolIsTrackedAndFree(t *testing.T) {
 
 	after, err := got.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-		AmountOut:        big.NewInt(1e18),
+		AmountOut:        uint256.NewInt(1e18),
 	})
 	require.NoError(t, err)
-	assert.Zero(t, after.HookFee.Sign(), "an unregistered pool must not be charged")
+	assert.True(t, after.HookFee.IsZero(), "an unregistered pool must not be charged")
 
 	before, err := got.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true})
 	require.NoError(t, err)

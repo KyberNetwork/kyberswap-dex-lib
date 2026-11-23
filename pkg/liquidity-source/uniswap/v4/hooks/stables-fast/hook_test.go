@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -25,17 +25,17 @@ func tracked(feePips int64) *Hook {
 
 func exactIn(amountIn, amountOut int64) *uniswapv4.AfterSwapParams {
 	return &uniswapv4.AfterSwapParams{
-		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: big.NewInt(amountIn)},
-		AmountIn:         big.NewInt(amountIn),
-		AmountOut:        big.NewInt(amountOut),
+		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: uint256.NewInt(uint64(amountIn))},
+		AmountIn:         uint256.NewInt(uint64(amountIn)),
+		AmountOut:        uint256.NewInt(uint64(amountOut)),
 	}
 }
 
 func exactOut(amountIn, amountOut int64) *uniswapv4.AfterSwapParams {
 	return &uniswapv4.AfterSwapParams{
-		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(amountOut)},
-		AmountIn:         big.NewInt(amountIn),
-		AmountOut:        big.NewInt(amountOut),
+		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: uint256.NewInt(uint64(amountOut))},
+		AmountIn:         uint256.NewInt(uint64(amountIn)),
+		AmountOut:        uint256.NewInt(uint64(amountOut)),
 	}
 }
 
@@ -47,12 +47,12 @@ func TestBeforeSwap_ChargesNothingInEitherDirection(t *testing.T) {
 	for _, calcOut := range []bool{true, false} {
 		result, err := tracked(shippedFeePips).BeforeSwap(&uniswapv4.BeforeSwapParams{
 			CalcOut:         calcOut,
-			AmountSpecified: big.NewInt(1_000_000_000),
+			AmountSpecified: uint256.NewInt(1_000_000_000),
 		})
 		require.NoError(t, err)
 
-		assert.Equal(t, bignumber.ZeroBI, result.DeltaSpecified)
-		assert.Equal(t, bignumber.ZeroBI, result.DeltaUnspecified)
+		assert.True(t, result.DeltaSpecified.IsZero())
+		assert.True(t, result.DeltaUnspecified.IsZero())
 		// The pool's own fee tier is untouched: the hook never overrides the LP fee.
 		assert.Zero(t, result.SwapFee)
 		// The oracle write is the whole of the cost, and it runs in both directions.
@@ -67,7 +67,7 @@ func TestAfterSwap_ExactIn_ChargesTheRealisedOutput(t *testing.T) {
 	require.NoError(t, err)
 
 	// 0.50% of the OUTPUT, not of the 2x-larger input.
-	assert.Equal(t, big.NewInt(5_000_000), result.HookFee)
+	assert.Equal(t, uint256.NewInt(5_000_000), result.HookFee)
 	assert.EqualValues(t, gasAccrue, result.Gas)
 }
 
@@ -77,7 +77,7 @@ func TestAfterSwap_ExactOut_ChargesTheRealisedInput(t *testing.T) {
 	result, err := tracked(shippedFeePips).AfterSwap(exactOut(1_000_000_000, 2_000_000_000))
 	require.NoError(t, err)
 
-	assert.Equal(t, big.NewInt(5_000_000), result.HookFee)
+	assert.Equal(t, uint256.NewInt(5_000_000), result.HookFee)
 	assert.EqualValues(t, gasAccrue, result.Gas)
 }
 
@@ -88,13 +88,13 @@ func TestAfterSwap_ExactOut_ChargesTheRealisedInput(t *testing.T) {
 // latter may be charged.
 func TestAfterSwap_PartialFill_IsChargedOnTheFill(t *testing.T) {
 	params := exactIn(1_000_000_000, 400_000_000) // asked 1,000 in; the limit bound the fill
-	params.AmountSpecified = big.NewInt(1_000_000_000)
+	params.AmountSpecified = uint256.NewInt(1_000_000_000)
 
 	result, err := tracked(shippedFeePips).AfterSwap(params)
 	require.NoError(t, err)
 
 	// 0.50% of the 400 that filled, not of the 1,000 requested.
-	assert.Equal(t, big.NewInt(2_000_000), result.HookFee)
+	assert.Equal(t, uint256.NewInt(2_000_000), result.HookFee)
 }
 
 // Exact-output is flat, NOT a gross-up. The contract charges the pips on the pool's realised
@@ -107,11 +107,11 @@ func TestAfterSwap_ExactOut_IsFlatNotGrossedUp(t *testing.T) {
 	result, err := tracked(shippedFeePips).AfterSwap(exactOut(net, 2_000_000_000))
 	require.NoError(t, err)
 
-	assert.Equal(t, big.NewInt(5_000_000), result.HookFee, "flat: floor(net*fee/1e6)")
-	assert.EqualValues(t, net+5_000_000, net+result.HookFee.Int64())
+	assert.Equal(t, uint256.NewInt(5_000_000), result.HookFee, "flat: floor(net*fee/1e6)")
+	assert.EqualValues(t, net+5_000_000, net+result.HookFee.Uint64())
 	// The gross-up an inverted path would have produced: 1_000_000_000*5_000/995_000 =
 	// 5_025_125, giving a 1_005_025_125 total. 25,125 units apart on a 1,000-unit leg.
-	assert.NotEqual(t, big.NewInt(5_025_125), result.HookFee)
+	assert.NotEqual(t, uint256.NewInt(5_025_125), result.HookFee)
 }
 
 // FullMath.mulDiv truncates. Rounding the other way would quote a skim larger than the
@@ -120,14 +120,14 @@ func TestSkim_TruncatesLikeFullMath(t *testing.T) {
 	// floor(199 * 5_000 / 1_000_000) = floor(0.995) = 0
 	result, err := tracked(shippedFeePips).AfterSwap(exactIn(10_000, 199))
 	require.NoError(t, err)
-	// Compared by value: a computed zero and big.NewInt(0) differ in their internal limb
+	// Compared by value: a computed zero and uint256.NewInt(0) differ in their internal limb
 	// slice, and assert.Equal is a deep comparison.
-	assert.EqualValues(t, 0, result.HookFee.Int64())
+	assert.EqualValues(t, 0, result.HookFee.Uint64())
 
 	// floor(201 * 5_000 / 1_000_000) = floor(1.005) = 1
 	result, err = tracked(shippedFeePips).AfterSwap(exactIn(10_000, 201))
 	require.NoError(t, err)
-	assert.EqualValues(t, 1, result.HookFee.Int64())
+	assert.EqualValues(t, 1, result.HookFee.Uint64())
 }
 
 // `feePipsFor` returns zero for a pool this hook never registered and for every pool while
@@ -138,16 +138,16 @@ func TestZeroRate_QuotesTheBareCurve(t *testing.T) {
 
 	before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
-		AmountSpecified: big.NewInt(1_000_000_000),
+		AmountSpecified: uint256.NewInt(1_000_000_000),
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.ZeroBI, before.DeltaSpecified)
+	assert.True(t, before.DeltaSpecified.IsZero())
 	// Registered, so the oracle still runs and still costs gas at a zero rate.
 	assert.EqualValues(t, gasObservation, before.Gas)
 
 	after, err := h.AfterSwap(exactIn(1_000_000_000, 1_000_000_000))
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.ZeroBI, after.HookFee)
+	assert.True(t, after.HookFee.IsZero())
 	assert.Zero(t, after.Gas)
 }
 
@@ -156,7 +156,7 @@ func TestZeroRate_QuotesTheBareCurve(t *testing.T) {
 func TestUntracked_Refuses(t *testing.T) {
 	h := &Hook{}
 
-	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: big.NewInt(1)})
+	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: uint256.NewInt(1)})
 	assert.ErrorIs(t, err, ErrPoolIsNotTracked)
 
 	_, err = h.AfterSwap(exactIn(1, 1))
@@ -228,15 +228,15 @@ func TestUnregistered_IsAPureNoOp(t *testing.T) {
 
 	before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
-		AmountSpecified: big.NewInt(1_000_000_000),
+		AmountSpecified: uint256.NewInt(1_000_000_000),
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.ZeroBI, before.DeltaSpecified)
+	assert.True(t, before.DeltaSpecified.IsZero())
 	assert.Zero(t, before.Gas)
 
 	after, err := h.AfterSwap(exactIn(1_000_000_000, 1_000_000_000))
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.ZeroBI, after.HookFee)
+	assert.True(t, after.HookFee.IsZero())
 	assert.Zero(t, after.Gas)
 }
 
@@ -258,7 +258,7 @@ func TestDynamicFeePool_QuotesAtTheTrackedStoredRate(t *testing.T) {
 	staticExtra := func(fee uint32) string {
 		return `{"0x0":[false,false],"fee":` + big.NewInt(int64(fee)).String() + `,"tS":50,"hooks":"0xc9932584c5154e4f58313a2e5423522e74e540cc","uR":"0x0000000000000000000000000000000000000001","pm2":"0x0000000000000000000000000000000000000002","mc3":"0x0000000000000000000000000000000000000003"}`
 	}
-	quote := func(keyFee uint32) *big.Int {
+	quote := func(keyFee uint32) *uint256.Int {
 		sim, err := uniswapv4.NewPoolSimulator(entity.Pool{
 			Address:  "0x00000000000000000000000000000000000000000000000000000000000000d1",
 			Exchange: string(valueobject.ExchangeUniswapV4StablesFast),
@@ -275,12 +275,12 @@ func TestDynamicFeePool_QuotesAtTheTrackedStoredRate(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, string(valueobject.ExchangeUniswapV4StablesFast), sim.GetExchange())
 
-		out, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: nvda, Amount: big.NewInt(1_000_000_000_000_000_000)},
+		out, err := sim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: nvda, Amount: *uint256.NewInt(1_000_000_000_000_000_000)},
 			TokenOut:      aiusd,
 		})
 		require.NoError(t, err)
-		return out.TokenAmountOut.Amount
+		return &out.TokenAmountOut.Amount
 	}
 
 	dynamic, static := quote(dynamicFeeFlag), quote(storedLpFee)
@@ -291,6 +291,6 @@ func TestDynamicFeePool_QuotesAtTheTrackedStoredRate(t *testing.T) {
 	// 1e18 in on a deep price-1 pool comes back just under 1e18 * 0.988 * 0.995.
 	expected, _ := new(big.Int).SetString("983060000000000000", 10)
 	tolerance, _ := new(big.Int).SetString("1000000000000000", 10) // 0.1%, the curve's own slip
-	assert.Less(t, new(big.Int).Abs(new(big.Int).Sub(dynamic, expected)).Cmp(tolerance), 0,
+	assert.Less(t, new(big.Int).Abs(new(big.Int).Sub(dynamic.ToBig(), expected)).Cmp(tolerance), 0,
 		"got %s, expected within 0.1%% of %s", dynamic, expected)
 }

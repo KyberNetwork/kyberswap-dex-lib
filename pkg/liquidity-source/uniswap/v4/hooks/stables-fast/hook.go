@@ -61,10 +61,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -148,8 +149,8 @@ func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 	}
 
 	result := &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int),
 	}
 	if h.Registered {
 		result.Gas = gasObservation
@@ -169,7 +170,7 @@ func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwa
 		return nil, ErrPoolIsNotTracked
 	}
 	if !h.Registered || h.FeePips == 0 {
-		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI}, nil
+		return &uniswapv4.AfterSwapResult{HookFee: new(uint256.Int)}, nil
 	}
 
 	return &uniswapv4.AfterSwapResult{
@@ -185,6 +186,6 @@ func (h *Hook) CloneState() uniswapv4.Hook {
 
 // skim is FullMath.mulDiv on the contract, which truncates — matching it exactly is what keeps
 // a quote from landing a unit above the fill.
-func (h *Hook) skim(amount *big.Int) *big.Int {
-	return bignumber.MulDivDown(new(big.Int), amount, big.NewInt(h.FeePips), pipsDenominator)
+func (h *Hook) skim(amount *uint256.Int) *uint256.Int {
+	return big256.MulDivDown(new(uint256.Int), amount, uint256.NewInt(uint64(h.FeePips)), pipsDenominator)
 }
