@@ -18,6 +18,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func ladderHookExtra(t *testing.T, legacyTrackedAt int64) uniswapv4.HookExtra {
@@ -31,11 +32,11 @@ func ladderHookExtra(t *testing.T, legacyTrackedAt int64) uniswapv4.HookExtra {
 func quote(t *testing.T, extra uniswapv4.HookExtra, lv int64) (*big.Int, error) {
 	h, ok := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{HookExtra: extra, TrackedAt: lv})
 	require.True(t, ok)
-	res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1e15)})
+	res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1e15)})
 	if err != nil {
 		return nil, err
 	}
-	return res.DeltaUnspecified, nil
+	return u256.ToBig(res.DeltaUnspecified), nil
 }
 
 // The tracker's Extra lv is the staleness-ramp age baseline once a pool has one: a pool whose lv
@@ -129,7 +130,7 @@ func TestIndexingQuotesAgedLadder(t *testing.T) {
 		h, ok := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{
 			HookExtra: ladderHookExtra(t, 0), TrackedAt: trackedAt, QuoteAt: quoteAt})
 		require.True(t, ok)
-		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1e15)})
+		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1e15)})
 		return err
 	}
 	assert.NoError(t, swap(trackedAt+100))

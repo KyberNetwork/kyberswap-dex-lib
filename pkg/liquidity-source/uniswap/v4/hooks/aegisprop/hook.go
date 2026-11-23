@@ -14,7 +14,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -210,8 +209,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	amt := params.AmountSpecified
 	if amt == nil || amt.Sign() <= 0 {
 		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecified:   bignumber.ZeroBI,
-			DeltaUnspecified: bignumber.ZeroBI,
+			DeltaSpecified:   new(uint256.Int),
+			DeltaUnspecified: new(uint256.Int),
 			Gas:              gasBeforeSwap,
 		}, nil
 	}
@@ -234,11 +233,6 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, ErrInvalidAmount
 	}
 
-	amtU, overflow := uint256.FromBig(amt)
-	if overflow {
-		return nil, ErrInvalidAmount
-	}
-
 	levels := h.Bids
 	if !params.ZeroForOne {
 		levels = h.Asks
@@ -248,29 +242,29 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}
 
 	var (
-		deltaSpecified, deltaUnspecified *big.Int
+		deltaSpecified, deltaUnspecified *uint256.Int
 		updated                          []Level
 	)
 	if params.CalcOut {
-		rawOut, upd, filled := walkExactIn(levels, amtU, params.ZeroForOne)
+		rawOut, upd, filled := walkExactIn(levels, amt, params.ZeroForOne)
 		if !filled {
 			return nil, ErrInsufficientLadderDepth
 		}
 		updated = upd
 		out := applyFeeOut(rawOut, totalBps)
-		deltaSpecified = new(big.Int).Set(amt)
-		deltaUnspecified = new(big.Int).Neg(out.ToBig())
+		deltaSpecified = new(uint256.Int).Set(amt)
+		deltaUnspecified = new(uint256.Int).Neg(out)
 	} else {
 		// The taker fee/haircut is applied to the amount the taker pays, so the ladder must be
 		// walked for the larger pre-fee input that nets the requested output after the haircut.
-		grossAmt := applyFeeIn(amtU, totalBps)
+		grossAmt := applyFeeIn(amt, totalBps)
 		in, upd, filled := walkExactOut(levels, grossAmt, params.ZeroForOne)
 		if !filled {
 			return nil, ErrInsufficientLadderDepth
 		}
 		updated = upd
-		deltaSpecified = new(big.Int).Neg(amt)
-		deltaUnspecified = new(big.Int).Set(in.ToBig())
+		deltaSpecified = new(uint256.Int).Neg(amt)
+		deltaUnspecified = new(uint256.Int).Set(in)
 	}
 
 	return &uniswapv4.BeforeSwapResult{
