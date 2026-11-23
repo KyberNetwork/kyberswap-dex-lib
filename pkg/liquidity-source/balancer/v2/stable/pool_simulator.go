@@ -3,6 +3,7 @@ package stable
 import (
 	"errors"
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
@@ -678,9 +679,20 @@ func (s *PoolSimulator) updateBalance(tokenIn, tokenOut string, amountIn, amount
 	}
 }
 
-// CloneState returns nil: stable does not clone its state, so a weighted meta pool falls back.
+// CloneState copies the reserves slice that UpdateState writes by index, and clones each base pool.
+// The other fields are read-only after construction, so the clone shares them.
 func (s *PoolSimulator) CloneState() pool.IPoolSim {
-	return nil
+	cloned := *s
+	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	cloned.basePools = make(map[string]shared.IBasePool, len(s.basePools))
+	for addr, bp := range s.basePools {
+		c, ok := bp.CloneState().(shared.IBasePool)
+		if !ok {
+			return nil
+		}
+		cloned.basePools[addr] = c
+	}
+	return &cloned
 }
 
 func (s *PoolSimulator) GetReserves() []uint256.Int {
