@@ -71,7 +71,7 @@ func newHook(state FeeState) *Hook {
 
 func beforeSwap(t testing.TB, h *Hook, price *uint256.Int, zeroForOne bool) *uniswapv4.BeforeSwapResult {
 	res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{ZeroForOne: zeroForOne, CalcOut: true,
-		AmountSpecified: big.NewInt(1), SqrtPriceX96: price})
+		AmountSpecified: uint256.NewInt(1), SqrtPriceX96: price})
 	require.NoError(t, err)
 	return res
 }
@@ -237,22 +237,22 @@ func TestStateABI_UnpacksIntoTaggedStruct(t *testing.T) {
 func TestPoolSimulator_TwoLegsAdvanceOnce(t *testing.T) {
 	sim := newBenchSim(t, benchHookExtra)
 	const weth, usdc = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-	params := pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: weth, Amount: big.NewInt(5e18)}, TokenOut: usdc}
+	params := pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: weth, Amount: *uint256.NewInt(5e18)}, TokenOut: usdc}
 
-	leg1, err := sim.CalcAmountOut(params)
+	leg1, err := sim.CalcAmtOut(params)
 	require.NoError(t, err)
 	require.NotNil(t, leg1.SwapInfo.(uniswapv4.SwapInfo).HookSwapInfo)
 
 	clone := sim.CloneState().(*uniswapv4.PoolSimulator)
-	clone.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *leg1.TokenAmountOut,
+	clone.UpdateState(pool.UpdateStateParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *leg1.TokenAmountOut,
 		Fee: *leg1.Fee, SwapInfo: leg1.SwapInfo})
 
-	leg2, err := clone.CalcAmountOut(params)
+	leg2, err := clone.CalcAmtOut(params)
 	require.NoError(t, err)
 	require.Nil(t, leg2.SwapInfo.(uniswapv4.SwapInfo).HookSwapInfo)
 
-	again, err := sim.CalcAmountOut(params)
+	again, err := sim.CalcAmtOut(params)
 	require.NoError(t, err)
 	require.NotNil(t, again.SwapInfo.(uniswapv4.SwapInfo).HookSwapInfo)
 	require.Equal(t, leg1.TokenAmountOut.Amount, again.TokenAmountOut.Amount)

@@ -8,9 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // Extra is the hook's tracked state, read at one block together with the pool's slot0.
@@ -101,8 +101,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}
 
 	res := &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int),
 		Gas:              HookGas,
 	}
 	state := h.State

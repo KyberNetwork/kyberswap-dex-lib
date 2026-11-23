@@ -1,11 +1,11 @@
 package volatile
 
 import (
-	"math/big"
 	"os"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -43,17 +43,17 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 	const weth, usdc = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 	for _, bc := range []struct {
 		name, in, out string
-		amt           *big.Int
-	}{{"sell_eth", weth, usdc, big.NewInt(1e18)}, {"buy_eth", usdc, weth, big.NewInt(2_000_000_000)}} {
-		params := pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: bc.in, Amount: bc.amt}, TokenOut: bc.out}
+		amt           uint256.Int
+	}{{"sell_eth", weth, usdc, *uint256.NewInt(1e18)}, {"buy_eth", usdc, weth, *uint256.NewInt(2_000_000_000)}} {
+		params := pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: bc.in, Amount: bc.amt}, TokenOut: bc.out}
 		// second leg: the route already swapped through the pool, so the state is advanced (no advance cost)
-		leg1, err := sim.CalcAmountOut(params)
+		leg1, err := sim.CalcAmtOut(params)
 		if err != nil {
 			b.Fatal(err)
 		}
 		cloned := sim.CloneState().(*uniswapv4.PoolSimulator)
-		cloned.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn,
+		cloned.UpdateState(pool.UpdateStateParams{TokenAmountIn: params.TokenAmountIn,
 			TokenAmountOut: *leg1.TokenAmountOut, Fee: *leg1.Fee, SwapInfo: leg1.SwapInfo})
 		for _, c := range []struct {
 			leg string
@@ -62,7 +62,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 			b.Run(bc.name+"_"+c.leg, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if _, err := c.sim.CalcAmountOut(params); err != nil {
+					if _, err := c.sim.CalcAmtOut(params); err != nil {
 						b.Fatal(err)
 					}
 				}
