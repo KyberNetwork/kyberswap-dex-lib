@@ -36,7 +36,7 @@ func TestHookFactoryUsesPoolReserves(t *testing.T) {
 			require.Equal(t, h.Reserve1, restored.Reserve1)
 			for _, direction := range []bool{true, false} {
 				for _, calcOut := range []bool{true, false} {
-					result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: direction, AmountSpecified: big.NewInt(10)})
+					result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: direction, AmountSpecified: uint256.NewInt(10)})
 					require.NoError(t, err)
 					require.Equal(t, "1000", h.Reserve0.Dec())
 					require.Equal(t, "2000", h.Reserve1.Dec())
@@ -53,7 +53,7 @@ func TestHookFactoryUsesPoolReserves(t *testing.T) {
 					require.Equal(t, "2000", h.Reserve1.Dec())
 				}
 			}
-			_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(2001)})
+			_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(2001)})
 			require.ErrorIs(t, err, ErrInsufficientRsv)
 		})
 	}
@@ -84,7 +84,7 @@ func TestBeforeSwapMissingReserves(t *testing.T) {
 		h := &Hook{Price: 1e18, Reserve0: reserves[0], Reserve1: reserves[1]}
 		for _, direction := range []bool{true, false} {
 			for _, calcOut := range []bool{true, false} {
-				_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: direction, AmountSpecified: big.NewInt(10)})
+				_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: direction, AmountSpecified: uint256.NewInt(10)})
 				require.ErrorIs(t, err, ErrMissingReserves)
 			}
 		}
@@ -115,7 +115,7 @@ func TestBeforeSwapStalenessGate(t *testing.T) {
 				Reserve0: uint256.NewInt(1000), Reserve1: uint256.NewInt(1000),
 				quoteAt: tc.now,
 			}
-			_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(10)})
+			_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(10)})
 			if tc.stale {
 				require.ErrorIs(t, err, ErrStalePrice)
 			} else {
@@ -131,7 +131,7 @@ func TestBeforeSwapStalenessGateUsesWallClockWhenUnset(t *testing.T) {
 		Price: 1e18, UpdatedAt: 1, MaxStaleness: 1,
 		Reserve0: uint256.NewInt(1000), Reserve1: uint256.NewInt(1000),
 	}
-	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(10)})
+	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(10)})
 	require.ErrorIs(t, err, ErrStalePrice)
 }
 

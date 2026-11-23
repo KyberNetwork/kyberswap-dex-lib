@@ -1,12 +1,11 @@
 package st0x
 
 import (
-	"context"
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -31,8 +30,8 @@ func TestIndexingQuotesAgedState(t *testing.T) {
 			`"tick":0,"tickSpacing":1,"ticks":[],"hX":{"p":1000000000000000000,"u":%d,"ms":60}}`, ts),
 		StaticExtra: `{"hooks":"0x9af1a97021b92c47219d2fb24deba51c248a2a88","fee":0,"tS":1}`,
 	}
-	quote := func(sim pool.IPoolSimulator) error {
-		_, err := pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: token0, Amount: big.NewInt(10)}, token1, nil)
+	quote := func(sim pool.IPoolSim) error {
+		_, err := sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: token0, Amount: *uint256.NewInt(10)}, TokenOut: token1})
 		return err
 	}
 
@@ -40,7 +39,7 @@ func TestIndexingQuotesAgedState(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, quote(indexed))
 
-	routed, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{
+	routed, err := pool.FactoryPoolSim(uniswapv4.DexType)(pool.FactoryParams{
 		EntityPool: p, Opts: pool.FactoryOpts{StaleCheck: true},
 	})
 	require.NoError(t, err)

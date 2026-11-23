@@ -13,7 +13,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -147,22 +146,17 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, ErrStalePrice
 	}
 
-	amt := params.AmountSpecified
-	if amt == nil || amt.Sign() <= 0 {
+	amtU := params.AmountSpecified
+	if amtU == nil || amtU.Sign() <= 0 {
 		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecified:   bignumber.ZeroBI,
-			DeltaUnspecified: bignumber.ZeroBI,
+			DeltaSpecified:   new(uint256.Int),
+			DeltaUnspecified: new(uint256.Int),
 			Gas:              gasBeforeSwap,
 		}, nil
 	}
 
 	if h.Reserve0 == nil || h.Reserve1 == nil {
 		return nil, ErrMissingReserves
-	}
-
-	amtU, overflow := uint256.FromBig(amt)
-	if overflow {
-		return nil, ErrInvalidSpread
 	}
 
 	reserveOut := h.Reserve1
@@ -172,7 +166,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 
 	var (
 		amountIn, amountOut              *uint256.Int
-		deltaSpecified, deltaUnspecified *big.Int
+		deltaSpecified, deltaUnspecified *uint256.Int
 	)
 	if params.CalcOut {
 		out, _, err := calcAmountOut(h.Price, h.SpreadBps, params.ZeroForOne, amtU)
@@ -184,8 +178,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 			return nil, ErrInsufficientRsv
 		}
 		amountIn, amountOut = amtU, out
-		deltaSpecified = new(big.Int).Set(amt)
-		deltaUnspecified = new(big.Int).Neg(out.ToBig())
+		deltaSpecified = new(uint256.Int).Set(amtU)
+		deltaUnspecified = new(uint256.Int).Neg(out)
 	} else {
 		if reserveOut != nil && amtU.Cmp(reserveOut) > 0 {
 			fmt.Println("reserve out:", amtU.String())
@@ -196,8 +190,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 			return nil, err
 		}
 		amountIn, amountOut = in, amtU
-		deltaSpecified = new(big.Int).Neg(amt)
-		deltaUnspecified = new(big.Int).Set(in.ToBig())
+		deltaSpecified = new(uint256.Int).Neg(amtU)
+		deltaUnspecified = new(uint256.Int).Set(in)
 	}
 
 	newReserve0, newReserve1 := h.applyDelta(params.ZeroForOne, amountIn, amountOut)
