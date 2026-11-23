@@ -7,10 +7,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -57,8 +57,8 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int),
 		SwapFee:          h.FeesFrom[lo.Ternary(params.ZeroForOne, 0, 1)],
 	}, nil
 }
