@@ -435,10 +435,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if len(ladder) == 0 {
 		return nil, ErrEmptyLadder
 	}
-	var amt uint256.Int
-	if params.AmountSpecified.Sign() <= 0 || amt.SetFromBig(params.AmountSpecified) {
+	if params.AmountSpecified.Sign() <= 0 {
 		return nil, ErrInvalidAmount
 	}
+	amt := *params.AmountSpecified
 	usedIn, usedOut := &h.consumedIn[dir], &h.consumedOut[dir]
 	info := &SwapInfo{Dir: dir}
 
@@ -465,10 +465,9 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		if out.IsZero() {
 			return nil, ErrZeroOutput
 		}
-		deltaUnspecified := out.ToBig()
 		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecified:   new(big.Int).Set(params.AmountSpecified),
-			DeltaUnspecified: deltaUnspecified.Neg(deltaUnspecified),
+			DeltaSpecified:   new(uint256.Int).Set(params.AmountSpecified),
+			DeltaUnspecified: new(uint256.Int).Neg(out),
 			Gas:              hookGas(gas),
 			SwapInfo:         info,
 		}, nil
@@ -495,8 +494,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}
 	info.AmountIn.Sub(&totalIn, usedIn)
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   new(big.Int).Neg(params.AmountSpecified),
-		DeltaUnspecified: info.AmountIn.ToBig(),
+		DeltaSpecified:   new(uint256.Int).Neg(params.AmountSpecified),
+		DeltaUnspecified: new(uint256.Int).Set(&info.AmountIn),
 		Gas:              hookGas(gas),
 		SwapInfo:         info,
 	}, nil

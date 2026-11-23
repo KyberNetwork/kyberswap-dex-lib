@@ -4,7 +4,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func BenchmarkCalcAmountOut(b *testing.B) {
@@ -34,10 +37,11 @@ func BenchmarkCloneStateUpdateBalance(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	upd := pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut,
-		SwapInfo: res.SwapInfo}
+	upd := pool.UpdateStateParams{TokenAmountIn: pool.TokenAmt{Token: simUsdg, Amount: *uint256.NewInt(1_000_000)},
+		TokenAmountOut: pool.TokenAmt{Token: res.TokenAmountOut.Token, Amount: *big256.FromBig(res.TokenAmountOut.Amount)},
+		SwapInfo:       res.SwapInfo}
 	b.ReportAllocs()
 	for b.Loop() {
-		sim.CloneState().UpdateBalance(upd)
+		sim.CloneState().UpdateState(upd)
 	}
 }
