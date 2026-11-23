@@ -6,12 +6,14 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -80,15 +82,14 @@ func TestCalcAmountOut(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+				return p.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: *big256.New(tc.inAmount)},
 					TokenOut:      tc.out,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
-			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
+			assert.Equal(t, uint256.NewInt(uint64(tc.expectedOutAmount)).String(), out.TokenAmountOut.Amount.String())
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 		})
 	}
@@ -163,17 +164,16 @@ func TestCalcAmountIn(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			amountIn, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
-				return p.CalcAmountIn(pool.CalcAmountInParams{
-					TokenAmountOut: pool.TokenAmount{Token: tc.tokenOut, Amount: tc.amountOut},
+			amountIn, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtInResult, error) {
+				return p.CalcAmtIn(pool.CalcAmtInParams{
+					TokenAmountOut: pool.TokenAmt{Token: tc.tokenOut, Amount: *big256.FromBig(tc.amountOut)},
 					TokenIn:        tc.tokenIn,
-					Limit:          nil,
 				})
 			})
 			require.Nil(t, err)
 			assert.Equal(t, tc.tokenIn, amountIn.TokenAmountIn.Token)
-			assert.Equalf(t, tc.expectedAmountIn, amountIn.TokenAmountIn.Amount, "expected: %v, got: %v", tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.String())
-			assert.Equalf(t, tc.expectedFee, amountIn.Fee.Amount, "expected: %v, got: %v", tc.expectedFee.String(), amountIn.Fee.Amount.String())
+			assert.Equalf(t, tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.String(), "expected: %v, got: %v", tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.String())
+			assert.Equalf(t, tc.expectedFee.String(), amountIn.Fee.Amount.String(), "expected: %v, got: %v", tc.expectedFee.String(), amountIn.Fee.Amount.String())
 		})
 	}
 }
@@ -202,8 +202,10 @@ func TestCloneState(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: "Bu", Amount: big.NewInt(1)},
+	var in uint256.Int
+	in.SetUint64(1)
+	testutil.TestCloneStateIPoolSim(t, p, pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: "Bu", Amount: in},
 		TokenOut:      "Au",
-	}, nil)
+	})
 }

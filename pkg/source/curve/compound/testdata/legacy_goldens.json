@@ -1,0 +1,372 @@
+{
+ "Pool": "{\"address\": \"0xa2b47e3d5c44877cca798226b7b8118f9bfb7a56\", \"exchange\": \"curve\", \"type\": \"curve-compound\", \"reserves\": [\"6821027635846033\", \"21272421810258792\"], \"tokens\": [{\"address\": \"A\"}, {\"address\": \"B\"}], \"extra\": \"{\\\"swapFee\\\":\\\"4000000\\\",\\\"adminFee\\\":\\\"5000000000\\\",\\\"a\\\":\\\"4500\\\",\\\"rates\\\":[\\\"222715619618370815307976005\\\",\\\"228878995112471\\\"]}\", \"staticExtra\": \"{\\\"lpToken\\\":\\\"LP\\\",\\\"precisionMultipliers\\\":[\\\"1\\\",\\\"1000000000000\\\"],\\\"underlyingTokens\\\":[\\\"au\\\",\\\"bu\\\"]}\"}",
+ "Quotes": [
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "1",
+   "Dy": "",
+   "Fee": "",
+   "Err": "tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: 0, tokenIndexTo: 1"
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "7",
+   "Dy": "",
+   "Fee": "",
+   "Err": "tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: 0, tokenIndexTo: 1"
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "1000",
+   "Dy": "",
+   "Fee": "",
+   "Err": "tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: 0, tokenIndexTo: 1"
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "12345",
+   "Dy": "",
+   "Fee": "",
+   "Err": "tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: 0, tokenIndexTo: 1"
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "100000",
+   "Dy": "",
+   "Fee": "",
+   "Err": "tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: 0, tokenIndexTo: 1"
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "100000000",
+   "Dy": "",
+   "Fee": "",
+   "Err": "tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: 0, tokenIndexTo: 1"
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "1000000000000",
+   "Dy": "1",
+   "Fee": "0",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "50000000000000000",
+   "Dy": "50002",
+   "Fee": "20",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "1000000000000000000",
+   "Dy": "1000043",
+   "Fee": "400",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "100000000000000000000",
+   "Dy": "100004299",
+   "Fee": "40017",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "5000000000000000000000000",
+   "Dy": "4858939073805",
+   "Fee": "1944353370",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "1",
+   "Dy": "999157177347",
+   "Fee": "399822800",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "7",
+   "Dy": "6994100241426",
+   "Fee": "2798759600",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "1000",
+   "Dy": "999157177346129",
+   "Fee": "399822800058",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "12345",
+   "Dy": "12334595354291399",
+   "Fee": "4935812466703",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "100000",
+   "Dy": "99915717731321836",
+   "Fee": "39982280004530",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "100000000",
+   "Dy": "99915714410181863992",
+   "Fee": "39982278675542962",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "1000000000000",
+   "Dy": "998209512688578425857431",
+   "Fee": "399443582508434744240",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "50000000000000000",
+   "Dy": "1518541736590045071638825",
+   "Fee": "607659758539433802176",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "1000000000000000000",
+   "Dy": "1518541736592932419683208",
+   "Fee": "607659758540589203554",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "100000000000000000000",
+   "Dy": "1518541736592939655882598",
+   "Fee": "607659758540592099192",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "5000000000000000000000000",
+   "Dy": "1518541736592939656606292",
+   "Fee": "607659758540592099482",
+   "Err": ""
+  }
+ ],
+ "Ins": [
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "1",
+   "Dy": "999557000146",
+   "Fee": "0",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "7",
+   "Dy": "6996899001025",
+   "Fee": "0",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "1000",
+   "Dy": "999557000146852",
+   "Fee": "0",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "12345",
+   "Dy": "12343529394860083",
+   "Fee": "4",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "100000",
+   "Dy": "99995682297986056",
+   "Fee": "40",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "100000000",
+   "Dy": "99995701615605967670",
+   "Fee": "40016",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "1000000000000",
+   "Dy": "1000164206061874867661438",
+   "Fee": "400160064",
+   "Err": ""
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "50000000000000000",
+   "Dy": "",
+   "Fee": "",
+   "Err": "denominator should not be 0"
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "1000000000000000000",
+   "Dy": "",
+   "Fee": "",
+   "Err": "denominator should not be 0"
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "100000000000000000000",
+   "Dy": "",
+   "Fee": "",
+   "Err": "denominator should not be 0"
+  },
+  {
+   "In": "au",
+   "Out": "bu",
+   "Amount": "5000000000000000000000000",
+   "Dy": "",
+   "Fee": "",
+   "Err": "denominator should not be 0"
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "1",
+   "Dy": "",
+   "Fee": "",
+   "Err": "zero"
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "7",
+   "Dy": "",
+   "Fee": "",
+   "Err": "zero"
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "1000",
+   "Dy": "",
+   "Fee": "",
+   "Err": "zero"
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "12345",
+   "Dy": "",
+   "Fee": "",
+   "Err": "zero"
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "100000",
+   "Dy": "",
+   "Fee": "",
+   "Err": "zero"
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "100000000",
+   "Dy": "",
+   "Fee": "",
+   "Err": "zero"
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "1000000000000",
+   "Dy": "1",
+   "Fee": "400160064",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "50000000000000000",
+   "Dy": "50042",
+   "Fee": "20008003201280",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "1000000000000000000",
+   "Dy": "1000843",
+   "Fee": "400160064025610",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "100000000000000000000",
+   "Dy": "100084356",
+   "Fee": "40016006402561024",
+   "Err": ""
+  },
+  {
+   "In": "bu",
+   "Out": "au",
+   "Amount": "5000000000000000000000000",
+   "Dy": "5000811356488",
+   "Fee": "2000800320128051220488",
+   "Err": ""
+  }
+ ],
+ "Upd": [
+  "-93114673239022067",
+  "21272421810358792",
+  "err",
+  "err",
+  "err",
+  "err",
+  "err",
+  "err",
+  "err",
+  "clone:6821027635846033",
+  "clone:21272421810258792"
+ ]
+}

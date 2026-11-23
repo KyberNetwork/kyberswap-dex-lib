@@ -10,4 +10,6 @@ var (
 	ErrTokenIndexesOutOfRange       = errors.New("token index out of range")
 	ErrAmountOutNotConverge         = errors.New("approximation did not converge")
 	ErrDenominatorZero              = errors.New("denominator should not be 0")
+	// ErrNegativeResult: legacy returned a negative value (or drove a reserve negative); uint256 cannot hold it.
+	ErrNegativeResult = errors.New("negative result")
 )
