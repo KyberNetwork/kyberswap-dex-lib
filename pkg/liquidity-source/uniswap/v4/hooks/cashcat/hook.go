@@ -22,13 +22,16 @@ import (
 	"github.com/goccy/go-json"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/holiman/uint256"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
 	// FeeDenom is the hook's fee scale: 1e6 = 100%.
-	FeeDenom = big.NewInt(1e6)
+	FeeDenom  = big.NewInt(1e6)
+	uFeeDenom = uint256.NewInt(1e6)
 
 	ErrNotCalibrated = errors.New("cashcat: fee rate not tracked yet")
 	ErrFeeTooHigh    = errors.New("cashcat: fee rate exceeds 100%")
@@ -117,28 +120,28 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if err != nil {
 		return nil, err
 	}
-	deltaSpecified := bignumber.ZeroBI
+	rate := u256.FromBig(feeRate)
+	deltaSpecified := new(uint256.Int)
 	if quoteSpecified(params.CalcOut, params.ZeroForOne) {
 		if params.CalcOut {
 			// Exact-input sell of the quote asset: skim the fee off the
 			// full input, _feeFor(amount, rate, exactOutput=false).
-			deltaSpecified = bignumber.MulDivDown(new(big.Int),
-				params.AmountSpecified, feeRate, FeeDenom)
+			u256.MulDivDown(deltaSpecified, params.AmountSpecified, rate, uFeeDenom)
 		} else {
 			// Exact-output buy of the quote asset: the named amount is
 			// what the trader keeps, so gross up to the leg it implies,
 			// _feeFor(amount, rate, exactOutput=true).
-			denom := new(big.Int).Sub(FeeDenom, feeRate)
+			var denom uint256.Int
+			denom.Sub(uFeeDenom, rate)
 			if denom.Sign() <= 0 {
 				return nil, ErrFeeTooHigh
 			}
-			deltaSpecified = bignumber.MulDivDown(new(big.Int),
-				params.AmountSpecified, feeRate, denom)
+			u256.MulDivDown(deltaSpecified, params.AmountSpecified, rate, &denom)
 		}
 	}
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   deltaSpecified,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
@@ -147,24 +150,24 @@ func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwa
 	if err != nil {
 		return nil, err
 	}
-	hookFee := bignumber.ZeroBI
+	rate := u256.FromBig(feeRate)
+	hookFee := new(uint256.Int)
 	if !quoteSpecified(params.CalcOut, params.ZeroForOne) {
 		if params.CalcOut {
 			// Exact-input sell of the base asset: fee on the actual quote
 			// moved, _feeFor(amountOut, rate, exactOutput=false).
-			hookFee = bignumber.MulDivDown(new(big.Int),
-				params.AmountOut, feeRate, FeeDenom)
+			u256.MulDivDown(hookFee, params.AmountOut, rate, uFeeDenom)
 		} else {
 			// Exact-output sell of the base asset: fee on the actual quote
 			// moved, grossed up, _feeFor(amountIn, rate, exactOutput=true).
 			// AmountIn here is the pre-fee requirement, which is exactly
 			// the base the gross-up inverts.
-			denom := new(big.Int).Sub(FeeDenom, feeRate)
+			var denom uint256.Int
+			denom.Sub(uFeeDenom, rate)
 			if denom.Sign() <= 0 {
 				return nil, ErrFeeTooHigh
 			}
-			hookFee = bignumber.MulDivDown(new(big.Int),
-				params.AmountIn, feeRate, denom)
+			u256.MulDivDown(hookFee, params.AmountIn, rate, &denom)
 		}
 	}
 	return &uniswapv4.AfterSwapResult{

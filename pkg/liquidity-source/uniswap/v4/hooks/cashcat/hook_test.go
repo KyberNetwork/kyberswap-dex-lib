@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -61,19 +62,19 @@ func TestCalcOut_SellBaseTakesOutputFee(t *testing.T) {
 
 	before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut: true, ZeroForOne: false,
-		AmountSpecified: mustBig("264665000000000000000000"),
+		AmountSpecified: u256.FromBig(mustBig("264665000000000000000000")),
 	})
 	require.NoError(t, err)
-	require.Zero(t, before.DeltaSpecified.Sign())
-	require.Zero(t, before.DeltaUnspecified.Sign())
+	require.Zero(t, u256.ToBig(before.DeltaSpecified).Sign())
+	require.Zero(t, u256.ToBig(before.DeltaUnspecified).Sign())
 
 	after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false},
-		AmountOut:        mustBig("16019790377638234"),
+		AmountOut:        u256.FromBig(mustBig("16019790377638234")),
 	})
 	require.NoError(t, err)
 	// 16019790377638234 * 30000 / 1e6 = 480593711329147.02 -> floor.
-	require.Equal(t, "480593711329147", after.HookFee.String())
+	require.Equal(t, "480593711329147", u256.ToBig(after.HookFee).String())
 }
 
 // TestCalcOut_BuyQuoteSkimsInput mirrors a 0.01 WETH buy: 3% off the input
@@ -84,19 +85,19 @@ func TestCalcOut_BuyQuoteSkimsInput(t *testing.T) {
 
 	before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut: true, ZeroForOne: true,
-		AmountSpecified: mustBig("10000000000000000"),
+		AmountSpecified: u256.FromBig(mustBig("10000000000000000")),
 	})
 	require.NoError(t, err)
-	require.Equal(t, "300000000000000", before.DeltaSpecified.String())
-	require.Zero(t, before.DeltaUnspecified.Sign())
+	require.Equal(t, "300000000000000", u256.ToBig(before.DeltaSpecified).String())
+	require.Zero(t, u256.ToBig(before.DeltaUnspecified).Sign())
 
 	after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true},
-		AmountIn:         mustBig("10000000000000000"),
-		AmountOut:        mustBig("159187442666741124038656"),
+		AmountIn:         u256.FromBig(mustBig("10000000000000000")),
+		AmountOut:        u256.FromBig(mustBig("159187442666741124038656")),
 	})
 	require.NoError(t, err)
-	require.Zero(t, after.HookFee.Sign())
+	require.Zero(t, u256.ToBig(after.HookFee).Sign())
 }
 
 // TestCalcIn_ExactOutputGrossUp mirrors _feeFor gross-up: naming 1 WETH out
@@ -107,11 +108,11 @@ func TestCalcIn_ExactOutputGrossUp(t *testing.T) {
 
 	before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut: false, ZeroForOne: false,
-		AmountSpecified: mustBig("1000000000000000000"),
+		AmountSpecified: u256.FromBig(mustBig("1000000000000000000")),
 	})
 	require.NoError(t, err)
 	// 1e18 * 30000 / 970000 = 30927835051546391.75 -> floor.
-	require.Equal(t, "30927835051546391", before.DeltaSpecified.String())
+	require.Equal(t, "30927835051546391", u256.ToBig(before.DeltaSpecified).String())
 }
 
 // TestUntrackedFeeRateFailsLoud: without a tracked rate the hook refuses to
@@ -121,12 +122,12 @@ func TestUntrackedFeeRateFailsLoud(t *testing.T) {
 	h := &Hook{Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Cashcat}}
 
 	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true,
-		AmountSpecified: big.NewInt(1000)})
+		AmountSpecified: u256.FromBig(big.NewInt(1000))})
 	require.ErrorIs(t, err, ErrNotCalibrated)
 
 	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-		AmountOut:        big.NewInt(1000),
+		AmountOut:        u256.FromBig(big.NewInt(1000)),
 	})
 	require.ErrorIs(t, err, ErrNotCalibrated)
 }
