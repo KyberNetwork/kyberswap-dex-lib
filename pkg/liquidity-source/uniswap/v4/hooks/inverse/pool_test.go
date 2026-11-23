@@ -13,6 +13,7 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func TestV4DispatchAndSequentialUpdate(t *testing.T) {
@@ -91,7 +92,7 @@ func testSequentialDispatch(t *testing.T, addr common.Address, vs []vector, init
 		require.LessOrEqual(t, resIn.TokenAmountIn.Amount.Cmp(v.Input.ToBig()), 0)
 		require.Empty(t, sim.GetMetaInfo(in, out).(uniswapv4.PoolMetaInfo).HookData)
 		require.Equal(t, s.BlockNumber, sim.GetMetaInfo(in, out).(uniswapv4.PoolMetaInfo).BlockNumber)
-		sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: amount, TokenAmountOut: *result.TokenAmountOut, Fee: *result.Fee, SwapInfo: result.SwapInfo})
+		sim.UpdateState(pool.UpdateStateParams{TokenAmountIn: pool.TokenAmt{Token: in, Amount: v.Input}, TokenAmountOut: pool.TokenAmt{Token: out, Amount: *big256.FromBig(result.TokenAmountOut.Amount)}, Fee: pool.TokenAmt{Token: result.Fee.Token, Amount: *big256.FromBig(result.Fee.Amount)}, SwapInfo: result.SwapInfo})
 		s = v.After
 		expected := newHook(s).PoolState()
 		require.Equal(t, expected.SqrtPriceX96, sim.V3Pool.SqrtRatioX96)

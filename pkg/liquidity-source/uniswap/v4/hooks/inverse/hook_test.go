@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type vector struct {
@@ -48,18 +49,18 @@ func testDifferential(t *testing.T, vs []vector) {
 	for _, v := range vs {
 		t.Run(v.Name, func(t *testing.T) {
 			h := newHook(v.Before)
-			input := v.Input.ToBig()
-			saved := new(big.Int).Set(input)
-			p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: v.ZeroForOne, AmountSpecified: input}
+			input := v.Input
+			saved := input
+			p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: v.ZeroForOne, AmountSpecified: &input}
 			r, err := h.BeforeSwap(p)
 			require.Equal(t, v.Before, h.State, "quote must not mutate its snapshot")
-			require.Zero(t, saved.Cmp(input))
+			require.Equal(t, saved, input)
 			if !v.Success {
 				require.Error(t, err, "Solidity reverted: %s", v.Revert)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, v.Output.Dec(), new(big.Int).Neg(r.DeltaUnspecified).String())
+			require.Equal(t, v.Output.Dec(), new(uint256.Int).Neg(r.DeltaUnspecified).Dec())
 			require.Equal(t, v.After, r.SwapInfo.(SwapInfo).After)
 			clone := h.CloneState().(*Hook)
 			clone.UpdateBalance(r.SwapInfo)
@@ -79,23 +80,23 @@ func TestFailClosed(t *testing.T) {
 		mutate(&c)
 		h := newHook(c)
 		for _, calcOut := range []bool{true, false} {
-			_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: calcOut, AmountSpecified: big.NewInt(1e14)})
+			_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: calcOut, AmountSpecified: uint256.NewInt(1e14)})
 			require.Error(t, err)
 		}
 	}
 	h := newHook(s)
-	for _, in := range []*big.Int{nil, big.NewInt(-1), big.NewInt(0), new(big.Int).Lsh(big.NewInt(1), 256)} {
+	for _, in := range []*uint256.Int{nil, new(uint256.Int).Neg(uint256.NewInt(1)), uint256.NewInt(0)} {
 		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: in})
 		require.Error(t, err)
 	}
-	for _, in := range []*big.Int{nil, big.NewInt(-1), big.NewInt(0), new(big.Int).Lsh(big.NewInt(1), 256)} {
+	for _, in := range []*uint256.Int{nil, new(uint256.Int).Neg(uint256.NewInt(1)), uint256.NewInt(0)} {
 		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: in})
 		require.Error(t, err)
 	}
 	h.UpdateBalance(nil)
 	require.Equal(t, s, h.State)
 	malformed := NewHook(&uniswapv4.HookParam{HookExtra: uniswapv4.HookExtra(`{"bad":`)}).(*Hook)
-	_, err := malformed.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: big.NewInt(1e14)})
+	_, err := malformed.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: uint256.NewInt(1e14)})
 	require.Error(t, err)
 }
 
@@ -114,7 +115,7 @@ func FuzzQuoteDoesNotMutate(f *testing.F) {
 	f.Fuzz(func(t *testing.T, amount uint64, pick uint8, large bool) {
 		v := vs[int(pick)%len(vs)]
 		h := newHook(v.Before)
-		input := new(big.Int).SetUint64(amount)
+		input := uint256.NewInt(amount)
 		if large {
 			input.Lsh(input, 70)
 		}
@@ -135,7 +136,7 @@ func BenchmarkQuote(b *testing.B) {
 	var vs []vector
 	_ = json.Unmarshal(raw, &vs)
 	h := newHook(vs[0].Before)
-	p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: vs[0].ZeroForOne, AmountSpecified: vs[0].Input.ToBig()}
+	p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: vs[0].ZeroForOne, AmountSpecified: &vs[0].Input}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -152,13 +153,14 @@ func TestCalcInReversesSolidityVectors(t *testing.T) {
 		if !v.Success {
 			continue
 		}
+		output := v.Output
 		r, err := newHook(v.Before).BeforeSwap(&uniswapv4.BeforeSwapParams{
-			CalcOut: false, ZeroForOne: v.ZeroForOne, AmountSpecified: v.Output.ToBig(),
+			CalcOut: false, ZeroForOne: v.ZeroForOne, AmountSpecified: &output,
 		})
 		require.NoError(t, err, v.Name)
-		amountIn := r.DeltaUnspecified
+		amountIn := big256.ToBig(r.DeltaUnspecified)
 		require.LessOrEqual(t, amountIn.Cmp(v.Input.ToBig()), 0, v.Name)
-		require.Equal(t, new(big.Int).Neg(v.Output.ToBig()), r.DeltaSpecified, v.Name)
+		require.Equal(t, new(uint256.Int).Neg(&v.Output), r.DeltaSpecified, v.Name)
 
 		out, _, err := quote(v.Before, v.ZeroForOne, amountIn)
 		require.NoError(t, err, v.Name)

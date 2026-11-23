@@ -5,9 +5,11 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -43,21 +45,22 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 	if !p.CalcOut {
 		return h.calcIn(p)
 	}
-	out, next, err := quote(h.State, p.ZeroForOne, p.AmountSpecified)
+	out, next, err := quote(h.State, p.ZeroForOne, big256.ToBig(p.AmountSpecified))
 	if err != nil {
 		return nil, err
 	}
-	return &uniswapv4.BeforeSwapResult{DeltaSpecified: new(big.Int).Set(p.AmountSpecified), DeltaUnspecified: new(big.Int).Neg(out), SwapFee: 3000, Gas: 900_000, SwapInfo: SwapInfo{Before: h.State, After: next}}, nil
+	return &uniswapv4.BeforeSwapResult{DeltaSpecified: new(uint256.Int).Set(p.AmountSpecified), DeltaUnspecified: new(uint256.Int).Neg(big256.FromBig(out)), SwapFee: 3000, Gas: 900_000, SwapInfo: SwapInfo{Before: h.State, After: next}}, nil
 }
 
 // calcIn reverses exact-in: the hook only prices exact-in, so it searches the min amountIn whose exact-in quote
 // gives AmountSpecified out, and takes the whole swap off the pool.
 func (h *Hook) calcIn(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	if p.AmountSpecified == nil || !positiveBound(p.AmountSpecified, maxDelta) {
+	if p.AmountSpecified == nil || !positiveBound(big256.ToBig(p.AmountSpecified), maxDelta) {
 		return nil, ErrBounds
 	} else if err := h.State.validate(); err != nil {
 		return nil, err
 	}
+	amountOut := big256.ToBig(p.AmountSpecified)
 	r := h.PoolState().Reserves // spot price guess
 	rIn, rOut := r[0], r[1]
 	if !p.ZeroForOne {
@@ -65,9 +68,9 @@ func (h *Hook) calcIn(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResul
 	}
 	var guess *big.Int
 	if rOut.Sign() > 0 {
-		guess = up(p.AmountSpecified, rIn, rOut)
+		guess = up(amountOut, rIn, rOut)
 	}
-	in, err := uniswapv4.MinAmountIn(p.AmountSpecified, guess, func(amountIn *big.Int) (*big.Int, error) {
+	in, err := uniswapv4.MinAmountIn(amountOut, guess, func(amountIn *big.Int) (*big.Int, error) {
 		out, _, err := quote(h.State, p.ZeroForOne, amountIn)
 		return out, err
 	})
@@ -78,7 +81,7 @@ func (h *Hook) calcIn(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResul
 	if err != nil {
 		return nil, err
 	}
-	return &uniswapv4.BeforeSwapResult{DeltaSpecified: new(big.Int).Neg(p.AmountSpecified), DeltaUnspecified: in, SwapFee: 3000, Gas: 900_000, SwapInfo: SwapInfo{Before: h.State, After: next}}, nil
+	return &uniswapv4.BeforeSwapResult{DeltaSpecified: new(uint256.Int).Neg(p.AmountSpecified), DeltaUnspecified: big256.FromBig(in), SwapFee: 3000, Gas: 900_000, SwapInfo: SwapInfo{Before: h.State, After: next}}, nil
 }
 func (h *Hook) CloneState() uniswapv4.Hook { c := *h; return &c }
 func (h *Hook) UpdateBalance(info any) {

@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -219,7 +220,7 @@ func TestTrackPinnedSnapshot(t *testing.T) {
 				require.Equal(t, entity.PoolReserves{"0", "0"}, r)
 				require.True(t, h.State.Fees0.IsZero())
 				require.True(t, h.State.Fees1.IsZero())
-				_, e = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: n(1e14)})
+				_, e = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: uint256.NewInt(1e14)})
 				require.ErrorIs(t, e, ErrState)
 			}
 		})
