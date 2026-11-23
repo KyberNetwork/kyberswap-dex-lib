@@ -15,12 +15,14 @@ import (
 	wire "github.com/KyberNetwork/msgpack/v5"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -57,10 +59,10 @@ func TestHookIntegrationMsgpackMarket(t *testing.T) {
 		var back Extra
 		require.NoError(t, de.Decode(&back), path)
 		got, err := (&Hook{Extra: back}).BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true,
-			ZeroForOne: c.Input.ZeroForOne, AmountSpecified: c.Input.AmountIn.Copy()})
+			ZeroForOne: c.Input.ZeroForOne, AmountSpecified: big256.FromBig(c.Input.AmountIn.Copy())})
 		require.NoError(t, err, path)
 		want, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true,
-			ZeroForOne: c.Input.ZeroForOne, AmountSpecified: c.Input.AmountIn.Copy()})
+			ZeroForOne: c.Input.ZeroForOne, AmountSpecified: big256.FromBig(c.Input.AmountIn.Copy())})
 		require.NoError(t, err, path)
 		require.Equal(t, want.DeltaUnspecified, got.DeltaUnspecified, path)
 	}
@@ -166,7 +168,7 @@ func TestHookIntegrationPriceLimitWithinBand(t *testing.T) {
 	}
 	h.Market.Venue.UsdgIs0 = false
 	_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false,
-		AmountSpecified: big.NewInt(1_000_000)})
+		AmountSpecified: uint256.NewInt(1_000_000)})
 	require.ErrorIs(t, err, ErrCurrencyOrder)
 }
 
@@ -175,7 +177,7 @@ func TestHookIntegrationRefusesPriceLimitedFill(t *testing.T) {
 	_, err := QuoteConservative(h.cfg(), h.Market, inputOf(c))
 	require.NoError(t, err, "the unbounded fixture fills")
 	_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true,
-		AmountSpecified: c.Input.AmountIn.Copy()})
+		AmountSpecified: big256.FromBig(c.Input.AmountIn.Copy())})
 	require.Error(t, err, "do not quote an unbounded fill when the executor uses the NAV band")
 }
 
@@ -211,7 +213,7 @@ func TestHookIntegrationSpreadGuard(t *testing.T) {
 					amount, want = new(big.Int).Mul(big.NewInt(100), bigE18), tc.wantSell
 				}
 				r, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: v.ZeroForOne(buy),
-					AmountSpecified: amount})
+					AmountSpecified: big256.FromBig(amount)})
 				switch want {
 				case fill:
 					require.NoError(t, err, "buy=%v", buy)
@@ -282,7 +284,7 @@ func TestHookIntegrationInvalidNavClearsOldQuotes(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, entity.PoolReserves{"0", "0"}, reserves)
 		_, err = instance.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true,
-			ZeroForOne: true, AmountSpecified: big.NewInt(1_000_000)})
+			ZeroForOne: true, AmountSpecified: uint256.NewInt(1_000_000)})
 		require.ErrorIs(t, err, ErrNotTracked)
 	}
 }
@@ -313,7 +315,7 @@ func TestHookIntegrationMqUpdateBalance(t *testing.T) {
 	clone := h.CloneState().(*Hook)
 	initial := new(big.Int).Set(clone.Market.Mq.Conv.SqrtPriceX96)
 	r, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true,
-		AmountSpecified: c.Input.AmountIn.Copy()})
+		AmountSpecified: big256.FromBig(c.Input.AmountIn.Copy())})
 	require.NoError(t, err)
 	// Replay the executed legs, including the leftover sells, to obtain the conversion pool
 	// state independently of World/UpdateBalance. The second basket swap must start there.
@@ -350,7 +352,7 @@ func TestHookIntegrationMqUpdateBalance(t *testing.T) {
 func TestHookIntegrationConcurrentQuotes(t *testing.T) {
 	for _, path := range []string{"testdata/fixtures/navjit2-buy-1kusd.json", "testdata/mq/mq-buy-1kusd.json"} {
 		h, c := integrationHook(t, path)
-		params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: c.Input.AmountIn.Copy()}
+		params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big256.FromBig(c.Input.AmountIn.Copy())}
 		before, err := json.Marshal(h.Extra)
 		require.NoError(t, err)
 		want, err := h.BeforeSwap(params)
@@ -445,7 +447,7 @@ func TestTrackPublishesOnlyValidExtras(t *testing.T) {
 			empty++
 			require.False(t, c.IsFill(), "%s: the chain fills a state Track published as empty", c.ID)
 			_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: c.Input.ZeroForOne,
-				AmountSpecified: c.Input.AmountIn.Copy()})
+				AmountSpecified: big256.FromBig(c.Input.AmountIn.Copy())})
 			require.ErrorIs(t, err, ErrNotTracked, c.ID)
 		}
 		if strings.HasSuffix(c.ID, "gldHookedOnly") {

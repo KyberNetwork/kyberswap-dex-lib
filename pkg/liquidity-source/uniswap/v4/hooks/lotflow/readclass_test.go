@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -304,7 +305,7 @@ func TestBeforeSwapWithoutVenue(t *testing.T) {
 	h := &Hook{BaseHook: &uniswapv4.BaseHook{Exchange: Exchange}, Tracked: true, Market: &Market{}}
 	var err error
 	require.NotPanics(t, func() {
-		_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1e6)})
+		_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1e6)})
 	})
 	require.ErrorIs(t, err, ErrNotTracked)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // gasCase is one fork measurement (testdata/gas/measured.json): a swap on a deployed LOTFLOW v1 venue
@@ -92,7 +93,7 @@ func TestGasFeaturesOnRecordedVenue(t *testing.T) {
 			amt = new(big.Int).Quo(new(big.Int).Mul(big.NewInt(usd), new(big.Int).Exp(big.NewInt(10), big.NewInt(36), nil)), nav)
 		}
 		r, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: h.Market.Venue.ZeroForOne(buy),
-			AmountSpecified: amt})
+			AmountSpecified: big256.FromBig(amt)})
 		require.NoError(t, err, "buy=%v $%d", buy, usd)
 		return gasFeatures(h.Market, buy, r.SwapInfo.(*SwapInfo).res), r.Gas + uniswapv4.DefaultGas.BaseGas
 	}
@@ -147,7 +148,7 @@ func TestGasFeaturesPinnedOnRecordedVenue(t *testing.T) {
 				nil)), nav)
 		}
 		r, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: h.Market.Venue.ZeroForOne(c.buy),
-			AmountSpecified: amt})
+			AmountSpecified: big256.FromBig(amt)})
 		require.NoError(t, err, "buy=%v $%d", c.buy, c.usd)
 		res := r.SwapInfo.(*SwapInfo).res
 		var legs []leg

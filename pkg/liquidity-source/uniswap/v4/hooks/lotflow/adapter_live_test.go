@@ -18,6 +18,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -88,7 +89,7 @@ func TestAdapterLive(t *testing.T) {
 				}
 				amt, _ := new(big.Float).Mul(big.NewFloat(x), unit).Int(nil)
 				zfo := buy == usdgIs0
-				r, aerr := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zfo, AmountSpecified: amt})
+				r, aerr := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zfo, AmountSpecified: big256.FromBig(amt)})
 				q, qrev, qerr := quoteV4(ctx, rc, liveQuoter, v.lot, v.hook, usdgIs0, zfo, amt, nil)
 				if !buy && qerr != nil && bytes.Contains(qrev, sel("SellExceedsFloat(uint256,uint256)")) {
 					cur, err := balanceOf(ctx, rc, v.lot, livePM)
@@ -104,9 +105,9 @@ func TestAdapterLive(t *testing.T) {
 					st[3]++ // refusing is never an over-quote
 				case qerr != nil:
 					over++
-					t.Errorf("OVER %s %s %s: adapter fills %s, chain refuses", v.name, side, amt, r.DeltaUnspecified)
+					t.Errorf("OVER %s %s %s: adapter fills %s, chain refuses", v.name, side, amt, big256.ToBig(r.DeltaUnspecified))
 				default:
-					out := new(big.Int).Neg(r.DeltaUnspecified)
+					out := new(big.Int).Neg(big256.ToBig(r.DeltaUnspecified))
 					d, _ := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Sub(out, q)), new(big.Float).SetInt(q)).Float64()
 					maxDev = math.Max(maxDev, math.Abs(d*1e4))
 					switch out.Cmp(q) {

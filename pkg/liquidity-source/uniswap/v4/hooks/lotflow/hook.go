@@ -18,6 +18,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -316,7 +317,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, ErrBadAmount
 	}
 	buy := params.ZeroForOne == h.Market.Venue.UsdgIs0
-	res, err := h.quote(buy, params.AmountSpecified)
+	res, err := h.quote(buy, big256.ToBig(params.AmountSpecified))
 	if err != nil {
 		return nil, err
 	}
@@ -324,8 +325,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, ErrZeroOutput
 	}
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   new(big.Int).Set(params.AmountSpecified),
-		DeltaUnspecified: new(big.Int).Neg(res.AmountOut),
+		DeltaSpecified:   new(uint256.Int).Set(params.AmountSpecified),
+		DeltaUnspecified: new(uint256.Int).Neg(big256.FromBig(res.AmountOut)),
 		// The outer v4 simulator adds its base gas even when the hook consumes the whole input.
 		Gas:      max(SwapGasFor(gasFeatures(h.Market, buy, res))-uniswapv4.DefaultGas.BaseGas, 0),
 		SwapInfo: &SwapInfo{res: res},

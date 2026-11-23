@@ -5,9 +5,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // hookOf builds the adapter from a fixture's pre-state, passing the state through the JSON extra the
@@ -37,7 +39,7 @@ func TestAdapterBeforeSwapFixtures(t *testing.T) {
 		}
 		h := hookOf(t, c, marketOf(t, c))
 		r, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: c.Input.ZeroForOne,
-			AmountSpecified: c.Input.AmountIn.Copy()})
+			AmountSpecified: big256.FromBig(c.Input.AmountIn.Copy())})
 		if !c.IsFill() {
 			require.Error(t, err, c.ID)
 			refused++
@@ -61,8 +63,8 @@ func TestAdapterBeforeSwapFixtures(t *testing.T) {
 			inexactLower++
 			continue
 		}
-		eq(t, c.Input.AmountIn.Copy(), r.DeltaSpecified, c.ID)
-		out := new(big.Int).Neg(r.DeltaUnspecified)
+		eq(t, c.Input.AmountIn.Copy(), big256.ToBig(r.DeltaSpecified), c.ID)
+		out := new(big.Int).Neg(big256.ToBig(r.DeltaUnspecified))
 		if out.Cmp(c.Outcome.AmountOut.Copy()) == 0 {
 			exact++
 		} else {
@@ -92,9 +94,9 @@ func TestAdapterUpdateBalance(t *testing.T) {
 			h.Market.Timestamp = sc.Pin.BlockTimestamp.Uint64()
 			hs := h.CloneState().(*Hook)
 			r, err := hs.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: sc.Input.ZeroForOne,
-				AmountSpecified: sc.Input.AmountIn.Copy()})
+				AmountSpecified: big256.FromBig(sc.Input.AmountIn.Copy())})
 			require.NoError(t, err, mc.ID, k)
-			eq(t, sc.Outcome.AmountOut.Copy(), new(big.Int).Neg(r.DeltaUnspecified), mc.ID, k)
+			eq(t, sc.Outcome.AmountOut.Copy(), new(big.Int).Neg(big256.ToBig(r.DeltaUnspecified)), mc.ID, k)
 			h.UpdateBalance(r.SwapInfo)
 			n++
 		}
@@ -105,7 +107,7 @@ func TestAdapterUpdateBalance(t *testing.T) {
 func TestAdapterRefusesExactOut(t *testing.T) {
 	_, base := loadAll(t)
 	h := hookOf(t, base[0], marketOf(t, base[0]))
-	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: true, AmountSpecified: big.NewInt(1)})
+	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: true, AmountSpecified: uint256.NewInt(1)})
 	require.ErrorIs(t, err, ErrExactOut)
 }
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -33,7 +34,7 @@ func TestNumericExtremesRefuseNotPanic(t *testing.T) {
 				for _, amt := range []int64{1_000_000, 1_000_000_000_000_000_000} {
 					require.Equal(t, "ok", tryCall(10*time.Second, func() {
 						_, _ = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zfo,
-							AmountSpecified: big.NewInt(amt)})
+							AmountSpecified: uint256.NewInt(uint64(amt))})
 					}), "%s x1e%d BeforeSwap zfo=%v amt=%d", path, exp, zfo, amt)
 				}
 				require.Equal(t, "ok", tryCall(5*time.Second, func() { h.SqrtPriceLimit(zfo) }), "%s x1e%d limit", path, exp)
@@ -42,7 +43,7 @@ func TestNumericExtremesRefuseNotPanic(t *testing.T) {
 				"%s x1e%d GetReserves", path, exp)
 			if exp == 32 { // the audit's crash size: the sell now meets the chain's revert, not the recover
 				_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: !h.Market.Venue.UsdgIs0,
-					AmountSpecified: big.NewInt(1_000_000)})
+					AmountSpecified: uint256.NewInt(1_000_000)})
 				require.ErrorIs(t, err, ErrMulDivZero, path)
 				require.NotErrorIs(t, err, ErrNumeric, path)
 			}

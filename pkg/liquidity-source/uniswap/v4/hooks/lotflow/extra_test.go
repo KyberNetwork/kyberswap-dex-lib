@@ -11,9 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // F5: a malformed or schema-skewed hook extra (pool-service input) must never panic an entry point.
@@ -69,7 +71,7 @@ func entryPoints(h *Hook, swapInfo any) map[string]string {
 	for _, zfo := range []bool{true, false} {
 		row[fmt.Sprintf("BeforeSwap zfo=%v", zfo)] = tryCall(10*time.Second, func() {
 			_, _ = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zfo,
-				AmountSpecified: big.NewInt(1_000_000_000)})
+				AmountSpecified: uint256.NewInt(1_000_000_000)})
 		})
 		row[fmt.Sprintf("SqrtPriceLimit zfo=%v", zfo)] = tryCall(5*time.Second, func() { h.SqrtPriceLimit(zfo) })
 	}
@@ -152,7 +154,7 @@ func TestMalformedExtrasDoNotPanic(t *testing.T) {
 	}
 	ctrl, c := integrationHook(t, base)
 	r, err := ctrl.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: c.Input.ZeroForOne,
-		AmountSpecified: c.Input.AmountIn.Copy()})
+		AmountSpecified: big256.FromBig(c.Input.AmountIn.Copy())})
 	require.NoError(t, err, "control quote")
 	for name, row := range map[string]map[string]string{"control": entryPoints(hookFromJSON(mut(base,
 		func(map[string]any) {})), r.SwapInfo)} {
@@ -214,7 +216,7 @@ func fuzzEntryPoints(h *Hook, amt *big.Int, zfo bool) string {
 				panic("NUMERIC: " + err.Error())
 			}
 		}
-		r, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zfo, AmountSpecified: amt})
+		r, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zfo, AmountSpecified: big256.FromBig(amt)})
 		numeric(err)
 		_, err = h.priceLimit(zfo)
 		numeric(err)
@@ -225,7 +227,7 @@ func fuzzEntryPoints(h *Hook, amt *big.Int, zfo bool) string {
 		if err == nil && r != nil {
 			c.UpdateBalance(r.SwapInfo)
 			for _, z := range []bool{!zfo, zfo} {
-				_, err = c.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: z, AmountSpecified: amt})
+				_, err = c.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: z, AmountSpecified: big256.FromBig(amt)})
 				numeric(err)
 			}
 		}

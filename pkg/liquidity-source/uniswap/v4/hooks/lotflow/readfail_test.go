@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -60,7 +61,7 @@ func requireFailClosed(t *testing.T, h *Hook, raw json.RawMessage, err error, na
 	require.True(t, published.Tracked, name)
 	require.Nil(t, published.Market, name)
 	_, qerr := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true,
-		AmountSpecified: big.NewInt(1_000_000_000)})
+		AmountSpecified: uint256.NewInt(1_000_000_000)})
 	require.ErrorIs(t, qerr, ErrNotTracked, name+": the previous state must not stay quotable")
 	reserves, err := h.GetReserves(context.Background(), nil)
 	require.NoError(t, err, name)

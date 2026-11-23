@@ -8,6 +8,7 @@ import (
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -41,9 +42,9 @@ func benchSides(h *Hook) []struct {
 		params *uniswapv4.BeforeSwapParams
 	}{
 		{"buy-1kusd", &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: usdgIs0,
-			AmountSpecified: new(big.Int).Mul(big.NewInt(1_000), pow10(h.Market.Venue.UsdgDecimals))}},
+			AmountSpecified: big256.FromBig(new(big.Int).Mul(big.NewInt(1_000), pow10(h.Market.Venue.UsdgDecimals)))}},
 		{"sell-10lot", &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: !usdgIs0,
-			AmountSpecified: new(big.Int).Mul(big.NewInt(10), bigE18)}},
+			AmountSpecified: big256.FromBig(new(big.Int).Mul(big.NewInt(10), bigE18))}},
 	}
 }
 
