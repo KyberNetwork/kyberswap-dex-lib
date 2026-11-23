@@ -21,9 +21,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -97,15 +98,16 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 // BeforeSwap serves CalcAmountIn only, which reverses an exact-in swap. The fee comes out of
 // the realized output, so the pool must output the requested amount grossed up by the fee.
 func (e *Extra) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	delta := bignumber.ZeroBI
+	delta := new(uint256.Int)
 	if !params.CalcOut && e.Registered && e.FeeBps > 0 {
 		if e.FeeBps >= basisPoints {
 			return nil, uniswapv4.ErrInvalidFee
 		}
-		gross := uniswapv4.GrossBeforeFee(params.AmountSpecified, big.NewInt(e.FeeBps), big.NewInt(basisPoints))
-		delta = gross.Sub(gross, params.AmountSpecified)
+		specified := big256.ToBig(params.AmountSpecified)
+		gross := uniswapv4.GrossBeforeFee(specified, big.NewInt(e.FeeBps), big.NewInt(basisPoints))
+		delta = big256.FromBig(gross.Sub(gross, specified))
 	}
-	return &uniswapv4.BeforeSwapResult{DeltaSpecified: delta, DeltaUnspecified: bignumber.ZeroBI}, nil
+	return &uniswapv4.BeforeSwapResult{DeltaSpecified: delta, DeltaUnspecified: new(uint256.Int)}, nil
 }
 
 // AfterSwap mirrors PonsV2MemeHook._afterSwap for exact-in: the fee is a flat feeBps of the
@@ -114,9 +116,9 @@ func (e *Extra) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Befor
 // already priced the output fee, so it charges nothing there.
 func (e *Extra) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	if !params.CalcOut || !e.Registered || e.FeeBps == 0 {
-		return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI}, nil
+		return &uniswapv4.AfterSwapResult{HookFee: new(uint256.Int)}, nil
 	}
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.MulDivDown(new(big.Int), params.AmountOut, big.NewInt(e.FeeBps), big.NewInt(basisPoints)),
+		HookFee: big256.MulDivDown(new(uint256.Int), params.AmountOut, uint256.NewInt(uint64(e.FeeBps)), uint256.NewInt(basisPoints)),
 	}, nil
 }

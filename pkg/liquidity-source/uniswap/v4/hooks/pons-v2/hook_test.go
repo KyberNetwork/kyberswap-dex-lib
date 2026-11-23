@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -23,11 +24,11 @@ func TestAfterSwap_ExactIn_ChargesFeeOnOutput(t *testing.T) {
 
 	result, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-		AmountOut:        big.NewInt(1_000_000),
+		AmountOut:        uint256.NewInt(1_000_000),
 	})
 	assert.NoError(t, err)
 	// floor(1_000_000 * 150 / 10_000) = 15_000
-	assert.Equal(t, big.NewInt(15_000), result.HookFee)
+	assert.Equal(t, uint256.NewInt(15_000), result.HookFee)
 }
 
 // CalcAmountIn reverses an exact-in swap, and the hook takes its fee from the realized
@@ -37,10 +38,10 @@ func TestAfterSwap_CalcIn_NoInputFee(t *testing.T) {
 
 	result, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: false},
-		AmountIn:         big.NewInt(1_000_000),
+		AmountIn:         uint256.NewInt(1_000_000),
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, bignumber.ZeroBI, result.HookFee)
+	assert.True(t, result.HookFee.IsZero())
 }
 
 // The pool must output `net` + fee so that the output fee leaves `net`: the smallest gross
@@ -48,22 +49,22 @@ func TestAfterSwap_CalcIn_NoInputFee(t *testing.T) {
 func TestBeforeSwap_CalcIn_GrossesOutputUp(t *testing.T) {
 	h := &Hook{Registered: true, FeeBps: 150}
 
-	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(985_000)})
+	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: uint256.NewInt(985_000)})
 	require.NoError(t, err)
 	// gross = floor(984_999 * 10_000 / 9_850) + 1 = 999_999; 999_999 - floor(14_999.985) = 985_000
-	assert.Equal(t, big.NewInt(14_999), result.DeltaSpecified)
-	assert.Equal(t, bignumber.ZeroBI, result.DeltaUnspecified)
+	assert.Equal(t, uint256.NewInt(14_999), result.DeltaSpecified)
+	assert.True(t, result.DeltaUnspecified.IsZero())
 
-	result, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: big.NewInt(985_000)})
+	result, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: uint256.NewInt(985_000)})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.ZeroBI, result.DeltaSpecified, "CalcOut: the fee comes from AfterSwap")
+	assert.True(t, result.DeltaSpecified.IsZero(), "CalcOut: the fee comes from AfterSwap")
 }
 
 func TestBeforeSwap_NoFee_NoOp(t *testing.T) {
 	for _, h := range []*Hook{{}, {Registered: true}} {
-		result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: big.NewInt(985_000)})
+		result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, AmountSpecified: uint256.NewInt(985_000)})
 		require.NoError(t, err)
-		assert.Equal(t, bignumber.ZeroBI, result.DeltaSpecified)
+		assert.True(t, result.DeltaSpecified.IsZero())
 	}
 }
 
@@ -120,10 +121,10 @@ func TestAfterSwap_Unregistered_NoFee(t *testing.T) {
 
 	result, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-		AmountOut:        big.NewInt(1_000_000),
+		AmountOut:        uint256.NewInt(1_000_000),
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, bignumber.ZeroBI, result.HookFee)
+	assert.True(t, result.HookFee.IsZero())
 }
 
 func TestAfterSwap_ZeroFee_NoOp(t *testing.T) {
@@ -131,8 +132,8 @@ func TestAfterSwap_ZeroFee_NoOp(t *testing.T) {
 
 	result, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-		AmountOut:        big.NewInt(1_000_000),
+		AmountOut:        uint256.NewInt(1_000_000),
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, bignumber.ZeroBI, result.HookFee)
+	assert.True(t, result.HookFee.IsZero())
 }
