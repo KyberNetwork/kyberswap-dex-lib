@@ -9,9 +9,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -96,7 +97,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, ErrPoolPaused
 	}
 
-	deltaSpecified := bignumber.ZeroBI
+	deltaSpecified := new(uint256.Int)
 	if deskIsInput := h.deskIsInput(params.ZeroForOne); params.CalcOut && deskIsInput {
 		deltaSpecified = deskFee(params.AmountSpecified)
 	} else if !params.CalcOut && !deskIsInput {
@@ -105,7 +106,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   deltaSpecified,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaUnspecified: new(uint256.Int),
 		Gas:              gasBeforeSwap,
 	}, nil
 }
@@ -113,7 +114,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 // AfterSwap takes the 1% desk fee out of the realized output when desk is the output currency; a
 // no-op (fee already taken in BeforeSwap) otherwise. CalcIn with desk input grosses the input up instead.
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	hookFee := bignumber.ZeroBI
+	hookFee := new(uint256.Int)
 	if deskIsInput := h.deskIsInput(params.ZeroForOne); params.CalcOut && !deskIsInput {
 		hookFee = deskFee(params.AmountOut)
 	} else if !params.CalcOut && deskIsInput {
@@ -124,14 +125,16 @@ func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwa
 }
 
 // deskFee is floor(amount * 1%), PremiumLaunchHook's fee on whichever leg desk is input/output on.
-func deskFee(amount *big.Int) *big.Int {
-	return bignumber.MulDivDown(new(big.Int), amount, big.NewInt(feeBps), big.NewInt(bps))
+func deskFee(amount *uint256.Int) *uint256.Int {
+	return big256.MulDivDown(new(uint256.Int), amount, uint256.NewInt(feeBps), uint256.NewInt(bps))
 }
 
 // deskGrossUp returns the fee to add to net so that deducting deskFee from the sum leaves net.
-func deskGrossUp(net *big.Int) *big.Int {
-	gross := uniswapv4.GrossBeforeFee(net, big.NewInt(feeBps), big.NewInt(bps))
-	return gross.Sub(gross, net)
+// GrossBeforeFee is the shared big.Int math, so this converts at the boundary.
+func deskGrossUp(net *uint256.Int) *uint256.Int {
+	netBig := big256.ToBig(net)
+	gross := uniswapv4.GrossBeforeFee(netBig, big.NewInt(feeBps), big.NewInt(bps))
+	return big256.FromBig(gross.Sub(gross, netBig))
 }
 
 // deskIsInput mirrors PremiumLaunchHook._deskCurrencyAndSpecified for exact-in: currency0 is the

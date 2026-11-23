@@ -1,10 +1,10 @@
 package premium
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -53,12 +53,12 @@ func TestBeforeSwap_DeskSpecified(t *testing.T) {
 	res, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
 		ZeroForOne:      true, // spending currency0 = desk -> desk is specified
-		AmountSpecified: big.NewInt(1_000_000),
+		AmountSpecified: uint256.NewInt(1_000_000),
 	})
 	require.NoError(t, err)
 	// fee = floor(1_000_000 * 100 / 10_000) = 10_000
-	assert.Equal(t, int64(10_000), res.DeltaSpecified.Int64())
-	assert.Equal(t, int64(0), res.DeltaUnspecified.Int64())
+	assert.Equal(t, uint64(10_000), res.DeltaSpecified.Uint64())
+	assert.Equal(t, uint64(0), res.DeltaUnspecified.Uint64())
 }
 
 // TestBeforeSwap_MemeSpecified exercises the opposite branch: meme is the specified
@@ -74,11 +74,11 @@ func TestBeforeSwap_MemeSpecified(t *testing.T) {
 	res, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
 		ZeroForOne:      false, // spending currency1 = meme -> meme is specified
-		AmountSpecified: big.NewInt(1_000_000),
+		AmountSpecified: uint256.NewInt(1_000_000),
 	})
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), res.DeltaSpecified.Int64())
-	assert.Equal(t, int64(0), res.DeltaUnspecified.Int64())
+	assert.Equal(t, uint64(0), res.DeltaSpecified.Uint64())
+	assert.Equal(t, uint64(0), res.DeltaUnspecified.Uint64())
 }
 
 // CalcAmountIn reverses exact-in (exact-output being disabled on-chain doesn't matter), so it must invert the
@@ -188,7 +188,7 @@ func TestBeforeSwap_Paused(t *testing.T) {
 	_, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
 		CalcOut:         true,
 		ZeroForOne:      true,
-		AmountSpecified: big.NewInt(1_000_000),
+		AmountSpecified: uint256.NewInt(1_000_000),
 	})
 	require.ErrorIs(t, err, ErrPoolPaused)
 }
@@ -206,13 +206,13 @@ func TestAfterSwap_DeskSpecified_Noop(t *testing.T) {
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
 			CalcOut:         true,
 			ZeroForOne:      true, // desk specified
-			AmountSpecified: big.NewInt(1_000_000),
+			AmountSpecified: uint256.NewInt(1_000_000),
 		},
-		AmountIn:  big.NewInt(990_000),
-		AmountOut: big.NewInt(500_000),
+		AmountIn:  uint256.NewInt(990_000),
+		AmountOut: uint256.NewInt(500_000),
 	})
 	require.NoError(t, err)
-	assert.Equal(t, int64(0), res.HookFee.Int64())
+	assert.Equal(t, uint64(0), res.HookFee.Uint64())
 }
 
 // TestAfterSwap_MemeSpecified_TakesFee mirrors the non-deskIsSpecified branch: fee is
@@ -228,14 +228,14 @@ func TestAfterSwap_MemeSpecified_TakesFee(t *testing.T) {
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{
 			CalcOut:         true,
 			ZeroForOne:      false, // spending currency1 = meme (MemeIsCurrency0=false) -> meme is specified
-			AmountSpecified: big.NewInt(1_000_000),
+			AmountSpecified: uint256.NewInt(1_000_000),
 		},
-		AmountIn:  big.NewInt(1_000_000),
-		AmountOut: big.NewInt(1_000_000), // realized desk output this leg
+		AmountIn:  uint256.NewInt(1_000_000),
+		AmountOut: uint256.NewInt(1_000_000), // realized desk output this leg
 	})
 	require.NoError(t, err)
 	// fee = floor(1_000_000 * 100 / 10_000) = 10_000
-	assert.Equal(t, int64(10_000), res.HookFee.Int64())
+	assert.Equal(t, uint64(10_000), res.HookFee.Uint64())
 }
 
 func TestCloneState_DeepCopy(t *testing.T) {
