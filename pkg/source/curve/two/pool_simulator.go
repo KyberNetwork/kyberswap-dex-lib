@@ -3,7 +3,6 @@ package two
 import (
 	"fmt"
 	"math/big"
-	"slices"
 	"strings"
 	"time"
 
@@ -16,8 +15,27 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+// PoolInfo is the uint256 pool state of a curve-two pool.
+type PoolInfo struct {
+	Address     string
+	Exchange    string
+	Type        string
+	Tokens      []string
+	Reserves    []*uint256.Int
+	BlockNumber uint64
+}
+
+func (i *PoolInfo) GetTokenIndex(address string) int {
+	for idx, token := range i.Tokens {
+		if token == address {
+			return idx
+		}
+	}
+	return -1
+}
+
 type PoolSimulator struct {
-	pool.Pool
+	Info              PoolInfo
 	Precisions        [nCoins]uint256.Int
 	A                 uint256.Int
 	Gamma             uint256.Int
@@ -103,24 +121,26 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	tokens := make([]string, nCoins)
-	reserves := make([]*big.Int, nCoins)
+	reserves := make([]*uint256.Int, nCoins)
 	for i := range nCoins {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-		if reserves[i] == nil || reserves[i].Sign() < 0 {
+		b := bignumber.NewBig10(entityPool.Reserves[i])
+		if b == nil {
 			return nil, fmt.Errorf("invalid reserve %q", entityPool.Reserves[i])
 		}
+		r, err := toU256(b)
+		if err != nil {
+			return nil, fmt.Errorf("invalid reserve %q: %w", entityPool.Reserves[i], err)
+		}
+		reserves[i] = &r
 	}
-	sim.Pool = pool.Pool{
-		Info: pool.PoolInfo{
-			Address:     strings.ToLower(entityPool.Address),
-			SwapFee:     bignumber.ZeroBI,
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      tokens,
-			Reserves:    reserves,
-			BlockNumber: entityPool.BlockNumber,
-		},
+	sim.Info = PoolInfo{
+		Address:     strings.ToLower(entityPool.Address),
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	fields := []struct {
@@ -148,44 +168,93 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return sim, nil
 }
 
-func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
-	cloned := *t // all state is held by value, except reserves which exchange replaces (never mutates)
-	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+var _ pool.IPoolSim = (*PoolSimulator)(nil)
+
+func (t *PoolSimulator) GetTokens() []string {
+	return t.Info.Tokens
+}
+
+func (t *PoolSimulator) GetAddress() string {
+	return t.Info.Address
+}
+
+func (t *PoolSimulator) GetExchange() string {
+	return t.Info.Exchange
+}
+
+func (t *PoolSimulator) GetType() string {
+	return t.Info.Type
+}
+
+func (t *PoolSimulator) GetTokenIndex(address string) int {
+	return t.Info.GetTokenIndex(address)
+}
+
+func (t *PoolSimulator) CanSwapTo(address string) []string {
+	if t.GetTokenIndex(address) == -1 {
+		return nil
+	}
+	result := make([]string, 0, len(t.Info.Tokens)-1)
+	for _, token := range t.Info.Tokens {
+		if token != address {
+			result = append(result, token)
+		}
+	}
+	return result
+}
+
+func (t *PoolSimulator) CanSwapFrom(address string) []string {
+	return t.CanSwapTo(address)
+}
+
+// GetApprovalAddress returns the empty string: curve-two pools need no approval address.
+func (t *PoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
+	return ""
+}
+
+func (t *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(t.Info.Reserves))
+	for i, r := range t.Info.Reserves {
+		out[i].Set(r)
+	}
+	return out
+}
+
+// CalcLimit returns nil: curve-two pools have no shared inventory limit.
+func (t *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSim {
+	cloned := *t // all state is held by value, except the reserves, which are deep-copied
+	cloned.Info.Reserves = cloneU256s(t.Info.Reserves)
 	return &cloned
 }
 
-func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := param.TokenAmountIn
-	tokenOut := param.TokenOut
-	// swap from token to token
-	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
-	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
+func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenIndexFrom := t.Info.GetTokenIndex(param.TokenAmountIn.Token)
+	tokenIndexTo := t.Info.GetTokenIndex(param.TokenOut)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		dx, err := toU256(tokenAmountIn.Amount)
-		if err != nil {
-			return nil, err
-		}
-		amountOut, fee, err := t.getDy(tokenIndexFrom, tokenIndexTo, dx, nowUnix())
+		amountOut, fee, err := t.getDy(tokenIndexFrom, tokenIndexTo, param.TokenAmountIn.Amount, nowUnix())
 		if err != nil {
 			return nil, err
 		}
 		if !amountOut.IsZero() {
-			return &pool.CalcAmountOutResult{
-				TokenAmountOut: &pool.TokenAmount{
-					Token:  tokenOut,
-					Amount: amountOut.ToBig(),
-				},
-				Fee: &pool.TokenAmount{
-					Token:  tokenOut,
-					Amount: fee.ToBig(),
-				},
-				Gas: t.gas.Exchange,
+			return &pool.CalcAmtOutResult{
+				TokenAmountOut: &pool.TokenAmt{Token: param.TokenOut, Amount: amountOut},
+				Fee:            &pool.TokenAmt{Token: param.TokenOut, Amount: fee},
+				Gas:            t.gas.Exchange,
 			}, nil
 		}
 	}
-	return &pool.CalcAmountOutResult{}, fmt.Errorf(
+	return nil, fmt.Errorf(
 		"tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo,
 	)
+}
+
+func (t *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
+	_, _ = t.exchange(t.Info.GetTokenIndex(params.TokenAmountIn.Token),
+		t.Info.GetTokenIndex(params.TokenAmountOut.Token), params.TokenAmountIn.Amount, nowUnix())
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -204,12 +273,12 @@ func (t *PoolSimulator) Swap(
 		return nil, nil, 0, err
 	}
 	return &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut,
-		}, &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: bignumber.ZeroBI,
-		}, t.gas.Exchange, nil
+		Token:  tokenOut,
+		Amount: amountOut,
+	}, &pool.TokenAmount{
+		Token:  tokenOut,
+		Amount: bignumber.ZeroBI,
+	}, t.gas.Exchange, nil
 }
 
 // GetDy returns the amount out (after fee) for swapping dx of coin i to coin j, and the fee rate (10**10 = 100%).

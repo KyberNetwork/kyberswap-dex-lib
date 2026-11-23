@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -41,7 +42,7 @@ func TestCalcAmountOut(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
+				return legacyCalcAmountOut(p, pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
 					TokenOut:      tc.out,
 					Limit:         nil,
@@ -64,8 +65,10 @@ func TestCloneState(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	testutil.TestCloneState(t, p, pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: "A", Amount: big.NewInt(10)},
+	var in uint256.Int
+	in.SetUint64(10)
+	testutil.TestCloneStateIPoolSim(t, p, pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: "A", Amount: in},
 		TokenOut:      "B",
-	}, nil)
+	})
 }

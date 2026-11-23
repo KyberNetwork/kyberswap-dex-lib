@@ -215,6 +215,25 @@ func pinClock(t testing.TB, now *int64) {
 	t.Cleanup(func() { nowUnix = prev })
 }
 
+// legacyCalcAmountOut runs the native uint256 CalcAmtOut and returns the legacy big.Int result shape, so the
+// comparisons below can check it against the oracle.
+func legacyCalcAmountOut(p *PoolSimulator, params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	amt, err := toU256(params.TokenAmountIn.Amount)
+	if err != nil {
+		return nil, err
+	}
+	res, err := p.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: params.TokenAmountIn.Token, Amount: amt}, TokenOut: params.TokenOut})
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: res.TokenAmountOut.Token, Amount: res.TokenAmountOut.Amount.ToBig()},
+		Fee:            &pool.TokenAmount{Token: res.Fee.Token, Amount: res.Fee.Amount.ToBig()},
+		Gas:            res.Gas,
+	}, nil
+}
+
 func newPair(t testing.TB, ep entity.Pool) (*legacyPoolSimulator, *PoolSimulator) {
 	t.Helper()
 	old, err := newLegacyPoolSimulator(ep)
@@ -228,7 +247,7 @@ func newPair(t testing.TB, ep entity.Pool) (*legacyPoolSimulator, *PoolSimulator
 func requireSameState(t *testing.T, msg string, old *legacyPoolSimulator, nw *PoolSimulator) {
 	t.Helper()
 	for k := range nCoins {
-		require.Equal(t, old.Info.Reserves[k].String(), nw.Info.Reserves[k].String(), "%s: balance %d", msg, k)
+		require.Equal(t, old.Info.Reserves[k].String(), nw.Info.Reserves[k].Dec(), "%s: balance %d", msg, k)
 	}
 	require.Equal(t, old.D.String(), nw.D.Dec(), "%s: D", msg)
 	require.Equal(t, old.PriceScalePacked.String(), nw.PriceScale.Dec(), "%s: price_scale", msg)
@@ -247,7 +266,7 @@ func requireSameQuote(t *testing.T, msg string, old *legacyPoolSimulator, nw *Po
 	params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, bool) {
 	t.Helper()
 	oldRes, oldErr := old.CalcAmountOut(params)
-	newRes, newErr := nw.CalcAmountOut(params)
+	newRes, newErr := legacyCalcAmountOut(nw, params)
 	require.Equal(t, oldErr == nil, newErr == nil, "%s: error mismatch: legacy=%v new=%v", msg, oldErr, newErr)
 	if oldErr != nil {
 		return nil, false
@@ -280,7 +299,7 @@ func TestMatchesOnchainGetDy(t *testing.T) {
 		old, nw := newPair(t, s.entityPool())
 		for _, q := range s.getDy {
 			dx, _ := new(big.Int).SetString(q.dx, 10)
-			res, err := nw.CalcAmountOut(pool.CalcAmountOutParams{
+			res, err := legacyCalcAmountOut(nw, pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: s.coins[q.i], Amount: dx}, TokenOut: s.coins[q.j]})
 			require.NoError(t, err, "%s %d->%d dx=%s", name, q.i, q.j, q.dx)
 			got := res.TokenAmountOut.Amount
@@ -305,7 +324,7 @@ func TestEquivalence_CalcAmountOut(t *testing.T) {
 		old, nw := newPair(t, s.entityPool())
 		for i := range nCoins {
 			j := 1 - i
-			reserve := nw.Info.Reserves[i]
+			reserve := nw.Info.Reserves[i].ToBig()
 			amounts := []*big.Int{big.NewInt(1), big.NewInt(2), big.NewInt(10), big.NewInt(1000)}
 			for _, f := range fracs {
 				a, _ := new(big.Float).Mul(new(big.Float).SetInt(reserve), big.NewFloat(f)).Int(nil)
@@ -354,7 +373,7 @@ func TestEquivalence_SwapSequences(t *testing.T) {
 
 				i := rng.IntN(nCoins)
 				j := 1 - i
-				amt := randomAmount(rng, nw.Info.Reserves[i], 0.3)
+				amt := randomAmount(rng, nw.Info.Reserves[i].ToBig(), 0.3)
 				msg := fmt.Sprintf("%s seed %d step %d %d->%d dx=%s", name, seed, step, i, j, amt)
 				params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: s.coins[i], Amount: amt},
 					TokenOut: s.coins[j]}
@@ -414,7 +433,7 @@ func TestEquivalence_AGammaRamp(t *testing.T) {
 			now += 12
 			i := rng.IntN(nCoins)
 			j := 1 - i
-			amt := randomAmount(rng, nw.Info.Reserves[i], 0.1)
+			amt := randomAmount(rng, nw.Info.Reserves[i].ToBig(), 0.1)
 			msg := fmt.Sprintf("ramp seed %d step %d %d->%d dx=%s", seed, step, i, j, amt)
 			params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: state.coins[i], Amount: amt},
 				TokenOut: state.coins[j]}
@@ -452,13 +471,13 @@ func TestBeforeRampStartFails(t *testing.T) {
 
 	params := pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: state.coins[0], Amount: big.NewInt(1e18)}, TokenOut: state.coins[1]}
-	_, err = p.CalcAmountOut(params)
+	_, err = legacyCalcAmountOut(p, params)
 	require.ErrorIs(t, err, ErrUnderflow)
 	_, err = p.Exchange(0, 1, big.NewInt(1e18))
 	require.ErrorIs(t, err, ErrUnderflow)
 
 	now = state.initialAGammaTime // once the ramp has started, the same swap succeeds
-	_, err = p.CalcAmountOut(params)
+	_, err = legacyCalcAmountOut(p, params)
 	require.NoError(t, err)
 	_, err = p.Exchange(0, 1, big.NewInt(1e18))
 	require.NoError(t, err)
@@ -481,15 +500,52 @@ func TestRejectsInvalidInput(t *testing.T) {
 
 	p, err := NewPoolSimulator(ep)
 	require.NoError(t, err)
-	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
+	_, err = legacyCalcAmountOut(p, pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: cvxETH.coins[0], Amount: big.NewInt(-1)}, TokenOut: cvxETH.coins[1]})
 	require.ErrorIs(t, err, errNegativeAmount)
-	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
+	_, err = legacyCalcAmountOut(p, pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: cvxETH.coins[0], Amount: new(big.Int).Lsh(big.NewInt(1), 256)},
 		TokenOut:      cvxETH.coins[1]})
 	require.ErrorIs(t, err, ErrOverflow)
 	_, _, err = p.GetDy(0, 2, big.NewInt(1))
 	require.ErrorIs(t, err, errTokenIndexOutOfRange)
+}
+
+func bigFromDec(s string) *big.Int {
+	b, _ := new(big.Int).SetString(s, 10)
+	return b
+}
+
+// Each swap below fails at a different fallible step (newton_y bounds, arithmetic overflow, tweak_price loss) after
+// some state has already been written. The pool must stay unchanged: the quote path runs on a clone and only
+// commits on success.
+func TestFailedSwapStepsLeavePoolUnchanged(t *testing.T) {
+	now := cvxETH.timestamp + 12
+	pinClock(t, &now)
+	cases := []struct {
+		name string
+		amt  *big.Int
+		i, j int
+		prep func(*PoolSimulator)
+		want error
+	}{
+		{"newton_y bounds", bigFromDec("1000000000000000000000000000"), 0, 1, nil, errUnsafeX},
+		{"arithmetic overflow", new(big.Int).Exp(big.NewInt(10), big.NewInt(60), nil), 0, 1, nil, ErrOverflow},
+		{"tweak_price loss", big.NewInt(1e18), 0, 1, func(p *PoolSimulator) { p.VirtualPrice.SetUint64(2e18) }, errLoss},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p, err := NewPoolSimulator(cvxETH.entityPool())
+			require.NoError(t, err)
+			if c.prep != nil {
+				c.prep(p)
+			}
+			before := p.CloneState().(*PoolSimulator)
+			_, err = p.exchange(c.i, c.j, mustU256(t, c.amt), now)
+			require.ErrorIs(t, err, c.want)
+			require.Equal(t, before, p)
+		})
+	}
 }
 
 // virtual_price * 2 - 10**18 is a checked subtraction in tweak_price: it reverts when virtual_price < 0.5e18,

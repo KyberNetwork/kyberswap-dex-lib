@@ -20,15 +20,38 @@ var benchSwaps = []struct {
 	{"CVX-ETH_1kCVX", 1, 0, new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18))},
 }
 
+// benchQuoter is the CalcAmountOut both benchmark implementations share.
+type benchQuoter interface {
+	CalcAmountOut(pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error)
+	CloneState() benchQuoter
+	UpdateBalance(pool.UpdateBalanceParams)
+}
+
+type nativeBench struct{ *PoolSimulator }
+
+func (n nativeBench) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	return legacyCalcAmountOut(n.PoolSimulator, p)
+}
+
+func (n nativeBench) CloneState() benchQuoter {
+	return nativeBench{n.PoolSimulator.CloneState().(*PoolSimulator)}
+}
+
+type legacyBench struct{ *legacyPoolSimulator }
+
+func (l legacyBench) CloneState() benchQuoter {
+	return legacyBench{l.legacyPoolSimulator.CloneState().(*legacyPoolSimulator)}
+}
+
 func benchImpls(b *testing.B) []struct {
 	name string
-	p    pool.IPoolSimulator
+	p    benchQuoter
 } {
 	old, nw := newPair(b, cvxETH.entityPool())
 	return []struct {
 		name string
-		p    pool.IPoolSimulator
-	}{{"legacy", old}, {"uint256", nw}}
+		p    benchQuoter
+	}{{"legacy", legacyBench{old}}, {"uint256", nativeBench{nw}}}
 }
 
 func benchParams(i, j int, amount *big.Int) pool.CalcAmountOutParams {

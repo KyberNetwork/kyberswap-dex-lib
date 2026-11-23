@@ -1,8 +1,6 @@
 package two
 
 import (
-	"slices"
-
 	"github.com/holiman/uint256"
 )
 
@@ -426,13 +424,21 @@ func (t *PoolSimulator) feeCalc(xp [nCoins]uint256.Int) (uint256.Int, error) {
 }
 
 // balances returns the pool balances (Info.Reserves) as uint256.
-func (t *PoolSimulator) balances() (b [nCoins]uint256.Int, err error) {
+func (t *PoolSimulator) balances() [nCoins]uint256.Int {
+	var b [nCoins]uint256.Int
 	for k := range nCoins {
-		if b[k], err = toU256(t.Info.Reserves[k]); err != nil {
-			return b, err
-		}
+		b[k].Set(t.Info.Reserves[k])
 	}
-	return b, nil
+	return b
+}
+
+// cloneU256s deep-copies reserves so writes to the copy never reach the original.
+func cloneU256s(xs []*uint256.Int) []*uint256.Int {
+	out := make([]*uint256.Int, len(xs))
+	for i, x := range xs {
+		out[i] = new(uint256.Int).Set(x)
+	}
+	return out
 }
 
 // getDy is CurveCryptoSwap2.get_dy: the amount out (after fee) for dx of coin i swapped to coin j, and the fee rate
@@ -448,10 +454,7 @@ func (t *PoolSimulator) getDy(i, j int, dx uint256.Int, now int64) (dy, fee uint
 	var a arith
 	priceScale := a.mul(t.PriceScale, t.Precisions[1])
 
-	xp, err := t.balances() // xp: uint256[N_COINS] = self.balances
-	if err != nil {
-		return zero, zero, err
-	}
+	xp := t.balances() // xp: uint256[N_COINS] = self.balances
 	xp[i] = a.add(xp[i], dx)
 	xp[0] = a.mul(xp[0], t.Precisions[0])
 	xp[1] = a.div(a.mul(xp[1], priceScale), *Precision)
@@ -491,8 +494,8 @@ func (t *PoolSimulator) getDy(i, j int, dx uint256.Int, now int64) (dy, fee uint
 // as the contract would and returns dy. now is the block timestamp. Like a reverted transaction, a failed
 // exchange leaves the pool unchanged.
 func (t *PoolSimulator) exchange(i, j int, dx uint256.Int, now int64) (uint256.Int, error) {
-	next := *t // all state is held by value, except the reserves slice
-	next.Info.Reserves = slices.Clone(t.Info.Reserves)
+	next := *t // all state is held by value, except the reserves, which are deep-copied below
+	next.Info.Reserves = cloneU256s(t.Info.Reserves)
 	dy, err := next.applyExchange(i, j, dx, now)
 	if err != nil {
 		return zero, err
@@ -516,10 +519,7 @@ func (t *PoolSimulator) applyExchange(i, j int, dx uint256.Int, now int64) (uint
 	if err != nil {
 		return zero, err
 	}
-	xp, err := t.balances()
-	if err != nil {
-		return zero, err
-	}
+	xp := t.balances()
 	var a arith
 	ix := j
 	var p uint256.Int
@@ -530,7 +530,7 @@ func (t *PoolSimulator) applyExchange(i, j int, dx uint256.Int, now int64) (uint
 	if a.err != nil {
 		return zero, a.err
 	}
-	t.Info.Reserves[i] = xp[i].ToBig()
+	t.Info.Reserves[i].Set(&xp[i])
 	priceScale := t.PriceScale
 
 	xp[0] = a.mul(xp[0], t.Precisions[0])
@@ -584,7 +584,7 @@ func (t *PoolSimulator) applyExchange(i, j int, dx uint256.Int, now int64) (uint
 	if a.err != nil {
 		return zero, a.err
 	}
-	t.Info.Reserves[j] = y.ToBig()
+	t.Info.Reserves[j].Set(&y)
 	y = a.mul(y, t.Precisions[j])
 	if j > 0 {
 		y = a.div(a.mul(y, priceScale), *Precision)

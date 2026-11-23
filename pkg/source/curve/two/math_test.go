@@ -22,7 +22,7 @@ func TestNewtonY(t *testing.T) {
 				dx := new(big.Int).Div(reserve, big.NewInt(frac))
 
 				// xp exactly as get_dy builds it, in both representations
-				legacyXp := []*big.Int{p.Info.Reserves[0], p.Info.Reserves[1]}
+				legacyXp := []*big.Int{p.Info.Reserves[0].ToBig(), p.Info.Reserves[1].ToBig()}
 				legacyXp[i] = new(big.Int).Add(legacyXp[i], dx)
 				legacyXp[0] = new(big.Int).Mul(legacyXp[0], p.Precisions[0].ToBig())
 				priceScale := new(big.Int).Mul(p.PriceScale.ToBig(), p.Precisions[1].ToBig())
