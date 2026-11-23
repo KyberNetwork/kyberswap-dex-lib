@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -145,9 +146,11 @@ func (s *PoolSimulator) vampireDepositWithERC20StETH(amountIn *big.Int) (*big.In
 	var amount big.Int
 	amount.Set(amountIn)
 	if s.Vampire.QuoteStEthWithCurve {
-		quoteWithCurve, _, _ := s.curveStETHToETHSimulator.GetDy(1, 0, amountIn, nil)
-		if quoteWithCurve.Cmp(&amount) < 0 {
-			amount.Set(quoteWithCurve)
+		var amountInU256 uint256.Int
+		amountInU256.SetFromBig(amountIn)
+		quoteWithCurve, _, _ := s.curveStETHToETHSimulator.GetDy(1, 0, &amountInU256, nil)
+		if quoteWithCurve != nil && quoteWithCurve.ToBig().Cmp(&amount) < 0 {
+			amount.Set(quoteWithCurve.ToBig())
 		}
 	}
 

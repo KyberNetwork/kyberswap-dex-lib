@@ -2,27 +2,23 @@ package plain
 
 import (
 	"fmt"
-	"math/big"
-	"slices"
 	"strings"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
-	pool.Pool
+	Info base.PoolInfo
 
 	precisionMultipliers []uint256.Int
-	reserves             []uint256.Int // same as pool.Reserves but use uint256.Int
 
 	LpSupply uint256.Int
 	gas      Gas
@@ -33,6 +29,8 @@ type PoolSimulator struct {
 	extra       Extra
 	staticExtra StaticExtra
 }
+
+var _ pool.IPoolSim = (*PoolSimulator)(nil)
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
@@ -83,9 +81,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	var tokens = make([]string, numTokens)
-	var reservesBI = make([]*big.Int, numTokens)
+	var reserves = make([]*uint256.Int, numTokens)
 
-	sim.reserves = make([]uint256.Int, numTokens)
 	sim.precisionMultipliers = make([]uint256.Int, numTokens)
 
 	/*
@@ -103,10 +100,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 
-		reservesBI[i] = bignumber.NewBig10(entityPool.Reserves[i])
-		if err := sim.reserves[i].SetFromDecimal(entityPool.Reserves[i]); err != nil {
+		reserve, err := uint256.FromDecimal(entityPool.Reserves[i])
+		if err != nil {
 			return nil, err
 		}
+		reserves[i] = reserve
 
 		if useStandardRate {
 			sim.extra.RateMultipliers[i].Exp(
@@ -130,16 +128,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		)
 	}
 
-	sim.Pool = pool.Pool{
-		Info: pool.PoolInfo{
-			Address:     strings.ToLower(entityPool.Address),
-			SwapFee:     sim.extra.SwapFee.ToBig(),
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      tokens,
-			Reserves:    reservesBI,
-			BlockNumber: entityPool.BlockNumber,
-		},
+	sim.Info = base.PoolInfo{
+		Address:     strings.ToLower(entityPool.Address),
+		SwapFee:     sim.extra.SwapFee,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	sim.gas = DefaultGas
@@ -153,120 +149,138 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return sim, nil
 }
 
-func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (t *PoolSimulator) GetInfo() base.PoolInfo {
+	return t.Info
+}
+
+func (t *PoolSimulator) GetTokens() []string {
+	return t.Info.Tokens
+}
+
+func (t *PoolSimulator) GetAddress() string {
+	return t.Info.Address
+}
+
+func (t *PoolSimulator) GetExchange() string {
+	return t.Info.Exchange
+}
+
+func (t *PoolSimulator) GetType() string {
+	return t.Info.Type
+}
+
+func (t *PoolSimulator) GetTokenIndex(address string) int {
+	return t.Info.GetTokenIndex(address)
+}
+
+func (t *PoolSimulator) CanSwapTo(address string) []string {
+	if t.GetTokenIndex(address) == -1 {
+		return nil
+	}
+	result := make([]string, 0, len(t.Info.Tokens)-1)
+	for _, token := range t.Info.Tokens {
+		if token != address {
+			result = append(result, token)
+		}
+	}
+	return result
+}
+
+func (t *PoolSimulator) CanSwapFrom(address string) []string {
+	return t.CanSwapTo(address)
+}
+
+// GetApprovalAddress returns the empty string: plain pools need no approval address.
+func (t *PoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
+	return ""
+}
+
+func (t *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(t.Info.Reserves))
+	for i, r := range t.Info.Reserves {
+		out[i].Set(r)
+	}
+	return out
+}
+
+// CalcLimit returns nil: plain pools have no shared inventory limit.
+func (t *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *t
-	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
-	cloned.reserves = slices.Clone(t.reserves)
+	cloned.Info.Reserves = cloneU256s(t.Info.Reserves)
 	return &cloned
 }
 
-func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := param.TokenAmountIn
-	tokenOut := param.TokenOut
-	// swap from token to token
-	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
-	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
-	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		var amountOut, fee, amount uint256.Int
-		amount.SetFromBig(tokenAmountIn.Amount)
-		err := t.GetDyU256(
-			tokenIndexFrom,
-			tokenIndexTo,
-			&amount,
-			nil,
-			&amountOut, &fee,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if amountOut.IsZero() {
-			return &pool.CalcAmountOutResult{}, ErrZero
-		}
-
-		return &pool.CalcAmountOutResult{
-			TokenAmountOut: &pool.TokenAmount{
-				Token:  tokenOut,
-				Amount: amountOut.ToBig(),
-			},
-			Fee: &pool.TokenAmount{
-				Token:  tokenOut,
-				Amount: fee.ToBig(),
-			},
-			Gas: t.gas.Exchange,
-		}, nil
+func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
+	tokenIndexFrom := t.Info.GetTokenIndex(param.TokenAmountIn.Token)
+	tokenIndexTo := t.Info.GetTokenIndex(param.TokenOut)
+	if tokenIndexFrom < 0 || tokenIndexTo < 0 {
+		return nil, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
 	}
-
-	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
+	var amountOut, fee uint256.Int
+	err := t.GetDyU256(tokenIndexFrom, tokenIndexTo, &param.TokenAmountIn.Amount, nil, &amountOut, &fee)
+	if err != nil {
+		return nil, err
+	}
+	if amountOut.IsZero() {
+		return &pool.CalcAmtOutResult{}, ErrZero
+	}
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: param.TokenOut, Amount: amountOut},
+		Fee:            &pool.TokenAmt{Token: param.TokenOut, Amount: fee},
+		Gas:            t.gas.Exchange,
+	}, nil
 }
 
-func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	tokenAmountOut := param.TokenAmountOut
-	tokenIn := param.TokenIn
-	// swap from token to token
-	var tokenIndexFrom = t.Info.GetTokenIndex(tokenIn)
-	var tokenIndexTo = t.Info.GetTokenIndex(tokenAmountOut.Token)
-
-	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		var amountIn, fee, expectedAmountOut uint256.Int
-		expectedAmountOut.SetFromBig(tokenAmountOut.Amount)
-		err := t.GetDxU256(
-			tokenIndexFrom,
-			tokenIndexTo,
-			&expectedAmountOut,
-			nil,
-			&amountIn, &fee,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if amountIn.IsZero() {
-			return &pool.CalcAmountInResult{}, ErrZero
-		}
-
-		return &pool.CalcAmountInResult{
-			TokenAmountIn: &pool.TokenAmount{
-				Token:  tokenIn,
-				Amount: amountIn.ToBig(),
-			},
-			Fee: &pool.TokenAmount{
-				Token:  tokenAmountOut.Token,
-				Amount: fee.ToBig(),
-			},
-			Gas: t.gas.Exchange,
-		}, nil
+func (t *PoolSimulator) CalcAmtIn(param pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
+	tokenIndexFrom := t.Info.GetTokenIndex(param.TokenIn)
+	tokenIndexTo := t.Info.GetTokenIndex(param.TokenAmountOut.Token)
+	if tokenIndexFrom < 0 || tokenIndexTo < 0 {
+		return nil, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
 	}
-
-	return &pool.CalcAmountInResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
+	var amountIn, fee uint256.Int
+	err := t.GetDxU256(tokenIndexFrom, tokenIndexTo, &param.TokenAmountOut.Amount, nil, &amountIn, &fee)
+	if err != nil {
+		return nil, err
+	}
+	if amountIn.IsZero() {
+		return &pool.CalcAmtInResult{}, ErrZero
+	}
+	return &pool.CalcAmtInResult{
+		TokenAmountIn: &pool.TokenAmt{Token: param.TokenIn, Amount: amountIn},
+		Fee:           &pool.TokenAmt{Token: param.TokenAmountOut.Token, Amount: fee},
+		Gas:           t.gas.Exchange,
+	}, nil
 }
 
-func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	input, output := params.TokenAmountIn, params.TokenAmountOut
-	var inputAmount = input.Amount
-	var outputAmount = output.Amount
-	// swap fee
-	// output = output + output * swapFee * adminFee
-	outputAmount = new(big.Int).Add(
-		outputAmount,
-		new(big.Int).Div(
-			new(big.Int).Mul(
-				new(big.Int).Div(new(big.Int).Mul(outputAmount, t.Info.SwapFee), FeeDenominator.ToBig()),
-				t.extra.AdminFee.ToBig(),
-			),
-			FeeDenominator.ToBig(),
-		),
-	)
+// UpdateState mirrors the legacy UpdateBalance: the output also loses its admin share of the swap fee.
+func (t *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
+	var outputAmount, adminShare uint256.Int
+	outputAmount.Set(&params.TokenAmountOut.Amount)
+	adminShare.Mul(&outputAmount, t.Info.SwapFee)
+	adminShare.Div(&adminShare, FeeDenominator)
+	adminShare.Mul(&adminShare, t.extra.AdminFee)
+	adminShare.Div(&adminShare, FeeDenominator)
+	outputAmount.Add(&outputAmount, &adminShare)
 	for i := range t.Info.Tokens {
-		if t.Info.Tokens[i] == input.Token {
-			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
-			t.reserves[i].Add(&t.reserves[i], number.SetFromBig(inputAmount))
+		if t.Info.Tokens[i] == params.TokenAmountIn.Token {
+			t.Info.Reserves[i] = new(uint256.Int).Add(t.Info.Reserves[i], &params.TokenAmountIn.Amount)
 		}
-		if t.Info.Tokens[i] == output.Token {
-			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
-			t.reserves[i].Sub(&t.reserves[i], number.SetFromBig(outputAmount))
+		if t.Info.Tokens[i] == params.TokenAmountOut.Token {
+			t.Info.Reserves[i] = new(uint256.Int).Sub(t.Info.Reserves[i], &outputAmount)
 		}
 	}
+}
+
+func cloneU256s(xs []*uint256.Int) []*uint256.Int {
+	out := make([]*uint256.Int, len(xs))
+	for i, x := range xs {
+		out[i] = new(uint256.Int).Set(x)
+	}
+	return out
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {

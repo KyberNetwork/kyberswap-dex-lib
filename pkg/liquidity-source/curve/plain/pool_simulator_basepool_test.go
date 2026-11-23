@@ -59,7 +59,7 @@ func TestCalcAmountOutAsBasePool(t *testing.T) {
 		StaticExtra: "{\"lpToken\":\"LPBase\",\"aPrecision\":\"1\"}",
 	})
 	require.Nil(t, err)
-	basePoolMap := map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": base}
+	basePoolMap := map[string]pool.IPoolSim{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": base}
 
 	p, err := meta.NewPoolSimulator(entity.Pool{
 		Exchange:    "",
@@ -111,7 +111,7 @@ func BenchmarkCalcAmountOutAsBasePool(b *testing.B) {
 		StaticExtra: "{\"lpToken\":\"LPBase\",\"aPrecision\":\"1\"}",
 	})
 	require.Nil(b, err)
-	basePoolMap := map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": base}
+	basePoolMap := map[string]pool.IPoolSim{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": base}
 
 	p, err := meta.NewPoolSimulator(entity.Pool{
 		Exchange:    "",
@@ -177,7 +177,7 @@ func TestUpdateBalanceAsBasePool(t *testing.T) {
 		StaticExtra: "{\"lpToken\":\"LPBase\",\"aPrecision\":\"1\"}",
 	})
 	require.Nil(t, err)
-	basePoolMap := map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": base}
+	basePoolMap := map[string]pool.IPoolSim{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": base}
 
 	p, err := meta.NewPoolSimulator(entity.Pool{
 		Exchange:    "",

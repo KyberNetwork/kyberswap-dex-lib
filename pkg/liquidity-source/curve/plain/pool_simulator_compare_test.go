@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -528,16 +528,16 @@ func TestCalcAmountOutSnapshot(t *testing.T) {
 	for idx, tc := range testCases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+				return p.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: *mustU256(tc.inAmount)},
 					TokenOut:      tc.out,
 					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
-			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
-			assert.Equal(t, bignumber.NewBig10(tc.expectedFeeAmount), out.Fee.Amount)
+			assert.Equal(t, mustU256(tc.expectedOutAmount).String(), out.TokenAmountOut.Amount.String())
+			assert.Equal(t, mustU256(tc.expectedFeeAmount).String(), out.Fee.Amount.String())
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 		})
 	}
@@ -946,25 +946,24 @@ func TestUpdateBalanceSnapshot(t *testing.T) {
 	for idx, tc := range testCases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+				return p.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: *mustU256(tc.inAmount)},
 					TokenOut:      tc.out,
 					Limit:         nil,
 				})
 			})
 			if len(tc.expectedErrMsg) == 0 {
 				require.Nil(t, err)
-				assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
-				assert.Equal(t, bignumber.NewBig10(tc.expectedFeeAmount), out.Fee.Amount)
+				assert.Equal(t, mustU256(tc.expectedOutAmount).String(), out.TokenAmountOut.Amount.String())
+				assert.Equal(t, mustU256(tc.expectedFeeAmount).String(), out.Fee.Amount.String())
 				assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 
-				p.UpdateBalance(pool.UpdateBalanceParams{
-					TokenAmountIn:  pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+				p.UpdateState(pool.UpdateStateParams{
+					TokenAmountIn:  pool.TokenAmt{Token: tc.in, Amount: *mustU256(tc.inAmount)},
 					TokenAmountOut: *out.TokenAmountOut,
 					Fee:            *out.Fee,
 					SwapInfo:       out.SwapInfo,
-					SwapLimitBig:   nil,
 				})
 			} else {
 				require.NotNil(t, err)
@@ -972,4 +971,12 @@ func TestUpdateBalanceSnapshot(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mustU256(s string) *uint256.Int {
+	x, err := uint256.FromDecimal(s)
+	if err != nil {
+		panic(err)
+	}
+	return x
 }
