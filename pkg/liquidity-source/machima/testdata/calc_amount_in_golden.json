@@ -1,0 +1,5154 @@
+[
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1",
+  "wantIn": "3"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2",
+  "wantIn": "4"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10",
+  "wantIn": "12"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "100",
+  "wantIn": "103"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "insufficient balance"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2195240",
+  "wantIn": "2217416"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "13",
+  "wantIn": "15"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "18603535035",
+  "wantIn": "18791449881"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3547",
+  "wantIn": "3584"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "5",
+  "wantIn": "7"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3268030",
+  "wantIn": "3301042"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "65903929603730",
+  "wantIn": "66574013351444"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3432254",
+  "wantIn": "3466925"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3249070",
+  "wantIn": "3281890"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "97363899700",
+  "wantIn": "98347383011"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3204043432877",
+  "wantIn": "3236417877581"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "5069",
+  "wantIn": "5122"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1408013",
+  "wantIn": "1422237"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "115",
+  "wantIn": "118"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "194171779448",
+  "wantIn": "196133148638"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "84228983",
+  "wantIn": "85079782"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1288901573895",
+  "wantIn": "1301922459763"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1480482806683",
+  "wantIn": "1495439392441"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10195549731959710",
+  "wantIn": "10404615861242825"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "31861815380943064",
+  "wantIn": "33242828773049702"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "106",
+  "wantIn": "109"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "606509",
+  "wantIn": "612637"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "74475",
+  "wantIn": "75229"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "7262",
+  "wantIn": "7337"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "124038507283",
+  "wantIn": "125291437040"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "5",
+  "wantIn": "7"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "5693814804670698",
+  "wantIn": "5784262605583735"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "161",
+  "wantIn": "164"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "46014477",
+  "wantIn": "46479271"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3878",
+  "wantIn": "3919"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1757396",
+  "wantIn": "1775149"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1858262395715",
+  "wantIn": "1877036210971"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1494468141139871",
+  "wantIn": "1511823150462567"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "90047859295300016",
+  "wantIn": "99958480850625220"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "15",
+  "wantIn": "17"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "35412724741883716",
+  "wantIn": "37083662567115949"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "8405840135361492",
+  "wantIn": "8562724504786635"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "354841914767211",
+  "wantIn": "358553406309778"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "377",
+  "wantIn": "382"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "46041574568",
+  "wantIn": "46506643120"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1",
+  "wantIn": "3"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantIn": "4"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantIn": "12"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "100",
+  "wantIn": "103"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "insufficient balance"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4310677828195",
+  "wantIn": "4354238798202"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "7100703623227",
+  "wantIn": "7172478831896"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "21811",
+  "wantIn": "22033"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "9",
+  "wantIn": "11"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "946417721090",
+  "wantIn": "955978400807"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "5265528749",
+  "wantIn": "5318715937"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "154303886339013",
+  "wantIn": "155886565356412"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1741447712",
+  "wantIn": "1759038097"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2926445519",
+  "wantIn": "2956005584"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "25843623746543",
+  "wantIn": "26105345107771"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1506",
+  "wantIn": "1523"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1005",
+  "wantIn": "1017"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "8922938242328222",
+  "wantIn": "9094216059909633"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "30715136840768",
+  "wantIn": "31026343726645"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1142737841",
+  "wantIn": "1154280650"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "9465",
+  "wantIn": "9562"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "50638627",
+  "wantIn": "51150130"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "70012",
+  "wantIn": "70721"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4",
+  "wantIn": "6"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "25232",
+  "wantIn": "25488"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3417036581064847",
+  "wantIn": "3463386620863566"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "439802274629",
+  "wantIn": "444244917229"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "706",
+  "wantIn": "715"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2082901245238",
+  "wantIn": "2103945034066"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantIn": "12"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "117452",
+  "wantIn": "118640"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "155530",
+  "wantIn": "157103"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "6637850539",
+  "wantIn": "6704899580"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1835381978388337",
+  "wantIn": "1857330100485599"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "543455771746732",
+  "wantIn": "549243713652879"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "19873",
+  "wantIn": "20075"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "752900520377",
+  "wantIn": "760506148725"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "51661320",
+  "wantIn": "52183153"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1366575146304085",
+  "wantIn": "1382267908630161"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "69717630524",
+  "wantIn": "70421853925"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1565708930",
+  "wantIn": "1581524175"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "41912570",
+  "wantIn": "42335931"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "47",
+  "wantIn": "49"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "147778592",
+  "wantIn": "149271307"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "728806881115172",
+  "wantIn": "736705482808229"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "100",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "3548956276694016",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "24396960361752940",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "43687",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "3076508187401",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "34387294",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1041961027877",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "83256460816546",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "453",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "4355",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "31496493087813",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "44422",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "77848639539613376",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "312158190739495",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2148",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "272185296118",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "987268386",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "413247",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "15307699034943766",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10719140",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "7022945898",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "49501905427719072",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "695116",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "231",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "4318594423591881",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "3993701154348124",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1004892521",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "392420",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "3893995633265",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "70840364670",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1932732",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "127705777988",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "398",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "18583",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "104660918157063",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "3767729468746",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "339620",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "75",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "207847855769176",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "100",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1230",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "26",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2267043324682459",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "469257641259",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4661",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "70758827319693120",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "12",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "20626778",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "77",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "6423502696656695",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2364863815",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "153831358",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "279",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "18746",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "5838814545998372",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3390994",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "11697",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "448",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3200354130288",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "426",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "141509909374",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "415011276254",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4636089861",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "12302521",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "8652157934200989",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "906146337524",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "231906337967610",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "25984311261477",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "80",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "7117095442714788",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "16119506",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "503",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "75395593",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "365152",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "71331420601",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "411776",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "13981598",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "646558688967123",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "plain",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "11",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1",
+  "wantIn": "4"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2",
+  "wantIn": "5"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10",
+  "wantIn": "13"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "100",
+  "wantIn": "109"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "insufficient balance"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "421879973",
+  "wantIn": "448569883"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "136626274",
+  "wantIn": "145269831"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1182719253943484",
+  "wantIn": "1259032147956647"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1960211",
+  "wantIn": "2084225"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3216275762723132",
+  "wantIn": "3430785295477196"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "435430558",
+  "wantIn": "462977735"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "118359169",
+  "wantIn": "125847072"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "26068654374687",
+  "wantIn": "27718590076709"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "23367005092",
+  "wantIn": "24845301052"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "859386066",
+  "wantIn": "913754458"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "238329",
+  "wantIn": "253409"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "112940289146001",
+  "wantIn": "120098932584464"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "4482384713",
+  "wantIn": "4765959314"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "197711536427483",
+  "wantIn": "210261173853444"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2628525740294",
+  "wantIn": "2794824720320"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "29831791498250",
+  "wantIn": "31720022818272"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "11904295",
+  "wantIn": "12657413"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "19994",
+  "wantIn": "21260"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1193008515",
+  "wantIn": "1268483273"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "811293808515425",
+  "wantIn": "863320085682520"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2767278782675",
+  "wantIn": "2942356661914"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "92",
+  "wantIn": "99"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "218479",
+  "wantIn": "232303"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10525324626",
+  "wantIn": "11191201210"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1197182",
+  "wantIn": "1272923"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1287114958476201",
+  "wantIn": "1370307026537806"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "160",
+  "wantIn": "172"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2466760172185004",
+  "wantIn": "2629303694899384"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "96",
+  "wantIn": "104"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "8",
+  "wantIn": "11"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1285",
+  "wantIn": "1368"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "208",
+  "wantIn": "224"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "4093",
+  "wantIn": "4354"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "7516",
+  "wantIn": "7993"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "95825",
+  "wantIn": "101889"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "212656798",
+  "wantIn": "226110367"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "49695442129393760",
+  "wantIn": "55602580386712776"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "127868",
+  "wantIn": "135959"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "6169032",
+  "wantIn": "6559313"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "153698",
+  "wantIn": "163424"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1",
+  "wantIn": "4"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantIn": "5"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantIn": "13"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "100",
+  "wantIn": "107"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "insufficient balance"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantIn": "5"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "8045094939",
+  "wantIn": "8377689271"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3506",
+  "wantIn": "3653"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "9177103356373",
+  "wantIn": "9556586672019"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4544888919685",
+  "wantIn": "4732802472818"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "9838043769253030",
+  "wantIn": "10349730984709278"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "7411894557",
+  "wantIn": "7718311585"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "44",
+  "wantIn": "48"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "925650420662",
+  "wantIn": "963918883674"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "28303470771147280",
+  "wantIn": "30359424217812368"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "205135262097",
+  "wantIn": "213615854921"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "66311255",
+  "wantIn": "69052647"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "16040840624011128",
+  "wantIn": "16984866865560266"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "9090007075",
+  "wantIn": "9465799397"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "174896",
+  "wantIn": "182129"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "519",
+  "wantIn": "543"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "276541520405768",
+  "wantIn": "288056215051969"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "720431683300",
+  "wantIn": "750215785043"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1018",
+  "wantIn": "1062"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2806",
+  "wantIn": "2924"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "51205",
+  "wantIn": "53324"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "13983545",
+  "wantIn": "14561644"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "790341618510954",
+  "wantIn": "823686454503485"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "33263468214859128",
+  "wantIn": "35868637234913300"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "121710",
+  "wantIn": "126744"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "278385",
+  "wantIn": "289895"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "35219734313654",
+  "wantIn": "36677093776506"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "24886",
+  "wantIn": "25917"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4",
+  "wantIn": "7"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "8885",
+  "wantIn": "9254"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "7094841",
+  "wantIn": "7388153"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4451102152768552",
+  "wantIn": "4656483778914385"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "172901523730233",
+  "wantIn": "180081587782306"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1038815",
+  "wantIn": "1081763"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "27",
+  "wantIn": "30"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantIn": "13"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "86",
+  "wantIn": "91"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4548668766",
+  "wantIn": "4736716431"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantIn": "13"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "213",
+  "wantIn": "224"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "100",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "522660991",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "273499",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "7815",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "133713718737934",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "785277802760207",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "14273983365202820",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "375309086064750",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "35986676972598060",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "276594632427",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "34096648337079704",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "180483589",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "804153952",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "38855044289027992",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "182548",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "128173622494730",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1394",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1685",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1143196817915",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1395406",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "71508904243",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "14710398087565104",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "959682",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1442",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1352579820255",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "509",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "4",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "352211156409186",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2280",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "127760864840761",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "744",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "6094453587",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "791088",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "204970356899910",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "8704",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "160243",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "38545491",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "73605614101293312",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "199",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "443",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "100",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "219",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "85543885",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3845162846253",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "23469494172155608",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "71271",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3969992016",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1785516307155",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "116650290",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "80296",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "19773",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "103355",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "45",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "73377779359398",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "47131",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "18477",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "11376885136",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1533",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4660841528243543",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "145107005615742",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "68950254507277",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "18",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "45",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3427590586273",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10394587",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1658342968",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "146548473",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "12972292832",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "688",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "50",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "148760909147",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "31287749047103444",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "14924402039830",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "13107",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4308264",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1309184366452",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "896949819",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "214",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "taxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "747281710059",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "100",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1643",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "27492284897",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "51485398838",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3708613",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "137794879",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2793752430197",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "5625320203990913",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "592034774566715",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "65432371",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "11288",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "19",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1175728238189173",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "37873750070636",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1433948561064361",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "96008781466776",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "547436",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "765602818",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "25805300240762",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "21195577252427",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "21471997180405312",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "18",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2328",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "465",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3535636826939",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "668",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "49838262",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "255396817086",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1096",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3495838536111",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "823",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "20",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "83",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "42530",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "24823683",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "8",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "11734194211385482",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "81",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "46897866215456",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "828941716993",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "6711739",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "100",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "105",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1901",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "45",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "346395",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "918977346272",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1767990811",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "181",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "651152",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1028332",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "37331234",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "308770823095",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "921952",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "69732663006192616",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "52397259302",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "166619136585487",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "945",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "115888",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "645",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "6122944250772",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "378658",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "156704619024231",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "54",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3436",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "11129600932563410",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3509591736",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "105572979015048",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "105",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "633286170988141",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "750266832945",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "488925802609",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "150289",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "315059865613200",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4757337182445535",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "439",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "53855198762",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "125117168",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "119475",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "237958",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "828",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1",
+  "wantIn": "4"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2",
+  "wantIn": "5"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10",
+  "wantIn": "13"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "100",
+  "wantIn": "109"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "insufficient balance"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "13711239",
+  "wantIn": "14578672"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2083373317139",
+  "wantIn": "2215180922482"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "996991",
+  "wantIn": "1060067"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10393",
+  "wantIn": "11052"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "22",
+  "wantIn": "26"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2",
+  "wantIn": "5"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "677901",
+  "wantIn": "720790"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "50",
+  "wantIn": "55"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2146089",
+  "wantIn": "2281862"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "51884286308583592",
+  "wantIn": "58185624893291930"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "564468",
+  "wantIn": "600180"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "943",
+  "wantIn": "1005"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "246377",
+  "wantIn": "261966"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10333807341",
+  "wantIn": "10987567729"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "3732812545",
+  "wantIn": "3968966039"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "62753849644167304",
+  "wantIn": "71191461326674592"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "56",
+  "wantIn": "62"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "12043337869058536",
+  "wantIn": "12961348154562606"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "6622966740669913",
+  "wantIn": "7088913209695388"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "3027343",
+  "wantIn": "3218868"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "11191945520",
+  "wantIn": "11899995372"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2033904810601697",
+  "wantIn": "2166985656907963"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "762",
+  "wantIn": "812"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "442404550597",
+  "wantIn": "470393138033"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "85653467194",
+  "wantIn": "91072274888"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1204055942318651",
+  "wantIn": "1281772930054392"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "93070",
+  "wantIn": "98960"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "208003339657",
+  "wantIn": "221162554943"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10941",
+  "wantIn": "11635"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "16448",
+  "wantIn": "17491"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "68026371748589",
+  "wantIn": "72334927858228"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "11422944830267",
+  "wantIn": "12145747278498"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1791",
+  "wantIn": "1907"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "211753535423",
+  "wantIn": "225150005597"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "15916003705113",
+  "wantIn": "16923186632983"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2385090129769176",
+  "wantIn": "2542044003284615"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "282265912",
+  "wantIn": "300123247"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "3036",
+  "wantIn": "3230"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "27602733",
+  "wantIn": "29349000"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "72569694270900",
+  "wantIn": "77166359397804"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1",
+  "wantIn": "4"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantIn": "5"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantIn": "13"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "100",
+  "wantIn": "107"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "insufficient balance"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "7134754096376084",
+  "wantIn": "7484767313216699"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1319444",
+  "wantIn": "1373993"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "337",
+  "wantIn": "353"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1420323522076732",
+  "wantIn": "1481210332160663"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "37546463376666592",
+  "wantIn": "40673040631955567"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "5923",
+  "wantIn": "6170"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10362306342952",
+  "wantIn": "10790812290409"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "13620299650179312",
+  "wantIn": "14385372702381970"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "33977839676453932",
+  "wantIn": "36666920542108595"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "414186",
+  "wantIn": "431311"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "425433335",
+  "wantIn": "443021282"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "8645",
+  "wantIn": "9005"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "18565494248634988",
+  "wantIn": "19710263165998057"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "11981458",
+  "wantIn": "12476788"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "263914457729",
+  "wantIn": "274825085427"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1182517679",
+  "wantIn": "1231404438"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "5242",
+  "wantIn": "5461"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3926574861",
+  "wantIn": "4088904382"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "8820216752110785",
+  "wantIn": "9269139869454824"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "538161094104",
+  "wantIn": "560409656025"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantIn": "5"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3718677561",
+  "wantIn": "3872412347"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "44820898734",
+  "wantIn": "46673852761"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "17761",
+  "wantIn": "18497"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "22",
+  "wantIn": "25"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "11969611772",
+  "wantIn": "12464450611"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "431153885393",
+  "wantIn": "448978524459"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantIn": "13"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "37248058982850864",
+  "wantIn": "40336878808154546"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4",
+  "wantIn": "7"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "766050387072",
+  "wantIn": "797720495737"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "510205",
+  "wantIn": "531299"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "171982",
+  "wantIn": "179094"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "6541301887572845",
+  "wantIn": "6857974978022311"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "70177255309031",
+  "wantIn": "73083758032284"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1612994842",
+  "wantIn": "1679678065"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "193247189204",
+  "wantIn": "201236309179"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "25969379",
+  "wantIn": "27042987"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "13827964405",
+  "wantIn": "14399629912"
+ },
+ {
+  "variant": "xmaTaxed",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4943837",
+  "wantIn": "5148224"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "100",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "519999954",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "119592905",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "19",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "797084084",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "647048833870",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "13619658195598",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2631160382789",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "54",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "190846",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "16402796928",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "782293",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "36181",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "7605759",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10672325",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "863",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1886625292561",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "34064718513434",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "25214148",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "265752726",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "112990768",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2199616437798918",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2014",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2743775902",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "15271876096",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "10",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "164",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "188871725",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "391811",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "166018491878015",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "22476962109080",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "8519001622",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "6234679849194502",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "4675664712",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "48",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "600347442063",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "3272932968",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "33865615153812580",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0x1234567890abcdef1234567890abcdef12345678",
+  "amountOut": "1094309467573",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "100",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "387476836108887",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "17",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "584468",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3168",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "23052372",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "54694263",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "56937317592433",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "627",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "17126768190",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "72235806694",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "56253473937",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "785621093",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "13278624312582820",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "6774279604581099",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4590622",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "490842889485994",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "52591",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "11200297",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4833503102493734",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2961732330543",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "377",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "477",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "23450462157988580",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "16",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "13683404",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2671970451958",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1350850753",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "882",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "5",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "795440127251",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "642160549",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "90814510684903",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "428417913473919",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4460566",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "58526146614401",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "5312",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3788483268",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "7467352648417",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x1234567890abcdef1234567890abcdef12345678",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1142",
+  "wantErr": "invalid token"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1",
+  "wantIn": "4"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2",
+  "wantIn": "5"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10",
+  "wantIn": "13"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "100",
+  "wantIn": "109"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "insufficient balance"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "416084940249588",
+  "wantIn": "442592385956917"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "45350148237774520",
+  "wantIn": "50509817768756712"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "85643",
+  "wantIn": "91064"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "66",
+  "wantIn": "72"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "40336288185655",
+  "wantIn": "42889862060003"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "6833",
+  "wantIn": "7268"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "639286105",
+  "wantIn": "679730045"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "8229249817056665",
+  "wantIn": "8822469200509535"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2544",
+  "wantIn": "2707"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "18006937655936",
+  "wantIn": "19146477311622"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "755714040065",
+  "wantIn": "803524307465"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "47812111",
+  "wantIn": "50836909"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "49582388922018872",
+  "wantIn": "55469489965127942"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "10",
+  "wantIn": "13"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2965",
+  "wantIn": "3154"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "60761685985289840",
+  "wantIn": "68785233482758599"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "14307908",
+  "wantIn": "15213089"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1061763101175",
+  "wantIn": "1128935915491"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "36754865",
+  "wantIn": "39080135"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "11606310439172148",
+  "wantIn": "12485485045051973"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "66862945787823",
+  "wantIn": "71097731781271"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1494",
+  "wantIn": "1591"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "3557805497",
+  "wantIn": "3782887306"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "14193225367504386",
+  "wantIn": "15308424637007624"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "237122",
+  "wantIn": "252126"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "108085045775",
+  "wantIn": "114922974438"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "267210775",
+  "wantIn": "284115658"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "2126591796860",
+  "wantIn": "2261133779122"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1170438",
+  "wantIn": "1244487"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "159419951270",
+  "wantIn": "169505557348"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "180820496",
+  "wantIn": "192259966"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "74670108",
+  "wantIn": "79394056"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "189",
+  "wantIn": "203"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "49731100468",
+  "wantIn": "52877302438"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "91735161148218960",
+  "wantIn": "107390169143242367"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "94211",
+  "wantIn": "100173"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "1441068987",
+  "wantIn": "1532237098"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "724120781",
+  "wantIn": "769931720"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "820",
+  "wantIn": "874"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0x4200000000000000000000000000000000000006",
+  "tokenOut": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "amountOut": "20249927427249092",
+  "wantIn": "21976036457869874"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "0",
+  "wantErr": "zero amount"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1",
+  "wantIn": "4"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantIn": "5"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10",
+  "wantIn": "13"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "100",
+  "wantIn": "107"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "10000000000000000000000000000000000000000",
+  "wantErr": "insufficient balance"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "8444",
+  "wantIn": "8795"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "29270370142331940",
+  "wantIn": "25569534309864268"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1055822348",
+  "wantIn": "1099471364"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "222305802274774",
+  "wantIn": "231549268221550"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "383",
+  "wantIn": "400"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "18548",
+  "wantIn": "19317"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "615526",
+  "wantIn": "640974"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2107",
+  "wantIn": "2196"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "7250063",
+  "wantIn": "7549791"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "142",
+  "wantIn": "150"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "91543364136083440",
+  "wantIn": "25569534309864268"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "117803730926322",
+  "wantIn": "122688784328747"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "701711",
+  "wantIn": "730723"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1236315516866517",
+  "wantIn": "1289069328663676"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "7991840329",
+  "wantIn": "8322233048"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1513499424",
+  "wantIn": "1576069382"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3442433",
+  "wantIn": "3584749"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2142955177461135",
+  "wantIn": "2236488540259139"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "252679296845",
+  "wantIn": "263125442745"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3",
+  "wantIn": "6"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "126252",
+  "wantIn": "131473"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "6787931",
+  "wantIn": "7068555"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "69346564804",
+  "wantIn": "72213443469"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "25934817409081",
+  "wantIn": "27007717218468"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "123090233571713",
+  "wantIn": "128195204991839"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "4336",
+  "wantIn": "4518"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "7909276",
+  "wantIn": "8236257"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "953",
+  "wantIn": "994"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "71169",
+  "wantIn": "74114"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "6047149",
+  "wantIn": "6297148"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "3",
+  "wantIn": "6"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1028206",
+  "wantIn": "1070716"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "34710388",
+  "wantIn": "36145361"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "6",
+  "wantIn": "9"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "307957",
+  "wantIn": "320690"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2113117502",
+  "wantIn": "2200476422"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "1343482235",
+  "wantIn": "1399023469"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "16",
+  "wantIn": "19"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "32853",
+  "wantIn": "34214"
+ },
+ {
+  "variant": "xmaFloor",
+  "tokenIn": "0xa4985faeb1e64ba215282255dbb78ff59c63d7a9",
+  "tokenOut": "0x4200000000000000000000000000000000000006",
+  "amountOut": "2",
+  "wantIn": "5"
+ }
+]

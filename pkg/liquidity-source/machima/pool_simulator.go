@@ -43,6 +43,7 @@ type PoolSimulator struct {
 var (
 	_ pool.IPoolSim               = (*PoolSimulator)(nil)
 	_ pool.IPoolExactOutSimulator = (*PoolSimulator)(nil)
+	_ pool.ICalcAmtIn             = (*PoolSimulator)(nil)
 
 	_ = pool.RegisterFactory1(DexType, NewPoolSimulator)
 )
@@ -263,6 +264,28 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 			PoolAmountIn:  poolInU,
 			PoolAmountOut: poolOutU,
 		},
+	}, nil
+}
+
+// CalcAmtIn is CalcAmountIn with uint256 amounts. It runs the shared big.Int body and converts at the boundary,
+// so the tax rules stay in CalcAmountIn.
+func (p *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
+	res, err := p.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: params.TokenAmountOut.Amount.ToBig()},
+		TokenIn:        params.TokenIn,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var amountIn, fee uint256.Int
+	if amountIn.SetFromBig(res.TokenAmountIn.Amount) || fee.SetFromBig(res.Fee.Amount) {
+		return nil, ErrOverflow
+	}
+	return &pool.CalcAmtInResult{
+		TokenAmountIn: &pool.TokenAmt{Token: res.TokenAmountIn.Token, Amount: amountIn},
+		Fee:           &pool.TokenAmt{Token: res.Fee.Token, Amount: fee},
+		Gas:           res.Gas,
+		SwapInfo:      res.SwapInfo,
 	}, nil
 }
 
