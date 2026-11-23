@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -183,19 +184,19 @@ func TestBeforeSwap_BuyTakesFromInput(t *testing.T) {
 				pinClock(t, chainSecond(elapsed))
 				for _, a := range []string{"5000", "495000", "1000000000000000", "7900236222200242", "10000000000000000000"} {
 					res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: buyZeroForOne,
-						AmountSpecified: bi(t, a)})
+						AmountSpecified: u256.FromBig(bi(t, a))})
 					require.NoError(t, err)
 					require.NoError(t, uniswapv4.ValidateBeforeSwapResult(res))
 					fee, taxAmt := solidityFees(bi(t, a), tax, elapsed, true)
-					assert.Equal(t, new(big.Int).Add(fee, taxAmt).String(), res.DeltaSpecified.String())
-					assert.Zero(t, res.DeltaUnspecified.Sign())
+					assert.Equal(t, new(big.Int).Add(fee, taxAmt).String(), u256.ToBig(res.DeltaSpecified).String())
+					assert.Zero(t, u256.ToBig(res.DeltaUnspecified).Sign())
 					assert.Zero(t, res.SwapFee, "pool fee 0, no override")
 					assert.Equal(t, int64(gasBeforeSwapBuy), res.Gas)
 
 					res, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: !buyZeroForOne,
-						AmountSpecified: bi(t, a)})
+						AmountSpecified: u256.FromBig(bi(t, a))})
 					require.NoError(t, err)
-					assert.Zero(t, res.DeltaSpecified.Sign(), "sell: nothing taken before the swap")
+					assert.Zero(t, u256.ToBig(res.DeltaSpecified).Sign(), "sell: nothing taken before the swap")
 					assert.Equal(t, int64(gasBeforeSwapSell), res.Gas)
 				}
 			}
@@ -214,18 +215,18 @@ func TestAfterSwap_SellTakesFromOutput(t *testing.T) {
 				for _, q := range []string{"319", "485149", "3327787", "475998250000001", "7587386867801113"} {
 					res, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 						BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: sellZeroForOne},
-						AmountIn:         bignumber.TenPowInt(24), AmountOut: bi(t, q)})
+						AmountIn:         u256.FromBig(bignumber.TenPowInt(24)), AmountOut: u256.FromBig(bi(t, q))})
 					require.NoError(t, err)
 					require.NoError(t, uniswapv4.ValidateAfterSwapResult(res))
 					fee, taxAmt := solidityFees(bi(t, q), tax, elapsed, false)
-					assert.Equal(t, new(big.Int).Add(fee, taxAmt).String(), res.HookFee.String())
+					assert.Equal(t, new(big.Int).Add(fee, taxAmt).String(), u256.ToBig(res.HookFee).String())
 					assert.Equal(t, int64(gasAfterSwapSell), res.Gas)
 
 					res, err = h.AfterSwap(&uniswapv4.AfterSwapParams{
 						BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: !sellZeroForOne},
-						AmountIn:         bi(t, q), AmountOut: bignumber.TenPowInt(24)})
+						AmountIn:         u256.FromBig(bi(t, q)), AmountOut: u256.FromBig(bignumber.TenPowInt(24))})
 					require.NoError(t, err)
-					assert.Zero(t, res.HookFee.Sign(), "buy: nothing taken after the swap")
+					assert.Zero(t, u256.ToBig(res.HookFee).Sign(), "buy: nothing taken after the swap")
 				}
 			}
 		}
@@ -233,7 +234,7 @@ func TestAfterSwap_SellTakesFromOutput(t *testing.T) {
 	h := hookAt(100, true)
 	h.BuybackVault = true
 	res, err := h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-		AmountIn: bignumber.TenPowInt(18), AmountOut: bignumber.TenPowInt(6)})
+		AmountIn: u256.FromBig(bignumber.TenPowInt(18)), AmountOut: u256.FromBig(bignumber.TenPowInt(6))})
 	require.NoError(t, err)
 	assert.Equal(t, int64(gasAfterSwapSell+gasObservation), res.Gas, "a buyback pool records an observation")
 }
@@ -245,10 +246,10 @@ func TestBeforeSwap_ExactInputBound(t *testing.T) {
 	pinClock(t, launched+60)
 	h := hookAt(100, true)
 	for _, zeroForOne := range []bool{true, false} {
-		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zeroForOne, AmountSpecified: maxInt128})
+		_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zeroForOne, AmountSpecified: u256.FromBig(maxInt128)})
 		require.NoError(t, err)
 		_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zeroForOne,
-			AmountSpecified: new(big.Int).Add(maxInt128, bignumber.One)})
+			AmountSpecified: u256.FromBig(new(big.Int).Add(maxInt128, bignumber.One))})
 		assert.ErrorIs(t, err, ErrAmountTooLarge)
 	}
 }
@@ -281,32 +282,32 @@ func TestCalcIn_GrossUps(t *testing.T) {
 	h := hookAt(100, true)
 	want := big.NewInt(3_327_787)
 
-	res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: false, AmountSpecified: want})
+	res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: false, AmountSpecified: u256.FromBig(want)})
 	require.NoError(t, err)
-	q := new(big.Int).Add(want, res.DeltaSpecified)
+	q := new(big.Int).Add(want, u256.ToBig(res.DeltaSpecified))
 	assert.Equal(t, want.String(), new(big.Int).Sub(q, h.fees(q, false, NowFn())).String())
 	after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{ZeroForOne: false},
-		AmountIn: bignumber.TenPowInt(24), AmountOut: q})
+		AmountIn: u256.FromBig(bignumber.TenPowInt(24)), AmountOut: u256.FromBig(q)})
 	require.NoError(t, err)
-	assert.Zero(t, after.HookFee.Sign())
+	assert.Zero(t, u256.ToBig(after.HookFee).Sign())
 
-	res, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: true, AmountSpecified: bignumber.TenPowInt(24)})
+	res, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: true, AmountSpecified: u256.FromBig(bignumber.TenPowInt(24))})
 	require.NoError(t, err)
-	assert.Zero(t, res.DeltaSpecified.Sign())
+	assert.Zero(t, u256.ToBig(res.DeltaSpecified).Sign())
 	after, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{ZeroForOne: true},
-		AmountIn: want, AmountOut: bignumber.TenPowInt(24)})
+		AmountIn: u256.FromBig(want), AmountOut: u256.FromBig(bignumber.TenPowInt(24))})
 	require.NoError(t, err)
-	gross := new(big.Int).Add(want, after.HookFee)
+	gross := new(big.Int).Add(want, u256.ToBig(after.HookFee))
 	assert.GreaterOrEqual(t, new(big.Int).Sub(gross, h.fees(gross, true, NowFn())).Cmp(want), 0)
 }
 
 // A pool Track did not confirm (unregistered, still inside its creation transaction, other chain) is never priced.
 func TestUntrackedPoolRefusesToQuote(t *testing.T) {
 	h := &Hook{}
-	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: bignumber.TenPowInt(6)})
+	_, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, AmountSpecified: u256.FromBig(bignumber.TenPowInt(6))})
 	assert.ErrorIs(t, err, ErrNotTracked)
 	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-		AmountIn: bignumber.TenPowInt(6), AmountOut: bignumber.TenPowInt(6)})
+		AmountIn: u256.FromBig(bignumber.TenPowInt(6)), AmountOut: u256.FromBig(bignumber.TenPowInt(6))})
 	assert.ErrorIs(t, err, ErrNotTracked)
 }
 
@@ -380,7 +381,7 @@ func BenchmarkAfterSwapSell(b *testing.B) {
 	h := hookAt(100, true)
 	p := &uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false},
-		AmountOut:        bignumber.TenPowInt(18),
+		AmountOut:        u256.FromBig(bignumber.TenPowInt(18)),
 	}
 	b.ReportAllocs()
 	for b.Loop() {

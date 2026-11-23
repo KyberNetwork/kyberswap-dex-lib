@@ -23,6 +23,7 @@ import (
 	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -38,6 +39,8 @@ var NowFn = func() int64 { return time.Now().Unix() }
 var uBps = uint256.NewInt(bps)
 
 var maxInt128 = new(big.Int).Sub(new(big.Int).Lsh(bignumber.One, 127), bignumber.One)
+
+var uMaxInt128 = uint256.MustFromBig(maxInt128)
 
 // Extra is the hook state kept per pool, all written once at launch.
 type Extra struct {
@@ -168,7 +171,7 @@ func (e *Extra) fees(gross *big.Int, buy bool, now int64) *big.Int {
 }
 
 // grossFor returns the smallest gross with gross - fees(gross) >= net. Each floor rounds a fee down, so the
-// unfloored gross-up bounds it from above.
+// unfloored gross-up bounds it from above. It walks MinAmountIn in big.Int, the shared helper's type.
 func (e *Extra) grossFor(net *big.Int, buy bool, now int64) (*big.Int, error) {
 	takeBps := baseFeeBps + e.TaxBps
 	if buy {
@@ -199,8 +202,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}
 	buy := h.isBuy(params.ZeroForOne)
 	res := &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int),
 		Gas:              gasBeforeSwapSell,
 	}
 	if buy {
@@ -208,18 +211,19 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}
 	if params.CalcOut {
 		// beforeSwap: amountSpecified < 0 (exact input) and -amountSpecified <= type(int128).max
-		if params.AmountSpecified.Cmp(maxInt128) > 0 {
+		if params.AmountSpecified.Gt(uMaxInt128) {
 			return nil, ErrAmountTooLarge
 		}
 		if buy {
-			res.DeltaSpecified = h.fees(params.AmountSpecified, true, NowFn())
+			total := h.feesU256(params.AmountSpecified, true, NowFn())
+			res.DeltaSpecified = &total
 		}
 	} else if !buy {
-		gross, err := h.grossFor(params.AmountSpecified, false, NowFn())
+		gross, err := h.grossFor(u256.ToBig(params.AmountSpecified), false, NowFn())
 		if err != nil {
 			return nil, err
 		}
-		res.DeltaSpecified = gross.Sub(gross, params.AmountSpecified)
+		res.DeltaSpecified = u256.FromBig(gross.Sub(gross, u256.ToBig(params.AmountSpecified)))
 	}
 	return res, nil
 }
@@ -231,7 +235,7 @@ func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwa
 		return nil, ErrNotTracked
 	}
 	buy := h.isBuy(params.ZeroForOne)
-	res := &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI, Gas: gasAfterSwapSell}
+	res := &uniswapv4.AfterSwapResult{HookFee: new(uint256.Int), Gas: gasAfterSwapSell}
 	if buy {
 		res.Gas = gasAfterSwapBuy
 	}
@@ -239,13 +243,14 @@ func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwa
 		res.Gas += gasObservation
 	}
 	if params.CalcOut && !buy {
-		res.HookFee = h.fees(params.AmountOut, false, NowFn())
+		total := h.feesU256(params.AmountOut, false, NowFn())
+		res.HookFee = &total
 	} else if !params.CalcOut && buy {
-		gross, err := h.grossFor(params.AmountIn, true, NowFn())
+		gross, err := h.grossFor(u256.ToBig(params.AmountIn), true, NowFn())
 		if err != nil {
 			return nil, err
 		}
-		res.HookFee = gross.Sub(gross, params.AmountIn)
+		res.HookFee = u256.FromBig(gross.Sub(gross, u256.ToBig(params.AmountIn)))
 	}
 	return res, nil
 }
