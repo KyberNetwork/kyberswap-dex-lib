@@ -52,7 +52,7 @@ func (h *ConstantProductHook) GetReserves(ctx context.Context, param *uniswapv4.
 }
 
 func (h *ConstantProductHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	amtSpecified := big256.FromBig(params.AmountSpecified)
+	amtSpecified := params.AmountSpecified
 	reserveIn, reserveOut := h.Reserves[1], h.Reserves[0]
 	if params.ZeroForOne {
 		reserveIn, reserveOut = reserveOut, reserveIn
@@ -62,8 +62,7 @@ func (h *ConstantProductHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*u
 	denominator.Add(denominator.Mul(reserveIn, UFeeDenom), amountInWithFee)
 	numerator.Mul(amountInWithFee, reserveOut)
 	amountOut := numerator.Div(&numerator, &denominator)
-	amtUnspecified := amountOut.ToBig()
-	amtUnspecified.Neg(amtUnspecified)
+	amtUnspecified := new(uint256.Int).Neg(amountOut)
 
 	swapInfo := [2]*uint256.Int{amountOut.Neg(amountOut), amtSpecified}
 	if params.ZeroForOne {

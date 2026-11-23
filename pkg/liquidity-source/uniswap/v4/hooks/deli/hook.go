@@ -1,19 +1,18 @@
 package deli
 
 import (
-	"math/big"
-
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // Hook of idle takes 3% fee of ETH token
 type Hook struct {
 	*uniswapv4.BaseHook
-	FeeTier      *big.Int
+	FeeTier      *uint256.Int
 	isWBTLToken0 bool
 }
 
@@ -22,28 +21,28 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Deli},
 	}
 	if pool := param.Pool; pool != nil {
-		hook.FeeTier = big.NewInt(int64(param.Pool.SwapFee))
+		hook.FeeTier = uint256.NewInt(uint64(param.Pool.SwapFee))
 		hook.isWBTLToken0 = param.Pool.Tokens[0].Address == wBLT
 	}
 	return hook
 }, HookAddresses...)
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	deltaSpecified := bignumber.ZeroBI
+	deltaSpecified := new(uint256.Int)
 	if params.ZeroForOne == h.isWBTLToken0 {
-		deltaSpecified = bignumber.MulDivDown(new(big.Int), params.AmountSpecified, h.FeeTier, FeeDenom)
+		big256.MulDivDown(deltaSpecified, params.AmountSpecified, h.FeeTier, UFeeDenom)
 	}
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   deltaSpecified,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
-	hookFeeAmt := bignumber.ZeroBI
+	hookFeeAmt := new(uint256.Int)
 	if params.ZeroForOne != h.isWBTLToken0 {
-		hookFeeAmt = bignumber.MulDivDown(new(big.Int), lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn),
-			h.FeeTier, FeeDenom)
+		big256.MulDivDown(hookFeeAmt, lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn),
+			h.FeeTier, UFeeDenom)
 	}
 	return &uniswapv4.AfterSwapResult{
 		HookFee: hookFeeAmt,
