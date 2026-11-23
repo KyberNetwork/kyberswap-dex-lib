@@ -1,0 +1,3340 @@
+{
+ "pools": [
+  {
+   "address": "0x851523a36690bf267bbfec389c823072d82921a9",
+   "exchange": "balancer-v2-stable",
+   "type": "balancer-v2-stable",
+   "timestamp": 1703667290,
+   "reserves": [
+    "9999991000000000000",
+    "99999910000000000056",
+    "8897791020011100123456"
+   ],
+   "tokens": [
+    {
+     "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+     "name": "",
+     "symbol": "",
+     "decimals": 0,
+     "weight": 1,
+     "swappable": true
+    },
+    {
+     "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+     "name": "",
+     "symbol": "",
+     "decimals": 0,
+     "weight": 1,
+     "swappable": true
+    },
+    {
+     "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+     "name": "",
+     "symbol": "",
+     "decimals": 0,
+     "weight": 1,
+     "swappable": true
+    }
+   ],
+   "extra": "{\"amp\":\"0x1388\",\"swapFeePercentage\":\"0x2D79883D2000\",\"scalingFactors\":[\"100\",\"1\",\"100\"],\"paused\":false}",
+   "staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"Stable\",\"poolTypeVersion\":1,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+  },
+  {
+   "address": "0x851523a36690bf267bbfec389c823072d82921a9",
+   "exchange": "balancer-v2-stable",
+   "type": "balancer-v2-stable",
+   "timestamp": 1703667290,
+   "reserves": [
+    "1152882153159026494",
+    "873225053252443292"
+   ],
+   "tokens": [
+    {
+     "address": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+     "name": "",
+     "symbol": "",
+     "decimals": 0,
+     "weight": 1,
+     "swappable": true
+    },
+    {
+     "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+     "name": "",
+     "symbol": "",
+     "decimals": 0,
+     "weight": 1,
+     "swappable": true
+    }
+   ],
+   "extra": "{\"amp\":\"0xf4240\",\"swapFeePercentage\":\"0x16bcc41e90000\",\"scalingFactors\":[\"0xFFB10F9BCF7D41A\",\"0xde0b6b3a7640000\"],\"paused\":false}",
+   "staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"poolSpecialization\":2,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+  }
+ ],
+ "cases": [
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "0",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "100000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "2",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "200000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "3",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "300000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "400000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "500000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "600000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "63551050657042642",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "7",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "700000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "800000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "900000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "999999100000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "99999910000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "0",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "100000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "2",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "200000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "3",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "300000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "400000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "500000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "600000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "63551050657042642",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "7",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "700000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "800000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "900000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "999999100000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "99999910000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "0",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "100000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "2",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "200000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "3",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "300000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "400000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "500000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "600000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "63551050657042642",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "7",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "700000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "800000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "900000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "999999100000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "99999910000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "0",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "100000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "2",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "200000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "3",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "300000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "400000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "500000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "600000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "63551050657042642",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "7",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "700000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "800000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "900000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "999999100000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "99999910000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "0",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "100000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "2",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "200000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "3",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "300000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "400000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "500000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "600000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "63551050657042642",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "7",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "700000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "800000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "900000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "999999100000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "99999910000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "0",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "100000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "2",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "200000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "3",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "300000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "400000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "500000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "600000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "63551050657042642",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "7",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "700000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "800000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "900000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "999999100000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "99999910000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "0",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "100000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "2",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "200000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "3",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "300000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "400000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "500000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "600000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "63551050657042642",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "7",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "700000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "800000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "900000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "999999100000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "99999910000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "0",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "100000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "2",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "200000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "3",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "300000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "400000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "500000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "600000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "63551050657042642",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "7",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "700000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "800000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "900000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "999999100000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "99999910000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "0",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "100000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "2",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "200000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "3",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "300000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "400000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "500000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "600000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "63551050657042642",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "7",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "700000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "800000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "900000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "999999100000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "99999910000000",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 0,
+   "tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "stable get balance didn't converge"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "0",
+   "wantIn": "1188",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1",
+   "wantIn": "1188",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1000",
+   "wantIn": "1188",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1000000",
+   "wantIn": "1191",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1000000000000",
+   "wantIn": "954",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "100000000000000000",
+   "wantIn": "1234",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1000000000000000000",
+   "wantIn": "766",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "2",
+   "wantIn": "1188",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "200000000000000000",
+   "wantIn": "817",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "3",
+   "wantIn": "1188",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "300000000000000000",
+   "wantIn": "1081",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "400000000000000000",
+   "wantIn": "796",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "500000000000000000",
+   "wantIn": "962",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "600000000000000000",
+   "wantIn": "919",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "63551050657042642",
+   "wantIn": "736",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "7",
+   "wantIn": "1188",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "700000000000000000",
+   "wantIn": "977",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "800000000000000000",
+   "wantIn": "939",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "900000000000000000",
+   "wantIn": "833",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "999999100000",
+   "wantIn": "865",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "99999910000000",
+   "wantIn": "1452",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "0",
+   "wantIn": "1188",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1",
+   "wantIn": "1189",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1000",
+   "wantIn": "2056",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1000000",
+   "wantIn": "869713",
+   "wantFee": "349"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1000000000000",
+   "wantIn": "868798587334",
+   "wantFee": "347658499"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "100000000000000000",
+   "wantIn": "86890856337416022",
+   "wantFee": "34770250635221"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "2",
+   "wantIn": "1190",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "200000000000000000",
+   "wantIn": "173808453249257100",
+   "wantFee": "69551201780416"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "3",
+   "wantIn": "1191",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "300000000000000000",
+   "wantIn": "260764210966633687",
+   "wantFee": "104347423355996"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "400000000000000000",
+   "wantIn": "347779916887836153",
+   "wantFee": "139167633808658"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "500000000000000000",
+   "wantIn": "434901354600947919",
+   "wantFee": "174030153901940"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "600000000000000000",
+   "wantIn": "522241938057873036",
+   "wantFee": "208980367370098"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "63551050657042642",
+   "wantIn": "55217364778249570",
+   "wantFee": "22095784224990"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "7",
+   "wantIn": "1195",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "700000000000000000",
+   "wantIn": "610177352481426395",
+   "wantFee": "244168608435945"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "800000000000000000",
+   "wantIn": "701129320548016413",
+   "wantFee": "280563953800727"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "900000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "999999100000",
+   "wantIn": "868797805575",
+   "wantFee": "347658186"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "99999910000000",
+   "wantIn": "86879790452127",
+   "wantFee": "34765822510"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "0",
+   "wantIn": "1368",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1",
+   "wantIn": "1369",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1000",
+   "wantIn": "2517",
+   "wantFee": "2"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1000000",
+   "wantIn": "1152385",
+   "wantFee": "462"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1000000000000",
+   "wantIn": "1151014768535",
+   "wantFee": "460590144"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "100000000000000000",
+   "wantIn": "115115859083652253",
+   "wantFee": "46064769541278"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1000000000000000000",
+   "wantIn": "1154116553641619894",
+   "wantFee": "461831353998248"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "2",
+   "wantIn": "1370",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "200000000000000000",
+   "wantIn": "230257630909666940",
+   "wantFee": "92139908327198"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "3",
+   "wantIn": "1371",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "300000000000000000",
+   "wantIn": "345423747404509331",
+   "wantFee": "138224788877355"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "400000000000000000",
+   "wantIn": "460615979549615151",
+   "wantFee": "184320119867794"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "500000000000000000",
+   "wantIn": "575840085162975105",
+   "wantFee": "230428205347329"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "600000000000000000",
+   "wantIn": "691108153039873914",
+   "wantFee": "276553882769058"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "63551050657042642",
+   "wantIn": "73154145616700748",
+   "wantFee": "29273367593718"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "7",
+   "wantIn": "1376",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "700000000000000000",
+   "wantIn": "806444682902459955",
+   "wantFee": "322706955943362"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "800000000000000000",
+   "wantIn": "921903443124757817",
+   "wantFee": "368908940826234"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "900000000000000000",
+   "wantIn": "1037624649052554893",
+   "wantFee": "415215945999422"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "999999100000",
+   "wantIn": "1151013732520",
+   "wantFee": "460589729"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "99999910000000",
+   "wantIn": "115101388453287",
+   "wantFee": "46058978973"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "0",
+   "wantIn": "1368",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1",
+   "wantIn": "1368",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1000",
+   "wantIn": "1366",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1000000",
+   "wantIn": "1052",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1000000000000",
+   "wantIn": "1441",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "100000000000000000",
+   "wantIn": "1176",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "10000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1000000000000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "100000000000000000000000000000000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "1014934149732776116160723",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "2",
+   "wantIn": "1368",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "200000000000000000",
+   "wantIn": "856",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "20000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "3",
+   "wantIn": "1368",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "300000000000000000",
+   "wantIn": "1275",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "30000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "400000000000000000",
+   "wantIn": "1115",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "40000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "49523009318781117474536",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "500000000000000000",
+   "wantIn": "1027",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "50000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "600000000000000000",
+   "wantIn": "1040",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "60000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "63551050657042642",
+   "wantIn": "1656",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "7",
+   "wantIn": "1368",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "700000000000000000",
+   "wantIn": "976",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "70000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "800000000000000000",
+   "wantIn": "838",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "80000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "900000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "90000000000000000000000",
+   "wantErr": "SUB_OVERFLOW"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "999999100000",
+   "wantIn": "1626",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "99999910000000",
+   "wantIn": "1667",
+   "wantFee": "1"
+  },
+  {
+   "pool": 1,
+   "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+   "amountOut": "9999999999999999999999999",
+   "wantErr": "SUB_OVERFLOW"
+  }
+ ]
+}

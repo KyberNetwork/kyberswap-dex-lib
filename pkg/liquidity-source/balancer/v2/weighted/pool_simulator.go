@@ -817,6 +817,39 @@ func (s *PoolSimulator) updateBalance(tokenIn, tokenOut string, amountIn, amount
 	}
 }
 
+// CalcAmtIn quotes exact-out in uint256 by wrapping CalcAmountIn, the one copy of the exact-out math.
+func (s *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
+	res, err := s.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: params.TokenAmountOut.Amount.ToBig()},
+		TokenIn:        params.TokenIn,
+		Limit:          pool.AsSwapLimitBig(params.Limit),
+	})
+	if err != nil {
+		return nil, err
+	}
+	in, err := tokenAmtFromBigWeighted(res.TokenAmountIn)
+	if err != nil {
+		return nil, err
+	}
+	fee, err := tokenAmtFromBigWeighted(res.Fee)
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmtInResult{TokenAmountIn: in, Fee: fee, Gas: res.Gas}, nil
+}
+
+// tokenAmtFromBigWeighted converts a legacy big.Int amount to uint256. A nil amount stays zero.
+func tokenAmtFromBigWeighted(t *pool.TokenAmount) (*pool.TokenAmt, error) {
+	if t == nil {
+		return nil, nil
+	}
+	out := &pool.TokenAmt{Token: t.Token, AmountUsd: t.AmountUsd}
+	if t.Amount != nil && out.Amount.SetFromBig(t.Amount) {
+		return nil, ErrInvalidAmountIn
+	}
+	return out, nil
+}
+
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMetaInfo{
 		Vault:           s.vault,
