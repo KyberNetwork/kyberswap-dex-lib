@@ -2,13 +2,13 @@ package odysfun
 
 import (
 	"context"
-	"math/big"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -146,21 +146,21 @@ func TestBeforeAfterSwap(t *testing.T) {
 	t.Parallel()
 
 	h := &OdysFunHook{InitialFeeBps: 500, SettledFeeBps: 500, SettleTimestamp: 0} // fixed 5%
-	amount := big.NewInt(1_000_000)
+	amount := uint256.NewInt(1_000_000)
 
 	t.Run("buy, CalcAmountOut (exactIn ETH)", func(t *testing.T) {
 		res, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{
 			CalcOut: true, ZeroForOne: true, AmountSpecified: amount,
 		})
 		require.NoError(t, err)
-		assert.Equal(t, big.NewInt(50_000), res.DeltaSpecified) // 5% fee-on-top
+		assert.Equal(t, uint256.NewInt(50_000), res.DeltaSpecified) // 5% fee-on-top
 
 		afterRes, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: amount},
-			AmountOut:        big.NewInt(999_999_999), // token amount, not ETH; must not be taxed here
+			AmountOut:        uint256.NewInt(999_999_999), // token amount, not ETH; must not be taxed here
 		})
 		require.NoError(t, err)
-		assert.Equal(t, big.NewInt(0), afterRes.HookFee)
+		assert.Equal(t, uint256.NewInt(0), afterRes.HookFee)
 	})
 
 	t.Run("sell, CalcAmountOut (exactIn token, ETH out taxed after)", func(t *testing.T) {
@@ -168,15 +168,15 @@ func TestBeforeAfterSwap(t *testing.T) {
 			CalcOut: true, ZeroForOne: false, AmountSpecified: amount,
 		})
 		require.NoError(t, err)
-		assert.Equal(t, big.NewInt(0), res.DeltaSpecified)
+		assert.Equal(t, uint256.NewInt(0), res.DeltaSpecified)
 
-		ethOut := big.NewInt(1_000_000)
+		ethOut := uint256.NewInt(1_000_000)
 		afterRes, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false, AmountSpecified: amount},
 			AmountOut:        ethOut,
 		})
 		require.NoError(t, err)
-		assert.Equal(t, big.NewInt(50_000), afterRes.HookFee) // 5% fee-on-top of the ETH output
+		assert.Equal(t, uint256.NewInt(50_000), afterRes.HookFee) // 5% fee-on-top of the ETH output
 	})
 
 	t.Run("buy, CalcAmountIn (exactOut token, ETH in grossed up after)", func(t *testing.T) {
@@ -184,16 +184,16 @@ func TestBeforeAfterSwap(t *testing.T) {
 			CalcOut: false, ZeroForOne: true, AmountSpecified: amount,
 		})
 		require.NoError(t, err)
-		assert.Equal(t, big.NewInt(0), res.DeltaSpecified)
+		assert.Equal(t, uint256.NewInt(0), res.DeltaSpecified)
 
-		ethIn := big.NewInt(1_000_000)
+		ethIn := uint256.NewInt(1_000_000)
 		afterRes, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: true, AmountSpecified: amount},
 			AmountIn:         ethIn,
 		})
 		require.NoError(t, err)
 		// gross-up: fee = amount * bps / (10000 - bps) = 1_000_000 * 500 / 9500 = 52631 (floor)
-		assert.Equal(t, big.NewInt(52631), afterRes.HookFee)
+		assert.Equal(t, uint256.NewInt(52631), afterRes.HookFee)
 	})
 
 	t.Run("sell, CalcAmountIn (exactOut ETH, grossed up before)", func(t *testing.T) {
@@ -201,13 +201,13 @@ func TestBeforeAfterSwap(t *testing.T) {
 			CalcOut: false, ZeroForOne: false, AmountSpecified: amount,
 		})
 		require.NoError(t, err)
-		assert.Equal(t, big.NewInt(52631), res.DeltaSpecified) // gross-up on the fixed ETH output
+		assert.Equal(t, uint256.NewInt(52631), res.DeltaSpecified) // gross-up on the fixed ETH output
 
 		afterRes, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: false, AmountSpecified: amount},
-			AmountIn:         big.NewInt(999_999_999), // token amount; must not be taxed here
+			AmountIn:         uint256.NewInt(999_999_999), // token amount; must not be taxed here
 		})
 		require.NoError(t, err)
-		assert.Equal(t, big.NewInt(0), afterRes.HookFee)
+		assert.Equal(t, uint256.NewInt(0), afterRes.HookFee)
 	})
 }

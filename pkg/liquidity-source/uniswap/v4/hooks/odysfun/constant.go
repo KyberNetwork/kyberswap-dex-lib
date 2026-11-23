@@ -1,9 +1,8 @@
 package odysfun
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 // HookAddresses lists every OdysHook deployment that gates ODYS Elite (Uniswap v4) markets.
@@ -15,4 +14,4 @@ var HookAddresses = []common.Address{
 }
 
 // BpsDenominator is the fee-bps base used by OdysHook2 (BASIS_POINTS() == 10_000).
-var BpsDenominator = big.NewInt(10_000)
+var BpsDenominator = uint256.NewInt(10_000)

@@ -9,9 +9,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -167,18 +168,18 @@ func (h *OdysFunHook) currentFeeBps() uint16 {
 
 // feeOnTop returns the tax withheld from a fixed (exactIn-side) ETH amount: fee = amount * bps / 10000.
 // Mirrors OdysHook2's internal fee-on-top helper (net vs. gross when amountSpecified <= 0).
-func (h *OdysFunHook) feeOnTop(amount *big.Int) *big.Int {
-	fee := new(big.Int).Mul(amount, big.NewInt(int64(h.currentFeeBps())))
-	return fee.Div(fee, BpsDenominator)
+func (h *OdysFunHook) feeOnTop(amount *uint256.Int) *uint256.Int {
+	return big256.MulDivDown(new(uint256.Int), amount, uint256.NewInt(uint64(h.currentFeeBps())), BpsDenominator)
 }
 
 // feeGrossUp returns the extra ETH the pool must move so that, after the tax is withheld, the
 // user's fixed (exactOut-side) ETH amount is left untouched: fee = amount * bps / (10000 - bps).
 // Mirrors OdysHook2's internal gross-up helper (used when amountSpecified > 0).
-func (h *OdysFunHook) feeGrossUp(amount *big.Int) *big.Int {
-	bps := int64(h.currentFeeBps())
-	fee := new(big.Int).Mul(amount, big.NewInt(bps))
-	return fee.Div(fee, new(big.Int).Sub(BpsDenominator, big.NewInt(bps)))
+func (h *OdysFunHook) feeGrossUp(amount *uint256.Int) *uint256.Int {
+	bps := uint64(h.currentFeeBps())
+	var denom uint256.Int
+	denom.Sub(BpsDenominator, uint256.NewInt(bps))
+	return big256.MulDivDown(new(uint256.Int), amount, uint256.NewInt(bps), &denom)
 }
 
 // specifiedIsETH reports whether BeforeSwapParams.AmountSpecified is ETH-denominated.
@@ -203,13 +204,13 @@ func (h *OdysFunHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4
 		}
 		return &uniswapv4.BeforeSwapResult{
 			DeltaSpecified:   fee,
-			DeltaUnspecified: bignumber.ZeroBI,
+			DeltaUnspecified: new(uint256.Int),
 		}, nil
 	}
 
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecified:   bignumber.ZeroBI,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaSpecified:   new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
@@ -220,7 +221,7 @@ func (h *OdysFunHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4
 func (h *OdysFunHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	if specifiedIsETH(params.BeforeSwapParams) {
 		return &uniswapv4.AfterSwapResult{
-			HookFee: bignumber.ZeroBI,
+			HookFee: new(uint256.Int),
 		}, nil
 	}
 
