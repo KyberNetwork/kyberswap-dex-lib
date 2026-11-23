@@ -8,9 +8,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -64,6 +65,6 @@ func (h *Hook) AfterSwap(params *cl.AfterSwapParams) (*cl.AfterSwapResult, error
 	}
 
 	return &cl.AfterSwapResult{
-		HookFee: bignumber.MulDivDown(new(big.Int), unspecifiedAmount, h.FeeBps, bignumber.BasisPoint),
+		HookFee: u256.MulDivDown(new(uint256.Int), unspecifiedAmount, u256.FromBig(h.FeeBps), u256.UBasisPoint),
 	}, nil
 }
