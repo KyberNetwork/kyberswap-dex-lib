@@ -12,7 +12,7 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -308,7 +308,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 
 func BenchmarkBeforeSwap(b *testing.B) {
 	h := &Hook{Hook: &uniswapv4.BaseHook{}, FeePips: 10_000, LaunchedAt: launchedAt}
-	p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: bignumber.TenPowInt(18)}
+	p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big256.TenPow(18)}
 	b.ReportAllocs()
 	for b.Loop() {
 		if _, err := h.BeforeSwap(p); err != nil {
