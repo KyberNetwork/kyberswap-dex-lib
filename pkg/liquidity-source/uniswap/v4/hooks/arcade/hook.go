@@ -34,8 +34,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -210,26 +212,30 @@ func (e *Extra) check() error {
 	}
 }
 
+var uBps = uint256.NewInt(bps)
+
 // clampFeeBps applies ArcadeHook's MAX_TOTAL_TAKE_BPS clamp.
 func clampFeeBps(feeBps int64) int64 {
 	return min(feeBps, MaxTotalTakeBps)
 }
 
 // fee is floor(amount * feeBps / 10_000), after ArcadeHook's MAX_TOTAL_TAKE_BPS clamp.
-func fee(amount *big.Int, feeBps int64) *big.Int {
-	if feeBps = clampFeeBps(feeBps); feeBps <= 0 || amount == nil || amount.Sign() == 0 {
-		return bignumber.ZeroBI
+func fee(amount *uint256.Int, feeBps int64) *uint256.Int {
+	if feeBps = clampFeeBps(feeBps); feeBps <= 0 || amount == nil || amount.IsZero() {
+		return new(uint256.Int)
 	}
-	return bignumber.MulDivDown(new(big.Int), amount, big.NewInt(feeBps), big.NewInt(bps))
+	return u256.MulDivDown(new(uint256.Int), amount, uint256.NewInt(uint64(feeBps)), uBps)
 }
 
 // feeGrossUp returns the fee to add to net so that deducting fee from the sum leaves net.
-func feeGrossUp(net *big.Int, feeBps int64) *big.Int {
-	if feeBps = clampFeeBps(feeBps); feeBps <= 0 || net == nil || net.Sign() == 0 {
-		return bignumber.ZeroBI
+// It walks GrossBeforeFee in big.Int, the shared helper's type.
+func feeGrossUp(net *uint256.Int, feeBps int64) *uint256.Int {
+	if feeBps = clampFeeBps(feeBps); feeBps <= 0 || net == nil || net.IsZero() {
+		return new(uint256.Int)
 	}
-	gross := uniswapv4.GrossBeforeFee(net, big.NewInt(feeBps), big.NewInt(bps))
-	return gross.Sub(gross, net)
+	netBig := u256.ToBig(net)
+	gross := uniswapv4.GrossBeforeFee(netBig, big.NewInt(feeBps), big.NewInt(bps))
+	return u256.FromBig(gross.Sub(gross, netBig))
 }
 
 // BeforeSwap: a graduated v1 PUMP pool (exact-in) takes its fee from the input when that
@@ -241,7 +247,7 @@ func (e *Extra) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Befor
 	if err := e.check(); err != nil {
 		return nil, err
 	}
-	result := &uniswapv4.BeforeSwapResult{DeltaSpecified: bignumber.ZeroBI, DeltaUnspecified: bignumber.ZeroBI}
+	result := &uniswapv4.BeforeSwapResult{DeltaSpecified: new(uint256.Int), DeltaUnspecified: new(uint256.Int)}
 	if !e.hookTakesPumpFee() {
 		return result, nil
 	}
@@ -263,7 +269,7 @@ func (e *Extra) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSw
 		return nil, err
 	}
 	if e.Mode == ModePump {
-		hookFee := bignumber.ZeroBI
+		hookFee := new(uint256.Int)
 		if !e.hookTakesPumpFee() { // v2: the fee is the pool's own LP fee
 		} else if usdcIsInput := params.ZeroForOne == e.UsdcIsCurrency0; params.CalcOut && !usdcIsInput {
 			hookFee = fee(params.AmountOut, e.PumpFeeBps())
@@ -274,11 +280,11 @@ func (e *Extra) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSw
 	}
 	isBuy := params.ZeroForOne == e.QuoteIsCurrency0 // quote in, launch token out
 	if isBuy && e.BuyCapEnabled {
-		if limit := e.PerTxMaxBuyTokens(NowFn()); limit != nil && params.AmountOut.Cmp(limit) > 0 {
+		if limit := e.PerTxMaxBuyTokens(NowFn()); limit != nil && params.AmountOut.Cmp(u256.FromBig(limit)) > 0 {
 			return nil, ErrBuyExceedsCap
 		}
 	}
-	return &uniswapv4.AfterSwapResult{HookFee: bignumber.ZeroBI}, nil
+	return &uniswapv4.AfterSwapResult{HookFee: new(uint256.Int)}, nil
 }
 
 // Delegate rather than rely on promotion: Hook embeds both the uniswapv4.Hook interface

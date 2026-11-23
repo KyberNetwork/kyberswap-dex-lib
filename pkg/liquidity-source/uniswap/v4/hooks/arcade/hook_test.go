@@ -10,7 +10,7 @@ import (
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/hooktest"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -51,17 +51,17 @@ func TestPump_BuyTakesFeeOnInput(t *testing.T) {
 		zeroForOne := usdc0 // USDC in
 		in := big.NewInt(1_234_567_891)
 
-		before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zeroForOne, AmountSpecified: in})
+		before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zeroForOne, AmountSpecified: u256.FromBig(in)})
 		require.NoError(t, err)
-		assert.Equal(t, big.NewInt(12_345_678), before.DeltaSpecified) // floor(1_234_567_891 * 100 / 10_000)
-		assert.Equal(t, bignumber.ZeroBI, before.DeltaUnspecified)
+		assert.Equal(t, big.NewInt(12_345_678), u256.ToBig(before.DeltaSpecified)) // floor(1_234_567_891 * 100 / 10_000)
+		assert.Zero(t, u256.ToBig(before.DeltaUnspecified).Sign())
 
 		after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zeroForOne},
-			AmountOut:        tokens(1_000),
+			AmountOut:        u256.FromBig(tokens(1_000)),
 		})
 		require.NoError(t, err)
-		assert.Equal(t, bignumber.ZeroBI, after.HookFee)
+		assert.Zero(t, u256.ToBig(after.HookFee).Sign())
 	}
 }
 
@@ -73,19 +73,19 @@ func TestPump_SellTakesFeeOnOutput(t *testing.T) {
 		h := &Hook{Extra: e}
 		zeroForOne := !usdc0 // token in
 
-		before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zeroForOne, AmountSpecified: tokens(5)})
+		before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zeroForOne, AmountSpecified: u256.FromBig(tokens(5))})
 		require.NoError(t, err)
-		assert.Equal(t, bignumber.ZeroBI, before.DeltaSpecified)
+		assert.Zero(t, u256.ToBig(before.DeltaSpecified).Sign())
 
 		out := big.NewInt(987_654_321)
 		after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: zeroForOne},
-			AmountOut:        out,
+			AmountOut:        u256.FromBig(out),
 		})
 		require.NoError(t, err)
 		feeBps := int64(100 - (70*10_000)/23_026) // 70
 		want := new(big.Int).Div(new(big.Int).Mul(out, big.NewInt(feeBps)), big.NewInt(10_000))
-		assert.Equal(t, want, after.HookFee)
+		assert.Equal(t, want, u256.ToBig(after.HookFee))
 	}
 }
 
@@ -94,15 +94,15 @@ func TestDirectLaunch_NoHookFee(t *testing.T) {
 	NowFn = func() int64 { return 2_000_000_000 }
 	for _, mode := range []uint8{ModeClanker, ModeRwa} {
 		h := &Hook{Tracked: true, Mode: mode, Status: StatusGraduated, QuoteIsCurrency0: true, LaunchedAt: 1_000, BuyCapEnabled: true}
-		before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1e9)})
+		before, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: u256.FromBig(big.NewInt(1e9))})
 		require.NoError(t, err)
-		assert.Equal(t, bignumber.ZeroBI, before.DeltaSpecified)
+		assert.Zero(t, u256.ToBig(before.DeltaSpecified).Sign())
 		after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true},
-			AmountOut:        tokens(500_000_000), // far above any cap, but long after the window
+			AmountOut:        u256.FromBig(tokens(500_000_000)), // far above any cap, but long after the window
 		})
 		require.NoError(t, err)
-		assert.Equal(t, bignumber.ZeroBI, after.HookFee)
+		assert.Zero(t, u256.ToBig(after.HookFee).Sign())
 	}
 }
 
@@ -136,23 +136,23 @@ func TestDirectLaunch_BuyCap(t *testing.T) {
 	NowFn = func() int64 { return 1_000 + 30 }
 	buy := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false}
 
-	_, err := h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: tokens(10_000_000)})
+	_, err := h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: u256.FromBig(tokens(10_000_000))})
 	require.NoError(t, err, "exactly at the cap passes (the contract reverts only above it)")
 
-	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: new(big.Int).Add(tokens(10_000_000), big.NewInt(1))})
+	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: u256.FromBig(new(big.Int).Add(tokens(10_000_000), big.NewInt(1)))})
 	assert.ErrorIs(t, err, ErrBuyExceedsCap)
 
 	sell := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true}
-	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: sell, AmountOut: tokens(900_000_000)})
+	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: sell, AmountOut: u256.FromBig(tokens(900_000_000))})
 	require.NoError(t, err, "sells are never capped")
 
 	h.BuyCapEnabled = false
-	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: tokens(900_000_000)})
+	_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: u256.FromBig(tokens(900_000_000))})
 	require.NoError(t, err, "owner-disabled cap")
 }
 
 func TestRefusesUntradablePools(t *testing.T) {
-	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1_000)}
+	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: u256.FromBig(big.NewInt(1_000))}
 
 	_, err := (&Hook{}).BeforeSwap(params)
 	assert.ErrorIs(t, err, ErrNotTracked)
@@ -511,18 +511,18 @@ func TestPumpV2_NoHookFee(t *testing.T) {
 		h := &Hook{Extra: e}
 		for _, zeroForOne := range []bool{true, false} { // a buy and a sell
 			for _, calcOut := range []bool{true, false} { // exact-in and exact-out
-				swap := &uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: zeroForOne, AmountSpecified: big.NewInt(1_234_567_891)}
+				swap := &uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: zeroForOne, AmountSpecified: u256.FromBig(big.NewInt(1_234_567_891))}
 				before, err := h.BeforeSwap(swap)
 				require.NoError(t, err)
-				assert.Equal(t, bignumber.ZeroBI, before.DeltaSpecified)
-				assert.Equal(t, bignumber.ZeroBI, before.DeltaUnspecified)
+				assert.Zero(t, u256.ToBig(before.DeltaSpecified).Sign())
+				assert.Zero(t, u256.ToBig(before.DeltaUnspecified).Sign())
 				assert.Zero(t, before.SwapFee, "no fee override: the PoolKey fee stands")
 
 				after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
-					BeforeSwapParams: swap, AmountIn: big.NewInt(1_234_567_891), AmountOut: big.NewInt(987_654_321),
+					BeforeSwapParams: swap, AmountIn: u256.FromBig(big.NewInt(1_234_567_891)), AmountOut: u256.FromBig(big.NewInt(987_654_321)),
 				})
 				require.NoError(t, err)
-				assert.Equal(t, bignumber.ZeroBI, after.HookFee)
+				assert.Zero(t, u256.ToBig(after.HookFee).Sign())
 			}
 		}
 	}
@@ -539,15 +539,15 @@ func TestDirectLaunchV2_BuyCap(t *testing.T) {
 		h := &Hook{Tracked: true, NoSwapDelta: true, Mode: mode, Status: StatusGraduated, QuoteIsCurrency0: true, LaunchedAt: 1_000, BuyCapEnabled: true}
 		for _, calcOut := range []bool{true, false} {
 			buy := &uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: true}
-			after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: tokens(10_000_000)})
+			after, err := h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: u256.FromBig(tokens(10_000_000))})
 			require.NoError(t, err)
-			assert.Equal(t, bignumber.ZeroBI, after.HookFee)
+			assert.Zero(t, u256.ToBig(after.HookFee).Sign())
 
-			_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: new(big.Int).Add(tokens(10_000_000), big.NewInt(1))})
+			_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: buy, AmountOut: u256.FromBig(new(big.Int).Add(tokens(10_000_000), big.NewInt(1)))})
 			assert.ErrorIs(t, err, ErrBuyExceedsCap)
 
 			sell := &uniswapv4.BeforeSwapParams{CalcOut: calcOut, ZeroForOne: false}
-			_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: sell, AmountOut: tokens(900_000_000)})
+			_, err = h.AfterSwap(&uniswapv4.AfterSwapParams{BeforeSwapParams: sell, AmountOut: u256.FromBig(tokens(900_000_000))})
 			require.NoError(t, err, "sells are never capped")
 		}
 	}
@@ -556,7 +556,7 @@ func TestDirectLaunchV2_BuyCap(t *testing.T) {
 // v2 keeps the curve guard (beforeSwap reverts while Curving or GraduationStarted), and
 // both generations quote CalcIn.
 func TestV2_RefusalsAndExactOut(t *testing.T) {
-	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1_000)}
+	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: u256.FromBig(big.NewInt(1_000))}
 
 	_, err := (&Hook{NoSwapDelta: true}).BeforeSwap(params)
 	assert.ErrorIs(t, err, ErrNotTracked)
@@ -569,7 +569,7 @@ func TestV2_RefusalsAndExactOut(t *testing.T) {
 	_, err = (&Hook{Tracked: true, NoSwapDelta: true, Mode: 2, Status: StatusGraduated}).BeforeSwap(params)
 	assert.ErrorIs(t, err, ErrUnknownMode)
 
-	exactOut := &uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: true, AmountSpecified: big.NewInt(1)}
+	exactOut := &uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: true, AmountSpecified: u256.FromBig(big.NewInt(1))}
 	_, err = (&Hook{Extra: graduatedPumpV2(true)}).BeforeSwap(exactOut)
 	require.NoError(t, err)
 	for _, v1 := range []Extra{graduatedPump(true), {Tracked: true, Mode: ModeClanker, Status: StatusGraduated}} {
