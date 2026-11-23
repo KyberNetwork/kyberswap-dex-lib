@@ -41,15 +41,13 @@ func TestCalcAmountOut(t *testing.T) {
 	pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainID(chainID))
 	assert.NoError(t, err)
 
-	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
-			Amount: bignumber.NewBig10("1000000000000000000"),
+	testutil.TestCalcAmtOutIPoolSim(t, pSim, map[int]map[int]map[string]string{
+		0: {
+			1: {
+				"1000000000000000000": "609097871894318314148",
+			},
 		},
-		TokenOut: "0x55d398326f99059ff775485246999027b3197955",
 	})
-	assert.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("609097871894318314148"), got.TokenAmountOut.Amount)
 }
 
 func TestCalcAmountIn(t *testing.T) {
@@ -61,7 +59,24 @@ func TestCalcAmountIn(t *testing.T) {
 	pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainID(chainID))
 	assert.NoError(t, err)
 
-	testutil.TestCalcAmountIn(t, pSim)
+	testutil.TestCalcAmountInIPoolSim(t, pSim, map[int]map[int]map[string]string{
+		0: {
+			1: {
+				"1493000000000000":             "2450755761670",
+				"267000000000000000":           "438279863432392",
+				"7755000000000000000":          "12729840203389648",
+				"1000000000000000000000000000": "",
+			},
+		},
+		1: {
+			0: {
+				"1493000000000000":             "910145273178626178",
+				"267000000000000000":           "162772667497981723083",
+				"7755000000000000000":          "4733672538605327566347",
+				"1000000000000000000000000000": "",
+			},
+		},
+	})
 }
 
 func TestPancakeInfinityCL(t *testing.T) {

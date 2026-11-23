@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -192,15 +193,17 @@ func Test_ClSimulator_StableHook(t *testing.T) {
 		}
 
 		cloned := sim.CloneState()
-		res, err := poolpkg.DefaultCalcAmtOut(context.Background(), cloned, poolpkg.TokenAmount{
-			Token:  tokenIn,
-			Amount: new(big.Int).Set(fx.dx),
-		}, tokenOut, nil)
+		var amtIn uint256.Int
+		require.False(t, amtIn.SetFromBig(fx.dx), "amount overflows uint256")
+		res, err := cloned.CalcAmtOut(poolpkg.CalcAmtOutParams{
+			TokenAmountIn: poolpkg.TokenAmt{Token: tokenIn, Amount: amtIn},
+			TokenOut:      tokenOut,
+		})
 
 		require.NoError(t, err, fx.desc)
 		require.NotNil(t, res)
 		require.NotNil(t, res.TokenAmountOut)
-		require.Equal(t, fx.wantDy.String(), res.TokenAmountOut.Amount.String())
+		require.Equal(t, fx.wantDy.String(), res.TokenAmountOut.Amount.ToBig().String())
 	}
 }
 
@@ -217,8 +220,10 @@ func TestHook_BeforeSwap_DustPool(t *testing.T) {
 	t.Run("1e18 routes", func(t *testing.T) {
 		sim, err := cl.NewPoolSimulator(pool, valueobject.ChainID(56))
 		require.NoError(t, err)
-		res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{Token: tokenUSDT, Amount: new(big.Int).Set(e18)},
+		var amtIn uint256.Int
+		require.False(t, amtIn.SetFromBig(e18), "amount overflows uint256")
+		res, err := sim.CalcAmtOut(poolpkg.CalcAmtOutParams{
+			TokenAmountIn: poolpkg.TokenAmt{Token: tokenUSDT, Amount: amtIn},
 			TokenOut:      tokenMIT,
 		})
 		require.NoError(t, err)
@@ -229,8 +234,10 @@ func TestHook_BeforeSwap_DustPool(t *testing.T) {
 		sim, err := cl.NewPoolSimulator(pool, valueobject.ChainID(56))
 		require.NoError(t, err)
 		huge := new(big.Int).Mul(big.NewInt(100), e18)
-		_, err = sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{Token: tokenUSDT, Amount: huge},
+		var amtIn uint256.Int
+		require.False(t, amtIn.SetFromBig(huge), "amount overflows uint256")
+		_, err = sim.CalcAmtOut(poolpkg.CalcAmtOutParams{
+			TokenAmountIn: poolpkg.TokenAmt{Token: tokenUSDT, Amount: amtIn},
 			TokenOut:      tokenMIT,
 		})
 		require.ErrorIs(t, err, stableng.ErrPoolDrained)
