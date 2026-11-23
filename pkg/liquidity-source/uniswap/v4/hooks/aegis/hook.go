@@ -9,15 +9,17 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
 	FeeMax = big.NewInt(int64(constants.FeeMax))
+	feeMax = uint256.NewInt(uint64(constants.FeeMax))
 )
 
 type Hook struct {
@@ -114,18 +116,18 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 }
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	hookFeeAmt := new(big.Int)
-	hookFeeAmt.Mul(params.AmountSpecified, hookFeeAmt.SetUint64(h.DynamicFee)).Div(hookFeeAmt, FeeMax)
-	hookFeeAmt.Mul(hookFeeAmt, h.ProtocolFee).Div(hookFeeAmt, FeeMax)
+	var dynamicFee uint256.Int
+	hookFeeAmt := u256.MulDivDown(new(uint256.Int), params.AmountSpecified, dynamicFee.SetUint64(h.DynamicFee), feeMax)
+	u256.MulDivDown(hookFeeAmt, hookFeeAmt, u256.FromBig(h.ProtocolFee), feeMax)
 	return &uniswapv4.BeforeSwapResult{
 		SwapFee:          uniswapv4.FeeAmount(h.DynamicFee),
 		DeltaSpecified:   hookFeeAmt,
-		DeltaUnspecified: bignumber.ZeroBI,
+		DeltaUnspecified: new(uint256.Int),
 	}, nil
 }
 
 func (h *Hook) AfterSwap(_ *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	return &uniswapv4.AfterSwapResult{
-		HookFee: bignumber.ZeroBI,
+		HookFee: new(uint256.Int),
 	}, nil
 }
