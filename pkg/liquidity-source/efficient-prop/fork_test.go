@@ -81,7 +81,7 @@ func TestForkSimulatorAgainstTheDoor(t *testing.T) {
 	}
 	ctx := context.Background()
 	f := &forkRun{t: t, ctx: ctx, client: ethrpc.New(rpcURL).SetMulticallContract(mc)}
-	cfg := &Config{ChainID: chain, Fronts: []Front{forkFront(front, factory)}}
+	cfg := &Config{ChainID: chain, ApprovedDesks: forkDesks(), Fronts: []Front{forkFront(front, factory)}}
 
 	if path := os.Getenv("EFFICIENT_PROP_STATE"); path != "" {
 		if b, err := os.ReadFile(path); err == nil {
@@ -166,6 +166,18 @@ func skipOnABuilderChain(t *testing.T, rpcURL string) {
 		t.Skipf("chain %d is a builder chain: this test reads the head, the storage build's path; run "+
 			"TestForkBuilder there", id)
 	}
+}
+
+// forkDesks is the desk contracts the fork tests approve: EFFICIENT_PROP_DESKS, comma separated. A fork's listings are
+// listed and quoted only where their desks are named there.
+func forkDesks() []string {
+	var out []string
+	for _, a := range strings.Split(os.Getenv("EFFICIENT_PROP_DESKS"), ",") {
+		if a = strings.TrimSpace(a); a != "" {
+			out = append(out, a)
+		}
+	}
+	return out
 }
 
 // forkFront is the fork's front config: its fill mode, EFFICIENT_PROP_FILL_MODE (default front), its approved
@@ -481,7 +493,8 @@ func TestForkLadderHoldsOnAnAgingListing(t *testing.T) {
 	}
 	ctx := context.Background()
 	f := &forkRun{t: t, ctx: ctx, client: ethrpc.New(rpcURL).SetMulticallContract(mc)}
-	cfg := &Config{ChainID: valueobject.ChainIDBase, Fronts: []Front{forkFront(front, factory)}}
+	cfg := &Config{ChainID: valueobject.ChainIDBase, ApprovedDesks: forkDesks(),
+		Fronts: []Front{forkFront(front, factory)}}
 	u, err := NewPoolsListUpdater(cfg, f.client)
 	require.NoError(t, err)
 	pools, _, err := u.GetNewPools(ctx, nil)
@@ -609,7 +622,8 @@ func TestForkSamplesNoPremiumThatEndedBeforeTheBlock(t *testing.T) {
 	skipOnABuilderChain(t, rpcURL)
 	ctx := context.Background()
 	f := &forkRun{t: t, ctx: ctx, client: ethrpc.New(rpcURL).SetMulticallContract(multicall3)}
-	cfg := &Config{ChainID: valueobject.ChainIDBase, Fronts: []Front{forkFront(front, factory)}}
+	cfg := &Config{ChainID: valueobject.ChainIDBase, ApprovedDesks: forkDesks(),
+		Fronts: []Front{forkFront(front, factory)}}
 	u, err := NewPoolsListUpdater(cfg, f.client)
 	require.NoError(t, err)
 	pools, _, err := u.GetNewPools(ctx, nil)
@@ -791,7 +805,8 @@ func TestForkQuotesNothingOnAZeroTipCap(t *testing.T) {
 	skipOnABuilderChain(t, rpcURL)
 	ctx := context.Background()
 	f := &forkRun{t: t, ctx: ctx, client: ethrpc.New(rpcURL).SetMulticallContract(multicall3)}
-	cfg := &Config{ChainID: valueobject.ChainIDBase, Fronts: []Front{forkFront(front, factory)}}
+	cfg := &Config{ChainID: valueobject.ChainIDBase, ApprovedDesks: forkDesks(),
+		Fronts: []Front{forkFront(front, factory)}}
 	u, err := NewPoolsListUpdater(cfg, f.client)
 	require.NoError(t, err)
 	pools, _, err := u.GetNewPools(ctx, nil)
@@ -916,7 +931,7 @@ func TestForkServesAPrintListingOnlyOnApprovedSources(t *testing.T) {
 	trackers := make([]*PoolTracker, 2)
 	var pools []entity.Pool
 	for k, fr := range []Front{none, named} {
-		cfg := &Config{ChainID: valueobject.ChainIDBase, Fronts: []Front{fr}}
+		cfg := &Config{ChainID: valueobject.ChainIDBase, ApprovedDesks: forkDesks(), Fronts: []Front{fr}}
 		tr, err := NewPoolTracker(cfg, f.client)
 		require.NoError(t, err)
 		trackers[k] = tr
@@ -1067,7 +1082,8 @@ func TestForkMapsALanesPostToItsListings(t *testing.T) {
 	skipOnABuilderChain(t, rpcURL)
 	ctx := context.Background()
 	f := &forkRun{t: t, ctx: ctx, client: ethrpc.New(rpcURL).SetMulticallContract(multicall3)}
-	cfg := &Config{ChainID: valueobject.ChainIDBase, Fronts: []Front{forkFront(front, factory)}}
+	cfg := &Config{ChainID: valueobject.ChainIDBase, ApprovedDesks: forkDesks(),
+		Fronts: []Front{forkFront(front, factory)}}
 	eth := f.client.GetETHClient()
 	head, err := eth.HeaderByNumber(ctx, nil)
 	require.NoError(t, err)
@@ -1149,14 +1165,16 @@ func TestForkQuotesNothingOffTheImplementationList(t *testing.T) {
 	listed.Implementations = []string{hexutil.Encode(live[:])}
 	other := listed
 	other.Implementations = []string{"0x000000000000000000000000000000000000dead"}
-	u, err := NewPoolsListUpdater(&Config{ChainID: valueobject.ChainIDBase, Fronts: []Front{listed}}, f.client)
+	u, err := NewPoolsListUpdater(&Config{ChainID: valueobject.ChainIDBase, ApprovedDesks: forkDesks(),
+		Fronts: []Front{listed}}, f.client)
 	require.NoError(t, err)
 	pools, _, err := u.GetNewPools(ctx, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, pools)
 	var quoted int
 	for _, fr := range []Front{listed, other} {
-		tr, err := NewPoolTracker(&Config{ChainID: valueobject.ChainIDBase, Fronts: []Front{fr}}, f.client)
+		tr, err := NewPoolTracker(&Config{ChainID: valueobject.ChainIDBase, ApprovedDesks: forkDesks(),
+			Fronts: []Front{fr}}, f.client)
 		require.NoError(t, err)
 		for _, p := range pools {
 			for _, tok := range p.Tokens {
@@ -1200,7 +1218,8 @@ func TestForkSidesFollowThePairWord(t *testing.T) {
 	skipOnABuilderChain(t, rpcURL)
 	ctx := context.Background()
 	f := &forkRun{t: t, ctx: ctx, client: ethrpc.New(rpcURL).SetMulticallContract(multicall3)}
-	cfg := &Config{ChainID: valueobject.ChainIDBase, Fronts: []Front{forkFront(front, factory)}}
+	cfg := &Config{ChainID: valueobject.ChainIDBase, ApprovedDesks: forkDesks(),
+		Fronts: []Front{forkFront(front, factory)}}
 	u, err := NewPoolsListUpdater(cfg, f.client)
 	require.NoError(t, err)
 	pools, _, err := u.GetNewPools(ctx, nil)
@@ -1334,7 +1353,8 @@ func TestForkGuardedListingHoldsAcrossItsHold(t *testing.T) {
 	skipOnABuilderChain(t, rpcURL)
 	ctx := context.Background()
 	f := &forkRun{t: t, ctx: ctx, client: ethrpc.New(rpcURL).SetMulticallContract(multicall3)}
-	cfg := &Config{ChainID: valueobject.ChainIDBase, Fronts: []Front{forkFront(front, factory)}}
+	cfg := &Config{ChainID: valueobject.ChainIDBase, ApprovedDesks: forkDesks(),
+		Fronts: []Front{forkFront(front, factory)}}
 	u, err := NewPoolsListUpdater(cfg, f.client)
 	require.NoError(t, err)
 	pools, _, err := u.GetNewPools(ctx, nil)

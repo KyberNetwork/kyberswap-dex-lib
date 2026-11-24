@@ -169,7 +169,7 @@ func builderNode(t *testing.T, chain *fakeChain, block uint64) *node {
 
 // ethConfig is the test front on Ethereum, read through the /state server at url.
 func ethConfig(url string) *Config {
-	return &Config{ChainID: valueobject.ChainIDEthereum, Fronts: []Front{{
+	return &Config{ChainID: valueobject.ChainIDEthereum, ApprovedDesks: testDesks(), Fronts: []Front{{
 		Address:         hexutil.Encode(testFront[:]),
 		DoorFactory:     hexutil.Encode(testFactory[:]),
 		CellCodehash:    hexutil.Encode(testCellHash[:]),

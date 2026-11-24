@@ -2,6 +2,7 @@ package efficientprop
 
 import (
 	"fmt"
+	neturl "net/url"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -20,6 +21,19 @@ type Config struct {
 
 	// Fronts are the fronts listed, each with its listing-door factory.
 	Fronts []Front `json:"fronts"`
+
+	// ApprovedDesks are the desk contracts whose listings are listed and quoted, the maker gate. A listing's maker is
+	// its desk, and anyone may open a desk and a listing on a front, so a listing is quoted only where its desk's
+	// contract (the front's deskCellOf of its doorView's desk) is named here. EMPTY BY DEFAULT, AND EMPTY MEANS NOTHING
+	// IS LISTED OR QUOTED (unless ApprovedDesksURL's list names a desk).
+	ApprovedDesks []string `json:"approvedDesks,omitempty"`
+	// ApprovedDesksURL, where set, is an https url answering the approved desks of this chain as
+	// {"chainId":1,"updatedAt":<unix s>,"desks":["0x…"]}. Its list is fetched every 15 s at most and rules while its
+	// last fetch taken is at most ApprovedDesksMaxAge old, so a desk it drops is quoted no more within one fetch. Once
+	// it is older, ApprovedDesks rules, less the desks that list had left out: a failing url never brings a desk in.
+	ApprovedDesksURL string `json:"approvedDesksURL,omitempty"`
+	// ApprovedDesksMaxAge is how long a fetched list rules, seconds; zero: 600.
+	ApprovedDesksMaxAge uint64 `json:"approvedDesksMaxAge,omitempty"`
 
 	// MaxListings caps how many listing ids the lister reads from one front in one poll; zero: defaultMaxListings.
 	MaxListings int `json:"maxListings,omitempty"`
@@ -231,6 +245,17 @@ func (c *Config) validate() error {
 	}
 	if c.MaxListings < 0 {
 		return fmt.Errorf("%w: maxListings=%d", ErrInvalidConfig, c.MaxListings)
+	}
+	for k, d := range c.ApprovedDesks {
+		if !common.IsHexAddress(d) || common.HexToAddress(d) == (common.Address{}) {
+			return fmt.Errorf("%w: approvedDesks[%d]=%q", ErrInvalidConfig, k, d)
+		}
+		c.ApprovedDesks[k] = strings.ToLower(d)
+	}
+	if c.ApprovedDesksURL != "" {
+		if u, err := neturl.Parse(c.ApprovedDesksURL); err != nil || u.Scheme != "https" || u.Host == "" {
+			return fmt.Errorf("%w: approvedDesksURL is not an https url", ErrInvalidConfig)
+		}
 	}
 	seen := make(map[string]struct{}, len(c.Fronts))
 	for i := range c.Fronts {

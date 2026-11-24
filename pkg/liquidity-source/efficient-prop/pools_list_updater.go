@@ -20,6 +20,8 @@ import (
 type PoolsListUpdater struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
+	// desks is the maker gate: the desk contracts whose listings are listed
+	desks *approvedDesks
 }
 
 var _ = poollist.RegisterFactoryCE1(DexType, NewPoolsListUpdater)
@@ -28,7 +30,7 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolsListUp
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
-	return &PoolsListUpdater{cfg: cfg, ethrpcClient: ethrpcClient}, nil
+	return &PoolsListUpdater{cfg: cfg, ethrpcClient: ethrpcClient, desks: newApprovedDesks(cfg)}, nil
 }
 
 // listing is one listing id the front answers for, with its door's address.
@@ -77,10 +79,8 @@ func (u *PoolsListUpdater) listFront(ctx context.Context, f Front, now int64) ([
 	var codehash, cell common.Hash
 	req := u.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{ABI: factoryABI, Target: f.DoorFactory, Method: "FRONT"}, []any{&factoryFront}).
-		AddCall(&ethrpc.Call{ABI: factoryABI, Target: f.DoorFactory, Method: "DOOR_CODEHASH"}, []any{&codehash})
-	if u.cfg.builder() {
-		req.AddCall(&ethrpc.Call{ABI: frontABI, Target: f.Address, Method: "CELL_CODEHASH"}, []any{&cell})
-	}
+		AddCall(&ethrpc.Call{ABI: factoryABI, Target: f.DoorFactory, Method: "DOOR_CODEHASH"}, []any{&codehash}).
+		AddCall(&ethrpc.Call{ABI: frontABI, Target: f.Address, Method: "CELL_CODEHASH"}, []any{&cell})
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return nil, err
@@ -95,15 +95,16 @@ func (u *PoolsListUpdater) listFront(ctx context.Context, f Front, now int64) ([
 	if len(resp.Result) < 2 || !resp.Result[1] || codehash == (common.Hash{}) {
 		return nil, fmt.Errorf("%w: factory %s answers no door codehash", ErrDoorCodehash, f.DoorFactory)
 	}
-	// on a builder chain the front must answer the desk code hash the config names, or the tracker could quote none
-	// of its listings
-	if u.cfg.builder() && (len(resp.Result) != 3 || !resp.Result[2] || cell != common.HexToHash(f.CellCodehash)) {
+	// the front must answer its desk code hash, which names each listing's desk contract (the maker gate), and on a
+	// builder chain the one the config names, or the tracker could quote none of its listings
+	if len(resp.Result) != 3 || !resp.Result[2] || cell == (common.Hash{}) ||
+		u.cfg.builder() && cell != common.HexToHash(f.CellCodehash) {
 		return nil, fmt.Errorf("%w: front %s answers %s, the config names %s", ErrCellCodehash, f.Address,
 			hexutil.Encode(cell[:]), f.CellCodehash)
 	}
 	block := resp.BlockNumber
 
-	listings, err := u.scanListings(ctx, f, codehash, block)
+	listings, err := u.scanListings(ctx, f, codehash, cell, block)
 	if err != nil {
 		return nil, err
 	}
@@ -143,12 +144,16 @@ func (u *PoolsListUpdater) listFront(ctx context.Context, f Front, now int64) ([
 }
 
 // scanListings reads doorView and doorOf for ids from 1 in batches, until the first listing never reserved, and keeps
-// the live ones whose tip cap is at the configured floor or above it.
-func (u *PoolsListUpdater) scanListings(ctx context.Context, f Front, doorHash common.Hash,
+// the live ones of an approved desk (the maker gate, approvedDesks) whose tip cap is at the configured floor or above
+// it.
+func (u *PoolsListUpdater) scanListings(ctx context.Context, f Front, doorHash, cellHash common.Hash,
 	block *big.Int) ([]listing, error) {
-	// retired, delisted or not yet live, or a tip cap under the configured floor: the scan goes on past it
+	front := common.HexToAddress(f.Address)
+	// retired, delisted or not yet live, a tip cap under the configured floor, or a desk not approved (none, on a
+	// listing bound to no desk): the scan goes on past it
 	return u.scan(ctx, f, doorHash, block, func(v DoorView) bool {
-		return v.Flags&flagLive != 0 && u.cfg.tipCapOK(tipCapWei(v.TipCap))
+		return v.Flags&flagLive != 0 && u.cfg.tipCapOK(tipCapWei(v.TipCap)) && v.Desk != 0 &&
+			u.desks.approved(ctx, deskContractOf(front, cellHash, v.Desk))
 	})
 }
 

@@ -322,7 +322,7 @@ func (b *builderFork) config(front, factory, codehash string, urls []string) *Co
 		id, _ := strconv.ParseUint(s, 10, 64)
 		chain = valueobject.ChainID(id)
 	}
-	cfg := &Config{ChainID: chain, Fronts: []Front{f}}
+	cfg := &Config{ChainID: chain, ApprovedDesks: forkDesks(), Fronts: []Front{f}}
 	require.NoError(b.t, cfg.validate())
 	return cfg
 }

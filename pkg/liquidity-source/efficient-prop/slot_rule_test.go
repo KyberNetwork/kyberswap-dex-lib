@@ -679,8 +679,8 @@ func TestBuilderDeskWordIsReadFromTheHeadsSlot1(t *testing.T) {
 func TestEventParserMapsADeskContractToEveryListingItHolds(t *testing.T) {
 	cellCalls := func(n *node, from int) (k int) {
 		for _, c := range n.calls()[from:] {
-			if c.to == testFront && len(c.data) >= 4 && common.Bytes2Hex(c.data[:4]) ==
-				common.Bytes2Hex(frontABI.Methods["deskCellOf"].ID) {
+			if c.to == testFront && len(c.data) == 36 && common.Bytes2Hex(c.data[:4]) ==
+				common.Bytes2Hex(frontABI.Methods["deskCellOf"].ID) && new(big.Int).SetBytes(c.data[4:]).Uint64() == 7 {
 				k++
 			}
 		}

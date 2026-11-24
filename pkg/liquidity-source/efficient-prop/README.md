@@ -353,8 +353,9 @@ Every address is a config field with no default. A front on Ethereum:
 {
   "dexID": "efficient-prop",
   "chainID": 1,
-  "minTipCapWei": 0,
   "inclusionAllowance": 1,
+  "approvedDesks": ["0x4f8dd270acE370dE2f6Ac5EBf3230cBE099a0753"],
+  "approvedDesksURL": "https://<list host>/v1/1/desks",
   "fronts": [
     {
       "address": "0x0000000000403aeB66691063CC2fD42E71d6AcD6",
@@ -383,7 +384,7 @@ On Ethereum the front proxy is `0x0000000000403aeB66691063CC2fD42E71d6AcD6` (imp
 (`DOOR_CODEHASH()` `0x0716310d0f4dac4c4f088ccf08c4fe5bfdfea57e9073fcd90a26feefc7c0d6d9`), and its `CELL_CODEHASH()`
 `0xb4f7512e65eee793ac5939d62b8383d8544eb1ca850c276fd706e97a0b7938de`. Its price contracts 1 to 4 are the four
 `approvedSources` above, and its first maker's quote contract (desk 1) is
-`0x4f8dd270acE370dE2f6Ac5EBf3230cBE099a0753`, which the source derives and no config names. No listing is registered
+`0x4f8dd270acE370dE2f6Ac5EBf3230cBE099a0753`, the one `approvedDesks` above names. No listing is registered
 on this front yet. Once the first is, this section names its pool and each listing's door, the factory's
 `doorOf(listing)`. The listing ids and gas figures in the example are the launch rehearsal's, measured on a fork of the
 deployed build in the front's mode: listing 1 wstETH/WETH (credit mode 2), 2 wstETH/USDC, 3 wstETH/USDT, 4 USDT/USDC.
@@ -391,6 +392,17 @@ They are checked against the live pool's ids, and the credit listing's figures m
 config is used. In the door's mode the same listings take `"fillMode": "door"` and the door's figures: `listingGas`
 2: 144,744 and 138,338; 3: 145,430 and 136,333; 4: 150,796 and 154,012; `creditListings` 1: 135,485, 128,913, 841,583
 and 0.
+
+**`approvedDesks` is empty by default, and empty means nothing is listed or quoted.** Anyone may open a desk and a
+listing on the front, so a listing is listed and quoted only where its maker is approved: its desk's contract, the
+front's `deskCellOf` of the listing's desk, is one `approvedDesks` names. A listing bound to no desk is never quoted.
+`approvedDesksURL` (optional, https only) answers the chain's approved desks as
+`{"chainId":1,"updatedAt":<unix s>,"desks":["0x…"]}`. It is fetched every 15 s at most, and its list rules while its
+last fetch is at most `approvedDesksMaxAge` old (seconds, 600 by default), so a desk it drops is quoted no more
+within one fetch. Once the list is older (the url failing or answering a list that is refused), `approvedDesks`
+rules, less the desks that list had left out: a failing url never brings a desk in. A list is refused whole where it
+names another chain, is above 64 KiB or 1,024 desks, names a bad address or no `updatedAt`, or is older than the one
+held.
 
 Per front: `address` and `doorFactory` are required, and no door code hash is configured (the source reads
 `DOOR_CODEHASH()` from the deployed factory). `fillMode` is required, `front` or `door`; a pool keeps the mode it was
@@ -431,7 +443,7 @@ of a builder chain. The fork tests are skipped unless their variables are set:
 EFFICIENT_PROP_RPC=<fork> EFFICIENT_PROP_FRONT=<front> EFFICIENT_PROP_FACTORY=<door factory> \
   EFFICIENT_PROP_CELL_CODEHASH=<the front's CELL_CODEHASH> EFFICIENT_PROP_SOURCES=<approved sources> \
   EFFICIENT_PROP_TITAN_URLS=<state urls> EFFICIENT_PROP_STEP=<stepper> EFFICIENT_PROP_TAKER=<taker> \
-  EFFICIENT_PROP_PRINTS=<listings that read a print> \
+  EFFICIENT_PROP_PRINTS=<listings that read a print> EFFICIENT_PROP_DESKS=<approved desk contracts> \
   [EFFICIENT_PROP_FILL_MODE=front] [EFFICIENT_PROP_LISTING_GAS=<listing:baseIn:quoteIn,...>] \
   [EFFICIENT_PROP_CREDIT_LISTINGS=<listing:custodyBaseIn:custodyQuoteIn:routeBaseIn:routeQuoteIn,...>] \
   go test ./pkg/liquidity-source/efficient-prop -run TestForkBuilder -v

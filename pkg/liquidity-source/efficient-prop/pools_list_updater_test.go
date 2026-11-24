@@ -58,6 +58,7 @@ func testView(pool common.Address) DoorView {
 	v.BaseIndex, v.QuoteIndex = 0, 1
 	v.PairWord = big.NewInt(1 << 8)
 	v.Flags = 1
+	v.Desk = testDesk
 	v.TipCap = 0x8001 // 0.1 gwei
 	v.Word = testWord(time.Now().UnixMilli(), 30)
 	expires := new(big.Int).Lsh(big.NewInt(time.Now().Add(24*time.Hour).Unix()), 60)
@@ -96,8 +97,21 @@ func testChain() *fakeChain {
 	}
 }
 
+// testDesk is the desk the test listings are bound to, unless a test binds another, and testDesks the desk contracts
+// the test configs approve: the test front's desks 1, 7, 8 and 9.
+const testDesk = 1
+
+func testDesks() []string {
+	var out []string
+	for _, d := range []uint32{testDesk, 7, 8, 9} {
+		c := cellOf(d)
+		out = append(out, hexutil.Encode(c[:]))
+	}
+	return out
+}
+
 func testConfig() *Config {
-	return &Config{ChainID: valueobject.ChainIDBase, Fronts: []Front{{
+	return &Config{ChainID: valueobject.ChainIDBase, ApprovedDesks: testDesks(), Fronts: []Front{{
 		Address:     hexutil.Encode(testFront[:]),
 		DoorFactory: hexutil.Encode(testFactory[:]),
 		FillMode:    FillModeFront,
@@ -144,14 +158,15 @@ func TestListerListsOpenedDoors(t *testing.T) {
 		assert.Equal(t, hexutil.Encode(want[:]), se.Custody)
 	}
 
-	// every read after the first (the factory's front and door codehash) is pinned to the block the first answered at
+	// every read after the first (the factory's front and door codehash, the front's desk codehash) is pinned to the
+	// block the first answered at
 	pinned := hexutil.EncodeUint64(900)
 	calls := n.calls()
-	require.Greater(t, len(calls), 2)
-	for _, c := range calls[:2] {
+	require.Greater(t, len(calls), 3)
+	for _, c := range calls[:3] {
 		assert.Equal(t, "latest", c.tag)
 	}
-	for _, c := range calls[2:] {
+	for _, c := range calls[3:] {
 		assert.Equal(t, pinned, c.tag, "a read at another block: %x", c.data)
 	}
 	// listing 6 lies past the first listing never reserved
@@ -315,7 +330,8 @@ func TestNewPoolsListUpdaterValidates(t *testing.T) {
 }
 
 // On a builder chain a front that answers another CELL_CODEHASH() than the config names lists nothing, so nothing is
-// listed that the tracker could not quote. On a chain read at the head the front's CELL_CODEHASH() is never read.
+// listed that the tracker could not quote. On a chain read at the head the config names none: the front's own answer
+// names its desk contracts, so the desks approved are the CREATE2 children under that hash and no other.
 func TestListerRefusesAFrontWhoseCellCodehashIsNotTheConfigs(t *testing.T) {
 	chain := ethChain()
 	chain.cellHash = common.HexToHash("0xeb1c76ea")
@@ -330,6 +346,14 @@ func TestListerRefusesAFrontWhoseCellCodehashIsNotTheConfigs(t *testing.T) {
 	base.cellHash = common.HexToHash("0xeb1c76ea")
 	nb := base.node(t, 900)
 	u, err = NewPoolsListUpdater(testConfig(), nb.client())
+	require.NoError(t, err)
+	pools, _, err = u.GetNewPools(context.Background(), nil)
+	require.NoError(t, err)
+	assert.Empty(t, pools, "the approved desks are the children under another hash")
+	cfg := testConfig()
+	child := deskContractOf(testFront, base.cellHash, testDesk)
+	cfg.ApprovedDesks = []string{hexutil.Encode(child[:])}
+	u, err = NewPoolsListUpdater(cfg, nb.client())
 	require.NoError(t, err)
 	pools, _, err = u.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)

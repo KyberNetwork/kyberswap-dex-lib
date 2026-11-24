@@ -41,6 +41,8 @@ type PoolTracker struct {
 	warned map[string]time.Time
 	// hashes are the code hashes the fronts and their door factories answer, read once
 	hashes *codeHashes
+	// desks is the maker gate: the desk contracts whose listings are quoted
+	desks *approvedDesks
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
@@ -56,7 +58,7 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 	}
 	t := &PoolTracker{cfg: cfg, ethrpcClient: ethrpcClient, titan: map[string][]stateClient{}, now: time.Now,
 		warned: map[string]time.Time{}, warn: warn,
-		hashes: newCodeHashes(ethrpcClient)}
+		hashes: newCodeHashes(ethrpcClient), desks: newApprovedDesks(cfg)}
 	if t.warn == nil {
 		t.warn = func(url string, err error) {
 			logger.WithFields(logger.Fields{"dexId": cfg.dexID(), "url": url, "error": err.Error()}).
@@ -249,6 +251,12 @@ func (t *PoolTracker) GetNewPoolState(
 	creditOK := v.CreditMode == 0 || builder && credit != nil && v.CreditMode <= creditModeAlways
 	quoted := v.Pool == custody && v.Token0 == tokens[0] && v.Token1 == tokens[1] && creditOK &&
 		t.cfg.tipCapOK(extra.TipCapWei) && (v.Scopes>>1)&15 != tiedScopes
+	// the maker gate: only a listing whose desk's contract is approved
+	if quoted {
+		if quoted, err = t.deskApproved(ctx, f, v.Desk); err != nil {
+			return p, err
+		}
+	}
 	// a listing's own gas, where its front's config names it; never a credit listing's, whose figures are its credit
 	// entry's
 	if f != nil && v.CreditMode == 0 {
@@ -424,6 +432,20 @@ func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
 		return next
 	}
 	return p.Timestamp + int64(refreshEvery/time.Second)
+}
+
+// deskApproved is whether desk, a listing's desk on front f, is an approved one (approvedDesks): its contract is the
+// CREATE2 child of the front under the front's CELL_CODEHASH, which the front's deskCellOf answers for it. A listing
+// bound to no desk (desk 0) fills nothing, and is never approved.
+func (t *PoolTracker) deskApproved(ctx context.Context, f *Front, desk uint32) (bool, error) {
+	if f == nil || desk == 0 {
+		return false, nil
+	}
+	cell, err := t.hashes.cell(ctx, *f)
+	if err != nil {
+		return false, err
+	}
+	return t.desks.approved(ctx, deskContractOf(common.HexToAddress(f.Address), cell, desk)), nil
 }
 
 // readHead is a listing's head read at the head, in one multicall: its block, the front's clock and the listing as

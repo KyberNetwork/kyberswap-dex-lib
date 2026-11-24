@@ -98,15 +98,16 @@ func (h *codeHashes) door(ctx context.Context, f Front) (common.Hash, error) {
 	})
 }
 
-// cell is the creation-code hash of f's desk contracts, as the front's CELL_CODEHASH() answers it, which must be the
-// hash the config names: a front of another desk build is refused.
+// cell is the creation-code hash of f's desk contracts, as the front's CELL_CODEHASH() answers it. On a builder chain
+// it must be the hash the config names: a front of another desk build is refused. On a chain read at the head the
+// config names none, and the front's own answer is taken.
 func (h *codeHashes) cell(ctx context.Context, f Front) (common.Hash, error) {
 	return h.get(hashKey{cell: true, target: common.HexToAddress(f.Address)}, func() (common.Hash, error) {
 		v, err := h.readHash(ctx, frontABI, f.Address, "CELL_CODEHASH")
 		if err != nil {
 			return common.Hash{}, fmt.Errorf("%w: %w", ErrCellCodehash, err)
 		}
-		if v != common.HexToHash(f.CellCodehash) {
+		if f.CellCodehash != "" && v != common.HexToHash(f.CellCodehash) {
 			return common.Hash{}, fmt.Errorf("%w: front %s answers %s, the config names %s", ErrCellCodehash, f.Address,
 				hexutil.Encode(v[:]), f.CellCodehash)
 		}
