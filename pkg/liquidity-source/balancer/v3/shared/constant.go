@@ -11,6 +11,9 @@ type (
 	SwapKind int
 )
 
+// ChainIDDefault is the BatchRouterMap key used when a prefix has no entry for the chain.
+const ChainIDDefault valueobject.ChainID = 0
+
 var (
 	BatchRouterMap = map[string]map[valueobject.ChainID]common.Address{
 		"": {
@@ -31,6 +34,7 @@ var (
 			valueobject.ChainIDRobinhood: common.HexToAddress("0xfDBb603653985df584EB2a4FB33Fe66B5d41C88F"),
 		},
 		"frontier": {
+			ChainIDDefault:              common.HexToAddress("0x7D08bc34e444848983227E266F61146A7e935A94"),
 			valueobject.ChainIDBase:     common.HexToAddress("0x7D08bc34e444848983227E266F61146A7e935A94"),
 			valueobject.ChainIDEthereum: common.HexToAddress("0x7D08bc34e444848983227E266F61146A7e935A94"),
 			valueobject.ChainIDMonad:    common.HexToAddress("0x7D08bc34e444848983227E266F61146A7e935A94"),
