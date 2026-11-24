@@ -26,6 +26,12 @@ import (
 
 var _ = uniswapv4.RegisterHooksFactory(NewHook, lo.Keys(HookAddresses)...)
 
+// int128 bounds as two's complement, for signed comparisons on AmountSpecified.
+var (
+	uMaxInt128 = uint256.MustFromBig(bignumber.MaxInt128)
+	uMinInt128 = new(uint256.Int).Neg(new(uint256.Int).Lsh(u256.U1, 127))
+)
+
 type Hook struct {
 	uniswapv4.Hook
 	HookExtra
@@ -153,7 +159,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, errors.New("hooklet is not initialized")
 	}
 
-	amountSpecified := uint256.MustFromBig(params.AmountSpecified)
+	amountSpecified := params.AmountSpecified
 
 	if h.BlockTimestamp == 0 {
 		h.BlockTimestamp = uint32(time.Now().Unix())
@@ -182,8 +188,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if h.Slot0.SqrtPriceX96.IsZero() ||
 		(params.ZeroForOne && sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) >= 0) ||
 		(!params.ZeroForOne && sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) <= 0) ||
-		params.AmountSpecified.Cmp(bignumber.MaxInt128) > 0 ||
-		params.AmountSpecified.Cmp(bignumber.MinInt128) < 0 {
+		params.AmountSpecified.Sgt(uMaxInt128) ||
+		params.AmountSpecified.Slt(uMinInt128) {
 		return nil, errors.New("BunniHook__InvalidSwap")
 	}
 
@@ -262,8 +268,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if (params.ZeroForOne && currentActiveBalance1.IsZero()) ||
 		(!params.ZeroForOne && currentActiveBalance0.IsZero()) {
 		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecified:   params.AmountSpecified,
-			DeltaUnspecified: bignumber.ZeroBI,
+			DeltaSpecified:   new(uint256.Int).Set(params.AmountSpecified),
+			DeltaUnspecified: new(uint256.Int),
 			SwapInfo:         swapInfo,
 		}, nil
 	}
@@ -466,10 +472,9 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 			Sub(outputAmount, curatorFeeAmount)
 
 		actualInputAmount := u256.Max(amountSpecified, inputAmount)
-		result.DeltaSpecified = actualInputAmount.ToBig()
+		result.DeltaSpecified = new(uint256.Int).Set(actualInputAmount)
 
-		outputAmountInt := outputAmount.ToBig()
-		result.DeltaUnspecified = outputAmountInt.Neg(outputAmountInt)
+		result.DeltaUnspecified = new(uint256.Int).Neg(outputAmount)
 
 		hookHandleSwapInputAmount.Set(inputAmount)
 		hookHandleSwapOutputAmount.Add(outputAmount, hookFeesAmount)
@@ -509,10 +514,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		inputAmount.Add(inputAmount, swapFeeAmount).
 			Add(inputAmount, hookFeesAmount).
 			Add(inputAmount, curatorFeeAmount)
-		result.DeltaUnspecified = inputAmount.ToBig()
+		result.DeltaUnspecified = new(uint256.Int).Set(inputAmount)
 
-		actualOutputAmount := u256.Min(amountSpecified, outputAmount).ToBig()
-		result.DeltaSpecified = actualOutputAmount.Neg(actualOutputAmount)
+		actualOutputAmount := u256.Min(amountSpecified, outputAmount)
+		result.DeltaSpecified = new(uint256.Int).Neg(actualOutputAmount)
 
 		hookHandleSwapOutputAmount.Set(outputAmount)
 		hookHandleSwapInputAmount.Sub(inputAmount, hookFeesAmount)

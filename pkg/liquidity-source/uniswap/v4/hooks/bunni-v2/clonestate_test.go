@@ -1,12 +1,11 @@
 package bunniv2
 
 import (
-	"context"
-	"math/big"
 	"reflect"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -20,8 +19,8 @@ import (
 //
 // CloneState copied only the slice header and shared the *ObservationStorage wrapping the same
 // slice, while oracle.set writes into that buffer by index — so a clone wrote into the source's
-// backing array. The write happens in updateOracle, reached from BeforeSwap, so CalcAmountOut is
-// enough to trigger it; UpdateBalance never touches Observations.
+// backing array. The write happens in updateOracle, reached from BeforeSwap, so CalcAmtOut is
+// enough to trigger it; UpdateState never touches Observations.
 //
 // Two conditions are load-bearing and the test would be vacuous without either:
 //   - the fixture uses the OracleUniGeo LDF, the variant that runs the oracle at all;
@@ -46,17 +45,17 @@ func TestCloneStateIsolatesObservations(t *testing.T) {
 	require.False(t, sharesBacking(srcHook.Observations, hookOf(t, cloned).Observations),
 		"the clone's observation ring buffer must not share a backing array with the source")
 
-	_, err = pool.DefaultCalcAmtOut(context.Background(), cloned, pool.TokenAmount{
-		Token:  "0x35d8949372d46b7a3d5a56006ae77b215fc69bc0",
-		Amount: big.NewInt(1e18),
-	}, "0x73a15fed60bf67631dc6cd7bc5b6e8da8190acf5", nil)
+	_, err = cloned.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: "0x35d8949372d46b7a3d5a56006ae77b215fc69bc0", Amount: *uint256.NewInt(1e18)},
+		TokenOut:      "0x73a15fed60bf67631dc6cd7bc5b6e8da8190acf5",
+	})
 	require.NoError(t, err)
 
 	require.Equal(t, before, srcHook.Observations,
 		"quoting a clone must not write into the source's observation ring buffer")
 }
 
-func hookOf(t *testing.T, sim pool.IPoolSimulator) *Hook {
+func hookOf(t *testing.T, sim pool.IPoolSim) *Hook {
 	t.Helper()
 	v := reflect.ValueOf(sim).Elem().FieldByName("hook")
 	require.True(t, v.IsValid(), "uniswapv4.PoolSimulator must expose a hook field")

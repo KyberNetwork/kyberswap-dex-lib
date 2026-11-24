@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -193,20 +194,20 @@ func Test_Pool_OracleUniGeo(t *testing.T) {
 	pSim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDEthereum)
 	assert.NoError(t, err)
 
-	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0x35d8949372d46b7a3d5a56006ae77b215fc69bc0",
-			Amount: big.NewInt(1e18),
+			Amount: *uint256.NewInt(1e18),
 		},
 		TokenOut: "0x73a15fed60bf67631dc6cd7bc5b6e8da8190acf5",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "926458182427270530", got.TokenAmountOut.Amount.String())
 
-	got, err = pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err = pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0x73a15fed60bf67631dc6cd7bc5b6e8da8190acf5",
-			Amount: big.NewInt(1e18),
+			Amount: *uint256.NewInt(1e18),
 		},
 		TokenOut: "0x35d8949372d46b7a3d5a56006ae77b215fc69bc0",
 	})
@@ -225,10 +226,10 @@ func Test_Pool_V120(t *testing.T) {
 	pSim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDUnichain)
 	assert.NoError(t, err)
 
-	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0x9151434b16b9763660705744891fa906f660ecc5",
-			Amount: big.NewInt(6439251628),
+			Amount: *uint256.NewInt(6439251628),
 		},
 		TokenOut: "0x078d782b760474a361dda0af3839290b0ef57ad6",
 	})
@@ -247,20 +248,20 @@ func Test_Pool_ETH_weETH(t *testing.T) {
 	pSim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDUnichain)
 	assert.NoError(t, err)
 
-	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0x7dcc39b4d1c53cb31e1abc0e358b43987fef80f7",
-			Amount: big.NewInt(20951525654502637),
+			Amount: *uint256.NewInt(20951525654502637),
 		},
 		TokenOut: "0x4200000000000000000000000000000000000006",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "22469222712678168", got.TokenAmountOut.Amount.String())
 
-	got, err = pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err = pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0x4200000000000000000000000000000000000006",
-			Amount: big.NewInt(1e12),
+			Amount: *uint256.NewInt(1e12),
 		},
 		TokenOut: "0x7dcc39b4d1c53cb31e1abc0e358b43987fef80f7",
 	})
@@ -279,20 +280,20 @@ func Test_Pool_ETH_USDC(t *testing.T) {
 	pSim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDUnichain)
 	assert.NoError(t, err)
 
-	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0x078d782b760474a361dda0af3839290b0ef57ad6",
-			Amount: big.NewInt(4500_000_000),
+			Amount: *uint256.NewInt(4500_000_000),
 		},
 		TokenOut: "0x4200000000000000000000000000000000000006",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "1000426474295335539", got.TokenAmountOut.Amount.String())
 
-	got, err = pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err = pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0x4200000000000000000000000000000000000006",
-			Amount: big.NewInt(1e18),
+			Amount: *uint256.NewInt(1e18),
 		},
 		TokenOut: "0x078d782b760474a361dda0af3839290b0ef57ad6",
 	})
@@ -311,20 +312,20 @@ func Test_Pool_USDC_USDT(t *testing.T) {
 	pSim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDUnichain)
 	assert.NoError(t, err)
 
-	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			Amount: big.NewInt(1000000000),
+			Amount: *uint256.NewInt(1000000000),
 		},
 		TokenOut: "0xdac17f958d2ee523a2206206994597c13d831ec7",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "999366159", got.TokenAmountOut.Amount.String())
 
-	got, err = pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err = pSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
-			Amount: big.NewInt(1000000000),
+			Amount: *uint256.NewInt(1000000000),
 		},
 		TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 	})
@@ -381,8 +382,8 @@ func Test_Quoter(t *testing.T) {
 		}, []any{&swapResult}).Call()
 		require.NoError(t, err)
 
-		got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(1e18)},
+		got, err := pSim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: *uint256.NewInt(1e18)},
 			TokenOut:      tc.out,
 		})
 		require.NoError(t, err)
@@ -415,10 +416,10 @@ func Test_MergeSwap(t *testing.T) {
 
 	// n consecutive swaps
 	for i := range n {
-		result, err := pSim1.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{
+		result, err := pSim1.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{
 				Token:  tokenIn,
-				Amount: amountPerSwap,
+				Amount: *uint256.MustFromBig(amountPerSwap),
 			},
 			TokenOut: tokenOut,
 		})
@@ -429,24 +430,27 @@ func Test_MergeSwap(t *testing.T) {
 			break
 		}
 
-		pSim1.UpdateBalance(pool.UpdateBalanceParams{
-			TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: amountPerSwap},
+		pSim1.UpdateState(pool.UpdateStateParams{
+			TokenAmountIn:  pool.TokenAmt{Token: tokenIn, Amount: *uint256.MustFromBig(amountPerSwap)},
 			TokenAmountOut: *result.TokenAmountOut,
 			SwapInfo:       result.SwapInfo,
 		})
 
 		if consecutiveTotalAmountOut == nil {
-			consecutiveTotalAmountOut = new(big.Int).Set(result.TokenAmountOut.Amount)
+			consecutiveTotalAmountOut = result.TokenAmountOut.Amount.ToBig()
 		} else {
-			consecutiveTotalAmountOut.Add(consecutiveTotalAmountOut, result.TokenAmountOut.Amount)
+			consecutiveTotalAmountOut.Add(consecutiveTotalAmountOut, result.TokenAmountOut.Amount.ToBig())
 		}
 	}
 
 	// single swap
-	singleResult, err := pool.DefaultCalcAmtOut(context.Background(), pSim2, pool.TokenAmount{
-		Token:  tokenIn,
-		Amount: totalAmountIn,
-	}, tokenOut, nil)
+	singleResult, err := pSim2.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
+			Token:  tokenIn,
+			Amount: *uint256.MustFromBig(totalAmountIn),
+		},
+		TokenOut: tokenOut,
+	})
 
 	// Compare results
 	if err != nil {
@@ -456,7 +460,7 @@ func Test_MergeSwap(t *testing.T) {
 	}
 
 	require.NotNil(t, consecutiveTotalAmountOut, "consecutive swaps failed but single swap succeeded")
-	singleAmountOut := singleResult.TokenAmountOut.Amount
+	singleAmountOut := singleResult.TokenAmountOut.Amount.ToBig()
 
 	diff := new(big.Int).Sub(singleAmountOut, consecutiveTotalAmountOut)
 	diff.Abs(diff)
