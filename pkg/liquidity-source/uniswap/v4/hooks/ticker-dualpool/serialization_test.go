@@ -1,13 +1,14 @@
 package tickerdualpool_test
 
 import (
-	"context"
+	"bytes"
 	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/klauspost/compress/snappy"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -38,21 +39,28 @@ func TestTickerDualPoolSerializationPreservesQuotes(t *testing.T) {
 	ep := entity.Pool{Address: "0x1", Type: v4.DexType, Tokens: []*entity.PoolToken{{Address: "0x0000000000000000000000000000000000000001", Decimals: 18}, {Address: "0x0000000000000000000000000000000000000002", Decimals: 18}}, Reserves: entity.PoolReserves{backing.Dec(), backing.Dec()}, Extra: string(extra), StaticExtra: string(static), BlockNumber: 123}
 	original, err := v4.NewPoolSimulator(ep, valueobject.ChainIDMonad)
 	require.NoError(t, err)
-	encoded, err := msgpack.EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{ep.Address: original})
-	require.NoError(t, err)
-	decoded, err := msgpack.DecodePoolSimulatorsMap(encoded)
-	require.NoError(t, err)
+	var buf bytes.Buffer
+	zw := snappy.NewBufferedWriter(&buf)
+	en := msgpack.NewEncoder(zw)
+	require.NoError(t, en.Encode(map[string]pool.IPoolSim{ep.Address: original}))
+	msgpack.PutEncoder(en)
+	require.NoError(t, zw.Close())
+	decoded := map[string]pool.IPoolSim{}
+	de := msgpack.NewDecoder(snappy.NewReader(bytes.NewReader(buf.Bytes())))
+	require.NoError(t, de.Decode(&decoded))
+	msgpack.PutDecoder(de)
 	restored := decoded[ep.Address]
-	input := pool.TokenAmount{Token: ep.Tokens[0].Address, Amount: big.NewInt(1001)}
-	params := pool.CalcAmountOutParams{TokenAmountIn: input, TokenOut: ep.Tokens[1].Address}
-	amtIn := pool.TokenAmt{Token: input.Token, Amount: *uint256.NewInt(1001)}
+	var amt uint256.Int
+	amt.SetUint64(1001)
+	amtIn := pool.TokenAmt{Token: ep.Tokens[0].Address, Amount: amt}
+	tokenOut := ep.Tokens[1].Address
 	for range 2 {
-		a, err := original.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: amtIn, TokenOut: params.TokenOut})
+		a, err := original.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: amtIn, TokenOut: tokenOut})
 		require.NoError(t, err)
-		b, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, nil)
+		b, err := restored.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: amtIn, TokenOut: tokenOut})
 		require.NoError(t, err)
 		require.Equal(t, a.TokenAmountOut.Amount.String(), b.TokenAmountOut.Amount.String())
 		original.UpdateState(pool.UpdateStateParams{TokenAmountIn: amtIn, TokenAmountOut: *a.TokenAmountOut, SwapInfo: a.SwapInfo})
-		restored.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: input, TokenAmountOut: *b.TokenAmountOut, SwapInfo: b.SwapInfo})
+		restored.UpdateState(pool.UpdateStateParams{TokenAmountIn: amtIn, TokenAmountOut: *b.TokenAmountOut, SwapInfo: b.SwapInfo})
 	}
 }
