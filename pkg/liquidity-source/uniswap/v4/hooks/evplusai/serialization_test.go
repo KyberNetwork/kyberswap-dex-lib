@@ -1,11 +1,13 @@
 package evplusai_test
 
 import (
-	"math/big"
+	"bytes"
 	"os"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/klauspost/compress/snappy"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -37,18 +39,25 @@ func TestSimulatorSerialization(t *testing.T) {
 	f.Pool.Extra = string(raw)
 	sim, err := uniswapv4.NewPoolSimulator(f.Pool, valueobject.ChainIDRobinhood)
 	require.NoError(t, err)
-	encoded, err := msgpack.EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{f.Pool.Address: sim})
-	require.NoError(t, err)
-	decoded, err := msgpack.DecodePoolSimulatorsMap(encoded)
-	require.NoError(t, err)
+	decoded := map[string]pool.IPoolSim{f.Pool.Address: sim}
 	// Tagged interface values decode to pointers; saving a restored simulator
 	// must retain the wrapper type on a second roundtrip as well.
-	encoded, err = msgpack.EncodePoolSimulatorsMap(decoded)
-	require.NoError(t, err)
-	decoded, err = msgpack.DecodePoolSimulatorsMap(encoded)
-	require.NoError(t, err)
+	for range 2 {
+		var buf bytes.Buffer
+		zw := snappy.NewBufferedWriter(&buf)
+		en := msgpack.NewEncoder(zw)
+		require.NoError(t, en.Encode(decoded))
+		msgpack.PutEncoder(en)
+		require.NoError(t, zw.Close())
+		decoded = map[string]pool.IPoolSim{}
+		de := msgpack.NewDecoder(snappy.NewReader(bytes.NewReader(buf.Bytes())))
+		require.NoError(t, de.Decode(&decoded))
+		msgpack.PutDecoder(de)
+	}
 	restored := decoded[f.Pool.Address].(*uniswapv4.PoolSimulator)
-	result, err := restored.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: f.Pool.Tokens[0].Address, Amount: big.NewInt(100000000000000000)}, TokenIn: f.Pool.Tokens[1].Address})
+	var amtOut uint256.Int
+	amtOut.SetUint64(100000000000000000)
+	result, err := restored.CalcAmtIn(pool.CalcAmtInParams{TokenAmountOut: pool.TokenAmt{Token: f.Pool.Tokens[0].Address, Amount: amtOut}, TokenIn: f.Pool.Tokens[1].Address})
 	require.NoError(t, err)
 	require.Equal(t, q.Expected, result.TokenAmountIn.Amount.String())
 }
