@@ -406,7 +406,7 @@ held.
 
 Per front: `address` and `doorFactory` are required, and no door code hash is configured (the source reads
 `DOOR_CODEHASH()` from the deployed factory). `fillMode` is required, `front` or `door`; a pool keeps the mode it was
-listed with. `implementations` lists the front implementations its proxy may run while its listings are quoted (at
+listed with and is quoted only under it, so after a switch of `fillMode` the front's pools are listed again. `implementations` lists the front implementations its proxy may run while its listings are quoted (at
 least one, no default): list a new one only after checking that its storage layout, clock and pricing rules are the
 ones this source reads. `approvedSources` lists the price sources a listing of the front may read and be quoted; none
 by default (Pricing, How to approve a source). `listingGas` (any chain) names a listing with no credit mode and its

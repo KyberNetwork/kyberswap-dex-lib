@@ -1914,3 +1914,50 @@ func TestTrackerMarksAListingThatReadsASource(t *testing.T) {
 		assert.Equal(t, [2]int64{171_000, 169_000}, *e.Gas)
 	}
 }
+
+// A pool keeps the fill mode it was listed under, and the gas figures of its front's config are the configured
+// mode's: once the config is switched to the other mode, a pool listed before the switch is quoted no more, on a chain
+// read at the head and on a builder chain, and a pool listed under the new mode is.
+func TestTrackerDoesNotQuoteAPoolListedUnderAnotherFillMode(t *testing.T) {
+	ctx := context.Background()
+	ladders := func(cfg *Config, n *node, p entity.Pool) int {
+		tr, err := NewPoolTracker(cfg, n.client())
+		require.NoError(t, err)
+		got, err := tr.GetNewPoolState(ctx, p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		e := extraOf(t, got)
+		return len(e.Ladders[0]) + len(e.Ladders[1])
+	}
+	relist := func(cfg *Config, n *node) entity.Pool {
+		u, err := NewPoolsListUpdater(cfg, n.client())
+		require.NoError(t, err)
+		pools, _, err := u.GetNewPools(ctx, nil)
+		require.NoError(t, err)
+		require.NotEmpty(t, pools)
+		p := pools[0]
+		p.Tokens[0].Decimals, p.Tokens[1].Decimals = 18, 6
+		return p
+	}
+
+	chain := trackedChain()
+	n := chain.node(t, 1234)
+	p := listed(t, n) // in the front's mode
+	door := testConfig()
+	door.Fronts[0].FillMode = FillModeDoor
+	require.NotZero(t, ladders(testConfig(), n, p))
+	assert.Zero(t, ladders(door, n, p), "listed in the front's mode, the config now the door's")
+	assert.NotZero(t, ladders(door, n, relist(door, n)), "listed again under the door's mode")
+
+	eth := ethChain()
+	en := builderNode(t, eth, 1234)
+	st := newStateServer(t)
+	st.set(slotAfter(en.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := ethConfig(st.URL) // the door's mode
+	ep := ethListed(t, en, cfg)
+	front := ethConfig(st.URL)
+	front.Fronts[0].FillMode = FillModeFront
+	front.Fronts[0].ListingGas = []ListingGas{{Listing: 1, BaseIn: 106_000, QuoteIn: 106_561}}
+	require.NotZero(t, ladders(cfg, en, ep))
+	assert.Zero(t, ladders(front, en, ep), "listed in the door's mode, the config now the front's")
+	assert.NotZero(t, ladders(front, en, relist(front, en)), "listed again under the front's mode")
+}

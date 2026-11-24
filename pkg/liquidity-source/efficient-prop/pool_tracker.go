@@ -249,7 +249,15 @@ func (t *PoolTracker) GetNewPoolState(
 		credit = f.creditListing(staticExtra.Listing)
 	}
 	creditOK := v.CreditMode == 0 || builder && credit != nil && v.CreditMode <= creditModeAlways
-	quoted := v.Pool == custody && v.Token0 == tokens[0] && v.Token1 == tokens[1] && creditOK &&
+	// a pool keeps the fill mode it was listed under (StaticExtra.Mode): the adapter fills it through that entry, and
+	// every gas figure its front's config names is the configured mode's. Under a front set to the other mode since,
+	// it is not quoted until it is listed again
+	modeOK := false
+	if f != nil {
+		m, ok := f.mode()
+		modeOK = ok && m == staticExtra.Mode
+	}
+	quoted := v.Pool == custody && v.Token0 == tokens[0] && v.Token1 == tokens[1] && creditOK && modeOK &&
 		t.cfg.tipCapOK(extra.TipCapWei) && (v.Scopes>>1)&15 != tiedScopes
 	// the maker gate: only a listing whose desk's contract is approved
 	if quoted {
