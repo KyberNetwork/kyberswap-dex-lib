@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
@@ -256,4 +257,13 @@ func TestPoolSimulator_TwoLegsAdvanceOnce(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, again.SwapInfo.(uniswapv4.SwapInfo).HookSwapInfo)
 	require.Equal(t, leg1.TokenAmountOut.Amount, again.TokenAmountOut.Amount)
+}
+
+// Both deployments (Ethereum, Robinhood) must resolve to this hook, or the pool quotes as a plain v4 pool.
+func TestHookFactory_RegisteredAddresses(t *testing.T) {
+	for _, addr := range []common.Address{HookAddress, HookAddressRobinhood} {
+		hook, ok := uniswapv4.GetHook(addr, nil)
+		require.True(t, ok, addr.Hex())
+		require.IsType(t, &Hook{}, hook)
+	}
 }

@@ -35,7 +35,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	h := &Hook{Hook: &uniswapv4.BaseHook{Exchange: DexType}}
 	_ = param.HookExtra.Unmarshal(&h.Extra)
 	return h
-}, HookAddress)
+}, HookAddress, HookAddressRobinhood)
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawMessage, error) {
 	poolID := common.HexToHash(param.Pool.Address)
