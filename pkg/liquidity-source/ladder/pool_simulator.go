@@ -96,7 +96,7 @@ func NewPoolSimulatorWith(ep entity.Pool, maxAge time.Duration) (*PoolSimulator,
 // CalcAmtOut is the native uint256 quote. It shares quote with CalcAmountOut and
 // differs only in reading the swap limit as uint256.
 func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
-	amountOut, err := s.quote(params.TokenAmountIn.Token, params.TokenOut, params.TokenAmountIn.Amount.Float64())
+	amountOut, err := s.quote(params.TokenAmountIn.Token, params.TokenOut, u256ToFloat(&params.TokenAmountIn.Amount))
 	if err != nil {
 		return nil, err
 	}
@@ -193,6 +193,24 @@ func u256FromFloat(f float64) (*uint256.Int, bool) {
 	return z.Lsh(z, uint(exp-53)), true
 }
 
+// u256ToFloat converts to the nearest float64, matching big.Int.Float64. uint256.Float64 truncates, which
+// diverges from the legacy big.Int path above 2^64.
+func u256ToFloat(x *uint256.Int) float64 {
+	bitLen := x.BitLen()
+	if bitLen <= 64 {
+		return float64(x.Uint64())
+	}
+	shift := uint(bitLen - 64)
+	var top, back uint256.Int
+	top.Rsh(x, shift)
+	hi := top.Uint64()
+	// A set sticky bit keeps the dropped low bits from turning a non-tie into a tie.
+	if back.Lsh(&top, shift); !back.Eq(x) {
+		hi |= 1
+	}
+	return math.Ldexp(float64(hi), int(shift))
+}
+
 // UpdateState is UpdateBalance with uint256 amounts. It moves the same float counters and reserves.
 func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	indexIn := s.GetTokenIndex(params.TokenAmountIn.Token)
@@ -201,8 +219,8 @@ func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	}
 	inU, outU := params.TokenAmountIn.Amount, params.TokenAmountOut.Amount
 
-	s.consumedIn[indexIn] += inU.Float64()
-	s.consumedOut[indexIn] += outU.Float64()
+	s.consumedIn[indexIn] += u256ToFloat(&inU)
+	s.consumedOut[indexIn] += u256ToFloat(&outU)
 
 	if indexIn == 0 {
 		s.Reserve0 = new(uint256.Int).Add(s.Reserve0, &inU)

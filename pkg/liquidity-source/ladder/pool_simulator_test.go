@@ -1,6 +1,8 @@
 package ladder
 
 import (
+	"math/big"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -174,6 +176,27 @@ func TestPoolSimulator_CalcAmtOutParity(t *testing.T) {
 			assert.Equal(t, legacy.Fee.Amount.String(), native.Fee.Amount.ToBig().String(), "fee")
 			assert.Equal(t, legacy.Gas, native.Gas, "gas")
 		})
+	}
+}
+
+// TestU256ToFloat_MatchesBigFloat pins the native uint256 -> float64 step to big.Int.Float64, which the legacy
+// path uses. Amounts above 2^64 must round to nearest, not truncate, or native and legacy quotes diverge.
+func TestU256ToFloat_MatchesBigFloat(t *testing.T) {
+	t.Parallel()
+	check := func(v *big.Int) {
+		t.Helper()
+		var u uint256.Int
+		require.False(t, u.SetFromBig(v))
+		want, _ := v.Float64()
+		assert.Equal(t, want, u256ToFloat(&u), v.String())
+	}
+	check(bignumber.NewBig10("1000000000000000000000000000000"))
+	check(new(big.Int).Lsh(big.NewInt(1), 255))
+	rng := rand.New(rand.NewSource(1))
+	for range 10000 {
+		var u uint256.Int
+		u[0], u[1], u[2], u[3] = rng.Uint64(), rng.Uint64(), rng.Uint64(), rng.Uint64()
+		check(u.ToBig())
 	}
 }
 
