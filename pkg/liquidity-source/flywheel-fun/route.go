@@ -1,7 +1,6 @@
 package flywheelfun
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 
@@ -35,7 +34,7 @@ func keyID(k poolKey) (string, error) {
 
 // hopFor builds the settlement route hop for an indexed base pool. A V4 key is
 // rebuilt from the simulator and must hash to the pool id.
-func hopFor(base pool.IPoolSimulator) (routeHop, error) {
+func hopFor(base pool.IPoolSim) (routeHop, error) {
 	switch b := base.(type) {
 	case *v3.PoolSimulator:
 		return routeHop{Kind: 3, Pool: common.HexToAddress(b.GetAddress()), Key: poolKey{Fee: new(big.Int), TickSpacing: new(big.Int)}}, nil
@@ -54,7 +53,7 @@ func hopFor(base pool.IPoolSimulator) (routeHop, error) {
 	}
 	return routeHop{}, ErrUnsupported
 }
-func core(p pool.IPoolSimulator) (*v3.PoolSimulator, error) {
+func core(p pool.IPoolSim) (*v3.PoolSimulator, error) {
 	switch x := p.(type) {
 	case *v3.PoolSimulator:
 		return x, nil
@@ -67,33 +66,32 @@ func core(p pool.IPoolSimulator) (*v3.PoolSimulator, error) {
 
 // hopSwap quotes one hop with the pool's own simulator. It does not mutate p.
 // Full input consumption is mandatory in NativeQuoteRoute and NativeMarketAdapter.
-func hopSwap(p pool.IPoolSimulator, amount *uint256.Int, in, out string, index int) (uint256.Int, SwapStep, int64, error) {
+func hopSwap(p pool.IPoolSim, amount *uint256.Int, in, out string, index int) (uint256.Int, SwapStep, int64, error) {
 	var zero uint256.Int
 	if amount.IsZero() || amount.BitLen() > 255 {
 		return zero, SwapStep{}, 0, ErrAmount
 	}
-	amountIn := pool.TokenAmount{Token: in, Amount: amount.ToBig()}
-	r, err := pool.DefaultCalcAmtOut(context.Background(), p, amountIn, out, nil)
+	amountIn := pool.TokenAmt{Token: in, Amount: *amount}
+	r, err := p.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: amountIn, TokenOut: out})
 	if err != nil {
 		return zero, SwapStep{}, 0, err
 	}
-	if r.RemainingTokenAmountIn != nil && r.RemainingTokenAmountIn.Amount.Sign() != 0 {
+	if r.RemainingTokenAmountIn != nil && !r.RemainingTokenAmountIn.Amount.IsZero() {
 		return zero, SwapStep{}, 0, ErrCurve
 	}
-	value, overflow := uint256.FromBig(r.TokenAmountOut.Amount)
-	if overflow || value.IsZero() {
+	if r.TokenAmountOut.Amount.IsZero() {
 		return zero, SwapStep{}, 0, ErrAmount
 	}
-	step := SwapStep{Index: index, Params: pool.UpdateBalanceParams{TokenAmountIn: amountIn, TokenAmountOut: *r.TokenAmountOut, SwapInfo: r.SwapInfo}}
+	step := SwapStep{Index: index, Params: pool.UpdateStateParams{TokenAmountIn: amountIn, TokenAmountOut: *r.TokenAmountOut, SwapInfo: r.SwapInfo}}
 	if r.Fee != nil {
 		step.Params.Fee = *r.Fee
 	}
-	return *value, step, r.Gas, nil
+	return r.TokenAmountOut.Amount, step, r.Gas, nil
 }
 
 // swapCL quotes and updates the caller-owned clone with the actual directional fee.
 // The pinned native hook has no custom swap deltas.
-func swapCL(p pool.IPoolSimulator, amount *uint256.Int, in, out string, fee uint32, index int) (uint256.Int, SwapStep, int64, error) {
+func swapCL(p pool.IPoolSim, amount *uint256.Int, in, out string, fee uint32, index int) (uint256.Int, SwapStep, int64, error) {
 	var zero uint256.Int
 	if amount.IsZero() || amount.BitLen() > 255 || fee >= 1_000_000 {
 		return zero, SwapStep{}, 0, ErrAmount
@@ -104,24 +102,24 @@ func swapCL(p pool.IPoolSimulator, amount *uint256.Int, in, out string, fee uint
 	}
 	sim := c.CloneState().(*v3.PoolSimulator)
 	sim.V3Pool.Fee = v3.FeeAmount(fee)
-	r, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: in, Amount: amount.ToBig()}, TokenOut: out})
+	amountIn := pool.TokenAmt{Token: in, Amount: *amount}
+	r, err := sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: amountIn, TokenOut: out})
 	if err != nil {
 		return zero, SwapStep{}, 0, err
 	}
-	if r.RemainingTokenAmountIn != nil && r.RemainingTokenAmountIn.Amount.Sign() != 0 {
+	if r.RemainingTokenAmountIn != nil && !r.RemainingTokenAmountIn.Amount.IsZero() {
 		return zero, SwapStep{}, 0, ErrCurve
 	}
-	value, overflow := uint256.FromBig(r.TokenAmountOut.Amount)
-	if overflow || value.IsZero() {
+	if r.TokenAmountOut.Amount.IsZero() {
 		return zero, SwapStep{}, 0, ErrAmount
 	}
 	info := r.SwapInfo
 	if _, ok := p.(*v4.PoolSimulator); ok {
 		info = v4.SwapInfo{PoolSwapInfo: r.SwapInfo.(v3.SwapInfo)}
 	}
-	step := SwapStep{Index: index, Before: fingerprint(p), Params: pool.UpdateBalanceParams{TokenAmountIn: pool.TokenAmount{Token: in, Amount: amount.ToBig()}, TokenAmountOut: *r.TokenAmountOut, Fee: *r.Fee, SwapInfo: info}}
-	p.UpdateBalance(step.Params)
-	return *value, step, r.Gas, nil
+	step := SwapStep{Index: index, Before: fingerprint(p), Params: pool.UpdateStateParams{TokenAmountIn: amountIn, TokenAmountOut: *r.TokenAmountOut, Fee: *r.Fee, SwapInfo: info}}
+	p.UpdateState(step.Params)
+	return r.TokenAmountOut.Amount, step, r.Gas, nil
 }
 
 // quoteToWETH values amount of quote at the pool's spot price (token1 per token0).
@@ -142,15 +140,15 @@ func quoteToWETH(amount, sqrtPriceX96 *uint256.Int, quoteIsToken0 bool) error {
 	return nil
 }
 
-func fingerprint(p pool.IPoolSimulator) string {
+func fingerprint(p pool.IPoolSim) string {
 	c, e := core(p)
 	if e != nil {
 		return ""
 	}
 	return fmt.Sprintf("%s/%s/%s/%d/%s/%s", p.GetAddress(), c.V3Pool.SqrtRatioX96.Dec(), c.V3Pool.Liquidity.Dec(), c.V3Pool.TickCurrent, c.Info.Reserves[0], c.Info.Reserves[1])
 }
-func cloneBases(bases []pool.IPoolSimulator) []pool.IPoolSimulator {
-	out := make([]pool.IPoolSimulator, len(bases))
+func cloneBases(bases []pool.IPoolSim) []pool.IPoolSim {
+	out := make([]pool.IPoolSim, len(bases))
 	for i, p := range bases {
 		if p != nil {
 			out[i] = p.CloneState()
@@ -158,7 +156,7 @@ func cloneBases(bases []pool.IPoolSimulator) []pool.IPoolSimulator {
 	}
 	return out
 }
-func (s *PoolSimulator) externalSwap(amount *uint256.Int, buy bool, bases []pool.IPoolSimulator) (uint256.Int, []SwapStep, int64, error) {
+func (s *PoolSimulator) externalSwap(amount *uint256.Int, buy bool, bases []pool.IPoolSim) (uint256.Int, []SwapStep, int64, error) {
 	if bases[0] == nil {
 		if s.baseQuote() != WETH {
 			return uint256.Int{}, nil, 0, ErrBasePool
@@ -174,6 +172,6 @@ func (s *PoolSimulator) externalSwap(amount *uint256.Int, buy bool, bases []pool
 		return result, nil, 0, err
 	}
 	step.Before = fingerprint(bases[0])
-	bases[0].UpdateBalance(step.Params)
+	bases[0].UpdateState(step.Params)
 	return result, []SwapStep{step}, gas, nil
 }

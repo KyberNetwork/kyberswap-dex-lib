@@ -22,20 +22,20 @@ type PoolSimulator struct {
 	Valid       bool
 	MarketPool  *v3.PoolSimulator
 	Protocol    [2]uint32
-	Base        pool.IPoolSimulator // route pool (indexed uniswap pool), nil for WETH; deep-copied on clone
-	Route       []byte              // settlement route through Base
+	Base        pool.IPoolSim // route pool (indexed uniswap pool), nil for WETH; deep-copied on clone
+	Route       []byte        // settlement route through Base
 	Parents     []NativeParent
-	ParentPools []pool.IPoolSimulator
+	ParentPools []pool.IPoolSim
 	Revision    uint64
 }
 
-var _ pool.IMetaPoolSimulator = (*PoolSimulator)(nil)
+var _ pool.IPoolSim = (*PoolSimulator)(nil)
 var _ = pool.RegisterFactoryMeta(DexType, NewPoolSimulatorWithBases)
 
 func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	return NewPoolSimulatorWithBases(p, nil)
 }
-func NewPoolSimulatorWithBases(p entity.Pool, baseMap map[string]pool.IPoolSimulator) (*PoolSimulator, error) {
+func NewPoolSimulatorWithBases(p entity.Pool, baseMap map[string]pool.IPoolSim) (*PoolSimulator, error) {
 	var e Extra
 	var st StaticExtra
 	if err := json.Unmarshal([]byte(p.Extra), &e); err != nil {
@@ -103,15 +103,12 @@ func NewPoolSimulatorWithBases(p entity.Pool, baseMap map[string]pool.IPoolSimul
 	}
 	return s, nil
 }
-func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmtOut(p pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	i, o := s.GetTokenIndex(p.TokenAmountIn.Token), s.GetTokenIndex(p.TokenOut)
-	if !s.Valid || i < 0 || o < 0 || i == o || p.TokenAmountIn.Amount == nil || p.TokenAmountIn.Amount.Sign() <= 0 {
+	if !s.Valid || i < 0 || o < 0 || i == o || p.TokenAmountIn.Amount.IsZero() {
 		return nil, ErrAmount
 	}
-	input, overflow := uint256.FromBig(p.TokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrMath
-	}
+	input := &p.TokenAmountIn.Amount
 	buy := i == 0
 	protocol := uint32(0)
 	var market *v3.PoolSimulator
@@ -255,9 +252,9 @@ func (s *PoolSimulator) CalcAmountOut(p pool.CalcAmountOutParams) (*pool.CalcAmo
 		}
 	}
 	info := SwapInfo{Next: next, Previous: s.Curve, Token: s.Info.Address, MinQuote: minQuote, AmountOut: out, Refund: refund, RefundRouteOutput: refundRouteOutput, Buy: buy, Route: s.Route, Refunds: !refund.IsZero(), Steps: steps, Revision: s.Revision}
-	return &pool.CalcAmountOutResult{TokenAmountOut: &pool.TokenAmount{Token: p.TokenOut, Amount: out.ToBig()}, RemainingTokenAmountIn: &pool.TokenAmount{Token: p.TokenAmountIn.Token, Amount: refund.ToBig()}, Fee: &pool.TokenAmount{Token: WETH, Amount: fee.ToBig()}, Gas: gas, SwapInfo: info}, nil
+	return &pool.CalcAmtOutResult{TokenAmountOut: &pool.TokenAmt{Token: p.TokenOut, Amount: out}, RemainingTokenAmountIn: &pool.TokenAmt{Token: p.TokenAmountIn.Token, Amount: refund}, Fee: &pool.TokenAmt{Token: WETH, Amount: fee}, Gas: gas, SwapInfo: info}, nil
 }
-func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateState(p pool.UpdateStateParams) {
 	info, ok := p.SwapInfo.(SwapInfo)
 	if !ok || info.Token != s.Info.Address || info.Previous != s.Curve || info.Revision != s.Revision {
 		s.Valid = false
@@ -265,11 +262,11 @@ func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
 	}
 	// Validate the entire replay on clones before mutating any shared liquidity.
 	bases := cloneBases(s.allBases())
-	var market pool.IPoolSimulator
+	var market pool.IPoolSim
 	if s.MarketPool != nil {
 		market = s.MarketPool.CloneState()
 	}
-	target := func(index int, base []pool.IPoolSimulator, m pool.IPoolSimulator) pool.IPoolSimulator {
+	target := func(index int, base []pool.IPoolSim, m pool.IPoolSim) pool.IPoolSim {
 		if index == -1 {
 			return m
 		}
@@ -284,10 +281,10 @@ func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
 			s.Valid = false
 			return
 		}
-		dest.UpdateBalance(step.Params)
+		dest.UpdateState(step.Params)
 	}
 	for _, step := range info.Steps {
-		target(step.Index, s.allBases(), s.MarketPool).UpdateBalance(step.Params)
+		target(step.Index, s.allBases(), s.MarketPool).UpdateState(step.Params)
 	}
 	s.Curve = info.Next
 	s.Revision++
@@ -303,7 +300,7 @@ func (s *PoolSimulator) UpdateBalance(p pool.UpdateBalanceParams) {
 // The public pair is WETH/token. Expose real backing (no virtual reserves) in
 // that order, valuing custom quote backing at route spot prices. This is only
 // a reserve-value proxy, never an assertion of spendable native inventory;
-// CalcAmountOut still executes every route and market leg with its price impact.
+// CalcAmtOut still executes every route and market leg with its price impact.
 func (s *PoolSimulator) syncReserves() error {
 	var quote, tokens uint256.Int
 	if s.MarketPool != nil {
@@ -344,10 +341,10 @@ func (s *PoolSimulator) syncReserves() error {
 	return nil
 }
 
-// CloneState copies what UpdateBalance mutates in place: the base and market pools.
+// CloneState copies what UpdateState mutates in place: the base and market pools.
 // Parents and Route are read-only after construction and shared.
 // Reserves are reassigned wholesale by syncReserves.
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (s *PoolSimulator) CloneState() pool.IPoolSim {
 	c := *s
 	c.ParentPools = cloneBases(s.ParentPools)
 	c.Static.BasePools = append([]string(nil), s.Static.BasePools...)
@@ -359,11 +356,11 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	}
 	return &c
 }
-func (s *PoolSimulator) allBases() []pool.IPoolSimulator {
-	return append([]pool.IPoolSimulator{s.Base}, s.ParentPools...)
+func (s *PoolSimulator) allBases() []pool.IPoolSim {
+	return append([]pool.IPoolSim{s.Base}, s.ParentPools...)
 }
-func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
-	out := append([]pool.IPoolSimulator(nil), s.ParentPools...)
+func (s *PoolSimulator) GetBasePools() []pool.IPoolSim {
+	out := append([]pool.IPoolSim(nil), s.ParentPools...)
 	if s.Base != nil {
 		out = append(out, s.Base)
 	}
@@ -372,7 +369,7 @@ func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
 	}
 	return out
 }
-func (s *PoolSimulator) SetBasePool(p pool.IPoolSimulator) {
+func (s *PoolSimulator) SetBasePool(p pool.IPoolSim) {
 	if p == nil {
 		return
 	}
@@ -414,6 +411,30 @@ func (s *PoolSimulator) SetBasePool(p pool.IPoolSimulator) {
 		s.MarketPool = c
 		s.Revision++
 	}
+}
+func (s *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(s.Info.Reserves))
+	for i, r := range s.Info.Reserves {
+		out[i] = reserveToU256(r)
+	}
+	return out
+}
+
+// CalcLimit returns nil: flywheel pools have no shared inventory limit.
+func (s *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
+}
+
+// reserveToU256 converts a reserve. A nil or negative reserve becomes zero.
+func reserveToU256(b *big.Int) uint256.Int {
+	if b == nil || b.Sign() < 0 {
+		return uint256.Int{}
+	}
+	u, overflow := uint256.FromBig(b)
+	if overflow {
+		return uint256.Int{}
+	}
+	return *u
 }
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return Meta{Settlement: Settlement, Token: s.Info.Address, BlockNumber: s.Info.BlockNumber}

@@ -87,7 +87,7 @@ type SwapStep struct {
 	Before       string
 	NativeFeeETH uint256.Int
 	Index        int // -1 = canonical market, 0 = external base, 1..2 = native parents
-	Params       pool.UpdateBalanceParams
+	Params       pool.UpdateStateParams
 }
 type Meta struct {
 	Settlement  string `json:"settlement"`

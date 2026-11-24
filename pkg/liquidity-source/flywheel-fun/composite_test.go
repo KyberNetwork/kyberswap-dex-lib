@@ -1,7 +1,6 @@
 package flywheelfun
 
 import (
-	"context"
 	"math/big"
 	"os"
 	"strings"
@@ -52,9 +51,9 @@ func withIndexedBases(t testing.TB, p entity.Pool) entity.Pool {
 	return p
 }
 
-func baseSim(t testing.TB, ep entity.Pool) pool.IPoolSimulator {
+func baseSim(t testing.TB, ep entity.Pool) pool.IPoolSim {
 	t.Helper()
-	var s pool.IPoolSimulator
+	var s pool.IPoolSim
 	var err error
 	if ep.Type == v3.DexTypeUniswapV3 {
 		s, err = v3.NewPoolSimulator(ep, 4663)
@@ -66,13 +65,13 @@ func baseSim(t testing.TB, ep entity.Pool) pool.IPoolSimulator {
 }
 
 // baseMap stands in for router-service's basePoolMap of indexed uniswap pools.
-func baseMap(t testing.TB, p entity.Pool) map[string]pool.IPoolSimulator {
+func baseMap(t testing.TB, p entity.Pool) map[string]pool.IPoolSim {
 	t.Helper()
 	var ex struct {
 		RoutePools []entity.Pool `json:"routePools"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &ex))
-	out := make(map[string]pool.IPoolSimulator, len(ex.RoutePools))
+	out := make(map[string]pool.IPoolSim, len(ex.RoutePools))
 	for _, ep := range ex.RoutePools {
 		require.Equal(t, p.BlockNumber, ep.BlockNumber)
 		out[ep.Address] = baseSim(t, ep)
@@ -86,9 +85,9 @@ func newSim(t testing.TB, p entity.Pool) *PoolSimulator {
 	require.NoError(t, err)
 	return s
 }
-func quoteBuy(t *testing.T, s *PoolSimulator, amount int64) *pool.CalcAmountOutResult {
+func quoteBuy(t *testing.T, s *PoolSimulator, amount int64) *pool.CalcAmtOutResult {
 	t.Helper()
-	r, e := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: big.NewInt(amount)}, TokenOut: s.Info.Address})
+	r, e := s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: WETH, Amount: *uint256.NewInt(uint64(amount))}, TokenOut: s.Info.Address})
 	require.NoError(t, e)
 	return r
 }
@@ -109,23 +108,24 @@ func TestBasePoolsFromBaseMap(t *testing.T) {
 	require.Equal(t, price, fingerprint(base), "quotes do not mutate the base")
 
 	clone := s.CloneState().(*PoolSimulator)
-	clone.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: q.SwapInfo})
+	clone.UpdateState(pool.UpdateStateParams{SwapInfo: q.SwapInfo})
 	require.True(t, clone.Valid)
 	require.Equal(t, price, fingerprint(base), "clones own their bases")
-	direct := func(b pool.IPoolSimulator) *big.Int {
-		r, e := pool.DefaultCalcAmtOut(context.Background(), b, pool.TokenAmount{Token: WETH, Amount: big.NewInt(1000000000)}, s.Static.Quote, nil)
+	direct := func(b pool.IPoolSim) uint256.Int {
+		r, e := b.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: WETH, Amount: *uint256.NewInt(1000000000)}, TokenOut: s.Static.Quote})
 		require.NoError(t, e)
 		return r.TokenAmountOut.Amount
 	}
-	require.Negative(t, direct(clone.Base).Cmp(direct(base)), "the route leg consumed the clone's base liquidity")
-	require.Negative(t, quoteBuy(t, clone, 1000000000).TokenAmountOut.Amount.Cmp(q.TokenAmountOut.Amount))
+	cloneOut, baseOut := direct(clone.Base), direct(base)
+	require.Negative(t, cloneOut.Cmp(&baseOut), "the route leg consumed the clone's base liquidity")
+	require.Negative(t, quoteBuy(t, clone, 1000000000).TokenAmountOut.Amount.Cmp(&q.TokenAmountOut.Amount))
 
-	clone.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: q.SwapInfo})
+	clone.UpdateState(pool.UpdateStateParams{SwapInfo: q.SwapInfo})
 	require.False(t, clone.Valid, "a stale quote is rejected")
 	relinked := s.CloneState().(*PoolSimulator)
 	relinked.SetBasePool(base)
 	require.Same(t, base, relinked.Base)
-	relinked.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: q.SwapInfo})
+	relinked.UpdateState(pool.UpdateStateParams{SwapInfo: q.SwapInfo})
 	require.False(t, relinked.Valid, "quotes taken on the old base no longer apply")
 }
 func TestCompositeSnapshotsPurityAndProtection(t *testing.T) {
@@ -135,12 +135,12 @@ func TestCompositeSnapshotsPurityAndProtection(t *testing.T) {
 		second := quoteBuy(t, s, 1000000000)
 		require.Equal(t, first, second)
 		clone := s.CloneState().(*PoolSimulator)
-		s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: first.SwapInfo})
+		s.UpdateState(pool.UpdateStateParams{SwapInfo: first.SwapInfo})
 		require.Equal(t, second.TokenAmountOut.Amount, quoteBuy(t, clone, 1000000000).TokenAmountOut.Amount)
-		large, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: new(big.Int).Lsh(big.NewInt(1), 255)}, TokenOut: s.Info.Address})
+		large, err := s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: WETH, Amount: *new(uint256.Int).Lsh(uint256.NewInt(1), 255)}, TokenOut: s.Info.Address})
 		if s.Static.Quote == WETH && !s.Curve.Graduated {
 			require.NoError(t, err)
-			require.Positive(t, large.RemainingTokenAmountIn.Amount.Sign())
+			require.False(t, large.RemainingTokenAmountIn.Amount.IsZero())
 			require.True(t, large.SwapInfo.(SwapInfo).Next.Graduated)
 		} else {
 			require.Error(t, err)
@@ -170,9 +170,9 @@ func TestDirectionalProtocolFee(t *testing.T) {
 	isolated := s.MarketPool.CloneState().(*v3.PoolSimulator)
 	out, _, _, err := swapCL(isolated, &split.Net, WETH, s.Info.Address, rate, -1)
 	require.NoError(t, err)
-	require.Equal(t, out.ToBig(), q.TokenAmountOut.Amount)
-	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: info})
-	sell, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: *q.TokenAmountOut, TokenOut: WETH})
+	require.Equal(t, out, q.TokenAmountOut.Amount)
+	s.UpdateState(pool.UpdateStateParams{SwapInfo: info})
+	sell, err := s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: *q.TokenAmountOut, TokenOut: WETH})
 	require.NoError(t, err)
 	require.False(t, sell.SwapInfo.(SwapInfo).Buy)
 	e.Protocol[0] = 1001
@@ -183,7 +183,7 @@ func TestDirectionalProtocolFee(t *testing.T) {
 }
 
 // syntheticBase is a full-range WETH/quote base pool: kind 3 = uniswapv3, 4 = native-ETH uniswap-v4.
-func syntheticBase(t *testing.T, quote string, kind uint8, block uint64, forgedID string) (pool.IPoolSimulator, string) {
+func syntheticBase(t *testing.T, quote string, kind uint8, block uint64, forgedID string) (pool.IPoolSim, string) {
 	t.Helper()
 	liq := new(big.Int).Exp(big.NewInt(10), big.NewInt(24), nil)
 	key := poolKey{Currency1: common.HexToAddress(quote), Fee: big.NewInt(3000), TickSpacing: big.NewInt(60)}
@@ -211,7 +211,7 @@ func TestRouteFromBasePool(t *testing.T) {
 		st.BasePools = []string{id}
 		raw, _ := json.Marshal(st)
 		p.StaticExtra = string(raw)
-		s, err := NewPoolSimulatorWithBases(p, map[string]pool.IPoolSimulator{id: base})
+		s, err := NewPoolSimulatorWithBases(p, map[string]pool.IPoolSim{id: base})
 		require.NoError(t, err)
 		q := quoteBuy(t, s, 10000000000)
 		info := q.SwapInfo.(SwapInfo)
@@ -230,24 +230,24 @@ func TestRouteFromBasePool(t *testing.T) {
 			require.Equal(t, int64(3000), hops[0].Key.Fee.Int64())
 			require.Equal(t, int64(60), hops[0].Key.TickSpacing.Int64())
 		}
-		s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: info})
-		sell, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: *q.TokenAmountOut, TokenOut: WETH})
+		s.UpdateState(pool.UpdateStateParams{SwapInfo: info})
+		sell, err := s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: *q.TokenAmountOut, TokenOut: WETH})
 		require.NoError(t, err)
 		require.Equal(t, info.Route, sell.SwapInfo.(SwapInfo).Route, "one hop encodes the same both ways")
-		require.Less(t, sell.TokenAmountOut.Amount.Cmp(big.NewInt(10000000000)), 0)
+		require.Less(t, sell.TokenAmountOut.Amount.Cmp(uint256.NewInt(10000000000)), 0)
 	}
 	base, id := syntheticBase(t, st.Quote, 4, p.BlockNumber, "")
 	other, _ := syntheticBase(t, "0x3000000000000000000000000000000000000000", 4, p.BlockNumber, "")
 	forged, forgedID := syntheticBase(t, st.Quote, 4, p.BlockNumber, "0x"+strings.Repeat("ab", 32))
 	for name, c := range map[string]struct {
 		basePools []string
-		bases     map[string]pool.IPoolSimulator
+		bases     map[string]pool.IPoolSim
 		err       error
 	}{
 		"missing base":     {[]string{id}, nil, ErrBasePool},
-		"two hops":         {[]string{id, id}, map[string]pool.IPoolSimulator{id: base}, ErrState},
-		"base lacks quote": {[]string{id}, map[string]pool.IPoolSimulator{id: other}, ErrState},
-		"id not the key":   {[]string{forgedID}, map[string]pool.IPoolSimulator{forgedID: forged}, ErrState},
+		"two hops":         {[]string{id, id}, map[string]pool.IPoolSim{id: base}, ErrState},
+		"base lacks quote": {[]string{id}, map[string]pool.IPoolSim{id: other}, ErrState},
+		"id not the key":   {[]string{forgedID}, map[string]pool.IPoolSim{forgedID: forged}, ErrState},
 	} {
 		st.BasePools = c.basePools
 		raw, _ := json.Marshal(st)
@@ -267,7 +267,7 @@ func TestRefundsFlagReachesEncoder(t *testing.T) {
 		}
 		small := quoteBuy(t, s, 1000000000).SwapInfo.(SwapInfo)
 		require.False(t, small.Refunds)
-		large, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: new(big.Int).Lsh(big.NewInt(1), 100)}, TokenOut: s.Info.Address})
+		large, err := s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: WETH, Amount: *new(uint256.Int).Lsh(uint256.NewInt(1), 100)}, TokenOut: s.Info.Address})
 		if err != nil {
 			continue
 		}

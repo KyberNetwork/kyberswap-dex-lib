@@ -25,7 +25,7 @@ func TestNativeParentsSharedLiquidityAndClones(t *testing.T) {
 		}
 		a, err := NewPoolSimulator(p)
 		require.NoError(t, err)
-		bases := map[string]pool.IPoolSimulator{}
+		bases := map[string]pool.IPoolSim{}
 		for _, base := range a.GetBasePools() {
 			bases[base.GetAddress()] = base
 		}
@@ -37,7 +37,7 @@ func TestNativeParentsSharedLiquidityAndClones(t *testing.T) {
 		before := quoteBuy(t, child, 10000000000)
 		cloned := child.CloneState().(*PoolSimulator)
 		first := quoteBuy(t, a, 10000000000)
-		a.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: first.SwapInfo})
+		a.UpdateState(pool.UpdateStateParams{SwapInfo: first.SwapInfo})
 		after := quoteBuy(t, child, 10000000000)
 		require.NotEqual(t, [2]string{before.TokenAmountOut.Amount.String(), before.RemainingTokenAmountIn.Amount.String()}, [2]string{after.TokenAmountOut.Amount.String(), after.RemainingTokenAmountIn.Amount.String()}, "shared parent price impact must change received tokens or the capped-graduation refund")
 		require.Equal(t, before.TokenAmountOut.Amount.String(), quoteBuy(t, cloned, 10000000000).TokenAmountOut.Amount.String())
@@ -45,7 +45,7 @@ func TestNativeParentsSharedLiquidityAndClones(t *testing.T) {
 		for i, base := range child.ParentPools {
 			prior[i] = fingerprint(base)
 		}
-		child.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: before.SwapInfo})
+		child.UpdateState(pool.UpdateStateParams{SwapInfo: before.SwapInfo})
 		require.False(t, child.Valid)
 		for i, base := range child.ParentPools {
 			require.Equal(t, prior[i], fingerprint(base), "stale replay must not partially update any parent")

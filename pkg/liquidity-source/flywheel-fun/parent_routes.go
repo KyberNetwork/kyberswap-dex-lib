@@ -33,7 +33,7 @@ func validateParents(token, quote string, parents []NativeParent) (string, error
 	}
 	return current, nil
 }
-func nativeCore(base pool.IPoolSimulator, expected entity.Pool, block uint64) (*v3.PoolSimulator, error) {
+func nativeCore(base pool.IPoolSim, expected entity.Pool, block uint64) (*v3.PoolSimulator, error) {
 	c, ok := base.(*v3.PoolSimulator)
 	if !ok || c.GetAddress() != expected.Address || c.Info.BlockNumber != block || expected.BlockNumber != block || len(c.Info.Tokens) != 2 || len(expected.Tokens) != 2 {
 		return nil, ErrState
@@ -45,7 +45,7 @@ func nativeCore(base pool.IPoolSimulator, expected entity.Pool, block uint64) (*
 	}
 	return c, nil
 }
-func (s *PoolSimulator) bindParents(baseMap map[string]pool.IPoolSimulator) error {
+func (s *PoolSimulator) bindParents(baseMap map[string]pool.IPoolSim) error {
 	for _, p := range s.Parents {
 		if p.Pool.BlockNumber != s.Info.BlockNumber {
 			return ErrState
@@ -87,7 +87,7 @@ func (s *PoolSimulator) parentTokens() []string {
 // Parent platform allocations are taken before external routing, in the same
 // nearest-parent-first order as settlement's frames; quote allocations occur
 // in reverse order as each parent is bought.
-func (s *PoolSimulator) routeSwap(amount *uint256.Int, buy bool, bases []pool.IPoolSimulator) (uint256.Int, []SwapStep, int64, error) {
+func (s *PoolSimulator) routeSwap(amount *uint256.Int, buy bool, bases []pool.IPoolSim) (uint256.Int, []SwapStep, int64, error) {
 	if len(s.Parents) == 0 {
 		return s.externalSwap(amount, buy, bases)
 	}

@@ -103,24 +103,24 @@ func testEntity() entity.Pool {
 func TestSimulatorPurityCloneAndStateUpdate(t *testing.T) {
 	s, err := NewPoolSimulator(testEntity())
 	require.NoError(t, err)
-	p := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: big.NewInt(1000)}, TokenOut: s.Info.Address}
-	first, err := s.CalcAmountOut(p)
+	p := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: WETH, Amount: *uint256.NewInt(1000)}, TokenOut: s.Info.Address}
+	first, err := s.CalcAmtOut(p)
 	require.NoError(t, err)
-	second, err := s.CalcAmountOut(p)
+	second, err := s.CalcAmtOut(p)
 	require.NoError(t, err)
 	require.Equal(t, first, second)
 	require.Equal(t, testCurve(), s.Curve)
 	clone := s.CloneState().(*PoolSimulator)
-	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: first.SwapInfo})
+	s.UpdateState(pool.UpdateStateParams{SwapInfo: first.SwapInfo})
 	require.NotEqual(t, clone.Curve, s.Curve)
 	require.Equal(t, testCurve(), clone.Curve)
 	s.Info.Reserves[0].SetInt64(1)
 	require.NotEqual(t, s.Info.Reserves, clone.Info.Reserves)
-	sell, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: *first.TokenAmountOut, TokenOut: WETH})
+	sell, err := s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: *first.TokenAmountOut, TokenOut: WETH})
 	require.NoError(t, err)
-	require.True(t, sell.TokenAmountOut.Amount.Cmp(big.NewInt(1000)) < 0)
-	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: first.SwapInfo})
-	_, err = s.CalcAmountOut(p)
+	require.True(t, sell.TokenAmountOut.Amount.Cmp(uint256.NewInt(1000)) < 0)
+	s.UpdateState(pool.UpdateStateParams{SwapInfo: first.SwapInfo})
+	_, err = s.CalcAmtOut(p)
 	require.Error(t, err)
 }
 func TestUnsupportedSnapshotsFailClosed(t *testing.T) {
@@ -144,11 +144,9 @@ func TestUnsupportedSnapshotsFailClosed(t *testing.T) {
 func TestMalformedSwapInputs(t *testing.T) {
 	s, err := NewPoolSimulator(testEntity())
 	require.NoError(t, err)
-	for _, amount := range []*big.Int{nil, big.NewInt(0), big.NewInt(-1), new(big.Int).Lsh(big.NewInt(1), 256)} {
-		_, err = s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: amount}, TokenOut: s.Info.Address})
-		require.Error(t, err)
-	}
-	_, err = s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: big.NewInt(100)}, TokenOut: WETH})
+	_, err = s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: WETH, Amount: uint256.Int{}}, TokenOut: s.Info.Address})
+	require.Error(t, err)
+	_, err = s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: WETH, Amount: *uint256.NewInt(100)}, TokenOut: WETH})
 	require.Error(t, err)
 	require.Equal(t, testCurve(), s.Curve)
 }

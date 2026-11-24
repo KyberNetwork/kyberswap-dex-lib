@@ -128,9 +128,9 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 			external[st.Quote] = x.Route[0]
 		}
 	}
-	hydrate := func(ep entity.Pool) (entity.Pool, map[string]pool.IPoolSimulator) {
+	hydrate := func(ep entity.Pool) (entity.Pool, map[string]pool.IPoolSim) {
 		t.Helper()
-		bases := map[string]pool.IPoolSimulator{}
+		bases := map[string]pool.IPoolSim{}
 		var st StaticExtra
 		require.NoError(t, json.Unmarshal([]byte(ep.StaticExtra), &st))
 		if h, ok := external[st.Quote]; ok {
@@ -171,8 +171,8 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 				}
 				sim, e := NewPoolSimulatorWithBases(ep, bases)
 				require.NoError(t, e)
-				params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: big.NewInt(amount)}, TokenOut: tc.token}
-				quote, e := sim.CalcAmountOut(params)
+				params := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: WETH, Amount: *uint256.NewInt(uint64(amount))}, TokenOut: tc.token}
+				quote, e := sim.CalcAmtOut(params)
 				require.NoError(t, e)
 				token := common.HexToAddress(tc.token)
 				info := quote.SwapInfo.(SwapInfo)
@@ -196,7 +196,7 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 				refund := new(big.Int).Sub(balance(native, exec), beforeETH)
 				refund.Add(refund, big.NewInt(amount)).Add(refund, lastCost)
 				require.Equal(t, quote.RemainingTokenAmountIn.Amount.String(), refund.String())
-				sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: quote.SwapInfo})
+				sim.UpdateState(pool.UpdateStateParams{SwapInfo: quote.SwapInfo})
 				if quote.SwapInfo.(SwapInfo).Next.Graduated && sim.MarketPool == nil {
 					require.False(t, sim.Valid)
 					require.Positive(t, refund.Sign())
@@ -206,7 +206,7 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 				}
 				require.True(t, sim.Valid)
 				sold := new(big.Int).Div(received, big.NewInt(2))
-				sell, e := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: tc.token, Amount: sold}, TokenOut: WETH})
+				sell, e := sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: tc.token, Amount: *uint256.MustFromBig(sold)}, TokenOut: WETH})
 				require.NoError(t, e)
 				send(exec, token, mustPack(t, erc20ABI, "approve", settlement, sold), nil)
 				call, e = settlementABI.Pack("sell", token, sold, one, one, deadline, []byte(sell.SwapInfo.(SwapInfo).Route))
@@ -217,7 +217,7 @@ func TestLocalForkQuoteExecutionParity(t *testing.T) {
 				after := balance(native, exec)
 				received.Sub(after, before).Add(received, lastCost)
 				require.Equal(t, sell.TokenAmountOut.Amount.String(), received.String(), "sell after UpdateBalance must match actual base units")
-				t.Logf("input %d: buy %s; sell half %s; refund %s; gas %d/%d", amount, quote.TokenAmountOut.Amount, received, refund, buyGas, lastGas)
+				t.Logf("input %d: buy %s; sell half %s; refund %s; gas %d/%d", amount, quote.TokenAmountOut.Amount.Dec(), received, refund, buyGas, lastGas)
 			}
 		})
 	}
@@ -238,14 +238,14 @@ func mustPack(t *testing.T, a abi.ABI, method string, args ...any) []byte {
 func TestCurveRefund(t *testing.T) {
 	s, e := NewPoolSimulator(testEntity())
 	require.NoError(t, e)
-	q, e := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: big.NewInt(2000000)}, TokenOut: s.Info.Address})
+	q, e := s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: WETH, Amount: *uint256.NewInt(2000000)}, TokenOut: s.Info.Address})
 	require.NoError(t, e)
 	info := q.SwapInfo.(SwapInfo)
 	require.True(t, info.Next.Graduated)
-	require.Positive(t, info.Refund.Sign())
+	require.False(t, info.Refund.IsZero())
 	require.True(t, info.Refund.Cmp(&info.RefundRouteOutput) >= 0)
 	require.True(t, info.Refunds)
-	s.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: info})
+	s.UpdateState(pool.UpdateStateParams{SwapInfo: info})
 	require.False(t, s.Valid, "requires refreshed pool state after migration")
 	amount := uint256.NewInt(1000)
 	out, next, used, e := CurveFill(testCurve(), amount, true)

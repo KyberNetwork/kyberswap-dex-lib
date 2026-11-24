@@ -1,8 +1,9 @@
 package flywheelfun
 
 import (
-	"math/big"
 	"testing"
+
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -20,16 +21,16 @@ func FuzzCompositeQuotePurity(f *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: WETH, Amount: new(big.Int).SetUint64(amount)}, TokenOut: p.Address}
-		input := new(big.Int).Set(params.TokenAmountIn.Amount)
+		params := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: WETH, Amount: *uint256.NewInt(amount)}, TokenOut: p.Address}
+		input := params.TokenAmountIn.Amount
 		curve := s.Curve
 		before := make([]string, len(s.allBases()))
 		for i, b := range s.allBases() {
 			before[i] = fingerprint(b)
 		}
-		first, e1 := s.CalcAmountOut(params)
-		second, e2 := s.CalcAmountOut(params)
-		if (e1 == nil) != (e2 == nil) || curve != s.Curve || input.Cmp(params.TokenAmountIn.Amount) != 0 {
+		first, e1 := s.CalcAmtOut(params)
+		second, e2 := s.CalcAmtOut(params)
+		if (e1 == nil) != (e2 == nil) || curve != s.Curve || !input.Eq(&params.TokenAmountIn.Amount) {
 			t.Fatal("quote mutated state or input")
 		}
 		for i, b := range s.allBases() {
@@ -40,17 +41,17 @@ func FuzzCompositeQuotePurity(f *testing.F) {
 		if e1 != nil {
 			return
 		}
-		if first.TokenAmountOut.Amount.Cmp(second.TokenAmountOut.Amount) != 0 || first.TokenAmountOut.Amount.Sign() <= 0 || first.Fee.Amount.Sign() < 0 || first.RemainingTokenAmountIn.Amount.Sign() < 0 || first.RemainingTokenAmountIn.Amount.Cmp(input) > 0 {
+		if first.TokenAmountOut.Amount.Cmp(&second.TokenAmountOut.Amount) != 0 || first.TokenAmountOut.Amount.IsZero() || first.RemainingTokenAmountIn.Amount.Cmp(&input) > 0 {
 			t.Fatal("invalid or nondeterministic quote")
 		}
 		cloned := s.CloneState().(*PoolSimulator)
-		cloned.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: first.SwapInfo})
-		third, err := s.CalcAmountOut(params)
-		if err != nil || third.TokenAmountOut.Amount.Cmp(first.TokenAmountOut.Amount) != 0 {
+		cloned.UpdateState(pool.UpdateStateParams{SwapInfo: first.SwapInfo})
+		third, err := s.CalcAmtOut(params)
+		if err != nil || third.TokenAmountOut.Amount.Cmp(&first.TokenAmountOut.Amount) != 0 {
 			t.Fatal("clone update changed original")
 		}
 		info := first.SwapInfo.(SwapInfo)
-		if info.Refunds != (first.RemainingTokenAmountIn.Amount.Sign() > 0) {
+		if info.Refunds != !first.RemainingTokenAmountIn.Amount.IsZero() {
 			t.Fatal("Refunds must match the quoted refund")
 		}
 	})
