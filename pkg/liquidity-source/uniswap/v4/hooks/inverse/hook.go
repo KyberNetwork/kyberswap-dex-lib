@@ -39,7 +39,7 @@ func (h *Hook) AllowEmptyTicks() bool             { return true }
 func (h *Hook) CanBeforeSwap(common.Address) bool { return true }
 func (h *Hook) CanAfterSwap(common.Address) bool  { return false }
 func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	if p == nil {
+	if p == nil || p.AmountSpecified == nil {
 		return nil, ErrBounds
 	}
 	if !p.CalcOut {
