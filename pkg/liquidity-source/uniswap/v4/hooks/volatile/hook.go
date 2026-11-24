@@ -91,6 +91,8 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 // BeforeSwap mirrors VolatilePairHook._beforeSwap. A sim swap runs in a later block than the tracked state,
 // so the first one advances the state as the first swap of a new block does; later legs of the route
 // (advanced) see that state and the post-swap price. The fee never depends on the swap size.
+// The Robinhood impl zeroes the temp fee when the swap block exceeds the stored block by more than
+// maxTempFeeBlockGap (2). Not modelled on purpose: the pool can't be assumed idle for over 2 blocks (~200ms), so the temp fee always applies.
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.Config.RestingSpread == 0 {
 		return nil, ErrPoolIsNotTracked
