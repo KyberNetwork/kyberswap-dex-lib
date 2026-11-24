@@ -1,10 +1,11 @@
 package apefun_test
 
 import (
-	"context"
-	"math/big"
+	"bytes"
 	"testing"
 
+	"github.com/holiman/uint256"
+	"github.com/klauspost/compress/snappy"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -39,14 +40,22 @@ func TestSimulatorSerialization(t *testing.T) {
 	}
 	sim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDRobinhood)
 	require.NoError(t, err)
-	sims := map[string]pool.IPoolSimulator{p.Address: sim}
+	sims := map[string]pool.IPoolSim{p.Address: sim}
 	for range 2 {
-		encoded, err := msgpack.EncodePoolSimulatorsMap(sims)
-		require.NoError(t, err)
-		sims, err = msgpack.DecodePoolSimulatorsMap(encoded)
-		require.NoError(t, err)
+		var buf bytes.Buffer
+		zw := snappy.NewBufferedWriter(&buf)
+		en := msgpack.NewEncoder(zw)
+		require.NoError(t, en.Encode(sims))
+		msgpack.PutEncoder(en)
+		require.NoError(t, zw.Close())
+		sims = map[string]pool.IPoolSim{}
+		de := msgpack.NewDecoder(snappy.NewReader(bytes.NewReader(buf.Bytes())))
+		require.NoError(t, de.Decode(&sims))
+		msgpack.PutDecoder(de)
 	}
-	res, err := pool.DefaultCalcAmtOut(context.Background(), sims[p.Address], pool.TokenAmount{Token: weth, Amount: big.NewInt(1e16)}, rh4, nil)
+	var amtIn uint256.Int
+	amtIn.SetUint64(1e16)
+	res, err := sims[p.Address].CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: weth, Amount: amtIn}, TokenOut: rh4})
 	require.NoError(t, err)
 	require.Equal(t, "5550332439725505417402886", res.TokenAmountOut.Amount.String())
 }
