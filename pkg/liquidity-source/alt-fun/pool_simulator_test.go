@@ -1,7 +1,6 @@
 package altfun
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -53,7 +52,7 @@ func newBtPool(t *testing.T, exchangeRate, redemptionFee, targetLeverage, minTxS
 	return sim
 }
 
-func TestCalcAmountOutBuyPresizesAgainstGraduationAndProratesFee(t *testing.T) {
+func TestCalcAmtOutBuyPresizesAgainstGraduationAndProratesFee(t *testing.T) {
 	reserveToken := mustU256("1000000000000000000000000000") // 1B tokens
 	reserveAsset := mustU256("3000000000000000000000")       // 3,000 LT
 	k := new(uint256.Int).Mul(reserveToken, reserveAsset)
@@ -81,8 +80,8 @@ func TestCalcAmountOutBuyPresizesAgainstGraduationAndProratesFee(t *testing.T) {
 		buyFeeBps:              100,
 	}, btPool)
 
-	res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testUSDC, Amount: big.NewInt(100_000_000)},
+	res, err := s.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: testUSDC, Amount: *uint256.NewInt(100_000_000)},
 		TokenOut:      testMeme,
 	})
 	require.NoError(t, err)
@@ -92,46 +91,46 @@ func TestCalcAmountOutBuyPresizesAgainstGraduationAndProratesFee(t *testing.T) {
 		reserveToken,
 		new(uint256.Int).Div(k, new(uint256.Int).Add(reserveAsset, ltUntilGrad)),
 	)
-	require.Equal(t, wantTokensOut.ToBig().String(), res.TokenAmountOut.Amount.String())
-	require.Equal(t, "505050", res.Fee.Amount.String())
+	require.Equal(t, wantTokensOut.Dec(), res.TokenAmountOut.Amount.Dec())
+	require.Equal(t, "505050", res.Fee.Amount.Dec())
 	require.NotNil(t, res.RemainingTokenAmountIn)
-	require.Equal(t, "49494950", res.RemainingTokenAmountIn.Amount.String())
+	require.Equal(t, "49494950", res.RemainingTokenAmountIn.Amount.Dec())
 
 	swapInfo := res.SwapInfo.(SwapInfo)
-	require.Equal(t, ltUntilGrad.ToBig().String(), swapInfo.AmountInUsed.ToBig().String())
-	require.Equal(t, "50000000", swapInfo.BaseToConvert.ToBig().String())
+	require.Equal(t, ltUntilGrad.Dec(), swapInfo.AmountInUsed.Dec())
+	require.Equal(t, "50000000", swapInfo.BaseToConvert.Dec())
 
-	s.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: testUSDC, Amount: big.NewInt(100_000_000)},
+	s.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: testUSDC, Amount: *uint256.NewInt(100_000_000)},
 		TokenAmountOut: *res.TokenAmountOut,
 		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
 	})
 
-	require.Equal(t, "3050000000000000000000", s.reserveAsset.ToBig().String())
+	require.Equal(t, "3050000000000000000000", s.reserveAsset.Dec())
 	require.Equal(t,
-		new(uint256.Int).Div(k, mustU256("3050000000000000000000")).ToBig().String(),
-		s.reserveToken.ToBig().String(),
+		new(uint256.Int).Div(k, mustU256("3050000000000000000000")).Dec(),
+		s.reserveToken.Dec(),
 	)
 	// After consuming all ltUntilGrad, lifecycle transitions to Graduating.
 	require.Equal(t, LifecycleGraduating, s.lifecycle)
 }
 
-func TestCalcAmountOutBuyRejectsPostFeeAmountBelowMin(t *testing.T) {
+func TestCalcAmtOutBuyRejectsPostFeeAmountBelowMin(t *testing.T) {
 	btPool := newBtPool(t,
 		uint256.NewInt(1e18), uint256.NewInt(1e16), uint256.NewInt(3e18),
 		uint256.NewInt(10_000_000), uint256.NewInt(1_000_000_000), false,
 	)
 	s := newAltFunTestSimulator(t, altFunDefaultState(), btPool)
 
-	_, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testUSDC, Amount: big.NewInt(10_000_000)},
+	_, err := s.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: testUSDC, Amount: *uint256.NewInt(10_000_000)},
 		TokenOut:      testMeme,
 	})
 	require.ErrorIs(t, err, ErrBelowMinAmount)
 }
 
-func TestCalcAmountOutSellRejectsWhenRedeemGrossExceedsBaseBalance(t *testing.T) {
+func TestCalcAmtOutSellRejectsWhenRedeemGrossExceedsBaseBalance(t *testing.T) {
 	// Set very low base balance so the sell will exceed it.
 	btPool := newBtPool(t,
 		uint256.NewInt(1e18), uint256.NewInt(1e16), uint256.NewInt(3e18),
@@ -139,33 +138,33 @@ func TestCalcAmountOutSellRejectsWhenRedeemGrossExceedsBaseBalance(t *testing.T)
 	)
 	s := newAltFunTestSimulator(t, altFunDefaultState(), btPool)
 
-	_, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testMeme, Amount: mustBig("10000000000000000000000000")},
+	_, err := s.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: testMeme, Amount: *mustU256("10000000000000000000000000")},
 		TokenOut:      testUSDC,
 	})
 	// Error comes from the bounce-tech base pool (insufficient USDC reserve in LT contract).
 	require.Error(t, err)
 }
 
-func TestUpdateBalanceSellUpdatesCurveReserves(t *testing.T) {
+func TestUpdateStateSellUpdatesCurveReserves(t *testing.T) {
 	btPool := newBtPool(t,
 		uint256.NewInt(1e18), uint256.NewInt(1e16), uint256.NewInt(3e18),
 		uint256.NewInt(10_000_000), uint256.NewInt(1_000_000_000), false,
 	)
 	s := newAltFunTestSimulator(t, altFunDefaultState(), btPool)
 
-	tokenIn := mustBig("10000000000000000000000000")
+	tokenIn := mustU256("10000000000000000000000000")
 	beforeReserveToken := new(uint256.Int).Set(s.reserveToken)
 	beforeReserveAsset := new(uint256.Int).Set(s.reserveAsset)
 
-	res, err := s.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testMeme, Amount: tokenIn},
+	res, err := s.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: testMeme, Amount: *tokenIn},
 		TokenOut:      testUSDC,
 	})
 	require.NoError(t, err)
 
-	s.UpdateBalance(pool.UpdateBalanceParams{
-		TokenAmountIn:  pool.TokenAmount{Token: testMeme, Amount: tokenIn},
+	s.UpdateState(pool.UpdateStateParams{
+		TokenAmountIn:  pool.TokenAmt{Token: testMeme, Amount: *tokenIn},
 		TokenAmountOut: *res.TokenAmountOut,
 		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
@@ -223,7 +222,7 @@ func newAltFunTestSimulator(t *testing.T, state altFunTestState, btPool *bouncet
 	})
 	require.NoError(t, err)
 
-	basePoolMap := map[string]pool.IPoolSimulator{
+	basePoolMap := map[string]pool.IPoolSim{
 		testLT: btPool,
 	}
 
@@ -248,12 +247,4 @@ func newAltFunTestSimulator(t *testing.T, state altFunTestState, btPool *bouncet
 
 func mustU256(s string) *uint256.Int {
 	return uint256.MustFromDecimal(s)
-}
-
-func mustBig(s string) *big.Int {
-	v, ok := new(big.Int).SetString(s, 10)
-	if !ok {
-		panic("invalid big int")
-	}
-	return v
 }

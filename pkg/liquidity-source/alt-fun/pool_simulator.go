@@ -1,7 +1,6 @@
 package altfun
 
 import (
-	"context"
 	"math/big"
 	"strings"
 
@@ -32,14 +31,14 @@ type PoolSimulator struct {
 	ltAddress              string // bounce-tech LT token address (≠ meme token, tokens[1])
 	graduationThresholdUsd *uint256.Int
 
-	btPool pool.IPoolSimulator
+	btPool pool.IPoolSim
 }
 
-var _ pool.IMetaPoolSimulator = (*PoolSimulator)(nil)
+var _ pool.IPoolSim = (*PoolSimulator)(nil)
 
 var _ = pool.RegisterFactoryMeta(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(ep entity.Pool, basePoolMap map[string]pool.IPoolSimulator) (*PoolSimulator, error) {
+func NewPoolSimulator(ep entity.Pool, basePoolMap map[string]pool.IPoolSim) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
 		return nil, err
@@ -85,25 +84,24 @@ func NewPoolSimulator(ep entity.Pool, basePoolMap map[string]pool.IPoolSimulator
 	}, nil
 }
 
-// GetBasePools implements IMetaPoolSimulator.
-func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
+// GetBasePools returns the bounce-tech base pool that quotes the LT leg.
+func (s *PoolSimulator) GetBasePools() []pool.IPoolSim {
 	if s.btPool == nil {
 		return nil
 	}
-	return []pool.IPoolSimulator{s.btPool}
+	return []pool.IPoolSim{s.btPool}
 }
 
-// SetBasePool implements IMetaPoolSimulator — called by the routing engine when
-// the bounce-tech base pool is refreshed.
-func (s *PoolSimulator) SetBasePool(p pool.IPoolSimulator) {
+// SetBasePool replaces the bounce-tech base pool when the routing engine refreshes it.
+func (s *PoolSimulator) SetBasePool(p pool.IPoolSim) {
 	if p != nil && strings.EqualFold(p.GetAddress(), s.ltAddress) {
 		s.btPool = p
 	}
 }
 
-// CalcAmountOut computes buy (USDC→meme) or sell (meme→USDC).
+// CalcAmtOut computes buy (USDC→meme) or sell (meme→USDC).
 // Token layout: tokens[0]=USDC, tokens[1]=meme.
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 
 	indexIn := s.GetTokenIndex(tokenAmountIn.Token)
@@ -122,16 +120,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrBasePoolNotFound
 	}
 
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrOverflow
-	}
+	amountIn := &tokenAmountIn.Amount
 
 	isBuy := indexIn == 0
 	var (
 		amountOut      *uint256.Int
 		fee            *uint256.Int
-		remainingAmtIn *pool.TokenAmount
+		remainingAmtIn *pool.TokenAmt
 		amountInUsed   *uint256.Int
 		baseToConvert  *uint256.Int
 		gas            int64
@@ -157,9 +152,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrZeroAmount
 	}
 
-	result := &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: fee.ToBig()},
+	result := &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
+		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *fee},
 		Gas:            gas,
 		SwapInfo: SwapInfo{
 			Pool:          s.zapAddress,
@@ -177,7 +172,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 // calcBuyOut: USDC → meme via Zap fee → BounceTech mint → bonding curve.
 func (s *PoolSimulator) calcBuyOut(
 	usdcIn *uint256.Int, tokenInAddr string,
-) (*uint256.Int, *uint256.Int, *pool.TokenAmount, *uint256.Int, *uint256.Int, error) {
+) (*uint256.Int, *uint256.Int, *pool.TokenAmt, *uint256.Int, *uint256.Int, error) {
 	if usdcIn.Lt(minUSDCU) {
 		return nil, nil, nil, nil, nil, ErrBelowMinAmount
 	}
@@ -191,12 +186,15 @@ func (s *PoolSimulator) calcBuyOut(
 	}
 
 	// ltIfFull: delegate USDC→LT to bounce-tech base pool.
-	ltIfFullResult, err := pool.DefaultCalcAmtOut(context.Background(), s.btPool, pool.TokenAmount{Token: s.Info.Tokens[0], Amount: netUsdc.ToBig()}, s.ltAddress, nil)
+	ltIfFullResult, err := s.btPool.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *netUsdc},
+		TokenOut:      s.ltAddress,
+	})
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
-	ltIfFull, overflow := uint256.FromBig(ltIfFullResult.TokenAmountOut.Amount)
-	if overflow || ltIfFull.IsZero() {
+	ltIfFull := &ltIfFullResult.TokenAmountOut.Amount
+	if ltIfFull.IsZero() {
 		return nil, nil, nil, nil, nil, ErrZeroAmount
 	}
 
@@ -229,12 +227,15 @@ func (s *PoolSimulator) calcBuyOut(
 	}
 
 	// Mint: delegate baseToConvert USDC → LT via bounce-tech.
-	ltMintResult, err := pool.DefaultCalcAmtOut(context.Background(), s.btPool, pool.TokenAmount{Token: s.Info.Tokens[0], Amount: baseToConvert.ToBig()}, s.ltAddress, nil)
+	ltMintResult, err := s.btPool.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *baseToConvert},
+		TokenOut:      s.ltAddress,
+	})
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
-	ltMinted, overflow := uint256.FromBig(ltMintResult.TokenAmountOut.Amount)
-	if overflow || ltMinted.IsZero() {
+	ltMinted := &ltMintResult.TokenAmountOut.Amount
+	if ltMinted.IsZero() {
 		return nil, nil, nil, nil, nil, ErrZeroAmount
 	}
 
@@ -275,9 +276,9 @@ func (s *PoolSimulator) calcBuyOut(
 	}
 	refund := new(uint256.Int).Add(usdcLeft, feeRefund)
 
-	var remaining *pool.TokenAmount
+	var remaining *pool.TokenAmt
 	if !refund.IsZero() {
-		remaining = &pool.TokenAmount{Token: tokenInAddr, Amount: refund.ToBig()}
+		remaining = &pool.TokenAmt{Token: tokenInAddr, Amount: *refund}
 	}
 
 	return tokensOut, actualFee, remaining, amountInUsed, baseToConvert, nil
@@ -296,19 +297,22 @@ func (s *PoolSimulator) calcSellOut(tokenIn *uint256.Int) (*uint256.Int, *uint25
 	}
 
 	// Delegate LT→USDC to bounce-tech base pool (handles btFee + liquidity check internally).
-	btResult, err := pool.DefaultCalcAmtOut(context.Background(), s.btPool, pool.TokenAmount{Token: s.ltAddress, Amount: ltOut.ToBig()}, s.Info.Tokens[0], nil)
+	btResult, err := s.btPool.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: s.ltAddress, Amount: *ltOut},
+		TokenOut:      s.Info.Tokens[0],
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-	grossUsdc, overflow := uint256.FromBig(btResult.TokenAmountOut.Amount)
-	if overflow || grossUsdc.IsZero() {
+	grossUsdc := &btResult.TokenAmountOut.Amount
+	if grossUsdc.IsZero() {
 		return nil, nil, ErrZeroAmount
 	}
 	if grossUsdc.Lt(minUSDCU) {
 		return nil, nil, ErrBelowMinAmount
 	}
 
-	btFee, _ := uint256.FromBig(btResult.Fee.Amount)
+	btFee := &btResult.Fee.Amount
 
 	// Zap sell fee on grossUsdc (= what redeem() returns, i.e. after btFee).
 	zapFee := new(uint256.Int).Mul(grossUsdc, s.sellFeeBps)
@@ -377,28 +381,24 @@ func (s *PoolSimulator) ltToBaseViaPool(ltAmount *uint256.Int) *uint256.Int {
 
 // baseToLTViaPool converts USDC → LT (approximate, for pre-sizing check).
 func (s *PoolSimulator) baseToLTViaPool(baseAmount *uint256.Int) (*uint256.Int, error) {
-	res, err := pool.DefaultCalcAmtOut(context.Background(), s.btPool, pool.TokenAmount{Token: s.Info.Tokens[0], Amount: baseAmount.ToBig()}, s.ltAddress, nil)
+	res, err := s.btPool.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *baseAmount},
+		TokenOut:      s.ltAddress,
+	})
 	if err != nil {
 		return nil, err
 	}
-	lt, _ := uint256.FromBig(res.TokenAmountOut.Amount)
-	return lt, nil
+	return &res.TokenAmountOut.Amount, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	si, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
 		return
 	}
 
-	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
-	if overflow {
-		return
-	}
-	amountOut, overflow := uint256.FromBig(params.TokenAmountOut.Amount)
-	if overflow {
-		return
-	}
+	amountIn := &params.TokenAmountIn.Amount
+	amountOut := &params.TokenAmountOut.Amount
 
 	if !si.IsSell {
 		ltIn := si.AmountInUsed
@@ -438,9 +438,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (s *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *s
-	// Only clone fields mutated in UpdateBalance.
+	// Only clone fields mutated in UpdateState.
 	// btPool, k, buyFeeBps, sellFeeBps, graduationThresholdUsd are read-only.
 	cloned.reserveToken = s.reserveToken.Clone()
 	cloned.reserveAsset = s.reserveAsset.Clone()
@@ -457,4 +457,30 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 		"blockNumber": s.Info.BlockNumber,
 		"zapAddress":  s.zapAddress,
 	}
+}
+
+// GetReserves returns the bonding-curve reserves as uint256, in token order.
+func (s *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(s.Info.Reserves))
+	for i, r := range s.Info.Reserves {
+		out[i] = *reserveToU256(r)
+	}
+	return out
+}
+
+// CalcLimit returns nil: alt-fun has no shared inventory limit.
+func (s *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
+}
+
+// reserveToU256 converts a reserve. A nil, negative, or oversized reserve becomes zero.
+func reserveToU256(b *big.Int) *uint256.Int {
+	if b == nil || b.Sign() < 0 {
+		return new(uint256.Int)
+	}
+	u, overflow := uint256.FromBig(b)
+	if overflow {
+		return new(uint256.Int)
+	}
+	return u
 }
