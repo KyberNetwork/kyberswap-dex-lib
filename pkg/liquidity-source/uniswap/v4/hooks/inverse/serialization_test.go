@@ -32,7 +32,7 @@ func TestHookMsgpackRoundTrip(t *testing.T) {
 	defer msgpack.PutDecoder(dec)
 	var restored uniswapv4.Hook
 	require.NoError(t, dec.Decode(&restored))
-	p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: vs[0].Zero, AmountSpecified: vs[0].Input.ToBig()}
+	p := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: vs[0].Zero, AmountSpecified: &vs[0].Input}
 	before, err := h.BeforeSwap(p)
 	require.NoError(t, err)
 	after, err := restored.BeforeSwap(p)
