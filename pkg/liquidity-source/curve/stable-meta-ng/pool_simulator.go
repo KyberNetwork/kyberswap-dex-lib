@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -16,11 +15,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// ICurveBasePool is the interface for curve base pool inside a meta pool
-// this is slightly different to the one in SC (return fee)
+// ICurveBasePool is the uint256 curve base pool inside a meta pool.
+// Its methods return the withdraw and deposit fees that the meta math needs.
 type ICurveBasePool interface {
-	pool.IPoolSimulator
-	GetInfo() pool.PoolInfo
+	pool.IPoolSim
 
 	GetVirtualPriceU256(vPrice *uint256.Int, D *uint256.Int) error
 
@@ -42,9 +40,12 @@ type PoolSimulator struct {
 	basePool ICurveBasePool
 }
 
-var _ = pool.RegisterFactoryMeta(DexType, NewPoolSimulator)
+var (
+	_ pool.IPoolSim = (*PoolSimulator)(nil)
+	_               = pool.RegisterFactoryMeta(DexType, NewPoolSimulator)
+)
 
-func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolSimulator) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolSim) (*PoolSimulator, error) {
 	var staticExtra struct {
 		BasePool string `json:"basePool"`
 	}
@@ -64,23 +65,18 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	return &PoolSimulator{*sim, basePool}, err
 }
 
-func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
-	return []pool.IPoolSimulator{t.basePool}
+func (t *PoolSimulator) GetBasePools() []pool.IPoolSim {
+	return []pool.IPoolSim{t.basePool}
 }
 
-func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
+func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSim) {
 	if curveBasePool, ok := basePool.(ICurveBasePool); ok {
 		t.basePool = curveBasePool
 	}
 }
 
-// CalcAmtOut is not native for this pool: the inherited stable-ng math has no underlying-token path.
-// ErrUnsupported sends the swap to CalcAmountOut.
-func (t *PoolSimulator) CalcAmtOut(pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
-	return nil, pool.ErrUnsupported
-}
-
-func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+// CalcAmtOut quotes a meta swap natively, or an underlying swap through the base pool (get_dy_underlying).
+func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 
@@ -89,12 +85,12 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	// cannot swap between the last meta coin and base pool's coins (because the last coin is LPtoken of base pool)
 	if (tokenIndexFrom == t.NumTokens-1 && tokenIndexTo < 0) || (tokenIndexTo == t.NumTokens-1 && tokenIndexFrom < 0) {
-		return &pool.CalcAmountOutResult{}, ErrTokenToUnderlyingNotSupported
+		return nil, ErrTokenToUnderlyingNotSupported
 	}
 
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
 		// this is normal swap at meta pool, reuse the method from stable-ng
-		return t.PoolSimulator.CalcAmountOut(param)
+		return t.PoolSimulator.CalcAmtOut(param)
 	}
 
 	// swap between meta coins and base pool's coins
@@ -102,7 +98,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var baseOutputIndex = t.basePool.GetTokenIndex(tokenOut)
 	if baseInputIndex >= 0 && baseOutputIndex >= 0 {
 		// if both coins are from base pool, it's better to swap at the base pool directly to save gas
-		return &pool.CalcAmountOutResult{}, ErrAllBasePoolTokens
+		return nil, ErrAllBasePoolTokens
 	}
 
 	var maxCoin = t.NumTokens - 1
@@ -118,7 +114,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		var addLiquidityInfo BasePoolAddLiquidityInfo
 		var metaswapInfo MetaPoolSwapInfo
 		var withdrawInfo BasePoolWithdrawInfo
-		amountIn.SetFromBig(tokenAmountIn.Amount)
+		amountIn = tokenAmountIn.Amount
 		err := t.GetDyUnderlying(
 			tokenIndexFrom,
 			tokenIndexTo,
@@ -130,6 +126,13 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			return nil, err
 		}
 		if !amountOut.IsZero() {
+			// UpdateState subtracts the meta swap's AmountOut plus its AdminFee from the output reserve. Reject a quote
+			// that would drive that reserve negative, before any state is written (same guard as stable-ng CalcAmtOut).
+			var need uint256.Int
+			need.Add(&metaswapInfo.AmountOut, &metaswapInfo.AdminFee)
+			if t.Reserves[metaswapInfo.TokenOutIndex].Lt(&need) {
+				return nil, stableng.ErrNegativeResult
+			}
 			swapInfo := SwapInfo{
 				Meta: &metaswapInfo,
 			}
@@ -140,25 +143,24 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				swapInfo.Withdraw = &withdrawInfo
 			}
 
-			return &pool.CalcAmountOutResult{
-				TokenAmountOut: &pool.TokenAmount{
+			return &pool.CalcAmtOutResult{
+				TokenAmountOut: &pool.TokenAmt{
 					Token:  tokenOut,
-					Amount: amountOut.ToBig(),
+					Amount: amountOut,
 				},
-				Fee: &pool.TokenAmount{
+				Fee: &pool.TokenAmt{
 					Token:  tokenOut,
-					Amount: adminFee.ToBig(),
+					Amount: adminFee,
 				},
 				Gas:      DefaultGasUnderlying,
 				SwapInfo: swapInfo,
 			}, nil
 		}
 	}
-	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct",
-		tokenIndexFrom, tokenIndexTo)
+	return nil, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
-func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+func (t *PoolSimulator) CalcAmtIn(param pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
 	tokenIn := param.TokenIn
 	tokenOut := param.TokenAmountOut.Token
 
@@ -167,12 +169,12 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	// cannot swap between the last meta coin and base pool's coins (because the last coin is LPtoken of base pool)
 	if (tokenIndexFrom == t.NumTokens-1 && tokenIndexTo < 0) || (tokenIndexTo == t.NumTokens-1 && tokenIndexFrom < 0) {
-		return &pool.CalcAmountInResult{}, ErrTokenToUnderlyingNotSupported
+		return nil, ErrTokenToUnderlyingNotSupported
 	}
 
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
 		// this is normal swap at meta pool, reuse the method from stable-ng
-		return t.PoolSimulator.CalcAmountIn(param)
+		return t.PoolSimulator.CalcAmtIn(param)
 	}
 
 	// swap between meta coins and base pool's coins
@@ -180,7 +182,7 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	var baseOutputIndex = t.basePool.GetTokenIndex(tokenOut)
 	if baseInputIndex >= 0 && baseOutputIndex >= 0 {
 		// if both coins are from base pool, it's better to swap at the base pool directly to save gas
-		return &pool.CalcAmountInResult{}, ErrAllBasePoolTokens
+		return nil, ErrAllBasePoolTokens
 	}
 
 	var maxCoin = t.NumTokens - 1
@@ -197,7 +199,7 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		var addLiquidityInfo BasePoolAddLiquidityInfo
 		var metaswapInfo MetaPoolSwapInfo
 		var withdrawInfo BasePoolWithdrawInfo
-		amountOut.SetFromBig(param.TokenAmountOut.Amount)
+		amountOut = param.TokenAmountOut.Amount
 		err := t.GetDxUnderlying(
 			tokenIndexFrom,
 			tokenIndexTo,
@@ -219,14 +221,14 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 				swapInfo.Withdraw = &withdrawInfo
 			}
 
-			return &pool.CalcAmountInResult{
-				TokenAmountIn: &pool.TokenAmount{
+			return &pool.CalcAmtInResult{
+				TokenAmountIn: &pool.TokenAmt{
 					Token:  tokenIn,
-					Amount: amountIn.ToBig(),
+					Amount: amountIn,
 				},
-				Fee: &pool.TokenAmount{
+				Fee: &pool.TokenAmt{
 					Token:  tokenOut,
-					Amount: adminFee.ToBig(),
+					Amount: adminFee,
 				},
 				Gas:      DefaultGasUnderlying,
 				SwapInfo: swapInfo,
@@ -234,11 +236,10 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		}
 	}
 
-	return &pool.CalcAmountInResult{},
-		fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
+	return nil, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
-func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (t *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *t
 	cloned.PoolSimulator = *t.PoolSimulator.CloneState().(*stableng.PoolSimulator)
 	cloned.Extra.RateMultipliers = slices.Clone(t.Extra.RateMultipliers)
@@ -250,20 +251,21 @@ func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return &cloned
 }
 
-func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+// UpdateState applies a swap. CalcAmtOut has already rejected any write that would drive a reserve negative.
+func (t *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputIndex = t.GetTokenIndex(input.Token)
 	var outputIndex = t.GetTokenIndex(output.Token)
 	if inputIndex >= 0 && outputIndex >= 0 {
 		// this is normal swap at meta pool, reuse the method from stable-ng
-		t.PoolSimulator.UpdateBalance(params)
+		t.PoolSimulator.UpdateState(params)
 		return
 	}
 
 	// meta <-> base swap
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warnf("failed to UpdateBalance for curve-stable-meta-ng %v %v pool, wrong swapInfo type", t.Info.Address,
+		logger.Warnf("failed to UpdateState for curve-stable-meta-ng %v %v pool, wrong swapInfo type", t.Info.Address,
 			t.Info.Exchange)
 		return
 	}
@@ -271,7 +273,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// if input coin is from base pool
 	addLiq := swapInfo.AddLiquidity
 	if addLiq != nil {
-		baseNTokens := len(t.basePool.GetInfo().Tokens)
+		baseNTokens := len(t.basePool.GetTokens())
 		_ = t.basePool.ApplyAddLiquidity(addLiq.Amounts[:baseNTokens], addLiq.FeeAmounts[:baseNTokens],
 			&addLiq.MintAmount)
 	}
@@ -279,11 +281,10 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// update balance from the meta swap component
 	metaInfo := swapInfo.Meta
 	t.Reserves[metaInfo.TokenInIndex].Add(&t.Reserves[metaInfo.TokenInIndex], &metaInfo.AmountIn)
-	number.FillBig(&t.Reserves[metaInfo.TokenInIndex], t.Info.Reserves[metaInfo.TokenInIndex])
 
-	t.Reserves[metaInfo.TokenOutIndex].Sub(&t.Reserves[metaInfo.TokenOutIndex],
-		number.Add(&metaInfo.AmountOut, &metaInfo.AdminFee))
-	number.FillBig(&t.Reserves[metaInfo.TokenOutIndex], t.Info.Reserves[metaInfo.TokenOutIndex])
+	var outputAmount uint256.Int
+	outputAmount.Add(&metaInfo.AmountOut, &metaInfo.AdminFee)
+	t.Reserves[metaInfo.TokenOutIndex].Sub(&t.Reserves[metaInfo.TokenOutIndex], &outputAmount)
 
 	// if output coin is from base pool
 	withdraw := swapInfo.Withdraw
@@ -329,7 +330,7 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 	// exchange_underlying
 	// last meta token can't be swapped with underlying tokens
 	if tokenIndex != t.NumTokens-1 {
-		ret = append(ret, t.basePool.GetInfo().Tokens...)
+		ret = append(ret, t.basePool.GetTokens()...)
 	}
 	return ret
 }
@@ -376,14 +377,14 @@ func (t *PoolSimulator) SwapReturnNativeOut(tokenIn, tokenOut string, chainID va
 }
 
 func (t *PoolSimulator) GetTokens() []string {
-	result := make([]string, 0, len(t.GetInfo().Tokens)+len(t.basePool.GetInfo().Tokens))
-	result = append(result, t.GetInfo().Tokens...)
-	result = append(result, t.basePool.GetInfo().Tokens...)
+	result := make([]string, 0, len(t.Info.Tokens)+len(t.basePool.GetTokens()))
+	result = append(result, t.Info.Tokens...)
+	result = append(result, t.basePool.GetTokens()...)
 	return result
 }
 
 func (t *PoolSimulator) GetBasePoolTokens() []string {
-	return t.basePool.GetInfo().Tokens
+	return t.basePool.GetTokens()
 }
 
 func (t *PoolSimulator) getUnderlyingIndex(token string) int {

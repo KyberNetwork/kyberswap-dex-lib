@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -35,7 +35,7 @@ BenchmarkGetDyUnderlying_plainbase_base2meta-8   	  227568	      5134 ns/op	    
 func doBench(b *testing.B, basepoolRedis, poolRedis, tokIn, tokOut, amount string) {
 	var poolEntity entity.Pool
 	require.Nil(b, json.Unmarshal([]byte(basepoolRedis), &poolEntity))
-	var baseSim pool.IPoolSimulator
+	var baseSim pool.IPoolSim
 	var err error
 	switch poolEntity.Exchange {
 	case stableng.DexType:
@@ -45,17 +45,18 @@ func doBench(b *testing.B, basepoolRedis, poolRedis, tokIn, tokOut, amount strin
 		baseSim, err = plain.NewPoolSimulator(poolEntity)
 		require.Nil(b, err)
 	}
-	basePoolMap := map[string]pool.IPoolSimulator{"": baseSim}
+	basePoolMap := map[string]pool.IPoolSim{"": baseSim}
 
 	require.Nil(b, json.Unmarshal([]byte(poolRedis), &poolEntity))
 	sim, err := NewPoolSimulator(poolEntity, basePoolMap)
 	require.Nil(b, err)
 
-	amt := bignumber.NewBig10(amount)
+	var amt uint256.Int
+	require.NoError(b, amt.SetFromDecimal(amount))
 
 	for i := 0; i < b.N; i++ {
-		_, _ = sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokIn, Amount: amt},
+		_, _ = sim.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: tokIn, Amount: amt},
 			TokenOut:      tokOut,
 			Limit:         nil,
 		})

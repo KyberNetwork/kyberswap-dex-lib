@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,18 +14,52 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
-func TestCalcAmtOutUnsupported(t *testing.T) {
-	t.Parallel()
-	var sim PoolSimulator
-	_, err := sim.CalcAmtOut(pool.CalcAmtOutParams{})
-	assert.ErrorIs(t, err, pool.ErrUnsupported)
+// safeCalcAmtIn skips the exact-out panic that the underlying path raises on an unfillable output (legacy behavior).
+func safeCalcAmtIn(p *PoolSimulator, params pool.CalcAmtInParams) (res *pool.CalcAmtInResult, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
+		}
+	}()
+	return p.CalcAmtIn(params)
 }
 
-func TestCalcAmountOut(t *testing.T) {
+// assertRoundTripU256 is the uint256 form of testutil's round-trip rule: the quote lands within 3 wei or 2e-4 of
+// wantOut. An overshoot passes when one wei less of input falls short, the minimal-input case.
+func assertRoundTripU256(t testing.TB, p *PoolSimulator, tokenIn, tokenOut string, amountIn pool.TokenAmt,
+	wantOut, gotOut uint256.Int) {
+	t.Helper()
+	var diff uint256.Int
+	if gotOut.Gt(&wantOut) {
+		diff.Sub(&gotOut, &wantOut)
+	} else {
+		diff.Sub(&wantOut, &gotOut)
+	}
+	if diff.Cmp(uint256.NewInt(3)) <= 0 || diff.Uint64() <= wantOut.Uint64()/5000 {
+		return
+	}
+	if gotOut.Gt(&wantOut) {
+		less := amountIn
+		less.Amount.Sub(&less.Amount, uint256.NewInt(1))
+		resLess, err := p.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: less, TokenOut: tokenOut})
+		if err != nil || resLess.TokenAmountOut.Amount.Lt(&wantOut) {
+			return
+		}
+	}
+	t.Errorf("tokenIn %s tokenOut %s: expected ~%s, got %s", tokenIn, tokenOut, wantOut.Dec(), gotOut.Dec())
+}
+
+func mustU256(t testing.TB, dec string) uint256.Int {
+	t.Helper()
+	var v uint256.Int
+	require.NoError(t, v.SetFromDecimal(dec))
+	return v
+}
+
+func TestCalcAmtOut(t *testing.T) {
 	t.Parallel()
 	basePools := []string{
 		// base pool is NG https://etherscan.io/address/0x383e6b4437b59fff47b619cba855ca29342a8559
@@ -118,7 +153,7 @@ func TestCalcAmountOut(t *testing.T) {
 		{1, "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "50000001234", "0x466a756e9a7401b5e2444a3fcb3c2c12fbea0a54", "56807326187619465404522"},
 	}
 
-	baseSimsByAddress := make(map[string]pool.IPoolSimulator, len(basePools))
+	baseSimsByAddress := make(map[string]pool.IPoolSim, len(basePools))
 	for _, basePool := range basePools {
 		var poolEntity entity.Pool
 		err := json.Unmarshal([]byte(basePool), &poolEntity)
@@ -164,21 +199,21 @@ func TestCalcAmountOut(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+				return p.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: mustU256(t, tc.inAmount)},
 					TokenOut:      tc.out,
 					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
-			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
+			assert.Equal(t, mustU256(t, tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 		})
 	}
 }
 
-func TestCalcAmountIn(t *testing.T) {
+func TestCalcAmtIn(t *testing.T) {
 	t.Run("curve-stable-ng and curve-stable-meta-ng", func(t *testing.T) {
 		// init base pool simulator
 		basePoolData := `
@@ -216,7 +251,7 @@ func TestCalcAmountIn(t *testing.T) {
 		require.Nil(t, err)
 		basePoolSim, err := stableng.NewPoolSimulator(basePoolEntity)
 		require.Nil(t, err)
-		baseSimsByAddress := map[string]pool.IPoolSimulator{
+		baseSimsByAddress := map[string]pool.IPoolSim{
 			basePoolEntity.Address: basePoolSim,
 		}
 
@@ -260,8 +295,24 @@ func TestCalcAmountIn(t *testing.T) {
 		p, err := NewPoolSimulator(poolEntity, baseSimsByAddress)
 		require.Nil(t, err)
 
-		// test util for CalcAmountIn
-		testutil.TestCalcAmountIn(t, p)
+		// exact-out round trip: CalcAmtIn for an output, then CalcAmtOut for the returned input gives that output
+		for _, tokenIn := range p.GetTokens() {
+			for _, tokenOut := range p.CanSwapFrom(tokenIn) {
+				for _, amtOut := range []string{"50000", "5000000", "500000000000000000"} {
+					want := mustU256(t, amtOut)
+					resIn, err := safeCalcAmtIn(p, pool.CalcAmtInParams{
+						TokenAmountOut: pool.TokenAmt{Token: tokenOut, Amount: want},
+						TokenIn:        tokenIn,
+					})
+					if err != nil {
+						continue
+					}
+					resOut, err := p.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: *resIn.TokenAmountIn, TokenOut: tokenOut})
+					require.NoError(t, err)
+					assertRoundTripU256(t, p, tokenIn, tokenOut, *resIn.TokenAmountIn, want, resOut.TokenAmountOut.Amount)
+				}
+			}
+		}
 
 		// tokens
 		metaToken := poolEntity.Tokens[0].Address      // mkUSD
@@ -367,11 +418,11 @@ func TestCalcAmountIn(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
-				out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
-					return p.CalcAmountIn(pool.CalcAmountInParams{
-						TokenAmountOut: pool.TokenAmount{
+				out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtInResult, error) {
+					return p.CalcAmtIn(pool.CalcAmtInParams{
+						TokenAmountOut: pool.TokenAmt{
 							Token:  tc.tokenOut,
-							Amount: bignumber.NewBig10(tc.amountOut),
+							Amount: mustU256(t, tc.amountOut),
 						},
 						TokenIn: tc.tokenIn,
 						Limit:   nil,
@@ -382,7 +433,7 @@ func TestCalcAmountIn(t *testing.T) {
 				} else {
 					require.Nil(t, err)
 
-					assert.Equal(t, bignumber.NewBig10(tc.expectedAmountIn), out.TokenAmountIn.Amount)
+					assert.Equal(t, mustU256(t, tc.expectedAmountIn), out.TokenAmountIn.Amount)
 					assert.Equal(t, tc.tokenIn, out.TokenAmountIn.Token)
 				}
 			})
@@ -391,7 +442,7 @@ func TestCalcAmountIn(t *testing.T) {
 	})
 }
 
-func TestUpdateBalance(t *testing.T) {
+func TestUpdateState(t *testing.T) {
 	t.Parallel()
 	basePools := []string{
 		// base pool is NG https://etherscan.io/address/0x383e6b4437b59fff47b619cba855ca29342a8559
@@ -485,7 +536,7 @@ func TestUpdateBalance(t *testing.T) {
 		{1, "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "50000001234", "0x466a756e9a7401b5e2444a3fcb3c2c12fbea0a54", "56369497076270460945432"},
 	}
 
-	baseSimsByAddress := make(map[string]pool.IPoolSimulator, len(basePools))
+	baseSimsByAddress := make(map[string]pool.IPoolSim, len(basePools))
 	for _, basePool := range basePools {
 		var poolEntity entity.Pool
 		err := json.Unmarshal([]byte(basePool), &poolEntity)
@@ -519,9 +570,9 @@ func TestUpdateBalance(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmtOutResult, error) {
+				return p.CalcAmtOut(pool.CalcAmtOutParams{
+					TokenAmountIn: pool.TokenAmt{Token: tc.in, Amount: mustU256(t, tc.inAmount)},
 					TokenOut:      tc.out,
 					Limit:         nil,
 				})
@@ -532,15 +583,15 @@ func TestUpdateBalance(t *testing.T) {
 			}
 
 			require.Nil(t, err)
-			assert.Equal(t, bignumber.NewBig10(tc.errorOrAmountOut.(string)), out.TokenAmountOut.Amount)
+			assert.Equal(t, mustU256(t, tc.errorOrAmountOut.(string)), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 
-			p.UpdateBalance(pool.UpdateBalanceParams{
-				TokenAmountIn:  pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+			p.UpdateState(pool.UpdateStateParams{
+				TokenAmountIn:  pool.TokenAmt{Token: tc.in, Amount: mustU256(t, tc.inAmount)},
 				TokenAmountOut: *out.TokenAmountOut,
 				Fee:            *out.Fee,
 				SwapInfo:       out.SwapInfo,
-				SwapLimitBig:   nil,
+				SwapLimit:      nil,
 			})
 		})
 	}

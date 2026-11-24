@@ -9,6 +9,7 @@ import (
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 )
 
+// GetDyUnderlying quotes an underlying swap: deposit the base coin, swap at the meta pool, withdraw the base coin.
 func (t *PoolSimulator) GetDyUnderlying(
 	i int, j int, _dx *uint256.Int,
 
@@ -18,7 +19,7 @@ func (t *PoolSimulator) GetDyUnderlying(
 	metaSwapInfo *MetaPoolSwapInfo, // the meta swap component
 	withdrawInfo *BasePoolWithdrawInfo, // in case output is a base coin
 ) error {
-	var baseNCoins = len(t.basePool.GetInfo().Tokens)
+	var baseNCoins = len(t.basePool.GetTokens())
 	xp := stableng.XpMem(t.Extra.RateMultipliers, t.Reserves)
 
 	/*
@@ -127,6 +128,7 @@ func (t *PoolSimulator) GetDyUnderlying(
 	return nil
 }
 
+// GetDxUnderlying quotes the input for an underlying exact-out swap. It reverses GetDyUnderlying.
 func (t *PoolSimulator) GetDxUnderlying(
 	i int, j int, dy *uint256.Int,
 
@@ -136,7 +138,7 @@ func (t *PoolSimulator) GetDxUnderlying(
 	metaSwapInfo *MetaPoolSwapInfo, // the meta swap component
 	withdrawInfo *BasePoolWithdrawInfo, // in case output is a base coin
 ) error {
-	var baseNCoins = len(t.basePool.GetInfo().Tokens)
+	var baseNCoins = len(t.basePool.GetTokens())
 
 	var base_i = i - MAX_METAPOOL_COIN_INDEX
 	var base_j = j - MAX_METAPOOL_COIN_INDEX
