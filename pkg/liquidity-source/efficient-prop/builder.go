@@ -155,7 +155,9 @@ type stateClient struct {
 // client does: in parallel, until each has answered or failed, or until titan.DefaultMergeWindow after the first that
 // holds an account, or the timeout (titan.DefaultTimeout where 0). It answers them in the url order, never merged. A
 // url whose call fails is passed to failed, before its answer is counted; one the window or the caller cancelled
-// (context.Canceled) has not failed.
+// (context.Canceled) has not failed. titan.FetchState is not called in its place: it merges the urls' answers into one
+// override map, and a listing here is read from one answer whole (pick), with the slots an answer's entries disagree
+// on marked (parseAnswer).
 func fetchAnswers(ctx context.Context, clients []stateClient, timeout time.Duration,
 	failed func(url string, err error)) []answer {
 	if len(clients) == 0 {

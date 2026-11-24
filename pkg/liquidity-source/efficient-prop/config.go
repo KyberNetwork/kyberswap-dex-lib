@@ -46,7 +46,7 @@ type Config struct {
 
 	// InclusionAllowance is the time a routed fill takes to land, seconds: route finding quotes a listing only where a
 	// fill landing that much later still finds its word standing. Zero: 1 s on a chain whose blocks are under a second
-	// apart (Base), 3 s on any other (README, Refresh); on a front read through /state (Front.Titan), 1 s before its
+	// apart (Base), 3 s on any other (README, Config); on a front read through /state (Front.Titan), 1 s before its
 	// target block's second.
 	InclusionAllowance uint64 `json:"inclusionAllowance,omitempty"`
 }
