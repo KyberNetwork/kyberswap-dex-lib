@@ -1,0 +1,2920 @@
+{
+ "cases": [
+  {
+   "in": 0,
+   "out": 0,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 0,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 0,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 0,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 0,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 0,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 0,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 0,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 0,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 1,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 1,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 1,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 1,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 1,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 1,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 1,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 1,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 1,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 2,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 2,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 2,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 2,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 2,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 2,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 2,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 2,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 2,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 3,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 3,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 3,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "11367153028730083",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 3,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "1136701626698349882",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 3,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "396398945971283501",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 3,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "384133741999923629",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 3,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "13091116194437010774",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 3,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "1106352090674545872",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 3,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "92770480185375572829900",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 4,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 4,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 4,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "11518367530852641",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 4,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "1151822894979744447",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 4,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "401672145787055795",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 4,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "389243780757929463",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 4,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "13265264163815718160",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 4,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "1121069626379464082",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 4,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "94004583565302493766753",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 5,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 5,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 0,
+   "out": 5,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "11518367530852641",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 5,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "1151822894979744447",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 5,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "401672145787055795",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 5,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "389243780757929463",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 5,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "13265264163815718160",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 5,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "1121069626379464082",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 0,
+   "out": 5,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "94004583565302493766753",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 0,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 0,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 0,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 0,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 0,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 0,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 0,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 0,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 0,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 1,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 1,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 1,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 1,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 1,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 1,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 1,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 1,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 1,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 2,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 2,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 2,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 2,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 2,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 2,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 2,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 2,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 2,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 3,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 3,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 3,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "32596354774207321",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 3,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "3259523019632187301",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 3,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "1136701626698349882",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 3,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "1101530568565540517",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 3,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "37530175889028139356",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 3,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "3172496817046861477",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 3,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "93266212313166703035917",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 4,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 4,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 4,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "33029976239998630",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 4,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "3302883670212411530",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 4,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "1151822894979744447",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 4,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "1116183964721765802",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 4,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "38029430790170742027",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 4,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "3214699778990159948",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 4,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "94506910298330364359997",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 5,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 5,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 1,
+   "out": 5,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "33029976239998630",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 5,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "3302883670212411530",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 5,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "1151822894979744447",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 5,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "1116183964721765802",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 5,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "38029430790170742027",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 5,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "3214699778990159948",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 1,
+   "out": 5,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "94506910298330364359997",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 0,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 0,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 0,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 0,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 0,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 0,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 0,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 0,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 0,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 1,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 1,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 1,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 1,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 1,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 1,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 1,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 1,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 1,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 2,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 2,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 2,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 2,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 2,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 2,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 2,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 2,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 2,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 3,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 3,
+   "amountIn": "1",
+   "ok": true,
+   "amountOut": "33",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 3,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "33637144600537719",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 3,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "3363594706273140896",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 3,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "1172995656677970425",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 3,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "1136701626698349882",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 3,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "38728005100494928330",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 3,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "3273789984678914516",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 3,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "93274470068483700751819",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 4,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 4,
+   "amountIn": "1",
+   "ok": true,
+   "amountOut": "32",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 4,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "34084611443003821",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 4,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "3408339797464016862",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 4,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "1188599735708856827",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 4,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "1151822894979744447",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 4,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "39243194435473515335",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 4,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "3317340425262923170",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 4,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "94515277904579759458171",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 5,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 2,
+   "out": 5,
+   "amountIn": "1",
+   "ok": true,
+   "amountOut": "32",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 5,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "34084611443003821",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 5,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "3408339797464016862",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 5,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "1188599735708856827",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 5,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "1151822894979744447",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 5,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "39243194435473515335",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 5,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "3317340425262923170",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 2,
+   "out": 5,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "94515277904579759458171",
+   "fee": "0",
+   "isBuy": true
+  },
+  {
+   "in": 3,
+   "out": 0,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 0,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 0,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "85057082119900",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 0,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "8505699359660644",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 0,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "2966148551267534",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 0,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "2874370927116185",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 0,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "97969509310870960",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 0,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "8278597706612320",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 0,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "7388138454559519726921",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 1,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 1,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 1,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "29661496074815",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 1,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "2966146520456570",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 1,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "1034368936930133",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 1,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "1002363822591933",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 1,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "34164376950759204",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 1,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "2886950589646467",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 1,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "2576425552209668595313",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 2,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 2,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 2,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "29144526069315",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 2,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "2914449573710137",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 2,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "1016340928037164",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 2,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "984893630610619",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 2,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "33568926266287751",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 2,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "2836633948218530",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 2,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "2531521049465066410967",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 3,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 3,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 3,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 3,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 3,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 3,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 3,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 3,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 3,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 4,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 4,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 4,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 4,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 4,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 4,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 4,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 4,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 4,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 5,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 5,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 5,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 5,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 5,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 5,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 5,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 5,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 3,
+   "out": 5,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 0,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 0,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 0,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "82786060925389",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 0,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "8278597706612320",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 0,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "2886952513460077",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 0,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "2797625347049907",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 0,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "95353757551267718",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 0,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "8057559647781696",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 0,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "7370575809214152358948",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 1,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 1,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 1,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "28869535140253",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 1,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "2886950589646467",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 1,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "1006751331129179",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 1,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "975600751661679",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 1,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "33252199991281664",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 1,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "2809869183242857",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 1,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "2570301025915189667621",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 2,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 2,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 2,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "28366368216285",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 2,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "2836633948218530",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 2,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "989204669292571",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 2,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "958597013054502",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 2,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "32672647632591560",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 2,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "2760895993102477",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 2,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "2525503267496098440761",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 3,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 3,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 3,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 3,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 3,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 3,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 3,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 3,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 3,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 4,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 4,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 4,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 4,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 4,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 4,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 4,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 4,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 4,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 5,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 5,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 5,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 5,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 5,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 5,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 5,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 5,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 4,
+   "out": 5,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 0,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 0,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 0,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "82786060925389",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 0,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "8278597706612320",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 0,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "2886952513460077",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 0,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "2797625347049907",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 0,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "95353757551267718",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 0,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "8057559647781696",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 0,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "7370575809214152358948",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 1,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 1,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 1,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "28869535140253",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 1,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "2886950589646467",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 1,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "1006751331129179",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 1,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "975600751661679",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 1,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "33252199991281664",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 1,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "2809869183242857",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 1,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "2570301025915189667621",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 2,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 2,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 2,
+   "amountIn": "1000000000000000",
+   "ok": true,
+   "amountOut": "28366368216285",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 2,
+   "amountIn": "100000000000000000",
+   "ok": true,
+   "amountOut": "2836633948218530",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 2,
+   "amountIn": "34872458983489297",
+   "ok": true,
+   "amountOut": "989204669292571",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 2,
+   "amountIn": "33793446076511935",
+   "ok": true,
+   "amountOut": "958597013054502",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 2,
+   "amountIn": "1151822894979744447",
+   "ok": true,
+   "amountOut": "32672647632591560",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 2,
+   "amountIn": "97330003379909764",
+   "ok": true,
+   "amountOut": "2760895993102477",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 2,
+   "amountIn": "1000000000000000000000000",
+   "ok": true,
+   "amountOut": "2525503267496098440761",
+   "fee": "0",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 3,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 3,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 3,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 3,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 3,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 3,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 3,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 3,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 3,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 4,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 4,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 4,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 4,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 4,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 4,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 4,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 4,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 4,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 5,
+   "amountIn": "0",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 5,
+   "amountIn": "1",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 5,
+   "amountIn": "1000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 5,
+   "amountIn": "100000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 5,
+   "amountIn": "34872458983489297",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 5,
+   "amountIn": "33793446076511935",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 5,
+   "amountIn": "1151822894979744447",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 5,
+   "amountIn": "97330003379909764",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  },
+  {
+   "in": 5,
+   "out": 5,
+   "amountIn": "1000000000000000000000000",
+   "ok": false,
+   "amountOut": "",
+   "fee": "",
+   "isBuy": false
+  }
+ ]
+}

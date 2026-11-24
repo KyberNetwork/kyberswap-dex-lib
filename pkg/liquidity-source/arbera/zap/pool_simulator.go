@@ -1,29 +1,30 @@
 package arberazap
 
 import (
-	"context"
 	"math/big"
 	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
 	pool.Pool
-	basePools []pool.IPoolSimulator
+	basePools []pool.IPoolSim
 }
 
 var _ = pool.RegisterFactoryMeta(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(p entity.Pool, basePoolMap map[string]pool.IPoolSimulator) (*PoolSimulator, error) {
+func NewPoolSimulator(p entity.Pool, basePoolMap map[string]pool.IPoolSim) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return nil, err
@@ -38,13 +39,13 @@ func NewPoolSimulator(p entity.Pool, basePoolMap map[string]pool.IPoolSimulator)
 			Reserves:    lo.Map(p.Reserves, func(e string, _ int) *big.Int { return bignum.NewBig(e) }),
 			BlockNumber: p.BlockNumber,
 		},
-		basePools: lo.Map(staticExtra.BasePools, func(basePool string, _ int) pool.IPoolSimulator {
+		basePools: lo.Map(staticExtra.BasePools, func(basePool string, _ int) pool.IPoolSim {
 			return basePoolMap[basePool]
 		}),
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	var (
 		tokenAmountIn = params.TokenAmountIn
 		tokenOut      = params.TokenOut
@@ -60,7 +61,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidToken
 	}
 
-	amountOut := new(big.Int).Set(tokenAmountIn.Amount)
+	amountOut := tokenAmountIn.Amount
 	isBuy := indexIn < indexOut
 	ln := len(s.basePools)
 	for index := range ln {
@@ -91,36 +92,29 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 					return nil, ErrDenBuySellFeeNotFound
 				}
 			}
-			burnedAmount := new(big.Int)
+			var burnedAmount uint256.Int
 			if isPrivate && !isBuy {
-				burnedAmount.Mul(amountOut, extra.Sell.ToBig()).Div(burnedAmount, arberaden.DEN.ToBig())
-				amountOut.Sub(amountOut, burnedAmount)
+				big256.MulDivDown(&burnedAmount, &amountOut, extra.Sell, arberaden.DEN)
+				amountOut.Sub(&amountOut, &burnedAmount)
 			}
-			result, err := pool.DefaultCalcAmtOut(context.Background(), currentPool, pool.TokenAmount{
-				Token:  s.Info.Tokens[idx],
-				Amount: amountOut,
-			}, s.Info.Tokens[idx+lo.Ternary(isBuy, 1, -1)], nil)
-
+			result, err := currentPool.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: s.Info.Tokens[idx], Amount: amountOut},
+				TokenOut:      s.Info.Tokens[idx+lo.Ternary(isBuy, 1, -1)],
+			})
 			if err != nil {
 				return nil, err
 			}
 			amountOut = result.TokenAmountOut.Amount
 			if isPrivate && isBuy {
-				burnedAmount.Mul(amountOut, extra.Buy.ToBig()).Div(burnedAmount, arberaden.DEN.ToBig())
-				amountOut.Sub(amountOut, burnedAmount)
+				big256.MulDivDown(&burnedAmount, &amountOut, extra.Buy, arberaden.DEN)
+				amountOut.Sub(&amountOut, &burnedAmount)
 			}
 		}
 	}
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut,
-		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: big.NewInt(0),
-		},
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: amountOut},
+		Fee:            &pool.TokenAmt{Token: tokenAmountIn.Token, Amount: uint256.Int{}},
 		SwapInfo: SwapInfo{
 			IsBuy: isBuy,
 		},
@@ -131,13 +125,38 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return pool.MetaInfo{BlockNumber: s.Info.BlockNumber}
 }
 
-func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 }
 
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }
+func (s *PoolSimulator) CloneState() pool.IPoolSim { return s }
 
-func (s *PoolSimulator) SetBasePool(newBasePool pool.IPoolSimulator) {
-	_, idx, found := lo.FindIndexOf(s.basePools, func(basePool pool.IPoolSimulator) bool {
+func (s *PoolSimulator) GetReserves() []uint256.Int {
+	out := make([]uint256.Int, len(s.Info.Reserves))
+	for i, r := range s.Info.Reserves {
+		out[i] = *reserveToU256(r)
+	}
+	return out
+}
+
+// CalcLimit returns nil: arbera-zap has no shared inventory limit.
+func (s *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	return nil
+}
+
+// reserveToU256 converts a reserve. A nil, negative, or oversized reserve becomes zero.
+func reserveToU256(b *big.Int) *uint256.Int {
+	if b == nil || b.Sign() < 0 {
+		return new(uint256.Int)
+	}
+	u, overflow := uint256.FromBig(b)
+	if overflow {
+		return new(uint256.Int)
+	}
+	return u
+}
+
+func (s *PoolSimulator) SetBasePool(newBasePool pool.IPoolSim) {
+	_, idx, found := lo.FindIndexOf(s.basePools, func(basePool pool.IPoolSim) bool {
 		return basePool != nil && newBasePool != nil && strings.EqualFold(basePool.GetAddress(), newBasePool.GetAddress())
 	})
 	if found && idx >= 0 {
@@ -145,7 +164,7 @@ func (s *PoolSimulator) SetBasePool(newBasePool pool.IPoolSimulator) {
 	}
 }
 
-func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
+func (s *PoolSimulator) GetBasePools() []pool.IPoolSim {
 	return s.basePools
 }
 

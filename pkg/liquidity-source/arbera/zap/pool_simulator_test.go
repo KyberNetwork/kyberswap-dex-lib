@@ -19,14 +19,14 @@ import (
 var (
 	entityPool entity.Pool
 	_          = json.Unmarshal([]byte(`{"address":"0xface73a169e2ca2934036c8af9f464b5de9ef0ca","exchange":"erc4626","type":"erc4626","timestamp":1760325161,"reserves":["0","826550308605061016110006"],"tokens":[{"address":"0xface73a169e2ca2934036c8af9f464b5de9ef0ca","symbol":"stLBGT","decimals":18,"swappable":true},{"address":"0xbaadcc2962417c01af99fb2b7c75706b9bd6babe","symbol":"LBGT","decimals":18,"swappable":true}],"extra":"{\"g\":{\"d\":70481,\"r\":49289},\"sT\":3,\"dR\":[\"348724\",\"348724589834\",\"348724589834892976\",\"348724589834892976145851\",\"348724589834892976145851533150\"],\"rR\":[\"2867592\",\"2867592447304\",\"2867592447304790449\",\"2867592447304790449681589\",\"2867592447304790449681589753105\"]}","blockNumber":11708261}`), &entityPool)
-	erc4626Sim = lo.Must(erc4626.NewPoolSimulator(entityPool))
+	erc4626Sim = lo.Must(pool.FactoryPoolSim(erc4626.DexType)(pool.FactoryParams{EntityPool: entityPool}))
 
 	_ = json.Unmarshal([]byte(`{"address":"0x883899d0111d69f85fdfd19e4b89e613f231b781","exchange":"arbera-den","type":"arbera-den","timestamp":1760324380,"reserves":["100000000000000000000000000","100000000000000000000000000"],"tokens":[{"address":"0x883899d0111d69f85fdfd19e4b89e613f231b781","symbol":"brLBGT","decimals":18,"swappable":true},{"address":"0xface73a169e2ca2934036c8af9f464b5de9ef0ca","symbol":"stLBGT","decimals":18,"swappable":true}],"extra":"{\"assets\":[{\"token\":\"0xface73a169e2ca2934036c8af9f464b5de9ef0ca\",\"weighting\":\"1000000000000000000\",\"basePriceUSDX96\":\"0\",\"c1\":\"0x0000000000000000000000000000000000000000\",\"q1\":\"79228162514264337593543950336000000000000000000\"}],\"assetSupplies\":[\"12600849266904540184172\"],\"supply\":\"12295798672905393125427\",\"fee\":{\"bond\":\"69\",\"debond\":\"69\",\"burn\":\"2000\",\"buy\":\"69\",\"sell\":\"69\"}}"}
 	`), &entityPool)
 	den1Sim = lo.Must(arberaden.NewPoolSimulator(entityPool))
 
 	_         = json.Unmarshal([]byte(`{"address":"0xdc06ec361cf28a610b2f0fc3d25854cf68141610","exchange":"arbera-den-amm","type":"uniswap-v2","timestamp":1760324733,"reserves":["94183703149452617690341","2772328081415220135969"],"tokens":[{"address":"0x0c1f965eb5221b8daca960dac1ccfda5a97b7dd7","symbol":"brarBERO","decimals":18,"swappable":true},{"address":"0x883899d0111d69f85fdfd19e4b89e613f231b781","symbol":"brLBGT","decimals":18,"swappable":true}],"extra":"{\"fee\":3,\"feePrecision\":1000}","blockNumber":11708261}`), &entityPool)
-	denAmmSim = lo.Must(uniswapv2.NewPoolSimulator(entityPool))
+	denAmmSim = lo.Must(pool.FactoryPoolSim(uniswapv2.DexType)(pool.FactoryParams{EntityPool: entityPool}))
 
 	_       = json.Unmarshal([]byte(`{"address":"0x0c1f965eb5221b8daca960dac1ccfda5a97b7dd7","exchange":"arbera-den","type":"arbera-den","timestamp":1760324380,"reserves":["100000000000000000000000000","100000000000000000000000000"],"tokens":[{"address":"0x0c1f965eb5221b8daca960dac1ccfda5a97b7dd7","symbol":"brarBERO","decimals":18,"swappable":true},{"address":"0xfa7767bbb3d832217abaa86e5f2654429b3bf29f","symbol":"arBERO","decimals":18,"swappable":true}],"extra":"{\"assets\":[{\"token\":\"0xfa7767bbb3d832217abaa86e5f2654429b3bf29f\",\"weighting\":\"1000000000000000000\",\"basePriceUSDX96\":\"0\",\"c1\":\"0x0000000000000000000000000000000000000000\",\"q1\":\"79228162514264337593543950336000000000000000000\"}],\"assetSupplies\":[\"124403165937860479291712\"],\"supply\":\"121922873438761813187052\",\"fee\":{\"bond\":\"69\",\"debond\":\"69\",\"burn\":\"2000\",\"buy\":\"69\",\"sell\":\"69\"}}"}`), &entityPool)
 	den2Sim = lo.Must(arberaden.NewPoolSimulator(entityPool))
@@ -35,7 +35,7 @@ var (
 	stakeSim = lo.Must(genericsimplerate.NewPoolSimulator(entityPool))
 
 	_      = json.Unmarshal([]byte(`{"address":"0xcec42c8ddcc73065090d36db1e17188d0767fcc6","exchange":"arbera-zap","type":"arbera-zap","reserves":["100000000000000000000000000","100000000000000000000000000","100000000000000000000000000","100000000000000000000000000","100000000000000000000000000","100000000000000000000000000"],"tokens":[{"address":"0xbaadcc2962417c01af99fb2b7c75706b9bd6babe","symbol":"LBGT","decimals":18,"swappable":true},{"address":"0xface73a169e2ca2934036c8af9f464b5de9ef0ca","symbol":"stLBGT","decimals":18,"swappable":true},{"address":"0x883899d0111d69f85fdfd19e4b89e613f231b781","symbol":"brLBGT","decimals":18,"swappable":true},{"address":"0x0c1f965eb5221b8daca960dac1ccfda5a97b7dd7","symbol":"brarBERO","decimals":18,"swappable":true},{"address":"0xfa7767bbb3d832217abaa86e5f2654429b3bf29f","symbol":"arBERO","decimals":18,"swappable":true},{"address":"0x3fd02eaddb07080b8e2640afb6d52f10d6396926","symbol":"starBERO","decimals":18,"swappable":true}],"extra":"{}","staticExtra":"{\"basePools\":[\"0xface73a169e2ca2934036c8af9f464b5de9ef0ca\",\"0x883899d0111d69f85fdfd19e4b89e613f231b781\",\"0xdc06ec361cf28a610b2f0fc3d25854cf68141610\",\"0x0c1f965eb5221b8daca960dac1ccfda5a97b7dd7\",\"0x3fd02eaddb07080b8e2640afb6d52f10d6396926\"]}"}`), &entityPool)
-	zapSim = lo.Must(NewPoolSimulator(entityPool, map[string]pool.IPoolSimulator{
+	zapSim = lo.Must(NewPoolSimulator(entityPool, map[string]pool.IPoolSim{
 		"0xface73a169e2ca2934036c8af9f464b5de9ef0ca": erc4626Sim,
 		"0x883899d0111d69f85fdfd19e4b89e613f231b781": den1Sim,
 		"0xdc06ec361cf28a610b2f0fc3d25854cf68141610": denAmmSim,
@@ -55,7 +55,7 @@ func adjustFee(amountStr string, feeStr string) string {
 
 func TestForwardCalcAmountOut(t *testing.T) {
 	t.Parallel()
-	testutil.TestCalcAmountOut(t, zapSim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, zapSim, map[int]map[int]map[string]string{
 		0: {
 			5: {
 				"100000000000000000": "1151822894979744447",
@@ -117,35 +117,35 @@ func TestForwardCalcAmountOut(t *testing.T) {
 			},
 		},
 	})
-	testutil.TestCalcAmountOut(t, erc4626Sim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, erc4626Sim, map[int]map[int]map[string]string{
 		1: {
 			0: {
 				"100000000000000000": "34872458983489297",
 			},
 		},
 	})
-	testutil.TestCalcAmountOut(t, den1Sim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, den1Sim, map[int]map[int]map[string]string{
 		1: {
 			0: {
 				"34872458983489297": "33793446076511935",
 			},
 		},
 	})
-	testutil.TestCalcAmountOut(t, denAmmSim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, denAmmSim, map[int]map[int]map[string]string{
 		1: {
 			0: {
 				"33793446076511935": "1144599362298207513",
 			},
 		},
 	})
-	testutil.TestCalcAmountOut(t, den2Sim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, den2Sim, map[int]map[int]map[string]string{
 		0: {
 			1: {
 				adjustFee("1144599362298207513", "69"): "1151822894979744447",
 			},
 		},
 	})
-	testutil.TestCalcAmountOut(t, stakeSim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, stakeSim, map[int]map[int]map[string]string{
 		1: {
 			0: {
 				"1151822894979744447": "1151822894979744447",
@@ -156,7 +156,7 @@ func TestForwardCalcAmountOut(t *testing.T) {
 
 func TestBackwardCalcAmountOut(t *testing.T) {
 	t.Parallel()
-	testutil.TestCalcAmountOut(t, zapSim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, zapSim, map[int]map[int]map[string]string{
 		5: {
 			0: {
 				"100000000000000000": "8278597706612320",
@@ -219,7 +219,7 @@ func TestBackwardCalcAmountOut(t *testing.T) {
 		},
 	})
 
-	testutil.TestCalcAmountOut(t, stakeSim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, stakeSim, map[int]map[int]map[string]string{
 		0: {
 			1: {
 				"100000000000000000": "100000000000000000",
@@ -227,7 +227,7 @@ func TestBackwardCalcAmountOut(t *testing.T) {
 		},
 	})
 
-	testutil.TestCalcAmountOut(t, den2Sim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, den2Sim, map[int]map[int]map[string]string{
 		1: {
 			0: {
 				"100000000000000000": "97330003379909764",
@@ -235,7 +235,7 @@ func TestBackwardCalcAmountOut(t *testing.T) {
 		},
 	})
 
-	testutil.TestCalcAmountOut(t, denAmmSim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, denAmmSim, map[int]map[int]map[string]string{
 		0: {
 			1: {
 				adjustFee("97330003379909764", "69"): "2836633948218530",
@@ -243,7 +243,7 @@ func TestBackwardCalcAmountOut(t *testing.T) {
 		},
 	})
 
-	testutil.TestCalcAmountOut(t, den1Sim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, den1Sim, map[int]map[int]map[string]string{
 		0: {
 			1: {
 				"2836633948218530": "2886950589646467",
@@ -251,7 +251,7 @@ func TestBackwardCalcAmountOut(t *testing.T) {
 		},
 	})
 
-	testutil.TestCalcAmountOut(t, erc4626Sim, map[int]map[int]map[string]string{
+	testutil.TestCalcAmtOutIPoolSim(t, erc4626Sim, map[int]map[int]map[string]string{
 		0: {
 			1: {
 				"2886950589646467": "8278597706612320",
