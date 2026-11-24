@@ -320,25 +320,28 @@ where its front's `creditListings` names it with gas figures measured on its own
   `PLAN_ONLY`, bit 253). The plan answers a size it routes tagged with bit 255 (`ROUTED`), and a size it fills inside
   custody untagged, the door's own output. A size of neither is no point. An implementation that predates the plan
   read would class a routed size as custody: a front's config names no credit listing until its implementation has it.
-- **One step a side, and nothing across it.** A side's ladder is its custody points, then its routed points. The
+  - **One step a side, and nothing across it.** A side's ladder is its custody points, then its routed points. The
   simulator quotes nothing strictly between a side's last custody point and its first routed point (`ErrCreditStep`).
-  At or below the last custody point it charges the custody figure, at or above the first routed point the route's.
-- **The pool after a fill.** A route borrows or repays, which moves what every listing of the pool fills. Every
+  At or below the last custody point it charges the custody figure, at or above the first routed point the route's. -
+  **The pool after a fill.** A route borrows or repays, which moves what every listing of the pool fills. Every
   listing of a pool shares a route key beside its token limits: a route is quoted only on a pool no fill of the route
-  has touched, and once taken no listing of the pool is quoted again in that route (`ErrSecondFill` on its other side).
-- **What moves after the sample.** The route reads state the target block's sample cannot pin (another fill's borrow
-  that lifts the venue's rate, a feed update, the venue's own accrual). A fill that meets one reverts at the taker's
-  gas, as a `NoWord` does, and the route's minimum output does not prevent it.
-- **Gas.** Each figure is the least first fill of its class and input on that pool through the adapter in the front's
-  configured mode, the frame less the refund the fill earns. On a fork of Ethereum holding the deployed build, the
-  wstETH/WETH listing of a pool in credit mode 2, whose WETH is borrowed at Morpho Blue, cost through the door and
-  through the front: a route fill of wstETH in 841,583 and 824,339, a custody fill of wstETH in 135,485 and 118,241,
-  and a custody fill of WETH in 128,913 and 117,064. Before refunds a route fill spent up to 982,875 and 945,731, and
-  a limit is set from those. A fill of WETH in past the custody was refused at every size tried, so that side has no
-  route figure: a route figure of 0 says so, and that side is quoted inside its custody alone. A route's gas is its
-  pool's settings as much as its venue's, so its figures are measured again on its live pool after any change of
-  them. One route figure a side stands for every path and every lending venue the route may take: it is the least, so
-  a dearer one is under-charged, and `routeLimitBaseIn` and `routeLimitQuoteIn` state the gas limit the dearest needs.
+  has touched, and once taken no listing of the pool is quoted again in that route (`ErrSecondFill` on its other
+  side). - **What moves after the sample.** The route reads state the target block's sample cannot pin (another fill's
+  borrow that lifts the venue's rate, a feed update, the venue's own accrual). A fill that meets one reverts at the
+  taker's gas, as a `NoWord` does, and the route's minimum output does not prevent it. - **Gas.** Each figure is the
+  least first fill of its class and input on that pool through the adapter in the front's configured mode, the frame
+  less the refund the fill earns. On a fork of Ethereum holding the deployed build, the wstETH/WETH listing of a pool
+  in credit mode 2, whose WETH is borrowed at Morpho Blue, cost through the door and through the front: a route fill
+  of wstETH in 841,583 and 824,339, a custody fill of wstETH in 135,485 and 118,241, and a custody fill of WETH in
+  128,913 and 117,064. Before refunds a route fill spent up to 982,875 and 945,731, and a limit is set from those. A
+  fill of WETH in past the custody is a route too, the one that repays: it filled only while the pool owed WETH, and
+  only up to the size its debt covered. On the pool owing 0.37 WETH it filled at 1.05, 1.2 and 1.5 times the custody
+  and cost 1,061,009 and 1,049,160 (1,190,009 and 1,158,260 before refunds); on the pool owing nothing, and at a size
+  past its debt, it reverted `NotEnoughDepth()`. The plan read classes each size in the sampled block, so a size the
+  route cannot fill there is no point. A route's gas is its pool's settings as much as its venue's, so its figures are
+  measured again on its live pool after any change of them. One route figure a side stands for every path and every
+  lending venue the route may take: it is the least, so a dearer one is under-charged, and `routeLimitBaseIn` and
+  `routeLimitQuoteIn` state the gas limit the dearest needs.
 
 ## Config
 
@@ -367,7 +370,8 @@ Every address is a config field with no default. A front on Ethereum:
         {"listing": 4, "baseIn": 140911, "quoteIn": 141041}
       ],
       "creditListings": [
-        {"listing": 1, "custodyBaseIn": 118241, "custodyQuoteIn": 117064, "routeBaseIn": 824339, "routeQuoteIn": 0}
+        {"listing": 1, "custodyBaseIn": 118241, "custodyQuoteIn": 117064,
+         "routeBaseIn": 824339, "routeQuoteIn": 1049160}
       ]
     }
   ]
@@ -379,14 +383,13 @@ On Ethereum the front proxy is `0x0000000000403aeB66691063CC2fD42E71d6AcD6` (imp
 (`DOOR_CODEHASH()` `0x0716310d0f4dac4c4f088ccf08c4fe5bfdfea57e9073fcd90a26feefc7c0d6d9`), and its `CELL_CODEHASH()`
 `0xb4f7512e65eee793ac5939d62b8383d8544eb1ca850c276fd706e97a0b7938de`. Its price contracts 1 to 4 are the four
 `approvedSources` above, and its first maker's quote contract (desk 1) is
-`0x4f8dd270acE370dE2f6Ac5EBf3230cBE099a0753`, the one `approvedDesks` above names. No listing is registered
-on this front yet. Once the first is, this section names its pool and each listing's door, the factory's
-`doorOf(listing)`. The listing ids and gas figures in the example are the launch rehearsal's, measured on a fork of the
-deployed build in the front's mode: listing 1 wstETH/WETH (credit mode 2), 2 wstETH/USDC, 3 wstETH/USDT, 4 USDT/USDC.
-They are checked against the live pool's ids, and the credit listing's figures measured on the live pool, before the
-config is used. In the door's mode the same listings take `"fillMode": "door"` and the door's figures: `listingGas`
-2: 144,744 and 138,338; 3: 145,430 and 136,333; 4: 150,796 and 154,012; `creditListings` 1: 135,485, 128,913, 841,583
-and 0.
+`0x4f8dd270acE370dE2f6Ac5EBf3230cBE099a0753`, the one `approvedDesks` above names. No listing is registered on this
+front yet. Once the first is, this section names its pool and each listing's door, the factory's `doorOf(listing)`.
+The listing ids and gas figures in the example are the launch rehearsal's, measured on a fork of the deployed build in
+the front's mode: listing 1 wstETH/WETH (credit mode 2), 2 wstETH/USDC, 3 wstETH/USDT, 4 USDT/USDC. They are checked
+against the live pool's ids, and the credit listing's figures measured on the live pool, before the config is used. In
+the door's mode the same listings take `"fillMode": "door"` and the door's figures: `listingGas` 2: 144,744 and
+138,338; 3: 145,430 and 136,333; 4: 150,796 and 154,012; `creditListings` 1: 135,485, 128,913, 841,583 and 1,061,009.
 
 **`approvedDesks` is empty by default, and empty means nothing is listed or quoted.** Anyone may open a desk and a
 listing on the front, so a listing is listed and quoted only where its maker is approved: its desk's contract, the
