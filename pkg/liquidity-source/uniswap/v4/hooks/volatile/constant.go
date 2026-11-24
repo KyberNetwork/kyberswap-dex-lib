@@ -17,6 +17,10 @@ const HookGas int64 = 24820
 
 var (
 	HookAddress = common.HexToAddress("0x000022Ec4eBD6b12294396E852E4C3876b253Cc0")
+	// HookAddressRobinhood is the Arbitrum-flavoured build: it also zeroes the temp fee when more than
+	// maxTempFeeBlockGap (2) blocks passed since the stored block. The sim keeps the temp fee: it
+	// never undercharges, so the quote is a lower bound.
+	HookAddressRobinhood = common.HexToAddress("0x987E330F00B79864a07FE81dFaC344D0078ABCC0")
 
 	ErrPoolIsNotTracked = errors.New("volatile: pool is not tracked")
 	ErrInvalidFeeState  = errors.New("volatile: invalid fee state")
