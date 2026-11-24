@@ -108,22 +108,22 @@ type (
 
 	// ICustomCalcAmountOut can CalcAmountOut and customize this function
 	ICustomCalcAmountOut interface {
-		CalcAmountOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string,
-			swapLimit SwapLimitBig) (*CalcAmountOutResult, error)
+		CalcAmountOut(ctx context.Context, pool IPoolSim, tokenAmountIn TokenAmt, tokenOut string,
+			swapLimit SwapLimit) (*CalcAmtOutResult, error)
 		SetCustomCalcAmountOutFunc(f CalcAmountOutFunc)
 	}
 	// ICustomClone can ClonePool and CloneSwapLimit and customize these functions
 	ICustomClone interface {
-		ClonePool(ctx context.Context, pool IPoolSimulator) IPoolSimulator
+		ClonePool(ctx context.Context, pool IPoolSim) IPoolSim
 		SetCustomClonePoolFunc(f ClonePoolFunc)
-		CloneSwapLimit(ctx context.Context, limit SwapLimitBig) SwapLimitBig
+		CloneSwapLimit(ctx context.Context, limit SwapLimit) SwapLimit
 		SetCustomCloneSwapLimitFunc(f CloneSwapLimitFunc)
 	}
 
-	CalcAmountOutFunc func(ctx context.Context, pool IPoolSimulator, tokenAmountIn TokenAmount,
-		tokenOut string, swapLimit SwapLimitBig) (*CalcAmountOutResult, error)
-	ClonePoolFunc      func(ctx context.Context, pool IPoolSimulator) IPoolSimulator
-	CloneSwapLimitFunc func(ctx context.Context, limit SwapLimitBig) SwapLimitBig
+	CalcAmountOutFunc func(ctx context.Context, pool IPoolSim, tokenAmountIn TokenAmt,
+		tokenOut string, swapLimit SwapLimit) (*CalcAmtOutResult, error)
+	ClonePoolFunc      func(ctx context.Context, pool IPoolSim) IPoolSim
+	CloneSwapLimitFunc func(ctx context.Context, limit SwapLimit) SwapLimit
 )
 
 type IPoolSingleRFQ interface {

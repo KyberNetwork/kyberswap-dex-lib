@@ -13,7 +13,7 @@ import (
 type (
 	FactoryParams struct {
 		EntityPool  entity.Pool
-		BasePoolMap map[string]IPoolSimulator
+		BasePoolMap map[string]IPoolSim
 		ChainID     valueobject.ChainID
 		EthClient   ethereum.ContractCaller
 		Opts        FactoryOpts
@@ -106,7 +106,7 @@ func RegisterFactory2[P any](poolType string,
 // RegisterFactoryMeta registers a factory function for a meta pool type with basePoolMap.
 // TODO: deprecate this in favor of RegisterFactory
 func RegisterFactoryMeta[P any](poolType string,
-	factory func(entity.Pool, map[string]IPoolSimulator) (P, error)) bool {
+	factory func(entity.Pool, map[string]IPoolSim) (P, error)) bool {
 	return RegisterFactory(poolType, func(factoryParams FactoryParams) (P, error) {
 		return factory(factoryParams.EntityPool, factoryParams.BasePoolMap)
 	})
