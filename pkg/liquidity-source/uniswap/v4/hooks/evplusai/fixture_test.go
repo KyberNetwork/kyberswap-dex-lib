@@ -1,12 +1,12 @@
 package evplusai
 
 import (
-	"math/big"
 	"os"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -58,10 +58,10 @@ func TestNativeRouteMetadata(t *testing.T) {
 	require.EqualValues(t, 10, meta.TickSpacing)
 	// Updating a clone must not mutate the original pool price or fee snapshot.
 	clone := sim.CloneState().(*uniswapv4.PoolSimulator)
-	quote, err := clone.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: weth, Amount: big.NewInt(1000000000000000)}, TokenOut: usdg})
+	quote, err := clone.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: weth, Amount: *uint256.NewInt(1000000000000000)}, TokenOut: usdg})
 	require.NoError(t, err)
 	originalPrice := sim.V3Pool.SqrtRatioX96
-	clone.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: pool.TokenAmount{Token: weth, Amount: big.NewInt(1000000000000000)}, TokenAmountOut: *quote.TokenAmountOut, SwapInfo: quote.SwapInfo})
+	clone.UpdateState(pool.UpdateStateParams{TokenAmountIn: pool.TokenAmt{Token: weth, Amount: *uint256.NewInt(1000000000000000)}, TokenAmountOut: *quote.TokenAmountOut, SwapInfo: quote.SwapInfo})
 	require.Equal(t, originalPrice, sim.V3Pool.SqrtRatioX96)
 	require.NotEqual(t, originalPrice, clone.V3Pool.SqrtRatioX96)
 }

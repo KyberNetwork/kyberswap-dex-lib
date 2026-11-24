@@ -155,8 +155,8 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 	// so compose the directional protocol fee here (not in the platform fraction).
 	total := protocol + lp - protocol*lp/1000000
 	return &uniswapv4.BeforeSwapResult{
-		SwapFee: uniswapv4.FeeAmount(total), DeltaSpecified: new(big.Int),
-		DeltaUnspecified: new(big.Int), Gas: gasBeforeSwap,
+		SwapFee: uniswapv4.FeeAmount(total), DeltaSpecified: new(uint256.Int),
+		DeltaUnspecified: new(uint256.Int), Gas: gasBeforeSwap,
 	}, nil
 }
 
@@ -171,17 +171,18 @@ func (h *Hook) AfterSwap(p *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResu
 	}
 	// A core BalanceDelta component is int128. Exact-input output is positive;
 	// exact-output input may have magnitude 2^127 (int128 minimum).
+	var int128Min uint256.Int
 	if amount == nil || amount.Sign() < 0 || amount.BitLen() > 128 ||
-		(amount.BitLen() == 128 && (p.CalcOut || amount.Cmp(new(big.Int).Lsh(big.NewInt(1), 127)) > 0)) {
+		(amount.BitLen() == 128 && (p.CalcOut || amount.Cmp(int128Min.Lsh(uint256.NewInt(1), 127)) > 0)) {
 		return nil, errInvalidAmount
 	}
 	_, denominator := split(fee, p.CalcOut)
 	var charge, numerator, divisor uint256.Int
-	charge.SetFromBig(amount) // bounded above; multiplication cannot overflow uint256
+	charge.Set(amount) // bounded above; multiplication cannot overflow uint256
 	numerator.SetUint64(fee)
 	divisor.SetUint64(denominator)
 	charge.Mul(&charge, &numerator).Div(&charge, &divisor)
-	return &uniswapv4.AfterSwapResult{HookFee: charge.ToBig(), Gas: gasAfterSwap}, nil
+	return &uniswapv4.AfterSwapResult{HookFee: &charge, Gas: gasAfterSwap}, nil
 }
 
 func (h *Hook) CloneState() uniswapv4.Hook {

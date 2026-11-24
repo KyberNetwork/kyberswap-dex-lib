@@ -1,10 +1,10 @@
 package evplusai
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -49,7 +49,7 @@ func TestFees(t *testing.T) {
 			require.Zero(t, before.DeltaUnspecified.Sign())
 			// denominator units -> exactly numerator units; one less exercises floor.
 			for _, amount := range []uint64{0, 1, denominator - 1, denominator} {
-				input, output := big.NewInt(42), big.NewInt(43)
+				input, output := uint256.NewInt(42), uint256.NewInt(43)
 				if tc.exactIn {
 					output.SetUint64(amount)
 				} else {
@@ -68,16 +68,16 @@ func TestObservedSwapAndNoInputMutation(t *testing.T) {
 	// September 20, block 68251120: actual core USDG output 31.312411,
 	// platform accrual 0.024974, final leg output 31.287437.
 	h := makeHook(t, Extra{Fee0For1: 7919, Fee1For0: 500, Timestamp: 100, ExpiresAt: 101})
-	amount := big.NewInt(31312411)
+	amount := uint256.NewInt(31312411)
 	p := &uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true},
-		AmountIn:         big.NewInt(12000000000000000), AmountOut: amount,
+		AmountIn:         uint256.NewInt(12000000000000000), AmountOut: amount,
 	}
 	for range 2 {
 		res, err := h.AfterSwap(p)
 		require.NoError(t, err)
-		require.Equal(t, int64(24974), res.HookFee.Int64())
-		require.Equal(t, int64(31312411), amount.Int64())
+		require.Equal(t, uint64(24974), res.HookFee.Uint64())
+		require.Equal(t, uint64(31312411), amount.Uint64())
 	}
 }
 
@@ -117,16 +117,17 @@ func TestInvalidStateAndAmounts(t *testing.T) {
 	}
 	h := makeHook(t, Extra{Timestamp: 100})
 	p := &uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true}}
-	for _, amount := range []*big.Int{nil, big.NewInt(-1), new(big.Int).Lsh(big.NewInt(1), 127)} {
+	negOne := new(uint256.Int).Neg(uint256.NewInt(1))
+	for _, amount := range []*uint256.Int{nil, negOne, new(uint256.Int).Lsh(uint256.NewInt(1), 127)} {
 		p.AmountOut = amount
 		_, err := h.AfterSwap(p)
 		require.ErrorIs(t, err, errInvalidAmount)
 	}
 	p.CalcOut = false
-	p.AmountIn = new(big.Int).Lsh(big.NewInt(1), 127)
+	p.AmountIn = new(uint256.Int).Lsh(uint256.NewInt(1), 127)
 	_, err := h.AfterSwap(p)
 	require.NoError(t, err) // magnitude of int128 minimum is valid for an input
-	p.AmountIn.Add(p.AmountIn, big.NewInt(1))
+	p.AmountIn.Add(p.AmountIn, uint256.NewInt(1))
 	_, err = h.AfterSwap(p)
 	require.ErrorIs(t, err, errInvalidAmount)
 	h.ProtocolFee = 1001
