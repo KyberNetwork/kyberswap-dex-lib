@@ -108,6 +108,14 @@ const (
 
 	// refreshEvery is how often the tracker asks for a listing's refresh (NextUpdateAt), event or none.
 	refreshEvery = time.Second
+	// idleRefreshEvery is the same for a listing whose state holds no ladder (dark, retired, its desk silent or not
+	// approved): nothing of it is quoted, so it is read less often until it is. It is no multiple of Ethereum's 12 s
+	// slot, so an idle listing is not sampled at one moment of every slot, where a desk that publishes later in the
+	// slot would never be seen.
+	idleRefreshEvery = 5 * time.Second
+	// stateShareWindow is how long one fetch of a front's /state answers serves the refreshes of its listings: they
+	// come together, a listing each, and one fetch a url stands for all of them.
+	stateShareWindow = 250 * time.Millisecond
 
 	// defaultInclusionAllowance is the time a routed fill takes to land, s, where no allowance is configured
 	// (Config.InclusionAllowance), and subSecondInclusionAllowance the same on a chain whose blocks are under a second

@@ -362,7 +362,7 @@ func headCalls(front, door common.Address, listing uint32, tokens [2]common.Addr
 func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Pool, se StaticExtra,
 	tokens [2]common.Address, maxIn *big.Int) (h headRead, o override, mapped bool, err error) {
 	fetched := make(chan []answer, 1)
-	go func() { fetched <- fetchAnswers(ctx, t.titan[f.Address], f.Titan.Timeout, t.stateFailed) }()
+	go func() { fetched <- t.stateAnswers(ctx, f) }()
 	var at doorViewOut
 	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{ABI: frontABI, Target: se.Front, Method: "doorView",

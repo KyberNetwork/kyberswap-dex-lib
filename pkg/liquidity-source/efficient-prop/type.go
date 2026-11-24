@@ -40,6 +40,10 @@ type Extra struct {
 	// Allowance is the time a routed fill takes to land, s (Config.InclusionAllowance): route finding quotes a fill
 	// only where it lands by ValidUntil.
 	Allowance uint64 `json:"allowance,omitempty"`
+	// Idle is whether the listing is not quoted for a reason no new block lifts (its desk not approved, its fill mode,
+	// its tip cap, its class or credit mode with no gas figure, not live): its refresh is asked for less often
+	// (NextUpdateAt).
+	Idle bool `json:"idle,omitempty"`
 	// BaseToken1 is whether the pair's base is token 1 (the pair word's bit 8 clear), which sets each direction's gas.
 	BaseToken1 bool `json:"base1,omitempty"`
 	// Print is whether the listing's fill reads a price source or an asset module, which sets each direction's gas: a

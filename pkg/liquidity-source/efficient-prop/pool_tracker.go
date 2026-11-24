@@ -43,6 +43,18 @@ type PoolTracker struct {
 	hashes *codeHashes
 	// desks is the maker gate: the desk contracts whose listings are quoted
 	desks *approvedDesks
+	// shared is each front's last /state answers, by its address, kept for stateEvery (stateShareWindow)
+	shared     map[string]*sharedAnswers
+	stateEvery time.Duration
+}
+
+// sharedAnswers is one front's /state answers as last fetched. Its lock is held through a fetch, so the refreshes of
+// the front's listings that come together wait for one fetch and read its answers, which nothing writes after.
+type sharedAnswers struct {
+	mu      sync.Mutex
+	at      time.Time
+	answers []answer
+	held    bool
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
@@ -58,7 +70,8 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 	}
 	t := &PoolTracker{cfg: cfg, ethrpcClient: ethrpcClient, titan: map[string][]stateClient{}, now: time.Now,
 		warned: map[string]time.Time{}, warn: warn,
-		hashes: newCodeHashes(ethrpcClient), desks: newApprovedDesks(cfg)}
+		hashes: newCodeHashes(ethrpcClient), desks: newApprovedDesks(cfg),
+		shared: map[string]*sharedAnswers{}, stateEvery: stateShareWindow}
 	if t.warn == nil {
 		t.warn = func(url string, err error) {
 			logger.WithFields(logger.Fields{"dexId": cfg.dexID(), "url": url, "error": err.Error()}).
@@ -69,6 +82,7 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 		if !f.builder() {
 			continue
 		}
+		t.shared[f.Address] = &sharedAnswers{}
 		for _, url := range f.Titan.URLs {
 			// one url at a time, so each client keeps its url; a url that does not dial is logged as a failed one
 			// (its key left out) and left out of the reads
@@ -81,6 +95,26 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 		}
 	}
 	return t, nil
+}
+
+// stateAnswers is front f's /state answers: fetched from its urls (fetchAnswers), or the last fetch's where that is
+// under stateEvery old, so the listings of one front refreshed together share one fetch a url. A fetch its caller cut
+// short is not kept.
+func (t *PoolTracker) stateAnswers(ctx context.Context, f *Front) []answer {
+	s := t.shared[f.Address]
+	if s == nil || t.stateEvery <= 0 {
+		return fetchAnswers(ctx, t.titan[f.Address], f.Titan.Timeout, t.stateFailed)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if age := t.now().Sub(s.at); s.held && age >= 0 && age < t.stateEvery {
+		return s.answers
+	}
+	answers := fetchAnswers(ctx, t.titan[f.Address], f.Titan.Timeout, t.stateFailed)
+	if ctx.Err() == nil {
+		s.answers, s.at, s.held = answers, t.now(), true
+	}
+	return answers
 }
 
 // stateWarnEvery is how often a failing /state url is logged at most.
@@ -277,6 +311,9 @@ func (t *PoolTracker) GetNewPoolState(
 	if v.PairWord != nil && v.PairWord.Bit(pairAssetBit) == 1 && v.CreditMode == 0 && extra.Gas == nil {
 		quoted = false
 	}
+	// idle: not quoted for a reason no new block or /state answer lifts (its desk not approved, its fill mode, its tip
+	// cap, a credit mode its front does not name, a class with no gas figure), or not live
+	extra.Idle = !quoted || v.Flags&flagLive == 0
 	if builder {
 		// its allowance is taken off validUntil (builderWindow); its front's clock must be the block's second, which
 		// a time override places
@@ -290,7 +327,7 @@ func (t *PoolTracker) GetNewPoolState(
 		if v.CreditMode == 0 && extra.Gas == nil {
 			if _, _, ok := gasOfBuilder(staticExtra.Mode, extra.Print, false, extra.Past, extra.NoAsset,
 				extra.AssetQuote); !ok {
-				quoted = false
+				quoted, extra.Idle = false, true
 			}
 		}
 	}
@@ -429,17 +466,26 @@ func (t *PoolTracker) GetNewPoolState(
 // answer, a higher block, comes with each block: its refresh is asked for refreshEvery from now, or at its
 // ValidUntil where that is sooner (now where that has passed), so a new answer is quoted within a second of its
 // publication and no state stands past its block.
+//
+// An idle state (Extra.Idle), one not quoted for a reason no new block lifts, is asked for idleRefreshEvery on
+// instead, on either kind of front. A listing with no ladder for its block alone (no answer for the head's next block
+// yet, a word that ended) is not idle, and keeps the schedule above: its next answer is a block away.
 func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
 	var e Extra
-	if err := json.Unmarshal([]byte(p.Extra), &e); err == nil && e.Builder {
+	err := json.Unmarshal([]byte(p.Extra), &e)
+	every := refreshEvery
+	if err == nil && e.Idle {
+		every = idleRefreshEvery
+	}
+	if err == nil && e.Builder {
 		now := t.now().Unix()
-		next := now + int64(refreshEvery/time.Second)
+		next := now + int64(every/time.Second)
 		if e.ValidUntil != 0 && int64(e.ValidUntil) < next {
 			next = max(now, int64(e.ValidUntil))
 		}
 		return next
 	}
-	return p.Timestamp + int64(refreshEvery/time.Second)
+	return p.Timestamp + int64(every/time.Second)
 }
 
 // deskApproved is whether desk, a listing's desk on front f, is an approved one (approvedDesks): its contract is the

@@ -568,3 +568,90 @@ func TestBuilderQuotesNothingOnAGuardedEntry(t *testing.T) {
 	cfg := printConfig(st.URL)
 	unserved(t, ethTrack(t, n, cfg, ethListed(t, n, cfg)), "a guarded entry on chain 1")
 }
+
+// The listings of one front refreshed together share one /state fetch a url: a second listing's refresh inside the
+// share window reads the first's answers, and one after it fetches again.
+func TestBuilderListingsRefreshedTogetherShareOneStateFetch(t *testing.T) {
+	chain := sharedChain()
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	a, b := wordsOf(slotA, 1235, 0, false, false), wordsOf(slotB, 1235, 0, false, false)
+	st.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"a": {cellOf(7): a}, "b": {cellOf(7): b}})
+	cfg := ethConfig(st.URL)
+	u, err := NewPoolsListUpdater(cfg, n.client())
+	require.NoError(t, err)
+	pools, _, err := u.GetNewPools(context.Background(), nil)
+	require.NoError(t, err)
+	require.Len(t, pools, 2)
+	now := time.Now()
+	tr := ethTracker(t, n, cfg, now)
+	tr.now = func() time.Time { return now }
+	refresh := func() {
+		for _, p := range pools {
+			p.Tokens[0].Decimals, p.Tokens[1].Decimals = 18, 6
+			got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+			require.NoError(t, err)
+			require.NotEmpty(t, extraOf(t, got).Ladders[0], p.Address)
+		}
+	}
+	refresh()
+	assert.Equal(t, int64(1), st.hits.Load(), "both listings read one fetch")
+	now = now.Add(stateShareWindow - time.Millisecond)
+	refresh()
+	assert.Equal(t, int64(1), st.hits.Load(), "inside the share window")
+	now = now.Add(time.Millisecond)
+	refresh()
+	assert.Equal(t, int64(2), st.hits.Load(), "the window over: fetched again")
+}
+
+// A listing not quoted for a standing reason (its desk not approved) is idle: its state says so and its next refresh
+// is asked for idleRefreshEvery on, on a builder chain and on a chain read at the head. One with no ladder for its
+// block alone (no answer yet) is not idle and is read again a second on, as a quoted one is.
+func TestIdleListingIsRefreshedLessOften(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	st.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := ethConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	now := time.Unix(int64(n.time)+1, 0)
+	next := func(cfg *Config) (Extra, int64) {
+		tr := ethTracker(t, n, cfg, now)
+		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		return extraOf(t, got), tr.NextUpdateAt(got) - now.Unix()
+	}
+	e, in := next(cfg)
+	require.NotEmpty(t, e.Ladders[0])
+	assert.False(t, e.Idle)
+	assert.Equal(t, int64(refreshEvery/time.Second), in, "quoted")
+
+	unapproved := ethConfig(st.URL)
+	unapproved.ApprovedDesks = nil
+	e, in = next(unapproved)
+	assert.Empty(t, e.Ladders[0])
+	assert.True(t, e.Idle)
+	assert.Equal(t, int64(idleRefreshEvery/time.Second), in, "its desk not approved")
+
+	st.set(slotAfter(n.time), 1235, nil)
+	e, in = next(cfg)
+	assert.Empty(t, e.Ladders[0])
+	assert.False(t, e.Idle, "no answer for the next block yet: its next is a block away")
+	assert.Equal(t, int64(refreshEvery/time.Second), in)
+
+	// read at the head
+	base := trackedChain()
+	bn := base.node(t, 1234)
+	bp := listed(t, bn)
+	none := testConfig()
+	none.ApprovedDesks = nil
+	tr, err := NewPoolTracker(none, bn.client())
+	require.NoError(t, err)
+	got, err := tr.GetNewPoolState(context.Background(), bp, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	assert.True(t, extraOf(t, got).Idle)
+	assert.Equal(t, got.Timestamp+int64(idleRefreshEvery/time.Second), tr.NextUpdateAt(got))
+	quoted := track(t, bn, bp)
+	assert.False(t, extraOf(t, quoted).Idle)
+	assert.Equal(t, quoted.Timestamp+int64(refreshEvery/time.Second), tr.NextUpdateAt(quoted))
+}

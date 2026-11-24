@@ -132,7 +132,9 @@ A listing's price moves with every post of its desk's word or book and every fil
 source asks for refreshes two ways:
 
 - **Schedule.** The tracker implements `NextUpdateAt`: a refresh one second after the state's block time, event or
-  none. On Ethereum, a second from now or at `validUntil` where that is sooner (Ethereum).
+  none. On Ethereum, a second from now or at `validUntil` where that is sooner (Ethereum). A listing not quoted for a
+  standing reason (its desk not approved, its fill mode, its tip cap, no gas figure, not live) is read every 5 s
+  instead.
 - **Logs.** The event parser (`EventParser`, a `poolfactory` decoder) maps each log that moves a listing to its door:
   - the front's logs naming a listing (a fill, a post of depth or controls, a status, setting, binding, key or lease
     change): its door, computed as the factory's `doorOf` does. A log naming a desk maps to the doors of every listing
@@ -151,11 +153,12 @@ source asks for refreshes two ways:
 **Node load.** One refresh of a listing read at the head makes: for a listing that reads no source (WORD or NONE), 3
 `eth_call` and 2 `eth_getStorageAt`; for one that reads a print on approved sources, 14 `eth_call` and 4
 `eth_getStorageAt`; for one bound to a guarded source, 16 `eth_call` and 5 `eth_getStorageAt`. Each `eth_call` is one
-multicall carrying the sizes it samples. On Ethereum one refresh makes one `/state` read of each url and, for a quoted
-listing that reads no source, 4 `eth_call` and 7 `eth_getStorageAt`; a credit-mode listing adds no request. The
-schedule refreshes a listing once a second, and a listing that reads a print is also refreshed at each post of its
-lane; bounding that (at most one mapped refresh per listing per block of logs) is the service's matter. The parser
-maps only the logs the service hands it: where it passes only the fronts' logs, the one-second schedule picks a post up.
+multicall carrying the sizes it samples. On Ethereum the listings of a front refreshed within 250 ms share one
+`/state` read of each url, and one refresh makes, for a quoted listing that reads no source, 4 `eth_call` and 7
+`eth_getStorageAt`; a credit-mode listing adds no request. The schedule refreshes a listing once a second, and a
+listing that reads a print is also refreshed at each post of its lane; bounding that (at most one mapped refresh per
+listing per block of logs) is the service's matter. The parser maps only the logs the service hands it: where it
+passes only the fronts' logs, the one-second schedule picks a post up.
 
 ## Execution and gas
 
@@ -233,8 +236,9 @@ takes its figures from `creditListings` alone.
 
 **A pool holding none of the input.** A fill whose pool holds none of the input token writes the pool's balance of it
 from zero and costs 17,044 to 17,068 more, as measured. The state marks each token its pool held none of at its block
-(`noneHeld`), and the simulator charges a fill with that token in 17,044 more until a fill of the route pays the pool
-some. The source does not know the recipient and charges nothing for one that holds none of the output token.
+(`noneHeld`), and the simulator charges a fill with that token in 17,044 more until a fill of the route, through any
+listing of the pool, pays the pool some. The source does not know the recipient and charges nothing for one that holds
+none of the output token.
 
 **Gas limits.** Every figure here is what a fill adds to a receipt, never a limit to give it: a fill must hold the gas
 it spends before any refund, its figure plus the refund above, and more. The least gas limit that let a fill
