@@ -1,6 +1,7 @@
 package plain
 
 import (
+	"errors"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -86,7 +87,7 @@ func (t *PoolSimulator) getD(xp []uint256.Int, a *uint256.Int, D *uint256.Int) e
 		return nil
 	}
 
-	var D_P, Ann, Ann_mul_S_div_APrec, Ann_sub_APrec, Dprev uint256.Int
+	var D_P, Ann, Ann_mul_S_div_APrec, Ann_sub_APrec, Dprev, num uint256.Int
 
 	// D: uint256 = S
 	D.Set(&S)
@@ -111,25 +112,36 @@ func (t *PoolSimulator) getD(xp []uint256.Int, a *uint256.Int, D *uint256.Int) e
 			// some pools (very few) will divide by `(_x * N_COINS +1)` instead to avoid div by zero (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
 			// but we can't apply that to other pools because it will lead to incorrect result (return high amount while the pool cannot be used anymore)
 			// so here we'll use the original formula and do the zero check at the beginning
-			D_P.Div(
-				number.SafeMul(&D_P, D),
-				number.SafeMul(&xp[j], &t.numTokensU256),
-			)
+			if _, overflow := num.MulOverflow(&D_P, D); overflow {
+				return ErrOverflow
+			}
+			D_P.Div(&num, number.SafeMul(&xp[j], &t.numTokensU256))
 		}
 		// Dprev = D
 		Dprev.Set(D)
 
 		// D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
-		D.Div(
-			number.SafeMul(
-				number.SafeAdd(&Ann_mul_S_div_APrec, number.SafeMul(&D_P, &t.numTokensU256)),
-				D,
-			),
-			number.SafeAdd(
-				number.Div(number.SafeMul(&Ann_sub_APrec, D), t.staticExtra.APrecision),
-				number.SafeMul(&D_P, numTokensPlus1),
-			),
-		)
+		var numer, denom uint256.Int
+		if _, overflow := numer.MulOverflow(&D_P, &t.numTokensU256); overflow {
+			return ErrOverflow
+		}
+		if _, overflow := numer.AddOverflow(&numer, &Ann_mul_S_div_APrec); overflow {
+			return ErrOverflow
+		}
+		if _, overflow := num.MulOverflow(&numer, D); overflow {
+			return ErrOverflow
+		}
+		if _, overflow := denom.MulOverflow(&Ann_sub_APrec, D); overflow {
+			return ErrOverflow
+		}
+		denom.Div(&denom, t.staticExtra.APrecision)
+		if _, overflow := numer.MulOverflow(&D_P, numTokensPlus1); overflow {
+			return ErrOverflow
+		}
+		if _, overflow := denom.AddOverflow(&denom, &numer); overflow {
+			return ErrOverflow
+		}
+		D.Div(&num, &denom)
 
 		// calc abs(D - Dprev) and compare against 1
 		if withinDelta(D, &Dprev, 1) {
@@ -523,7 +535,9 @@ func (t *PoolSimulator) CalculateTokenAmountU256(
 			feeAmounts[i].Set(number.Div(number.Mul(fee, _admin_fee), FeeDenominator))
 			balances1[i].Sub(&balances1[i], fee)
 		}
-		_ = t.get_D_mem(t.extra.RateMultipliers, balances1[:t.numTokens], a, &d2)
+		if err := t.get_D_mem(t.extra.RateMultipliers, balances1[:t.numTokens], a, &d2); errors.Is(err, ErrOverflow) {
+			return err
+		}
 		mintAmount.Div(number.Mul(&totalSupply, number.Sub(&d2, &d0)), &d0)
 	} else {
 		mintAmount.Set(&d1)
@@ -574,7 +588,9 @@ func (t *PoolSimulator) AddLiquidityU256(amounts []uint256.Int) (*uint256.Int, e
 			t.Info.Reserves[i].Sub(&new_balances[i], number.Div(number.Mul(fee, _admin_fee), FeeDenominator))
 			new_balances[i].Sub(&new_balances[i], fee)
 		}
-		_ = t.get_D_mem(t.extra.RateMultipliers, new_balances, amp, &D2)
+		if err := t.get_D_mem(t.extra.RateMultipliers, new_balances, amp, &D2); errors.Is(err, ErrOverflow) {
+			return nil, err
+		}
 		mint_amount.Div(number.Mul(&token_supply, number.Sub(&D2, &D0)), &D0)
 	} else {
 		for i := range nCoins {

@@ -2,6 +2,7 @@ package plain
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -89,7 +90,7 @@ func checkGoldenResult(t *testing.T, pi int, kind string, c goldenAmt, err error
 	t.Helper()
 	if c.Err != "" {
 		require.Error(t, err, "pool %d %s %s->%s %s: want error %q", pi, kind, c.In, c.Out, c.Amount, c.Err)
-		require.Equal(t, c.Err, strings.TrimSpace(err.Error()), "pool %d %s %s->%s %s", pi, kind, c.In, c.Out, c.Amount)
+		require.Equal(t, wantErrText(c.Err, err), strings.TrimSpace(err.Error()), "pool %d %s %s->%s %s", pi, kind, c.In, c.Out, c.Amount)
 		return
 	}
 	require.NoError(t, err, "pool %d %s %s->%s %s", pi, kind, c.In, c.Out, c.Amount)
@@ -101,12 +102,21 @@ func checkGoldenIn(t *testing.T, pi int, c goldenAmt, err error, res *pool.CalcA
 	t.Helper()
 	if c.Err != "" {
 		require.Error(t, err, "pool %d in %s<-%s %s: want error %q", pi, c.In, c.Out, c.Amount, c.Err)
-		require.Equal(t, c.Err, strings.TrimSpace(err.Error()), "pool %d in %s<-%s %s", pi, c.In, c.Out, c.Amount)
+		require.Equal(t, wantErrText(c.Err, err), strings.TrimSpace(err.Error()), "pool %d in %s<-%s %s", pi, c.In, c.Out, c.Amount)
 		return
 	}
 	require.NoError(t, err, "pool %d in %s<-%s %s", pi, c.In, c.Out, c.Amount)
 	require.Equal(t, c.Dy, res.TokenAmountIn.Amount.String(), "pool %d in dy %s<-%s %s", pi, c.In, c.Out, c.Amount)
 	require.Equal(t, c.Fee, res.Fee.Amount.String(), "pool %d in fee %s<-%s %s", pi, c.In, c.Out, c.Amount)
+}
+
+// wantErrText maps a legacy overflow panic to ErrOverflow, the typed error now returned by getD.
+// Every other golden error text must match the native error exactly.
+func wantErrText(golden string, err error) string {
+	if golden == "panic: uint256 overflow" && errors.Is(err, ErrOverflow) {
+		return strings.TrimSpace(err.Error())
+	}
+	return golden
 }
 
 // TestLegacyParityUpdateState replays the golden state sequence: quote, then UpdateState, then read reserves.

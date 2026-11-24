@@ -39,6 +39,7 @@ var (
 	ErrInvalidNumToken              = errors.New("invalid number of token")
 	ErrInvalidAValue                = errors.New("invalid A value")
 	ErrZero                         = errors.New("zero")
+	ErrOverflow                     = errors.New("uint256 overflow")
 	ErrBalancesMustMatchMultipliers = errors.New("balances must match multipliers")
 	ErrDDoesNotConverge             = errors.New("d does not converge")
 	ErrTokenFromEqualsTokenTo       = errors.New("can't compare token to itself")
