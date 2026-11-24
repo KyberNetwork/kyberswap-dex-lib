@@ -1,7 +1,6 @@
 package tickerdualpool
 
 import (
-	"context"
 	"math/big"
 	"testing"
 
@@ -52,21 +51,21 @@ func localSimulator(t *testing.T, snapshots ...Snapshot) *uniswapv4.PoolSimulato
 
 func TestKyberSimulatorAppliesTickerFees(t *testing.T) {
 	sim := localSimulator(t)
-	input := pool.TokenAmount{Token: sim.GetTokens()[0], Amount: big.NewInt(1001)}
-	result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: input, TokenOut: sim.GetTokens()[1]})
+	input := pool.TokenAmt{Token: sim.GetTokens()[0], Amount: *uint256.NewInt(1001)}
+	result, err := sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: input, TokenOut: sim.GetTokens()[1]})
 	require.NoError(t, err)
 	require.Equal(t, "984", result.TokenAmountOut.Amount.String())
 	clone := sim.CloneState()
-	sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: input, TokenAmountOut: *result.TokenAmountOut, SwapInfo: result.SwapInfo})
+	sim.UpdateState(pool.UpdateStateParams{TokenAmountIn: input, TokenAmountOut: *result.TokenAmountOut, SwapInfo: result.SwapInfo})
 	// An independent clone must still give the original quote.
-	again, err := pool.DefaultCalcAmtOut(context.Background(), clone, input, sim.GetTokens()[1], nil)
+	again, err := clone.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: input, TokenOut: sim.GetTokens()[1]})
 	require.NoError(t, err)
 	require.Equal(t, result.TokenAmountOut.Amount.String(), again.TokenAmountOut.Amount.String())
-	reverse, err := sim.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: sim.GetTokens()[1], Amount: big.NewInt(198)}, TokenIn: sim.GetTokens()[0]})
+	reverse, err := sim.CalcAmtIn(pool.CalcAmtInParams{TokenAmountOut: pool.TokenAmt{Token: sim.GetTokens()[1], Amount: *uint256.NewInt(198)}, TokenIn: sim.GetTokens()[0]})
 	require.NoError(t, err)
-	check, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: *reverse.TokenAmountIn, TokenOut: sim.GetTokens()[1]})
+	check, err := sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: *reverse.TokenAmountIn, TokenOut: sim.GetTokens()[1]})
 	require.NoError(t, err)
-	require.GreaterOrEqual(t, check.TokenAmountOut.Amount.Int64(), int64(198))
+	require.GreaterOrEqual(t, check.TokenAmountOut.Amount.Uint64(), uint64(198))
 }
 
 func TestHookCloneAndVaultRefresh(t *testing.T) {
@@ -78,7 +77,7 @@ func TestHookCloneAndVaultRefresh(t *testing.T) {
 	clone.Pool.Buckets[0].WeightBps = 1
 	require.Equal(t, uint16(10000), h.Pool.Buckets[0].WeightBps)
 	h.UpdateBalance(q)
-	_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1001)})
+	_, err = h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1001)})
 	require.ErrorIs(t, err, ErrRefreshRequired)
 	require.False(t, clone.RefreshRequired)
 	q.Swap.Balance0.Clear()
@@ -114,7 +113,7 @@ func TestMalformedSnapshotRemainsRejectedAfterMsgpack(t *testing.T) {
 		require.NoError(t, err)
 		raw = append(raw[:len(raw)-1], []byte(malformed)...)
 		h := NewHook(&uniswapv4.HookParam{HookExtra: raw}).(*Hook)
-		params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1001)}
+		params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1001)}
 		_, err = h.BeforeSwap(params)
 		require.Error(t, err)
 		require.Nil(t, h.Total0, "failed decoding must retain no partial snapshot")
@@ -132,7 +131,7 @@ func TestRefreshRequiredRemainsRejectedAfterMsgpack(t *testing.T) {
 	q, err := QuoteExactInput(h.State, true, uint256.NewInt(1001))
 	require.NoError(t, err)
 	h.UpdateBalance(q)
-	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1001)}
+	params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1001)}
 	_, err = h.BeforeSwap(params)
 	require.ErrorIs(t, err, ErrRefreshRequired)
 	data, err := wiremsgpack.Marshal(h)

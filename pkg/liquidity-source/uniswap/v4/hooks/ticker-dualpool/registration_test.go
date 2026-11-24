@@ -2,10 +2,10 @@ package tickerdualpool
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -24,7 +24,7 @@ func TestProductionHookFactoryLookup(t *testing.T) {
 	require.Equal(t, productionHookAddress, h.address)
 	require.Equal(t, valueobject.ExchangeUniswapV4TickerDualPool, h.GetExchange())
 	require.True(t, h.AllowEmptyTicks())
-	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1001)})
+	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1001)})
 	require.NoError(t, err)
 	require.Equal(t, "984", result.SwapInfo.(Quote).NetOutput.Dec())
 
@@ -32,7 +32,7 @@ func TestProductionHookFactoryLookup(t *testing.T) {
 		Cfg: &uniswapv4.Config{ChainID: valueobject.ChainIDMonad}, HookExtra: []byte("{"),
 	})
 	require.True(t, ok)
-	_, err = malformed.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1001)})
+	_, err = malformed.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1001)})
 	require.Error(t, err)
 }
 
@@ -43,7 +43,7 @@ func TestProductionHookRejectsMissingOrWrongChain(t *testing.T) {
 		params := &uniswapv4.HookParam{Cfg: cfg, HookExtra: raw}
 		hook, ok := uniswapv4.GetHook(productionHookAddress, params)
 		require.True(t, ok)
-		_, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1001)})
+		_, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1001)})
 		require.ErrorIs(t, err, ErrInvalidState)
 		_, err = hook.Track(context.Background(), params)
 		require.ErrorIs(t, err, ErrInvalidState, "reject unsupported chain before any RPC")

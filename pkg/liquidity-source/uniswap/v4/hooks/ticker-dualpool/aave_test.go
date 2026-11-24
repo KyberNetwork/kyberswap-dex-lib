@@ -2,7 +2,6 @@ package tickerdualpool
 
 import (
 	"encoding/json"
-	"math/big"
 	"strconv"
 	"testing"
 
@@ -73,8 +72,8 @@ func TestAaveSequentialHookUpdatesMatchFork(t *testing.T) {
 	h.Vaults[0] = common.HexToAddress("0x1234")
 	h.Aave[0] = &AaveInventory{uint256.MustFromDecimal(b["raw"]), uint256.MustFromDecimal(b["claims"]), uint256.MustFromDecimal(b["poolShares"]), uint256.MustFromDecimal(b["supply"]), uint256.MustFromDecimal(b["idle"]), uint256.MustFromDecimal(b["strategyShares"]), uint256.MustFromDecimal(b["rate"]), uint256.MustFromDecimal(b["pendingYield"])}
 	for i, f := range quotes {
-		amount, ok := new(big.Int).SetString(f["input"], 10)
-		require.True(t, ok)
+		amount := new(uint256.Int)
+		require.NoError(t, amount.SetFromDecimal(f["input"]))
 		result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: f["direction"] == "true", AmountSpecified: amount})
 		require.NoError(t, err)
 		q := result.SwapInfo.(Quote)

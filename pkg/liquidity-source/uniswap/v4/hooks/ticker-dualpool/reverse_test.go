@@ -2,7 +2,6 @@ package tickerdualpool
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/holiman/uint256"
@@ -73,32 +72,32 @@ func TestReverseQuoteHandlesPriceStepsAndSeparateFeeDips(t *testing.T) {
 func TestReverseHookFeeDeltaAndParentStateUpdates(t *testing.T) {
 	for _, direction := range []bool{true, false} {
 		h := poolSnapshotFixture()
-		params := &uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: direction, AmountSpecified: big.NewInt(198)}
+		params := &uniswapv4.BeforeSwapParams{CalcOut: false, ZeroForOne: direction, AmountSpecified: uint256.NewInt(198)}
 		r, err := h.BeforeSwap(params)
 		require.NoError(t, err)
 		q := r.SwapInfo.(Quote)
-		require.Equal(t, new(big.Int).Sub(q.Swap.AmountOut.ToBig(), params.AmountSpecified).String(), r.DeltaSpecified.String())
-		require.Equal(t, q.Swap.AmountIn.ToBig().String(), r.DeltaUnspecified.String())
+		require.Equal(t, new(uint256.Int).Sub(q.Swap.AmountOut, params.AmountSpecified).Dec(), r.DeltaSpecified.Dec())
+		require.Equal(t, q.Swap.AmountIn.Dec(), r.DeltaUnspecified.Dec())
 
 		sim := localSimulator(t, h.Snapshot)
 		inputSide, outputSide := 0, 1
 		if !direction {
 			inputSide, outputSide = 1, 0
 		}
-		reverse, err := sim.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: sim.GetTokens()[outputSide], Amount: params.AmountSpecified}, TokenIn: sim.GetTokens()[inputSide]})
+		reverse, err := sim.CalcAmtIn(pool.CalcAmtInParams{TokenAmountOut: pool.TokenAmt{Token: sim.GetTokens()[outputSide], Amount: *params.AmountSpecified}, TokenIn: sim.GetTokens()[inputSide]})
 		require.NoError(t, err)
-		forward, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: *reverse.TokenAmountIn, TokenOut: sim.GetTokens()[outputSide]})
+		forward, err := sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: *reverse.TokenAmountIn, TokenOut: sim.GetTokens()[outputSide]})
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, forward.TokenAmountOut.Amount.Cmp(params.AmountSpecified), 0)
 		info := reverse.SwapInfo.(uniswapv4.SwapInfo).HookSwapInfo.(Quote)
 		clone := sim.CloneState().(*uniswapv4.PoolSimulator)
-		sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: *reverse.TokenAmountIn, TokenAmountOut: *forward.TokenAmountOut, SwapInfo: reverse.SwapInfo})
-		clone.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: *reverse.TokenAmountIn, TokenAmountOut: *forward.TokenAmountOut, SwapInfo: forward.SwapInfo})
+		sim.UpdateState(pool.UpdateStateParams{TokenAmountIn: *reverse.TokenAmountIn, TokenAmountOut: *forward.TokenAmountOut, SwapInfo: reverse.SwapInfo})
+		clone.UpdateState(pool.UpdateStateParams{TokenAmountIn: *reverse.TokenAmountIn, TokenAmountOut: *forward.TokenAmountOut, SwapInfo: forward.SwapInfo})
 		require.Equal(t, info.Swap.Balance0.Dec(), sim.GetReserves()[0].String())
 		require.Equal(t, info.Swap.Balance1.Dec(), sim.GetReserves()[1].String())
 		require.Equal(t, clone.V3Pool.TickCurrent, sim.V3Pool.TickCurrent)
 		require.Zero(t, clone.V3Pool.SqrtRatioX96.Cmp(&sim.V3Pool.SqrtRatioX96))
-		_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: *reverse.TokenAmountIn, TokenOut: sim.GetTokens()[outputSide]})
+		_, err = sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: *reverse.TokenAmountIn, TokenOut: sim.GetTokens()[outputSide]})
 		require.NoError(t, err)
 	}
 }

@@ -101,10 +101,7 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 	if p.AmountSpecified == nil || p.AmountSpecified.Sign() <= 0 {
 		return nil, ErrInvalidState
 	}
-	amount, overflow := uint256.FromBig(p.AmountSpecified)
-	if overflow {
-		return nil, ErrInvalidState
-	}
+	amount := p.AmountSpecified
 	state := h.State
 	// Recompute available vault cash after each simulated reserve change.
 	// Keep total share value separate so the 100% check sees any shortage.
@@ -211,13 +208,13 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 	}
 	result := &uniswapv4.BeforeSwapResult{SwapFee: uniswapv4.FeeAmount(h.Pool.LpFee), Gas: h.quoteGas(q), SwapInfo: q}
 	if p.CalcOut {
-		result.DeltaSpecified = q.Swap.AmountIn.ToBig()
-		result.DeltaUnspecified = new(big.Int).Neg(q.NetOutput.ToBig())
+		result.DeltaSpecified = new(uint256.Int).Set(q.Swap.AmountIn)
+		result.DeltaUnspecified = new(uint256.Int).Neg(q.NetOutput)
 	} else {
 		// CalcAmountIn reverses exact-in: add the output needed before fees.
 		// DualPool still supplies the input price for its temporary liquidity.
-		result.DeltaSpecified = new(big.Int).Sub(q.Swap.AmountOut.ToBig(), p.AmountSpecified)
-		result.DeltaUnspecified = q.Swap.AmountIn.ToBig()
+		result.DeltaSpecified = new(uint256.Int).Sub(q.Swap.AmountOut, p.AmountSpecified)
+		result.DeltaUnspecified = new(uint256.Int).Set(q.Swap.AmountIn)
 	}
 	return result, nil
 }

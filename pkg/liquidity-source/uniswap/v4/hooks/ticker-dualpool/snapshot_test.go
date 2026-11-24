@@ -1,7 +1,6 @@
 package tickerdualpool
 
 import (
-	"math/big"
 	"testing"
 
 	wiremsgpack "github.com/KyberNetwork/msgpack/v5"
@@ -31,7 +30,7 @@ func poolSnapshotFixture() *Hook {
 }
 
 func snapshotSell() *uniswapv4.BeforeSwapParams {
-	return &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false, AmountSpecified: new(big.Int).Exp(big.NewInt(10), big.NewInt(21), nil)}
+	return &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false, AmountSpecified: new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(21))}
 }
 
 func TestPoolSnapshotQuoteAndUpdateAreIndependent(t *testing.T) {
@@ -71,7 +70,7 @@ func TestPoolSnapshotShortageSurvivesSerialization(t *testing.T) {
 		params := snapshotSell()
 		params.CalcOut = calcOut
 		if !calcOut {
-			params.AmountSpecified = big.NewInt(1000)
+			params.AmountSpecified = uint256.NewInt(1000)
 		}
 		_, err := h.BeforeSwap(params)
 		require.ErrorIs(t, err, ErrVaultIlliquid)
@@ -92,26 +91,26 @@ func TestParentSimulatorUsesEachPoolSnapshot(t *testing.T) {
 	ah, bh := poolSnapshotFixture(), poolSnapshotFixture()
 	bh.BlockNumber++
 	a, b := localSimulator(t, ah.Snapshot), localSimulator(t, bh.Snapshot)
-	input := pool.TokenAmount{Token: a.GetTokens()[1], Amount: snapshotSell().AmountSpecified}
-	params := pool.CalcAmountOutParams{TokenAmountIn: input, TokenOut: a.GetTokens()[0]}
-	aQuote, err := a.CalcAmountOut(params)
+	input := pool.TokenAmt{Token: a.GetTokens()[1], Amount: *snapshotSell().AmountSpecified}
+	params := pool.CalcAmtOutParams{TokenAmountIn: input, TokenOut: a.GetTokens()[0]}
+	aQuote, err := a.CalcAmtOut(params)
 	require.NoError(t, err)
-	bQuote, err := b.CalcAmountOut(params)
+	bQuote, err := b.CalcAmtOut(params)
 	require.NoError(t, err)
 	bReserves := [2]string{b.GetReserves()[0].String(), b.GetReserves()[1].String()}
 
 	info := aQuote.SwapInfo.(uniswapv4.SwapInfo).HookSwapInfo.(Quote)
-	a.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: input, TokenAmountOut: *aQuote.TokenAmountOut, SwapInfo: aQuote.SwapInfo})
+	a.UpdateState(pool.UpdateStateParams{TokenAmountIn: input, TokenAmountOut: *aQuote.TokenAmountOut, SwapInfo: aQuote.SwapInfo})
 	require.Equal(t, info.Swap.Balance0.Dec(), a.GetReserves()[0].String())
 	require.Equal(t, info.Swap.Balance1.Dec(), a.GetReserves()[1].String())
 	require.Zero(t, a.V3Pool.SqrtRatioX96.Cmp(info.Swap.SqrtPriceX96))
 	require.Equal(t, int(info.Swap.Tick), a.V3Pool.TickCurrent)
 	require.Equal(t, bReserves, [2]string{b.GetReserves()[0].String(), b.GetReserves()[1].String()})
 
-	again, err := b.CalcAmountOut(params)
+	again, err := b.CalcAmtOut(params)
 	require.NoError(t, err)
 	require.Equal(t, bQuote.TokenAmountOut.Amount.String(), again.TokenAmountOut.Amount.String())
-	_, err = b.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: b.GetTokens()[0], Amount: big.NewInt(1000)}, TokenIn: b.GetTokens()[1]})
+	_, err = b.CalcAmtIn(pool.CalcAmtInParams{TokenAmountOut: pool.TokenAmt{Token: b.GetTokens()[0], Amount: *uint256.NewInt(1000)}, TokenIn: b.GetTokens()[1]})
 	require.NoError(t, err)
 	require.Equal(t, ah.BlockNumber, a.GetMetaInfo(input.Token, params.TokenOut).(uniswapv4.PoolMetaInfo).BlockNumber)
 	require.Equal(t, bh.BlockNumber, b.GetMetaInfo(input.Token, params.TokenOut).(uniswapv4.PoolMetaInfo).BlockNumber)
