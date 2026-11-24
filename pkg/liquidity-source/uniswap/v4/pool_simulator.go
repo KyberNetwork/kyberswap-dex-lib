@@ -262,6 +262,14 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	return swapResult, nil
 }
 
+// zeroNilFeeAmount sets the big.Int fee amount to zero. v3 leaves it nil on the big.Int path,
+// but callers read it as a number; the uint256 path already reports zero.
+func zeroNilFeeAmount(res *pool.CalcAmountOutResult) {
+	if res != nil && res.Fee != nil && res.Fee.Amount == nil {
+		res.Fee.Amount = new(big.Int)
+	}
+}
+
 // tokenAmtFromBigV4 converts a big.Int amount to uint256 at the hook boundary. Amounts from the shared
 // CalcAmountOut body are non-negative and fit 256 bits, so a nil result is returned only for a nil input.
 func tokenAmtFromBigV4(t *pool.TokenAmount) *pool.TokenAmt {
@@ -392,7 +400,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	// If no hooks, just do swap
 	poolSim := p.PoolSimulator
 	if p.hook == nil {
-		return p.PoolSimulator.CalcAmountOut(param)
+		swapResult, err = p.PoolSimulator.CalcAmountOut(param)
+		zeroNilFeeAmount(swapResult)
+		return
 	}
 
 	tokenIn := param.TokenAmountIn.Token
@@ -436,6 +446,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	}); err != nil {
 		return nil, err
 	}
+	zeroNilFeeAmount(swapResult)
 
 	if p.hook.CanAfterSwap(p.staticExtra.HooksAddress) {
 		afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
