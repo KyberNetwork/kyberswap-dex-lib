@@ -131,6 +131,45 @@ collect:
 	return state
 }
 
+// FetchKeys returns the union of the venue keys (contract addresses, "slot" and
+// "blockNumber" excluded) across every client's response. Regions each carry only
+// some entries, so one call can miss a venue; callers cache across calls.
+func FetchKeys(ctx context.Context, clients []*rpc.Client, timeout time.Duration) []common.Address {
+	if timeout == 0 {
+		timeout = DefaultTimeout
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	results := make(chan map[string]json.RawMessage, len(clients))
+	for _, client := range clients {
+		go func() {
+			var result map[string]json.RawMessage
+			if err := client.CallContext(ctx, &result, "titan_getPammStateOverrides"); err != nil {
+				logger.WithFields(logger.Fields{"error": err.Error()}).Warn("titan RPC failed")
+			}
+			results <- result
+		}()
+	}
+
+	seen := make(map[common.Address]struct{})
+	var keys []common.Address
+	for range clients {
+		for k := range <-results {
+			if k == "slot" || k == "blockNumber" || !common.IsHexAddress(k) {
+				continue
+			}
+			if addr := common.HexToAddress(k); addr != (common.Address{}) {
+				if _, ok := seen[addr]; !ok {
+					seen[addr] = struct{}{}
+					keys = append(keys, addr)
+				}
+			}
+		}
+	}
+	return keys
+}
+
 // mergeResponses keeps only the responses for the highest block number, then
 // takes each pAMM entry whole from the first response that carries it. An
 // entry's slots are never mixed across regions.

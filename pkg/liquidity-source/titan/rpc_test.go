@@ -193,3 +193,18 @@ func TestFetchState_MergeWindow(t *testing.T) {
 		t.Fatalf("BlockTimestamp must come from the merged slot, got %d", state.BlockTimestamp)
 	}
 }
+
+// TestFetchKeys: keys are the union across regions; slot/blockNumber are not keys.
+func TestFetchKeys(t *testing.T) {
+	t.Parallel()
+	a, b := "0x00000000000000000000000000000000000000a1", "0x00000000000000000000000000000000000000b2"
+	entry := json.RawMessage(`{"stateOverride":{}}`)
+	clients := []*rpc.Client{
+		titanServer(t, 0, map[string]json.RawMessage{a: entry}),
+		titanServer(t, 0, map[string]json.RawMessage{a: entry, b: entry}),
+	}
+	got := FetchKeys(context.Background(), clients, time.Second)
+	if len(got) != 2 {
+		t.Fatalf("want union of 2 keys, got %v", got)
+	}
+}
