@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -44,9 +45,9 @@ func TestAfterSwap_MatchesPonsV2(t *testing.T) {
 	theirs := &ponsv2.Hook{Registered: true, FeeBps: 150}
 	for _, calcOut := range []bool{true, false} {
 		params := &uniswapv4.AfterSwapParams{
-			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: calcOut, AmountSpecified: big.NewInt(985_000)},
-			AmountIn:         big.NewInt(1_000_000),
-			AmountOut:        big.NewInt(2_000_000),
+			BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: calcOut, AmountSpecified: uint256.NewInt(985_000)},
+			AmountIn:         uint256.NewInt(1_000_000),
+			AmountOut:        uint256.NewInt(2_000_000),
 		}
 		got, err := ours.AfterSwap(params)
 		require.NoError(t, err)
@@ -54,7 +55,7 @@ func TestAfterSwap_MatchesPonsV2(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, want.HookFee, got.HookFee)
 		// exact-in: floor(2_000_000 * 150 / 10_000); CalcAmountIn: nothing
-		assert.Equal(t, big.NewInt(map[bool]int64{true: 30_000, false: 0}[calcOut]), got.HookFee)
+		assert.Equal(t, uint256.NewInt(map[bool]uint64{true: 30_000, false: 0}[calcOut]), got.HookFee)
 
 		gotBefore, err := ours.BeforeSwap(params.BeforeSwapParams)
 		require.NoError(t, err)
@@ -108,10 +109,10 @@ func TestCalcAmountIn_DeliversRequestedOutput(t *testing.T) {
 func TestAfterSwap_Unregistered_NoFee(t *testing.T) {
 	result, err := (&Hook{}).AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true},
-		AmountOut:        big.NewInt(1_000_000),
+		AmountOut:        uint256.NewInt(1_000_000),
 	})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.ZeroBI, result.HookFee)
+	assert.Equal(t, uint256.NewInt(0), result.HookFee)
 }
 
 // What Track hands back is what the factory restores from HookExtra on the next load.
