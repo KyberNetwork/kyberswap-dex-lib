@@ -30,6 +30,7 @@ func TestFrontierAddresses(t *testing.T) {
 	chains := []valueobject.ChainID{
 		valueobject.ChainIDEthereum,
 		valueobject.ChainIDBase,
+		valueobject.ChainIDMonad,
 	}
 
 	for _, exchange := range exchanges {
@@ -40,7 +41,13 @@ func TestFrontierAddresses(t *testing.T) {
 			require.Equal(t, wantRouter, router)
 		}
 
-		_, ok := BatchRouter(valueobject.ChainIDArbitrumOne, exchange)
-		require.False(t, ok)
+		// A chain without its own entry falls back to the ChainIDDefault router.
+		router, ok := BatchRouter(valueobject.ChainIDArbitrumOne, exchange)
+		require.True(t, ok)
+		require.Equal(t, wantRouter, router)
 	}
+
+	// Prefixes without a default entry still miss on unknown chains.
+	_, ok := BatchRouter(valueobject.ChainIDEthereum, valueobject.ExchangeBushV3Weighted)
+	require.False(t, ok)
 }

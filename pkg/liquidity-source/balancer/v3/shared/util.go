@@ -27,6 +27,9 @@ func BatchRouter(chainID valueobject.ChainID, exchange string) (common.Address, 
 		router = BatchRouterMap[""]
 	}
 	v, ok := router[chainID]
+	if !ok {
+		v, ok = router[ChainIDDefault]
+	}
 	return v, ok
 }
 
