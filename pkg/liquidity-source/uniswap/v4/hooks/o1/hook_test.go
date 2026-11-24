@@ -1,7 +1,6 @@
 package o1
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,7 +11,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/b20"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/hooktest"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/holiman/uint256"
 )
@@ -80,13 +78,13 @@ func TestBeforeSwap_QuoteSpecified_ChargesFeeOnInput(t *testing.T) {
 	h := &Hook{Extra: e}
 
 	// tokenIsCurrency0=false -> quote is currency0 -> zeroForOne=true sells quote in.
-	amountIn := big.NewInt(1_000_000)
+	amountIn := uint256.NewInt(1_000_000)
 	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: amountIn})
 	require.NoError(t, err)
 
 	// floor(1_000_000 * 100 / 10_000) = 10_000, matching FeeAmount's floor mulDiv.
-	assert.Equal(t, big.NewInt(10_000), result.DeltaSpecified)
-	assert.Equal(t, bignumber.ZeroBI, result.DeltaUnspecified)
+	assert.Equal(t, uint256.NewInt(10_000), result.DeltaSpecified)
+	assert.Equal(t, uint256.NewInt(0), result.DeltaUnspecified)
 }
 
 // Selling the token for quote: the fee must NOT be charged in BeforeSwap (it's
@@ -97,10 +95,10 @@ func TestBeforeSwap_TokenSpecified_NoFeeHere(t *testing.T) {
 	b20.NowFn = func() int64 { return e.LaunchTime + e.AntiSnipeWindowSeconds }
 	h := &Hook{Extra: e}
 
-	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false, AmountSpecified: big.NewInt(1_000_000)})
+	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false, AmountSpecified: uint256.NewInt(1_000_000)})
 	require.NoError(t, err)
-	assert.Equal(t, bignumber.ZeroBI, result.DeltaSpecified)
-	assert.Equal(t, bignumber.ZeroBI, result.DeltaUnspecified)
+	assert.Equal(t, uint256.NewInt(0), result.DeltaSpecified)
+	assert.Equal(t, uint256.NewInt(0), result.DeltaUnspecified)
 }
 
 // Selling the token for quote: fee lands post-swap on the realized quote output.
@@ -109,13 +107,13 @@ func TestAfterSwap_TokenSpecified_ChargesFeeOnOutput(t *testing.T) {
 	b20.NowFn = func() int64 { return e.LaunchTime + e.AntiSnipeWindowSeconds }
 	h := &Hook{Extra: e}
 
-	amountOut := big.NewInt(1_000_000)
+	amountOut := uint256.NewInt(1_000_000)
 	result, err := h.AfterSwap(&uniswapv4.AfterSwapParams{
 		BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: false},
 		AmountOut:        amountOut,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, big.NewInt(10_000), result.HookFee)
+	assert.Equal(t, uint256.NewInt(10_000), result.HookFee)
 }
 
 // CalcAmountIn reverses exact-in through the shared b20.Extra fee logic. Goldens are the legacy CalcAmountIn output
