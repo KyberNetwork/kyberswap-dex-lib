@@ -171,12 +171,14 @@ adapter fills both; the gas differs several times over. So such a listing is quo
 - **Measured** on a fork of Ethereum holding the deployed build, on the wstETH/WETH listing of a pool whose WETH is
   borrowed at Morpho Blue, through the door and through the front: a custody fill of wstETH in 135,485 and 118,241, of
   WETH in 128,913 and 117,064, and a route fill of wstETH in 841,583 and 824,339 (982,875 and 945,731 before refunds).
-  A fill of WETH in past the custody is the route that repays: it fills only while the pool owes WETH and only up to
-  the size its debt covers. On the pool owing 0.37 WETH it cost 1,061,009 and 1,049,160 (1,190,009 and 1,158,260
-  before refunds); on the pool owing nothing, and at a size past its debt, it reverted `NotEnoughDepth()`. One route
-  figure a side stands for every path the route may take: it is the least, and `routeLimitBaseIn` and
-  `routeLimitQuoteIn` state the gas limit the dearest needs. Measure the figures again on the live pool after any
-  change of its settings.
+  A fill of WETH in just past the custody is a route too. With no loan open it filled from 1.008 to 1.028 times the
+  custody (to 1.036 with the pool holding some WETH) and reverted `NotEnoughDepth()` at the next size tried; with the
+  pool owing 0.37 WETH it filled to 1.5 times the custody and reverted at 3. It cost 948,309 and 936,460 with the pool
+  holding some WETH (1,072,509 and 1,040,760 before refunds), 966,765 and 954,916 with it holding none, and 1,061,009
+  and 1,049,160 where it repays the loan (1,190,009 and 1,158,260 before refunds). One route figure a side stands for
+  every state and path the route may take: it is the least, so a dearer fill is under-charged (the repaying one by
+  112,700), and `routeLimitBaseIn` and `routeLimitQuoteIn` state the gas limit the dearest needs. Measure the figures
+  again on the live pool after any change of its settings.
 
 ## Config
 
@@ -201,7 +203,7 @@ Every address is a config field with no default. A front on Ethereum:
       "titan": {"urls": ["https://<api host>/v1/1/state", "<a builder's data host>"], "timeout": 2000000000},
       "creditListings": [
         {"listing": 1, "custodyBaseIn": 118241, "custodyQuoteIn": 117064,
-         "routeBaseIn": 824339, "routeQuoteIn": 1049160}
+         "routeBaseIn": 824339, "routeQuoteIn": 936460}
       ]
     }
   ]
