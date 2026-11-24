@@ -488,6 +488,10 @@ func (t *PoolSimulator) CalculateTokenAmountU256(
 		if deposit {
 			number.SafeAddZ(&t.Reserves[i], &amounts[i], &newBalances[i])
 		} else {
+			// Withdrawing more than the reserve is ErrNegativeResult, not a panic (same rule as D1 below).
+			if t.Reserves[i].Lt(&amounts[i]) {
+				return ErrNegativeResult
+			}
 			number.SafeSubZ(&t.Reserves[i], &amounts[i], &newBalances[i])
 		}
 	}
