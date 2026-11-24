@@ -226,7 +226,15 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if routed {
 		gas, info.GasLimit = s.routeGas[in], s.routeLimit[in]
 	}
-	if s.noneHeld[in] {
+	// the pool's first write of the input: charged once a route, so not where a fill of another listing of the pool
+	// has paid it the token in this route already (the shared first-write key, closed)
+	first := s.noneHeld[in]
+	if first && params.Limit != nil {
+		if l := params.Limit.GetLimit(s.firstKey(in)); l != nil && l.Sign() <= 0 {
+			first = false
+		}
+	}
+	if first {
 		gas += gasFirstOfInput
 	}
 	return &pool.CalcAmountOutResult{
@@ -264,6 +272,11 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if limit := params.SwapLimit; limit != nil {
 		_, _, _ = limit.UpdateLimit(s.limitKey(out), s.limitKey(in),
 			params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
+		// the fill paid the pool the input: no later fill of the route, of any listing of the pool, writes its balance
+		// of it from zero
+		if l := limit.GetLimit(s.firstKey(in)); l != nil && l.Sign() > 0 {
+			_, _, _ = limit.UpdateLimit(s.firstKey(in), s.firstKey(in), l, new(big.Int))
+		}
 		// the fill touched the pool: no route of it is quoted after it, and after a route nothing of it is
 		if open := limit.GetLimit(s.poolKey()); open != nil && open.Sign() > 0 {
 			taken := big.NewInt(1)
@@ -309,9 +322,10 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 // of theirs standing (the default merge): a pool's room for a token (its balance less any fee owed, its outflow
 // bucket, its cap) is shared by its listings and may be under its balance, and each ladder's top is a fill the room
 // took at the refresh. A route's reach past the custody is its own listing's (CalcAmountOut). Beside them, the pool's
-// route key at poolOpen, which every listing of the pool reports alike.
+// route key at poolOpen, which every listing of the pool reports alike, and for each token the pool holds none of, its
+// first-write key at 1: open until a fill of the route pays the pool that token.
 func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	limits := make(map[string]*big.Int, 3)
+	limits := make(map[string]*big.Int, 5)
 	for out := range 2 {
 		var l uint256.Int
 		if c := &s.curves[1-out]; c.from > 0 {
@@ -321,6 +335,9 @@ func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
 			l.Set(&s.custody[out])
 		}
 		limits[s.limitKey(out)] = l.ToBig()
+		if s.noneHeld[out] {
+			limits[s.firstKey(out)] = big.NewInt(1)
+		}
 	}
 	limits[s.poolKey()] = new(big.Int).Set(poolOpen)
 	return limits
@@ -328,6 +345,12 @@ func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
 
 func (s *PoolSimulator) limitKey(i int) string {
 	return strings.ToLower(s.staticExtra.Custody) + ":" + s.Info.Tokens[i]
+}
+
+// firstKey is the key of the pool's first write of token i, shared by its listings: 1 while the pool holds none of the
+// token and no fill of the route has paid it some, so the write from zero (gasFirstOfInput) is charged once a route.
+func (s *PoolSimulator) firstKey(i int) string {
+	return s.limitKey(i) + ":first"
 }
 
 // poolKey is the pool's route key, shared by its listings: poolOpen until a fill of the route touches the pool.

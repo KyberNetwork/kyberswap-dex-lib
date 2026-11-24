@@ -516,3 +516,45 @@ func TestSimulatorRefusesAMissingLimit(t *testing.T) {
 	_, err := calc(sim, simWETH, simUSDC, big.NewInt(1e18), inv)
 	assert.ErrorIs(t, err, pool.ErrNotEnoughInventory)
 }
+
+// Two listings of one pool that holds none of a token share its first write: in a route, the first fill with that
+// token in is charged the write from zero, and a later fill of the pool's other listing with the same token in is not.
+// With no shared limit, or on another pool, each is charged its own.
+func TestFirstWriteOfAnInputIsChargedOnceAcrossAPoolsListings(t *testing.T) {
+	listing := func(address, custody string) *PoolSimulator {
+		p := simPool(t, simLadders(), time.Now().Unix())
+		var e Extra
+		require.NoError(t, json.Unmarshal([]byte(p.Extra), &e))
+		e.NoneHeld = 1 // the pool holds none of token 0
+		b, err := json.Marshal(e)
+		require.NoError(t, err)
+		p.Extra, p.Address = string(b), address
+		if custody != "" {
+			p = withStatic(t, p, func(se *StaticExtra) { se.Custody = custody })
+		}
+		sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: p})
+		require.NoError(t, err)
+		return sim
+	}
+	size := big.NewInt(1e17)
+	gasOf := func(sim *PoolSimulator, limit pool.SwapLimit) int64 {
+		res, err := calc(sim, simWETH, simUSDC, size, limit)
+		require.NoError(t, err)
+		return res.Gas
+	}
+	a := listing("0x7777777777777777777777777777777777777777", "")
+	b := listing("0x8888888888888888888888888888888888888888", "")
+	other := listing("0x9999999999999999999999999999999999999999", "0x00000000000000000000000000000000000000cc")
+	plain := gasOf(a, nil) - gasFirstOfInput
+	require.Positive(t, plain)
+
+	inv := sharedLimit(a, b, other)
+	assert.Equal(t, big.NewInt(1), inv.GetLimit(a.firstKey(0)), "the first write is open")
+	assert.Nil(t, inv.GetLimit(a.firstKey(1)), "no key for a token the pool holds")
+	assert.Equal(t, plain+gasFirstOfInput, gasOf(a, inv))
+	assert.Equal(t, plain+gasFirstOfInput, gasOf(b, inv), "no fill yet: either listing's would be the first")
+	fillSim(t, a, simWETH, simUSDC, size, inv)
+	assert.Equal(t, plain, gasOf(b, inv), "the pool's other listing: listing a's fill paid the pool the token")
+	assert.Equal(t, plain+gasFirstOfInput, gasOf(other, inv), "another pool's first write is its own")
+	assert.Equal(t, plain+gasFirstOfInput, gasOf(b, nil), "with no shared limit a listing knows its own fills alone")
+}
