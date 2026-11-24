@@ -1,11 +1,13 @@
 package msgpack
 
 import (
-	"math/big"
+	"bytes"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/klauspost/compress/snappy"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -44,25 +46,32 @@ func TestPonsFamilyHooksRoundTrip(t *testing.T) {
 			}, valueobject.ChainIDEthereum)
 			require.NoError(t, err)
 
-			encoded, err := EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{sim.GetAddress(): sim})
-			require.NoError(t, err)
-			decoded, err := DecodePoolSimulatorsMap(encoded)
-			require.NoError(t, err)
+			var buf bytes.Buffer
+			zw := snappy.NewBufferedWriter(&buf)
+			en := NewEncoder(zw)
+			require.NoError(t, en.Encode(map[string]pool.IPoolSim{sim.GetAddress(): sim}))
+			PutEncoder(en)
+			require.NoError(t, zw.Close())
+			decoded := map[string]pool.IPoolSim{}
+			de := NewDecoder(snappy.NewReader(bytes.NewReader(buf.Bytes())))
+			require.NoError(t, de.Decode(&decoded))
+			PutDecoder(de)
 			restored := decoded[sim.GetAddress()].(*v4.PoolSimulator)
 
 			tokens := sim.Info.Tokens
-			amt := big.NewInt(1_000_000)
-			out := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: tokens[0], Amount: amt}, TokenOut: tokens[1]}
-			want, err := sim.CalcAmountOut(out)
+			var amt uint256.Int
+			amt.SetUint64(1_000_000)
+			out := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: tokens[0], Amount: amt}, TokenOut: tokens[1]}
+			want, err := sim.CalcAmtOut(out)
 			require.NoError(t, err)
-			got, err := restored.CalcAmountOut(out)
+			got, err := restored.CalcAmtOut(out)
 			require.NoError(t, err)
 			require.Equal(t, want.TokenAmountOut, got.TokenAmountOut)
 
-			in := pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: tokens[1], Amount: amt}, TokenIn: tokens[0]}
-			wantIn, err := sim.CalcAmountIn(in)
+			in := pool.CalcAmtInParams{TokenAmountOut: pool.TokenAmt{Token: tokens[1], Amount: amt}, TokenIn: tokens[0]}
+			wantIn, err := sim.CalcAmtIn(in)
 			require.NoError(t, err)
-			gotIn, err := restored.CalcAmountIn(in)
+			gotIn, err := restored.CalcAmtIn(in)
 			require.NoError(t, err)
 			require.Equal(t, wantIn.TokenAmountIn, gotIn.TokenAmountIn)
 			require.Equal(t, sim.GetExchange(), restored.GetExchange())
