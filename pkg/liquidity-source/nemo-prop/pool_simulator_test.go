@@ -2,13 +2,14 @@ package nemoprop
 
 import (
 	"bytes"
-	"context"
+	"errors"
 	"maps"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/KyberNetwork/msgpack/v5"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,21 +20,27 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
-func quote(sim pool.IPoolSimulator, dir int, amountIn *big.Int) (*big.Int, error) {
+func quote(sim pool.IPoolSim, dir int, amountIn *big.Int) (*big.Int, error) {
 	res, err := quoteResult(sim, dir, amountIn, nil)
 	if err != nil {
 		return nil, err
 	}
-	return res.TokenAmountOut.Amount, nil
+	return res.TokenAmountOut.Amount.ToBig(), nil
 }
 
-func quoteResult(sim pool.IPoolSimulator, dir int, amountIn *big.Int,
-	limit pool.SwapLimit) (*pool.CalcAmountOutResult, error) {
+func quoteResult(sim pool.IPoolSim, dir int, amountIn *big.Int,
+	limit pool.SwapLimit) (*pool.CalcAmtOutResult, error) {
 	tokens := sim.GetTokens()
-	return pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: tokens[dir], Amount: amountIn}, tokens[1-dir], limit)
+	var in uint256.Int
+	if in.SetFromBig(amountIn) {
+		return nil, errors.New("test amountIn overflows uint256")
+	}
+	return sim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokens[dir], Amount: in}, TokenOut: tokens[1-dir], Limit: limit,
+	})
 }
 
-func quote1000(sim pool.IPoolSimulator) int64 {
+func quote1000(sim pool.IPoolSim) int64 {
 	out, err := quote(sim, 0, big.NewInt(1000))
 	if err != nil {
 		return -1
@@ -72,12 +79,12 @@ func TestPoolSimulator_MsgpackRoundTrip(t *testing.T) {
 	en := msgpack.NewEncoder(&buf)
 	en.IncludeUnexported(true)
 	en.SetForceAsArray(true)
-	require.NoError(t, en.Encode(map[string]pool.IPoolSimulator{"p": sim}))
+	require.NoError(t, en.Encode(map[string]pool.IPoolSim{"p": sim}))
 
 	de := msgpack.NewDecoder(&buf)
 	de.IncludeUnexported(true)
 	de.SetForceAsArray(true)
-	var decoded map[string]pool.IPoolSimulator
+	var decoded map[string]pool.IPoolSim
 	require.NoError(t, de.Decode(&decoded))
 	assert.Equal(t, int64(2000), quote1000(decoded["p"]))
 	assert.Equal(t, sim.GetMetaInfo("", ""), decoded["p"].GetMetaInfo("", ""))
@@ -116,8 +123,8 @@ func TestPoolSimulator_StaleSnapshots(t *testing.T) {
 		require.NoError(t, err, name)
 		_, err = quote(sim, 0, big.NewInt(1000))
 		assert.ErrorIs(t, err, ladder.ErrNoQuote, name)
-		for token, limit := range sim.CalculateLimit() {
-			assert.Zero(t, limit.Sign(), "%s: %s limit", name, token)
+		for token, limit := range sim.CalcLimit() {
+			assert.True(t, limit.IsZero(), "%s: %s limit", name, token)
 		}
 	}
 
@@ -161,26 +168,26 @@ func TestPoolSimulator_RouteConsumptionAndSharedInventory(t *testing.T) {
 	btcState.Address, btcState.Tokens = btcPool(t).Address, btcPool(t).Tokens
 	btc := newSim(t, btcState)
 
-	params := pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: hexAddr(testWETH), Amount: big.NewInt(2000)},
+	params := pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: hexAddr(testWETH), Amount: *uint256.NewInt(2000)},
 		TokenOut:      hexAddr(testUSDC),
 	}
-	testutil.TestCloneState(t, sim, params, nil)
+	testutil.TestCloneStateIPoolSim(t, sim, params)
 
-	limits := map[string]*big.Int{}
+	limits := map[string]*uint256.Int{}
 	for _, s := range []*PoolSimulator{sim, btc} {
-		maps.Copy(limits, s.CalculateLimit())
+		maps.Copy(limits, s.CalcLimit())
 	}
-	inventory := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(limits))
+	inventory := swaplimit.NewInventory(DexType, limits)
 
 	// Sell WETH for 1000 USDC through one market...
 	res, err := quoteResult(sim, 1, big.NewInt(2000), inventory)
 	require.NoError(t, err)
-	require.Equal(t, int64(1000), res.TokenAmountOut.Amount.Int64())
+	require.Equal(t, int64(1000), res.TokenAmountOut.Amount.ToBig().Int64())
 	route := sim.CloneState()
-	route.UpdateBalance(pool.UpdateBalanceParams{
+	route.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut,
-		SwapInfo: res.SwapInfo, SwapLimitBig: pool.AsSwapLimitBig(inventory),
+		SwapInfo: res.SwapInfo, SwapLimit: inventory,
 	})
 
 	// ...which leaves 500 deliverable USDC for the other market.
@@ -188,7 +195,7 @@ func TestPoolSimulator_RouteConsumptionAndSharedInventory(t *testing.T) {
 	assert.ErrorIs(t, err, pool.ErrNotEnoughInventory)
 	res, err = quoteResult(btc, 1, big.NewInt(1000), inventory)
 	require.NoError(t, err)
-	assert.Equal(t, int64(500), res.TokenAmountOut.Amount.Int64())
+	assert.Equal(t, int64(500), res.TokenAmountOut.Amount.ToBig().Int64())
 
 	// The base simulator is untouched.
 	out, err := quote(sim, 1, big.NewInt(2000))

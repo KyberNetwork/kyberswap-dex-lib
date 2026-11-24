@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
@@ -103,10 +104,24 @@ func (e *Extra) decayAt(now time.Time) (float64, bool) {
 	return float64(decayScale) / float64(decayScale+e.DecayBps*stale), true
 }
 
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (s *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *s
 	cloned.PoolSimulator = s.PoolSimulator.CloneState().(*ladder.PoolSimulator)
 	return &cloned
+}
+
+// GetReserves returns the uint256 reserves, which shadow pool.Pool's big.Int GetReserves.
+func (s *PoolSimulator) GetReserves() []uint256.Int {
+	return []uint256.Int{*s.Reserve0.Clone(), *s.Reserve1.Clone()}
+}
+
+// CalcLimit maps each token to its uint256 ladder-side reserve.
+func (s *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	tokens := s.GetTokens()
+	return map[string]*uint256.Int{
+		tokens[0]: s.Reserve0.Clone(),
+		tokens[1]: s.Reserve1.Clone(),
+	}
 }
 
 // GetMetaInfo keeps ApprovalAddress (rather than ladder.PoolMeta's default

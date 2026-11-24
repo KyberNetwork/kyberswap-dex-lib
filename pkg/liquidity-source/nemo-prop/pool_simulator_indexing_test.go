@@ -18,11 +18,11 @@ func TestIndexingQuotesAgedState(t *testing.T) {
 	p := pooledState(t, linearLadders(2, 0.5), reserves1e9, age, 1000, 60_000, 10)
 	p.Timestamp = time.Now().Add(-age).Unix()
 
-	indexed, err := pool.Factory(DexType)(pool.FactoryParams{EntityPool: p})
+	indexed, err := pool.FactoryPoolSim(DexType)(pool.FactoryParams{EntityPool: p})
 	require.NoError(t, err)
 	assert.Positive(t, quote1000(indexed))
 
-	_, err = pool.Factory(DexType)(pool.FactoryParams{
+	_, err = pool.FactoryPoolSim(DexType)(pool.FactoryParams{
 		EntityPool: p, Opts: pool.FactoryOpts{StaleCheck: true},
 	})
 	assert.ErrorIs(t, err, ladder.ErrStale)
