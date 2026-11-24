@@ -55,7 +55,10 @@ func RegisterFactory[P any](poolType string, factory func(FactoryParams) (P, err
 		return factory(factoryParams)
 	}
 
-	if _, ok := any(zero).(IPoolExactOutSimulator); ok {
+	// Legacy exact-out (IPoolExactOutSimulator) or native uint256 exact-out (ICalcAmtIn).
+	_, legacyExactOut := any(zero).(IPoolExactOutSimulator)
+	_, nativeExactOut := any(zero).(ICalcAmtIn)
+	if legacyExactOut || nativeExactOut {
 		CanCalcAmountIn[poolType] = struct{}{}
 	}
 
