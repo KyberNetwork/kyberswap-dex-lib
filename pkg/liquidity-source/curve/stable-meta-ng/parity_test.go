@@ -27,8 +27,8 @@ type goldenPool struct {
 }
 
 // changedRows lists the golden rows whose legacy panic is now a typed error: exact-out withdraw underflow
-// on the base pool, quote deposit fee underflow, and checked overflow in plain getD (ErrOverflow). Every other row
-// must match legacy exactly.
+// on the base pool, quote deposit fee underflow, and checked overflow in plain getD and stable-ng DynamicFee
+// (ErrOverflow). Every other row must match legacy exactly.
 var changedRows = map[string]string{
 	"1/Quotes/844":  "uint256 overflow",
 	"1/Quotes/845":  "uint256 overflow",
@@ -136,6 +136,7 @@ var changedRows = map[string]string{
 	"0/Quotes/448":  "negative result",
 	"0/Quotes/449":  "negative result",
 	"0/Quotes/451":  "negative result",
+	"0/Quotes/455":  "uint256 overflow",
 	"0/Quotes/638":  "negative result",
 	"0/Quotes/639":  "negative result",
 	"0/Quotes/640":  "negative result",

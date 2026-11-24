@@ -339,12 +339,14 @@ func (t *PoolSimulator) GetDyByX(
 	//   FEE_DENOMINATOR
 	// )
 	var dynamicFee, dyFee uint256.Int
-	t.DynamicFee(
+	if err := t.DynamicFee(
 		number.Div(number.SafeAdd(&xp[i], x), number.Number_2),
 		number.Div(number.SafeAdd(&xp[j], &y), number.Number_2),
 		t.Extra.SwapFee,
 		&dynamicFee,
-	)
+	); err != nil {
+		return err
+	}
 	dyFee.Div(
 		number.SafeMul(dy, &dynamicFee),
 		FeeDenominator,
@@ -394,12 +396,14 @@ func (t *PoolSimulator) GetDx(
 	dyWithFee := number.Add(number.Div(number.SafeMul(dy, &t.Extra.RateMultipliers[j]), Precision), number.Number_1)
 
 	var dynamicFee uint256.Int
-	t.DynamicFee(
+	if err := t.DynamicFee(
 		&xp[i],
 		&xp[j],
 		t.Extra.SwapFee,
 		&dynamicFee,
-	)
+	); err != nil {
+		return err
+	}
 
 	adminFee.Set(&dynamicFee)
 
@@ -436,32 +440,30 @@ func (t *PoolSimulator) GetDx(
 	return nil
 }
 
-func (t *PoolSimulator) DynamicFee(xpi *uint256.Int, xpj *uint256.Int, swapFee *uint256.Int, feeOutput *uint256.Int) {
+func (t *PoolSimulator) DynamicFee(xpi *uint256.Int, xpj *uint256.Int, swapFee *uint256.Int, feeOutput *uint256.Int) error {
 	_offpeg_fee_multiplier := t.Extra.OffpegFeeMultiplier
 	if _offpeg_fee_multiplier == nil || _offpeg_fee_multiplier.Cmp(FeeDenominator) <= 0 {
 		feeOutput.Set(swapFee)
-		return
+		return nil
 	}
 
 	// xps2: uint256 = (xpi + xpj) ** 2
 	sum := number.SafeAdd(xpi, xpj)
 	prod := number.SafeMul(xpi, xpj)
 	xps2 := number.SafeMul(sum, sum)
+	// (mult - FEE_DENOMINATOR) * 4 * prod can exceed 256 bits; the chain reverts, so return ErrOverflow.
+	var numerator uint256.Int
+	if _, overflow := numerator.MulOverflow(number.SafeMul(number.Sub(_offpeg_fee_multiplier, FeeDenominator), number.Number_4), prod); overflow {
+		return ErrOverflow
+	}
 	feeOutput.Div(
 		number.Mul(_offpeg_fee_multiplier, swapFee),
 		number.Add(
-			number.Div(
-				number.SafeMul(
-					number.SafeMul(
-						number.Sub(_offpeg_fee_multiplier, FeeDenominator),
-						number.Number_4,
-					),
-					prod,
-				), xps2,
-			),
+			number.Div(&numerator, xps2),
 			FeeDenominator,
 		),
 	)
+	return nil
 }
 
 // Calculate addition or reduction in token supply from a deposit or withdrawal
@@ -532,7 +534,9 @@ func (t *PoolSimulator) CalculateTokenAmountU256(
 			xs.Div(number.SafeMul(&t.Extra.RateMultipliers[i], &xs), Precision)
 
 			// _dynamic_fee_i = self._dynamic_fee(xs, ys, base_fee, fee_multiplier)
-			t.DynamicFee(&xs, &ys, baseFee, &_dynamic_fee_i)
+			if err := t.DynamicFee(&xs, &ys, baseFee, &_dynamic_fee_i); err != nil {
+				return err
+			}
 
 			// new_balances[i] -= _dynamic_fee_i * difference / FEE_DENOMINATOR
 			fee := number.Div(number.SafeMul(&_dynamic_fee_i, &difference), FeeDenominator)
@@ -622,7 +626,9 @@ func (t *PoolSimulator) CalculateWithdrawOneCoinU256(tokenAmount *uint256.Int, i
 		}
 
 		// dynamic_fee = self._dynamic_fee(xavg, ys, base_fee)
-		t.DynamicFee(&xavg, ys, baseFee, &dynamicFee)
+		if err := t.DynamicFee(&xavg, ys, baseFee, &dynamicFee); err != nil {
+			return err
+		}
 
 		// xp_reduced[j] = xp_j - unsafe_div(dynamic_fee * dx_expected, FEE_DENOMINATOR)
 		number.SafeSubZ(&xp[j], number.Div(number.SafeMul(&dynamicFee, &dxExpected), FeeDenominator), &xpReduced[j])
