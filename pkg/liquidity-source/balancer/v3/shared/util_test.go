@@ -30,6 +30,7 @@ func TestFrontierAddresses(t *testing.T) {
 	chains := []valueobject.ChainID{
 		valueobject.ChainIDEthereum,
 		valueobject.ChainIDBase,
+		valueobject.ChainIDMonad,
 	}
 
 	for _, exchange := range exchanges {

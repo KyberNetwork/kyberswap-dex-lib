@@ -33,6 +33,7 @@ var (
 		"frontier": {
 			valueobject.ChainIDBase:     common.HexToAddress("0x7D08bc34e444848983227E266F61146A7e935A94"),
 			valueobject.ChainIDEthereum: common.HexToAddress("0x7D08bc34e444848983227E266F61146A7e935A94"),
+			valueobject.ChainIDMonad:    common.HexToAddress("0x7D08bc34e444848983227E266F61146A7e935A94"),
 		},
 		// Range Pools run on a custom, non-canonical Balancer V3 deployment (like coinhane).
 		// Their single-swap Router (also exposing querySwap...) is the approval/target
