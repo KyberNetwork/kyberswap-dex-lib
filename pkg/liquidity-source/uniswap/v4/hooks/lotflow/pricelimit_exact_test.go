@@ -1,10 +1,10 @@
 package lotflow
 
 import (
-	"context"
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -125,14 +125,14 @@ func TestPriceLimitRefusalEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	require.Negative(t, capped.Venue.AmountIn.Cmp(big300k), "the NAV-band limit cuts the venue swap short")
 
-	sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: integrationPool(t, h),
+	sim, err := pool.FactoryPoolSim(uniswapv4.DexType)(pool.FactoryParams{EntityPool: integrationPool(t, h),
 		ChainID: valueobject.ChainIDRobinhood})
 	require.NoError(t, err)
-	_, err = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: h.Usdg, Amount: big300k}, h.Lot, nil)
+	_, err = sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: h.Usdg, Amount: *uint256.MustFromBig(big300k)}, TokenOut: h.Lot})
 	require.ErrorIs(t, err, ErrPartialFill)
-	res, err := pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: h.Usdg, Amount: usd(100_000)}, h.Lot, nil)
+	res, err := sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: h.Usdg, Amount: *uint256.MustFromBig(usd(100_000))}, TokenOut: h.Lot})
 	require.NoError(t, err)
 	require.Positive(t, res.TokenAmountOut.Amount.Sign())
 	t.Logf("$300k: unlimited fill, limited venue input %s of %s -> ErrPartialFill; $100k fills %s LOT wei",
-		capped.Venue.AmountIn, big300k, res.TokenAmountOut.Amount)
+		capped.Venue.AmountIn, big300k, res.TokenAmountOut.Amount.Dec())
 }

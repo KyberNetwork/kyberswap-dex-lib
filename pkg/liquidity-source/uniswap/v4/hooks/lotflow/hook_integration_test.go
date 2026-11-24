@@ -383,10 +383,10 @@ func TestHookIntegrationStaleCheck(t *testing.T) {
 	h, _ := integrationHook(t, "testdata/fixtures/navjit2-buy-1kusd.json")
 	h.TrackedAt = time.Now().Unix() - MaxAgeSec - 1
 	for _, stale := range []bool{false, true} {
-		sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: integrationPool(t, h),
+		sim, err := pool.FactoryPoolSim(uniswapv4.DexType)(pool.FactoryParams{EntityPool: integrationPool(t, h),
 			ChainID: valueobject.ChainIDRobinhood, Opts: pool.FactoryOpts{StaleCheck: stale}})
 		require.NoError(t, err)
-		_, err = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: h.Usdg, Amount: big.NewInt(1_000_000)}, h.Lot, nil)
+		_, err = sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: h.Usdg, Amount: *uint256.NewInt(1_000_000)}, TokenOut: h.Lot})
 		if stale {
 			require.ErrorIs(t, err, ErrStale)
 		} else {
@@ -413,10 +413,10 @@ func TestHookIntegrationStaleCheckUsesLiveness(t *testing.T) {
 			require.NoError(t, err)
 			p.Extra = string(raw)
 
-			sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: p,
+			sim, err := pool.FactoryPoolSim(uniswapv4.DexType)(pool.FactoryParams{EntityPool: p,
 				ChainID: valueobject.ChainIDRobinhood, Opts: pool.FactoryOpts{StaleCheck: true}})
 			require.NoError(t, err)
-			_, err = pool.DefaultCalcAmtOut(context.Background(), sim, pool.TokenAmount{Token: h.Usdg, Amount: big.NewInt(1_000_000)}, h.Lot, nil)
+			_, err = sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: h.Usdg, Amount: *uint256.NewInt(1_000_000)}, TokenOut: h.Lot})
 			if tc.stale {
 				require.ErrorIs(t, err, ErrStale)
 			} else {
