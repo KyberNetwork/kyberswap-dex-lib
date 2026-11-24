@@ -60,7 +60,7 @@ const (
 	// first fill of its side seen across runs through the adapter, less its refund, the recipient holding the output
 	// token, the fill behind the quote contracts' updates in their block, the front's clock the block's second.
 	// Same-size first fills vary by up to about 500 gas from run to run, so a later run may see a fill a little under
-	// its figure. The four figures past the hook pair were measured again on a fork of Ethereum holding the deployed
+	// its figure. The four figures past the hook pair were measured on a fork of Ethereum holding the deployed
 	// build (front 0x0000000000403aeB66691063CC2fD42E71d6AcD6) and a pool of wstETH, WETH, USDC and USDT: the asset in
 	// on wstETH/USDC (144,744; wstETH/USDT 145,430), the other token in on wstETH/USDT (136,333; wstETH/USDC 138,338),
 	// and both sides of USDT/USDC. A class's figure is the least of its listings, so the class's other listing spends up
@@ -85,8 +85,7 @@ const (
 	// the asset in on wstETH/USDC (133,036; wstETH/USDT 133,722), the other token in on wstETH/USDC (125,307;
 	// wstETH/USDT 126,448); with neither token the pool's asset, both sides of USDT/USDC. Each is 9,885 to 13,031
 	// under the door's figure for the same fill (29,785 to 32,931 before refunds: the door's mode earns 19,900 more).
-	// The hook pair's two
-	// were measured on the two-token pool of the door's hook-pair figures, the same fills.
+	// The hook pair's two were measured on the two-token pool of the door's hook-pair figures, the same fills.
 	gasEthFrontPrintBaseIn             = 106_000
 	gasEthFrontPrintQuoteIn            = 106_561
 	gasEthFrontPrintAssetInPast        = 133_036
