@@ -1,7 +1,6 @@
 package biconomyprop
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -105,22 +104,18 @@ func twoMakers() []MemberExtra {
 	}
 }
 
-func calc(t *testing.T, sim *PoolSimulator, amountIn string) (*pool.CalcAmountOutResult, error) {
+func calc(t *testing.T, sim *PoolSimulator, amountIn string) (*pool.CalcAmtOutResult, error) {
 	t.Helper()
-	in, ok := new(big.Int).SetString(amountIn, 10)
-	require.True(t, ok)
-	return sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testToken0, Amount: in},
+	return sim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: testToken0, Amount: *u(amountIn)},
 		TokenOut:      testToken1,
 	})
 }
 
-func calcReverse(t *testing.T, sim *PoolSimulator, amountIn string) (*pool.CalcAmountOutResult, error) {
+func calcReverse(t *testing.T, sim *PoolSimulator, amountIn string) (*pool.CalcAmtOutResult, error) {
 	t.Helper()
-	in, ok := new(big.Int).SetString(amountIn, 10)
-	require.True(t, ok)
-	return sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testToken1, Amount: in},
+	return sim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: testToken1, Amount: *u(amountIn)},
 		TokenOut:      testToken0,
 	})
 }
@@ -265,12 +260,12 @@ func TestCalcAmountOut_RespectsFilledCursor(t *testing.T) {
 	assert.Equal(t, "5999000000000000000000", res.TokenAmountOut.Amount.String())
 }
 
-// UpdateBalance advances the meters, so the next quote walks the book like a second fill.
-func TestUpdateBalance_AdvancesCursors(t *testing.T) {
+// UpdateState advances the meters, so the next quote walks the book like a second fill.
+func TestUpdateState_AdvancesCursors(t *testing.T) {
 	sim := buildPool(t, twoMakers())
 	res, err := calc(t, sim, "2000000000000000000")
 	require.NoError(t, err)
-	sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: res.SwapInfo})
+	sim.UpdateState(pool.UpdateStateParams{SwapInfo: res.SwapInfo})
 
 	// A cursor now 1e18 (its 2000 rung gone), B cursor 1e18 (1e18 left @2000).
 	res2, err := calc(t, sim, "2000000000000000000")
@@ -280,16 +275,16 @@ func TestUpdateBalance_AdvancesCursors(t *testing.T) {
 }
 
 // Simulated fills can exhaust a board; the tracked Board itself is left unchanged.
-func TestUpdateBalance_ExhaustsBoard(t *testing.T) {
+func TestUpdateState_ExhaustsBoard(t *testing.T) {
 	sim := buildPool(t, twoMakers())
-	sim.Info.Reserves[1] = big.NewInt(0).SetBytes(u("9998000000000000000001").Bytes())
+	sim.reserves[1] = *u("9998000000000000000001")
 	res, err := calc(t, sim, "5000000000000000000") // the whole book
 	require.NoError(t, err)
-	sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: res.SwapInfo})
+	sim.UpdateState(pool.UpdateStateParams{SwapInfo: res.SwapInfo})
 
 	_, err = calc(t, sim, "1")
 	assert.ErrorIs(t, err, ErrInsufficientLiquidity)
-	assert.Equal(t, "1", sim.Info.Reserves[1].String(), "reserve drops by the gross output")
+	assert.Equal(t, "1", sim.reserves[1].Dec(), "reserve drops by the gross output")
 	assert.True(t, sim.members[0].Dir0.Filled.IsZero(), "Board.Filled stays as tracked")
 }
 
@@ -300,7 +295,7 @@ func TestCloneState_IsIndependent(t *testing.T) {
 
 	res, err := calc(t, sim, "2000000000000000000")
 	require.NoError(t, err)
-	sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: res.SwapInfo})
+	sim.UpdateState(pool.UpdateStateParams{SwapInfo: res.SwapInfo})
 
 	resClone, err := calc(t, clone, "2000000000000000000")
 	require.NoError(t, err)
@@ -320,8 +315,8 @@ func TestDeterminism(t *testing.T) {
 		require.NoError(t, errA)
 		require.NoError(t, errB)
 		assert.Equal(t, resA.TokenAmountOut.Amount.String(), resB.TokenAmountOut.Amount.String())
-		simA.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: resA.SwapInfo})
-		simB.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: resB.SwapInfo})
+		simA.UpdateState(pool.UpdateStateParams{SwapInfo: resA.SwapInfo})
+		simB.UpdateState(pool.UpdateStateParams{SwapInfo: resB.SwapInfo})
 	}
 }
 
@@ -423,7 +418,7 @@ func TestCalcAmountOut_GasPerMaker(t *testing.T) {
 }
 
 // benchPool has 3 makers with 3 levels each, so a 6e18 order walks 3 makers and 5 levels.
-func benchPool(b *testing.B) (*PoolSimulator, pool.CalcAmountOutParams) {
+func benchPool(b *testing.B) (*PoolSimulator, pool.CalcAmtOutParams) {
 	b.Helper()
 	exp := farExpiry()
 	sizes := []string{"2000000000000000000", "4000000000000000000", "6000000000000000000"}
@@ -446,34 +441,33 @@ func benchPool(b *testing.B) (*PoolSimulator, pool.CalcAmountOutParams) {
 		StaticExtra: string(staticExtra),
 	})
 	require.NoError(b, err)
-	in, _ := new(big.Int).SetString("5500000000000000000", 10)
-	return sim, pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testToken0, Amount: in},
+	return sim, pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: testToken0, Amount: *u("5500000000000000000")},
 		TokenOut:      testToken1,
 	}
 }
 
-func BenchmarkCalcAmountOut(b *testing.B) {
+func BenchmarkCalcAmtOut(b *testing.B) {
 	sim, params := benchPool(b)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		if _, err := sim.CalcAmountOut(params); err != nil {
+		if _, err := sim.CalcAmtOut(params); err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
-func BenchmarkUpdateBalance(b *testing.B) {
+func BenchmarkUpdateState(b *testing.B) {
 	sim, params := benchPool(b)
-	res, err := sim.CalcAmountOut(params)
+	res, err := sim.CalcAmtOut(params)
 	require.NoError(b, err)
-	up := pool.UpdateBalanceParams{
+	up := pool.UpdateStateParams{
 		TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut,
 		Fee: *res.Fee, SwapInfo: res.SwapInfo,
 	}
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		sim.UpdateBalance(up)
+		sim.UpdateState(up)
 	}
 }
 

@@ -26,8 +26,11 @@ type PoolSimulator struct {
 	feeBps      uint64
 
 	// cursors[i][d] is maker i's filled meter for direction d, seeded from Board.Filled and
-	// advanced by UpdateBalance. Boards are never mutated, so clones copy only the cursors.
+	// advanced by UpdateState. Boards are never mutated, so clones copy only the cursors.
 	cursors [][2]uint256.Int
+
+	// reserves is the uint256 state read by GetReserves and reduced by UpdateState.
+	reserves [2]uint256.Int
 
 	// quoteAt is the indexing clock (snapshot time); 0 means the wall clock at quote time.
 	quoteAt uint64
@@ -71,6 +74,13 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		}
 	}
 
+	var reserves [2]uint256.Int
+	for i, r := range ep.Reserves {
+		if err := reserves[i].SetFromDecimal(r); err != nil {
+			return nil, err
+		}
+	}
+
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     ep.Address,
@@ -84,6 +94,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		members:     extra.Members,
 		feeBps:      extra.FeeBps,
 		cursors:     cursors,
+		reserves:    reserves,
 	}, nil
 }
 
@@ -197,17 +208,16 @@ func (s *PoolSimulator) allocate(dirIndex int, amountIn *uint256.Int, excluded *
 	}
 }
 
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+// CalcAmtOut quotes in uint256 amounts. It walks the book, takes the protocol fee, and reports the
+// per-maker allocation SwapInfo needs for UpdateState.
+func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenOut)
 	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
 		return nil, ErrInvalidToken
 	}
-	var amountIn uint256.Int
-	if params.TokenAmountIn.Amount.Sign() <= 0 {
+	amountIn := params.TokenAmountIn.Amount
+	if amountIn.IsZero() {
 		return nil, ErrZeroAmountIn
-	}
-	if amountIn.SetFromBig(params.TokenAmountIn.Amount) {
-		return nil, ErrOverflow
 	}
 
 	dirIndex := indexIn
@@ -232,16 +242,17 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		}
 	}
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: fee.ToBig()},
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: params.TokenOut, Amount: amountOut},
+		Fee:            &pool.TokenAmt{Token: params.TokenOut, Amount: fee},
 		Gas:            defaultGas + int64(len(takes)-1)*perMemberGas,
 		SwapInfo:       SwapInfo{DirIndex: dirIndex, Takes: takes, GrossOut: f.out.Clone()},
 	}, nil
 }
 
-// UpdateBalance advances each touched maker's meter by its allocation, as the executor's fill does.
-func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+// UpdateState advances each touched maker's meter by its allocation, as the executor's fill does.
+// The reserve drops by the gross deliverable, clamped at zero.
+func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
 		return
@@ -254,20 +265,19 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		cursor.Add(cursor, take.AmountIn)
 	}
 
-	// The reserve is the gross deliverable.
-	reserveOut := s.Info.Reserves[1-swapInfo.DirIndex]
 	if swapInfo.GrossOut != nil {
-		reserveOut.Sub(reserveOut, swapInfo.GrossOut.ToBig())
-	}
-	if reserveOut.Sign() < 0 {
-		reserveOut.SetInt64(0)
+		reserveOut := &s.reserves[1-swapInfo.DirIndex]
+		if swapInfo.GrossOut.Gt(reserveOut) {
+			reserveOut.Clear()
+		} else {
+			reserveOut.Sub(reserveOut, swapInfo.GrossOut)
+		}
 	}
 }
 
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (s *PoolSimulator) CloneState() pool.IPoolSim {
 	cloned := *s
 	cloned.cursors = slices.Clone(s.cursors)
-	cloned.Info.Reserves = lo.Map(s.Info.Reserves, func(r *big.Int, _ int) *big.Int { return new(big.Int).Set(r) })
 	return &cloned
 }
 
@@ -276,4 +286,18 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 // transferred to it.
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return pool.MetaInfo{ApprovalAddress: s.staticExtra.Venue, BlockNumber: s.Info.BlockNumber}
+}
+
+// GetReserves returns the uint256 reserves, which shadow pool.Pool's big.Int GetReserves.
+func (s *PoolSimulator) GetReserves() []uint256.Int {
+	return slices.Clone(s.reserves[:])
+}
+
+// CalcLimit maps each token to its uint256 reserve.
+func (s *PoolSimulator) CalcLimit() map[string]*uint256.Int {
+	tokens := s.GetTokens()
+	return map[string]*uint256.Int{
+		tokens[0]: s.reserves[0].Clone(),
+		tokens[1]: s.reserves[1].Clone(),
+	}
 }
