@@ -705,11 +705,11 @@ func TestEventParserMapsADeskContractToEveryListingItHolds(t *testing.T) {
 	assert.Empty(t, got)
 }
 
-// KT2. The config names no door code hash: a door's address moves with the doors' creation code, so the source reads
+// The config names no door code hash: a door's address moves with the doors' creation code, so the source reads
 // DOOR_CODEHASH() from the deployed factory and derives every door from that. A factory answering another hash than the
 // default's gets its doors named under its own, by the lister (the factory's doorOf) and by the parser (a log
 // naming a listing), and the hash is read once.
-func TestKT2DoorsComeFromTheFactorysOwnCodeHash(t *testing.T) {
+func TestDoorsComeFromTheFactorysOwnCodeHash(t *testing.T) {
 	_, has := reflect.TypeOf(Front{}).FieldByName("DoorCodehash")
 	assert.False(t, has, "no door code hash in the config")
 
@@ -758,7 +758,7 @@ func TestKT2DoorsComeFromTheFactorysOwnCodeHash(t *testing.T) {
 // A factory that answers no door code hash (a revert, or zero) gives the parser no door to name for that log, which
 // maps
 // nothing, where a hash held in config would have named one regardless.
-func TestKT2ParserFailsWhereTheFactoryAnswersNoDoorCodeHash(t *testing.T) {
+func TestParserFailsWhereTheFactoryAnswersNoDoorCodeHash(t *testing.T) {
 	chain := sharedChain()
 	chain.noDoorHash = true
 	n := builderNode(t, chain, 900)

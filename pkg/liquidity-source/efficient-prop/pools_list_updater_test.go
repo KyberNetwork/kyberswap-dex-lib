@@ -210,7 +210,7 @@ func TestListerRefusesAFactoryOfAnotherFront(t *testing.T) {
 }
 
 // A factory that answers no door code hash lists nothing. The config names none, and a factory of another door build
-// is listed by its own doorOf (TestKT2DoorsComeFromTheFactorysOwnCodeHash).
+// is listed by its own doorOf (TestDoorsComeFromTheFactorysOwnCodeHash).
 func TestListerRefusesAFactoryThatAnswersNoDoorCodeHash(t *testing.T) {
 	chain := testChain()
 	chain.noDoorHash = true
