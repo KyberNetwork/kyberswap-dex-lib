@@ -105,6 +105,8 @@ type node struct {
 
 	mu   sync.Mutex
 	sent []sent
+	// multis is how many calls each multicall the node answered held
+	multis []int
 }
 
 type rpcMessage struct {
@@ -322,6 +324,9 @@ func (n *node) multicall(data []byte, tag string, priced bool, at, number uint64
 	}
 	calls := *abi.ConvertType(args[len(args)-1], new([]innerCall)).(*[]innerCall)
 	results := make([]innerResult, len(calls))
+	n.mu.Lock()
+	n.multis = append(n.multis, len(calls))
+	n.mu.Unlock()
 	for k, c := range calls {
 		n.keep(sent{to: c.Target, data: c.CallData, tag: tag, gasPrice: priced, at: at, number: number, sub: sub,
 			state: state})

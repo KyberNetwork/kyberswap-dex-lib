@@ -378,3 +378,20 @@ func TestListerLeavesOutAListingWhoseDoorIsNotTheCreate2Door(t *testing.T) {
 	assert.True(t, got[door(1)], "listing 1's door is the CREATE2 door")
 	assert.False(t, got[door(4)] || got["0x4444444444444444444444444444444444444444"], "listing 4's is not")
 }
+
+// The doors' immutables are read scanBatch doors a multicall, as the scan reads its ids: no multicall grows with the
+// front's listings, and every door past the first batch is still listed.
+func TestListerReadsTheDoorsInBatches(t *testing.T) {
+	chain := manyPrintListings(2*scanBatch + 22)
+	n := chain.node(t, 900)
+	u, err := NewPoolsListUpdater(testConfig(), n.client())
+	require.NoError(t, err)
+	pools, _, err := u.GetNewPools(context.Background(), nil)
+	require.NoError(t, err)
+	assert.Len(t, pools, 2*scanBatch+22)
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	for _, k := range n.multis {
+		assert.LessOrEqual(t, k, 4*scanBatch)
+	}
+}

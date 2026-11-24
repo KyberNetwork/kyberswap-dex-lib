@@ -218,28 +218,32 @@ func (u *PoolsListUpdater) matchingDoors(ctx context.Context, front common.Addre
 		front, token0, token1 common.Address
 		listing               *big.Int
 	}
-	got := make([]immutables, len(listings))
-	req := u.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(block)
-	for k, l := range listings {
-		door := l.door.Hex()
-		req.AddCall(&ethrpc.Call{ABI: doorABI, Target: door, Method: "FRONT"}, []any{&got[k].front})
-		req.AddCall(&ethrpc.Call{ABI: doorABI, Target: door, Method: "LISTING"}, []any{&got[k].listing})
-		req.AddCall(&ethrpc.Call{ABI: doorABI, Target: door, Method: "TOKEN0"}, []any{&got[k].token0})
-		req.AddCall(&ethrpc.Call{ABI: doorABI, Target: door, Method: "TOKEN1"}, []any{&got[k].token1})
-	}
-	resp, err := req.TryAggregate()
-	if err != nil {
-		return nil, err
-	}
 	out := listings[:0:0]
-	for k, l := range listings {
-		g := got[k]
-		ok := resp.Result[4*k] && resp.Result[4*k+1] && resp.Result[4*k+2] && resp.Result[4*k+3] &&
-			g.front == front && g.listing != nil && g.listing.Cmp(big.NewInt(int64(l.id))) == 0 &&
-			g.token0 == l.view.Token0 && g.token1 == l.view.Token1 &&
-			g.token0 != (common.Address{}) && g.token0.Cmp(g.token1) < 0
-		if ok {
-			out = append(out, l)
+	// scanBatch doors a multicall, as the scan reads its ids
+	for start := 0; start < len(listings); start += scanBatch {
+		batch := listings[start:min(start+scanBatch, len(listings))]
+		got := make([]immutables, len(batch))
+		req := u.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(block)
+		for k, l := range batch {
+			door := l.door.Hex()
+			req.AddCall(&ethrpc.Call{ABI: doorABI, Target: door, Method: "FRONT"}, []any{&got[k].front})
+			req.AddCall(&ethrpc.Call{ABI: doorABI, Target: door, Method: "LISTING"}, []any{&got[k].listing})
+			req.AddCall(&ethrpc.Call{ABI: doorABI, Target: door, Method: "TOKEN0"}, []any{&got[k].token0})
+			req.AddCall(&ethrpc.Call{ABI: doorABI, Target: door, Method: "TOKEN1"}, []any{&got[k].token1})
+		}
+		resp, err := req.TryAggregate()
+		if err != nil {
+			return nil, err
+		}
+		for k, l := range batch {
+			g := got[k]
+			ok := resp.Result[4*k] && resp.Result[4*k+1] && resp.Result[4*k+2] && resp.Result[4*k+3] &&
+				g.front == front && g.listing != nil && g.listing.Cmp(big.NewInt(int64(l.id))) == 0 &&
+				g.token0 == l.view.Token0 && g.token1 == l.view.Token1 &&
+				g.token0 != (common.Address{}) && g.token0.Cmp(g.token1) < 0
+			if ok {
+				out = append(out, l)
+			}
 		}
 	}
 	return out, nil
