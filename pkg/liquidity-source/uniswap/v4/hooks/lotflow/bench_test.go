@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/holiman/uint256"
+
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -73,21 +75,21 @@ func BenchmarkBeforeSwap(b *testing.B) {
 func BenchmarkCalcAmountOut(b *testing.B) {
 	for _, v := range benchVenues {
 		h := benchHook(b, v.path)
-		sim, err := pool.Factory(uniswapv4.DexType)(pool.FactoryParams{EntityPool: integrationPool(&testing.T{}, h),
+		sim, err := pool.FactoryPoolSim(uniswapv4.DexType)(pool.FactoryParams{EntityPool: integrationPool(&testing.T{}, h),
 			ChainID: valueobject.ChainIDRobinhood})
 		if err != nil {
 			b.Fatal(err)
 		}
-		params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: h.Usdg,
-			Amount: new(big.Int).Mul(big.NewInt(1_000), pow10(h.Market.Venue.UsdgDecimals))}, TokenOut: h.Lot}
-		if _, err := pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, nil); err != nil {
+		params := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: h.Usdg,
+			Amount: *uint256.MustFromBig(new(big.Int).Mul(big.NewInt(1_000), pow10(h.Market.Venue.UsdgDecimals)))}, TokenOut: h.Lot}
+		if _, err := sim.CalcAmtOut(params); err != nil {
 			b.Logf("%s refused (%v): not benchmarked", v.name, err)
 			continue
 		}
 		b.Run(v.name+"/buy-1kusd", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, nil); err != nil {
+				if _, err := sim.CalcAmtOut(params); err != nil {
 					b.Fatal(err)
 				}
 			}
