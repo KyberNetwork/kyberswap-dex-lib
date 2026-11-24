@@ -1,12 +1,13 @@
 package msgpack
 
 import (
-	"context"
-	"math/big"
+	"bytes"
 	"os"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/klauspost/compress/snappy"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -29,7 +30,7 @@ func TestFlywheelCompositeSerialization(t *testing.T) {
 		var st flywheel.StaticExtra
 		require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &st))
 		st.BasePools = nil
-		bases := map[string]pool.IPoolSimulator{}
+		bases := map[string]pool.IPoolSim{}
 		for _, ep := range extra.RoutePools {
 			st.BasePools = append(st.BasePools, ep.Address)
 			if ep.Type == v3.DexTypeUniswapV3 {
@@ -44,19 +45,27 @@ func TestFlywheelCompositeSerialization(t *testing.T) {
 		p.StaticExtra = string(b)
 		before, err := flywheel.NewPoolSimulatorWithBases(p, bases)
 		require.NoError(t, err)
-		encoded, err := EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{p.Address: before})
+		var buf bytes.Buffer
+		zw := snappy.NewBufferedWriter(&buf)
+		en := NewEncoder(zw)
+		require.NoError(t, en.Encode(map[string]pool.IPoolSim{p.Address: before}))
+		PutEncoder(en)
+		require.NoError(t, zw.Close())
+		decoded := map[string]pool.IPoolSim{}
+		de := NewDecoder(snappy.NewReader(bytes.NewReader(buf.Bytes())))
+		require.NoError(t, de.Decode(&decoded))
+		PutDecoder(de)
+		var amountIn uint256.Int
+		amountIn.SetUint64(1000000000)
+		params := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: flywheel.WETH, Amount: amountIn}, TokenOut: p.Address}
+		expected, err := before.CalcAmtOut(params)
 		require.NoError(t, err)
-		decoded, err := DecodePoolSimulatorsMap(encoded)
-		require.NoError(t, err)
-		params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: flywheel.WETH, Amount: big.NewInt(1000000000)}, TokenOut: p.Address}
-		expected, err := before.CalcAmountOut(params)
-		require.NoError(t, err)
-		actual, err := pool.DefaultCalcAmtOut(context.Background(), decoded[p.Address], params.TokenAmountIn, params.TokenOut, nil)
+		actual, err := decoded[p.Address].CalcAmtOut(params)
 		require.NoError(t, err)
 		require.Equal(t, expected.TokenAmountOut, actual.TokenAmountOut)
 		require.Equal(t, expected.RemainingTokenAmountIn, actual.RemainingTokenAmountIn)
-		decoded[p.Address].UpdateBalance(pool.UpdateBalanceParams{SwapInfo: actual.SwapInfo})
-		fresh, err := before.CalcAmountOut(params)
+		decoded[p.Address].UpdateState(pool.UpdateStateParams{SwapInfo: actual.SwapInfo})
+		fresh, err := before.CalcAmtOut(params)
 		require.NoError(t, err)
 		require.Equal(t, expected.TokenAmountOut, fresh.TokenAmountOut)
 	}
