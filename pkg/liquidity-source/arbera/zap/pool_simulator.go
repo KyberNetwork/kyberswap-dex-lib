@@ -2,6 +2,7 @@ package arberazap
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -128,7 +129,11 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 }
 
-func (s *PoolSimulator) CloneState() pool.IPoolSim { return s }
+func (s *PoolSimulator) CloneState() pool.IPoolSim {
+	cloned := *s
+	cloned.basePools = slices.Clone(s.basePools)
+	return &cloned
+}
 
 func (s *PoolSimulator) GetReserves() []uint256.Int {
 	out := make([]uint256.Int, len(s.Info.Reserves))

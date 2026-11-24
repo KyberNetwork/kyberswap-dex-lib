@@ -2,6 +2,7 @@ package arberazap
 
 import (
 	"math/big"
+	"slices"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -258,4 +259,26 @@ func TestBackwardCalcAmountOut(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestCloneStateIsolatesBasePools(t *testing.T) {
+	t.Parallel()
+	// The replacement must carry basePools[1]'s address, or SetBasePool matches nothing.
+	addr := zapSim.basePools[1].GetAddress()
+	var den entity.Pool
+	if err := json.Unmarshal([]byte(`{"address":"`+addr+`","exchange":"arbera-den","type":"arbera-den","reserves":["100000000000000000000000000","100000000000000000000000000"],"tokens":[{"address":"`+addr+`","symbol":"brLBGT","decimals":18,"swappable":true},{"address":"0xface73a169e2ca2934036c8af9f464b5de9ef0ca","symbol":"stLBGT","decimals":18,"swappable":true}],"extra":"{\"assets\":[{\"token\":\"0xface73a169e2ca2934036c8af9f464b5de9ef0ca\",\"weighting\":\"1000000000000000000\",\"basePriceUSDX96\":\"0\",\"c1\":\"0x0000000000000000000000000000000000000000\",\"q1\":\"79228162514264337593543950336000000000000000000\"}],\"assetSupplies\":[\"12600849266904540184172\"],\"supply\":\"12295798672905393125427\",\"fee\":{\"bond\":\"69\",\"debond\":\"69\",\"burn\":\"2000\",\"buy\":\"69\",\"sell\":\"69\"}}"}`), &den); err != nil {
+		t.Fatal(err)
+	}
+	replacement := lo.Must(arberaden.NewPoolSimulator(den))
+	origBefore := slices.Clone(zapSim.basePools)
+
+	clone := zapSim.CloneState().(*PoolSimulator)
+	clone.SetBasePool(replacement)
+
+	if clone.basePools[1] != pool.IPoolSim(replacement) {
+		t.Fatal("SetBasePool did not replace the matching base pool on the clone")
+	}
+	if !slices.Equal(zapSim.basePools, origBefore) {
+		t.Fatal("original base pools changed after clone SetBasePool")
+	}
 }
