@@ -2,7 +2,6 @@ package stable
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -14,7 +13,6 @@ import (
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -34,22 +32,24 @@ func poolHookExtra() HookExtra {
 }
 
 var fixtures = []struct {
-	dx       *big.Int
+	dx       *uint256.Int
 	zeroFor1 bool
-	wantDy   *big.Int
+	wantDy   *uint256.Int
 	desc     string
 }{
-	{bignum.NewBig("17310283338614"), true, bignum.NewBig("17308102232003"), "0.001%, 0->1"},
-	{bignum.NewBig("17310283338614"), false, bignum.NewBig("17312464041894"), "0.001%, 1->0"},
-	{bignum.NewBig("1731028333861421"), true, bignum.NewBig("1730808580239110"), "0.1%, 0->1"},
-	{bignum.NewBig("1731028333861421"), false, bignum.NewBig("1731244761381204"), "0.1%, 1->0"},
-	{bignum.NewBig("17310283338614213"), true, bignum.NewBig("17307936080849785"), "1%, 0->1"},
-	{bignum.NewBig("17310283338614213"), false, bignum.NewBig("17312298602254781"), "1%, 1->0"},
-	{bignum.NewBig("173102833386142137"), true, bignum.NewBig("173063889843910692"), "10%, 0->1"},
-	{bignum.NewBig("173102833386142137"), false, bignum.NewBig("173108285972012985"), "10%, 1->0"},
-	{bignum.NewBig("432757083465355343"), true, bignum.NewBig("432586062517552385"), "25%, 0->1"},
-	{bignum.NewBig("432757083465355343"), false, bignum.NewBig("432708242422232854"), "25%, 1->0"},
+	{u256("17310283338614"), true, u256("17308102232003"), "0.001%, 0->1"},
+	{u256("17310283338614"), false, u256("17312464041894"), "0.001%, 1->0"},
+	{u256("1731028333861421"), true, u256("1730808580239110"), "0.1%, 0->1"},
+	{u256("1731028333861421"), false, u256("1731244761381204"), "0.1%, 1->0"},
+	{u256("17310283338614213"), true, u256("17307936080849785"), "1%, 0->1"},
+	{u256("17310283338614213"), false, u256("17312298602254781"), "1%, 1->0"},
+	{u256("173102833386142137"), true, u256("173063889843910692"), "10%, 0->1"},
+	{u256("173102833386142137"), false, u256("173108285972012985"), "10%, 1->0"},
+	{u256("432757083465355343"), true, u256("432586062517552385"), "25%, 0->1"},
+	{u256("432757083465355343"), false, u256("432708242422232854"), "25%, 1->0"},
 }
+
+func u256(s string) *uint256.Int { return uint256.MustFromDecimal(s) }
 
 func stableFixtureTokens() []*entity.PoolToken {
 	return []*entity.PoolToken{
@@ -146,11 +146,12 @@ func TestHook_BeforeSwap_DirectMath(t *testing.T) {
 		require.NoError(t, err, fx.desc)
 
 		// DeltaSpecified must equal the input (full math override).
-		require.Equal(t, fx.dx.String(), res.DeltaSpecified.String())
+		require.Equal(t, fx.dx.Dec(), res.DeltaSpecified.Dec())
 
 		// DeltaUnspecified is -wantDy (negated output).
-		gotOut := new(big.Int).Neg(res.DeltaUnspecified)
-		require.Equal(t, fx.wantDy.String(), gotOut.String())
+		var gotOut uint256.Int
+		gotOut.Neg(res.DeltaUnspecified)
+		require.Equal(t, fx.wantDy.Dec(), gotOut.Dec())
 	}
 }
 
@@ -193,17 +194,15 @@ func Test_ClSimulator_StableHook(t *testing.T) {
 		}
 
 		cloned := sim.CloneState()
-		var amtIn uint256.Int
-		require.False(t, amtIn.SetFromBig(fx.dx), "amount overflows uint256")
 		res, err := cloned.CalcAmtOut(poolpkg.CalcAmtOutParams{
-			TokenAmountIn: poolpkg.TokenAmt{Token: tokenIn, Amount: amtIn},
+			TokenAmountIn: poolpkg.TokenAmt{Token: tokenIn, Amount: *fx.dx},
 			TokenOut:      tokenOut,
 		})
 
 		require.NoError(t, err, fx.desc)
 		require.NotNil(t, res)
 		require.NotNil(t, res.TokenAmountOut)
-		require.Equal(t, fx.wantDy.String(), res.TokenAmountOut.Amount.ToBig().String())
+		require.Equal(t, fx.wantDy.Dec(), res.TokenAmountOut.Amount.Dec())
 	}
 }
 
@@ -215,15 +214,13 @@ func TestHook_BeforeSwap_DustPool(t *testing.T) {
 
 	tokenUSDT := "0xaa60ca2e1bada3641bb94785d7ae3bbd5a6cb520"
 	tokenMIT := "0x38c207dbe12e84a4b3eafa62f492391df95ae36e"
-	e18 := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	e18 := uint256.MustFromDecimal("1000000000000000000")
 
 	t.Run("1e18 routes", func(t *testing.T) {
 		sim, err := cl.NewPoolSimulator(pool, valueobject.ChainID(56))
 		require.NoError(t, err)
-		var amtIn uint256.Int
-		require.False(t, amtIn.SetFromBig(e18), "amount overflows uint256")
 		res, err := sim.CalcAmtOut(poolpkg.CalcAmtOutParams{
-			TokenAmountIn: poolpkg.TokenAmt{Token: tokenUSDT, Amount: amtIn},
+			TokenAmountIn: poolpkg.TokenAmt{Token: tokenUSDT, Amount: *e18},
 			TokenOut:      tokenMIT,
 		})
 		require.NoError(t, err)
@@ -233,11 +230,9 @@ func TestHook_BeforeSwap_DustPool(t *testing.T) {
 	t.Run("100e18 rejected by stable-ng drain guard", func(t *testing.T) {
 		sim, err := cl.NewPoolSimulator(pool, valueobject.ChainID(56))
 		require.NoError(t, err)
-		huge := new(big.Int).Mul(big.NewInt(100), e18)
-		var amtIn uint256.Int
-		require.False(t, amtIn.SetFromBig(huge), "amount overflows uint256")
+		huge := uint256.MustFromDecimal("100000000000000000000")
 		_, err = sim.CalcAmtOut(poolpkg.CalcAmtOutParams{
-			TokenAmountIn: poolpkg.TokenAmt{Token: tokenUSDT, Amount: amtIn},
+			TokenAmountIn: poolpkg.TokenAmt{Token: tokenUSDT, Amount: *huge},
 			TokenOut:      tokenMIT,
 		})
 		require.ErrorIs(t, err, stableng.ErrPoolDrained)
@@ -262,10 +257,10 @@ func TestHook_UpdateBalance(t *testing.T) {
 		HookAddress: common.HexToAddress(pool.Address),
 	}).(*Hook)
 
-	pre0 := new(big.Int).Set(h.inner.Info.Reserves[0])
-	pre1 := new(big.Int).Set(h.inner.Info.Reserves[1])
+	pre0 := new(uint256.Int).Set(&h.inner.Reserves[0])
+	pre1 := new(uint256.Int).Set(&h.inner.Reserves[1])
 
-	dx := bignum.NewBig("1731028333861421")
+	dx := uint256.MustFromDecimal("1731028333861421")
 	res, err := h.BeforeSwap(&cl.BeforeSwapParams{
 		CalcOut:         true,
 		ZeroForOne:      true,
@@ -276,8 +271,8 @@ func TestHook_UpdateBalance(t *testing.T) {
 
 	h.UpdateBalance(res.SwapInfo)
 
-	require.NotEqual(t, pre0.String(), h.inner.Info.Reserves[0].String(), "reserve[0] must have moved")
-	require.NotEqual(t, pre1.String(), h.inner.Info.Reserves[1].String(), "reserve[1] must have moved")
-	require.Equal(t, 1, h.inner.Info.Reserves[0].Cmp(pre0), "reserve[0] (in) increased")
-	require.Equal(t, -1, h.inner.Info.Reserves[1].Cmp(pre1), "reserve[1] (out) decreased")
+	require.NotEqual(t, pre0.Dec(), h.inner.Reserves[0].Dec(), "reserve[0] must have moved")
+	require.NotEqual(t, pre1.Dec(), h.inner.Reserves[1].Dec(), "reserve[1] must have moved")
+	require.Equal(t, 1, h.inner.Reserves[0].Cmp(pre0), "reserve[0] (in) increased")
+	require.Equal(t, -1, h.inner.Reserves[1].Cmp(pre1), "reserve[1] (out) decreased")
 }

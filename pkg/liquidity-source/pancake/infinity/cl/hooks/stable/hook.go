@@ -16,7 +16,6 @@ import (
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -61,25 +60,22 @@ func (h *Hook) BeforeSwap(p *cl.BeforeSwapParams) (*cl.BeforeSwapResult, error) 
 		} else {
 			i, j = 1, 0
 		}
-		res, err := h.inner.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  tokens[i],
-				Amount: new(big.Int).Set(p.AmountSpecified),
-			},
-			TokenOut: tokens[j],
+		res, err := h.inner.CalcAmtOut(poolpkg.CalcAmtOutParams{
+			TokenAmountIn: poolpkg.TokenAmt{Token: tokens[i], Amount: *p.AmountSpecified},
+			TokenOut:      tokens[j],
 		})
 		if err != nil {
 			return nil, err
 		}
 
 		return &cl.BeforeSwapResult{
-			DeltaSpecified:   new(big.Int).Set(p.AmountSpecified),
-			DeltaUnspecified: new(big.Int).Neg(res.TokenAmountOut.Amount),
+			DeltaSpecified:   new(uint256.Int).Set(p.AmountSpecified),
+			DeltaUnspecified: new(uint256.Int).Neg(&res.TokenAmountOut.Amount),
 			Gas:              defaultGas,
 			SwapInfo: updateBalanceInfo{
-				in:  poolpkg.TokenAmount{Token: tokens[i], Amount: new(big.Int).Set(p.AmountSpecified)},
-				out: poolpkg.TokenAmount{Token: tokens[j], Amount: new(big.Int).Set(res.TokenAmountOut.Amount)},
-				fee: poolpkg.TokenAmount{Token: res.Fee.Token, Amount: new(big.Int).Set(res.Fee.Amount)},
+				in:  poolpkg.TokenAmt{Token: tokens[i], Amount: *p.AmountSpecified},
+				out: *res.TokenAmountOut,
+				fee: *res.Fee,
 			},
 		}, nil
 	}
@@ -90,31 +86,28 @@ func (h *Hook) BeforeSwap(p *cl.BeforeSwapParams) (*cl.BeforeSwapResult, error) 
 	} else {
 		i, j = 1, 0
 	}
-	res, err := h.inner.CalcAmountIn(poolpkg.CalcAmountInParams{
-		TokenAmountOut: poolpkg.TokenAmount{
-			Token:  tokens[j],
-			Amount: new(big.Int).Set(p.AmountSpecified),
-		},
-		TokenIn: tokens[i],
+	res, err := h.inner.CalcAmtIn(poolpkg.CalcAmtInParams{
+		TokenAmountOut: poolpkg.TokenAmt{Token: tokens[j], Amount: *p.AmountSpecified},
+		TokenIn:        tokens[i],
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &cl.BeforeSwapResult{
-		DeltaSpecified:   new(big.Int).Neg(p.AmountSpecified),
-		DeltaUnspecified: new(big.Int).Set(res.TokenAmountIn.Amount),
+		DeltaSpecified:   new(uint256.Int).Neg(p.AmountSpecified),
+		DeltaUnspecified: new(uint256.Int).Set(&res.TokenAmountIn.Amount),
 		Gas:              defaultGas,
 		SwapInfo: updateBalanceInfo{
-			in:  poolpkg.TokenAmount{Token: tokens[i], Amount: new(big.Int).Set(res.TokenAmountIn.Amount)},
-			out: poolpkg.TokenAmount{Token: tokens[j], Amount: new(big.Int).Set(p.AmountSpecified)},
-			fee: poolpkg.TokenAmount{Token: res.Fee.Token, Amount: new(big.Int).Set(res.Fee.Amount)},
+			in:  *res.TokenAmountIn,
+			out: poolpkg.TokenAmt{Token: tokens[j], Amount: *p.AmountSpecified},
+			fee: *res.Fee,
 		},
 	}, nil
 }
 
 func (h *Hook) AfterSwap(_ *cl.AfterSwapParams) (*cl.AfterSwapResult, error) {
-	return &cl.AfterSwapResult{HookFee: bignumber.ZeroBI}, nil
+	return &cl.AfterSwapResult{HookFee: new(uint256.Int)}, nil
 }
 
 func (h *Hook) CloneState() cl.Hook {
@@ -135,7 +128,7 @@ func (h *Hook) UpdateBalance(swapInfo any) {
 		return
 	}
 
-	h.inner.UpdateBalance(poolpkg.UpdateBalanceParams{
+	h.inner.UpdateState(poolpkg.UpdateStateParams{
 		TokenAmountIn:  info.in,
 		TokenAmountOut: info.out,
 		Fee:            info.fee,
@@ -143,7 +136,7 @@ func (h *Hook) UpdateBalance(swapInfo any) {
 }
 
 type updateBalanceInfo struct {
-	in, out, fee poolpkg.TokenAmount
+	in, out, fee poolpkg.TokenAmt
 }
 
 func (h *Hook) Track(ctx context.Context, param *cl.HookParam) ([]byte, error) {
