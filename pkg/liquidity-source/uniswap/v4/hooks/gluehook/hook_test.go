@@ -1,9 +1,9 @@
 package gluehook
 
 import (
-	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -29,10 +29,10 @@ func TestPassthroughQuoting(t *testing.T) {
 	hook, _ := uniswapv4.GetHook(HookAddresses[0], nil)
 
 	for _, params := range []*uniswapv4.BeforeSwapParams{
-		{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1e18)},
-		{CalcOut: true, ZeroForOne: false, AmountSpecified: big.NewInt(1e18)},
-		{CalcOut: false, ZeroForOne: true, AmountSpecified: big.NewInt(1e18)},
-		{CalcOut: false, ZeroForOne: false, AmountSpecified: big.NewInt(1e18)},
+		{CalcOut: true, ZeroForOne: true, AmountSpecified: uint256.NewInt(1e18)},
+		{CalcOut: true, ZeroForOne: false, AmountSpecified: uint256.NewInt(1e18)},
+		{CalcOut: false, ZeroForOne: true, AmountSpecified: uint256.NewInt(1e18)},
+		{CalcOut: false, ZeroForOne: false, AmountSpecified: uint256.NewInt(1e18)},
 	} {
 		beforeSwapResult, err := hook.BeforeSwap(params)
 		require.NoError(t, err)
@@ -43,8 +43,8 @@ func TestPassthroughQuoting(t *testing.T) {
 
 		afterSwapResult, err := hook.AfterSwap(&uniswapv4.AfterSwapParams{
 			BeforeSwapParams: params,
-			AmountIn:         big.NewInt(1e18),
-			AmountOut:        big.NewInt(1e18),
+			AmountIn:         uint256.NewInt(1e18),
+			AmountOut:        uint256.NewInt(1e18),
 		})
 		require.NoError(t, err)
 		require.NoError(t, uniswapv4.ValidateAfterSwapResult(afterSwapResult))
