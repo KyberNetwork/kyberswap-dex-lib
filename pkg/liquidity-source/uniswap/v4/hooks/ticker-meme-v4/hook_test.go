@@ -1,11 +1,13 @@
 package tickermemev4_test
 
 import (
-	"context"
+	"bytes"
 	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/klauspost/compress/snappy"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -23,7 +25,7 @@ func TestRegistrationUsesPons(t *testing.T) {
 	require.Equal(t, "uniswap-v4-ticker-meme", hook.GetExchange())
 	require.True(t, hook.CanBeforeSwap(ticker.HookAddress), "simulator-only: runs the exact-out gross-up")
 	require.True(t, hook.CanAfterSwap(ticker.HookAddress))
-	params := &uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true}, AmountOut: big.NewInt(199)}
+	params := &uniswapv4.AfterSwapParams{BeforeSwapParams: &uniswapv4.BeforeSwapParams{CalcOut: true}, AmountOut: uint256.NewInt(199)}
 	got, err := hook.AfterSwap(params)
 	require.NoError(t, err)
 	want, err := (&ponsv2.Extra{Registered: true, FeeBps: 200}).AfterSwap(params)
@@ -50,15 +52,23 @@ func memeSim(t *testing.T, extra string) *uniswapv4.PoolSimulator {
 func TestProductionCache(t *testing.T) {
 	for _, extra := range []string{`{"r":true,"f":233}`, `{"r":true,"f":"bad"}`} {
 		p := memeSim(t, extra)
-		params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: p.Info.Tokens[0], Amount: big.NewInt(1000000)}, TokenOut: p.Info.Tokens[1]}
-		before, err := p.CalcAmountOut(params)
+		var amt uint256.Int
+		amt.SetUint64(1000000)
+		params := pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: p.Info.Tokens[0], Amount: amt}, TokenOut: p.Info.Tokens[1]}
+		before, err := p.CalcAmtOut(params)
 		require.NoError(t, err)
-		encoded, err := cache.EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{p.GetAddress(): p})
-		require.NoError(t, err)
-		decoded, err := cache.DecodePoolSimulatorsMap(encoded)
-		require.NoError(t, err)
-		for _, restored := range []pool.IPoolSimulator{decoded[p.GetAddress()], p.CloneState()} {
-			after, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, nil)
+		var buf bytes.Buffer
+		zw := snappy.NewBufferedWriter(&buf)
+		en := cache.NewEncoder(zw)
+		require.NoError(t, en.Encode(map[string]pool.IPoolSim{p.GetAddress(): p}))
+		cache.PutEncoder(en)
+		require.NoError(t, zw.Close())
+		decoded := map[string]pool.IPoolSim{}
+		de := cache.NewDecoder(snappy.NewReader(bytes.NewReader(buf.Bytes())))
+		require.NoError(t, de.Decode(&decoded))
+		cache.PutDecoder(de)
+		for _, restored := range []pool.IPoolSim{decoded[p.GetAddress()], p.CloneState()} {
+			after, err := restored.CalcAmtOut(params)
 			require.NoError(t, err)
 			require.Equal(t, before.TokenAmountOut, after.TokenAmountOut)
 			require.Equal(t, ticker.DexType, restored.GetExchange())
