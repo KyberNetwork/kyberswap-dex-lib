@@ -193,6 +193,32 @@ func u256FromFloat(f float64) (*uint256.Int, bool) {
 	return z.Lsh(z, uint(exp-53)), true
 }
 
+// UpdateState is UpdateBalance with uint256 amounts. It moves the same float counters and reserves.
+func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
+	indexIn := s.GetTokenIndex(params.TokenAmountIn.Token)
+	if indexIn < 0 || indexIn > 1 {
+		return
+	}
+	inU, outU := params.TokenAmountIn.Amount, params.TokenAmountOut.Amount
+
+	s.consumedIn[indexIn] += inU.Float64()
+	s.consumedOut[indexIn] += outU.Float64()
+
+	if indexIn == 0 {
+		s.Reserve0 = new(uint256.Int).Add(s.Reserve0, &inU)
+		s.Reserve1 = new(uint256.Int).Sub(s.Reserve1, &outU)
+	} else {
+		s.Reserve1 = new(uint256.Int).Add(s.Reserve1, &inU)
+		s.Reserve0 = new(uint256.Int).Sub(s.Reserve0, &outU)
+	}
+	s.Info.Reserves[0] = s.Reserve0.ToBig()
+	s.Info.Reserves[1] = s.Reserve1.ToBig()
+
+	if limit := params.SwapLimit; limit != nil {
+		_, _, _ = limit.UpdateLimit(params.TokenAmountOut.Token, params.TokenAmountIn.Token, &outU, &inU)
+	}
+}
+
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	indexIn := s.GetTokenIndex(params.TokenAmountIn.Token)
 	if indexIn < 0 || indexIn > 1 {
