@@ -1,0 +1,796 @@
+[
+  {
+    "type": "function",
+    "name": "doorView",
+    "inputs": [
+      {
+        "name": "listing",
+        "type": "uint24",
+        "internalType": "uint24"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct IPropAMMDoorFront.DoorView",
+        "components": [
+          {
+            "name": "pairWord",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "token0",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token1",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "pool",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "baseIndex",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "quoteIndex",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "flags",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "keyEpoch",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "desk",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "wordIndex",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "scopes",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "fenceBidPpm",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "fenceAskPpm",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "tipCap",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "confMul",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "creditMode",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "bidFillMs",
+            "type": "uint48",
+            "internalType": "uint48"
+          },
+          {
+            "name": "askFillMs",
+            "type": "uint48",
+            "internalType": "uint48"
+          },
+          {
+            "name": "ticket",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "word",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "depth",
+            "type": "uint256[4]",
+            "internalType": "uint256[4]"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "clock",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "maxLeadMs",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxTtlMs",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pullLeadMs",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "ageSlackMs",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "clockMode",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "clockBlock",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "clockMs",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "deskCellOf",
+    "inputs": [
+      {
+        "name": "desk",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "PoolFill",
+    "inputs": [
+      {
+        "name": "pairId",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "pullPrice36",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "feeAge",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "boardTag",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolReserved",
+    "inputs": [
+      {
+        "name": "pairId",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "pool",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolRegistered",
+    "inputs": [
+      {
+        "name": "pairId",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "pool",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolRetired",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ListingDelisted",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ListingRelisted",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SettingsSet",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ListingBound",
+    "inputs": [
+      {
+        "name": "listing",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "desk",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "scopes",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "wordIndex",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "keyEpoch",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolStatus",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "flags",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DepthPosted",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "bid",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "nonceMs",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ControlsPosted",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "nonceMs",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SourceDarkened",
+    "inputs": [
+      {
+        "name": "listing",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "live",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LeaseSet",
+    "inputs": [
+      {
+        "name": "listing",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "until",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeskOpened",
+    "inputs": [
+      {
+        "name": "desk",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "coldKey",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "cell",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "pusher",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "wordKey",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "stopKey",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MakerKeySet",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "epoch",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "keyType",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "key",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeskStopped",
+    "inputs": [
+      {
+        "name": "desk",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "epoch",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeskRevived",
+    "inputs": [
+      {
+        "name": "desk",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "epoch",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "pusher",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeskKeySet",
+    "inputs": [
+      {
+        "name": "desk",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "which",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "key",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AllPaused",
+    "inputs": [
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AllUnpaused",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PairRetired",
+    "inputs": [
+      {
+        "name": "pairId",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AssetModuleSet",
+    "inputs": [
+      {
+        "name": "pairId",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "listing",
+        "type": "uint24",
+        "indexed": true,
+        "internalType": "uint24"
+      },
+      {
+        "name": "module",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "function",
+    "name": "CELL_CODEHASH",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quoteFrom",
+    "inputs": [
+      {
+        "name": "tokenIn",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokenOut",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "listing",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "tip",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "taker",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]
