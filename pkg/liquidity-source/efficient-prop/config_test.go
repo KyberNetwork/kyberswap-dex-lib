@@ -260,16 +260,22 @@ func TestConfigLayoutAndCellCodehashByChain(t *testing.T) {
 	}
 }
 
-// BNB Chain is read at the head, like Base: only Ethereum is a builder chain. A BNB Chain front that names a layout or
-// a desk code hash is refused, and the same front without them loads.
-func TestConfigBNBChainFrontIsReadAtTheHead(t *testing.T) {
+// BNB Chain's front is a builder build, and this source has no next-block read for it: read at the head it would hold
+// no word that stands for a fill, so a BNB Chain config is refused, with a layout and desk code hash or without.
+func TestConfigRefusesBNBChain(t *testing.T) {
 	f := testConfig().Fronts[0]
-	require.NoError(t, (&Config{ChainID: valueobject.ChainIDBSC, Fronts: []Front{f}}).validate())
 	with := f
 	with.Layout, with.CellCodehash = LayoutBuilder, "0x9D1E3C1C5F0C7B0F6A2E4D7B8C3A5E1F2B4D6C8A0E9F1A3B5C7D9E0F2A4B6C8D"
-	err := (&Config{ChainID: valueobject.ChainIDBSC, Fronts: []Front{with}}).validate()
-	require.ErrorIs(t, err, ErrInvalidConfig)
-	assert.Contains(t, err.Error(), "read at the head")
+	for name, fr := range map[string]Front{"read at the head": f, "as a builder front": with} {
+		cfg := Config{ChainID: valueobject.ChainIDBSC, Fronts: []Front{fr}}
+		err := cfg.validate()
+		require.ErrorIs(t, err, ErrInvalidConfig, name)
+		assert.Contains(t, err.Error(), "no next-block read", name)
+		_, terr := NewPoolTracker(&cfg, nil)
+		assert.ErrorIs(t, terr, ErrInvalidConfig, name)
+		_, lerr := NewPoolsListUpdater(&cfg, nil)
+		assert.ErrorIs(t, lerr, ErrInvalidConfig, name)
+	}
 }
 
 // A listing's own gas is named once, by its id, with both figures measured, and never for a listing its front's

@@ -420,7 +420,7 @@ front's fill mode, each at most 3,000,000: `{"listing": <id>, "custodyBaseIn": <
 "routeBaseIn": <gas>, "routeQuoteIn": <gas>}`. The two custody figures are above 0; a route figure of 0 leaves that
 side's routed sizes unquoted. `routeLimitBaseIn` and `routeLimitQuoteIn` (optional, each at least its side's route
 figure, at most 6,000,000) state the gas limit the dearest route fill of the side needs. BNB Chain's front is a
-builder build too, but this source has no next-block read for it, so no BNB front is configured.
+builder build too, but this source has no next-block read for it, so a config for chain 56 is refused at load.
 
 No front is configured on Base: this build is not deployed there. A front on a chain read at the head sets no
 `layout`, `cellCodehash`, `titan` or `creditListings`, and names `baseTime`, the chain's millisecond-time predeploy

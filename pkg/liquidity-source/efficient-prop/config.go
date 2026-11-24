@@ -240,6 +240,10 @@ func (c *Config) validate() error {
 	if c.ChainID == 0 {
 		return fmt.Errorf("%w: chainID is not set", ErrInvalidConfig)
 	}
+	if unreadChains[c.ChainID] {
+		return fmt.Errorf("%w: chain %d's front is a builder build, and this source has no next-block read for it",
+			ErrInvalidConfig, c.ChainID)
+	}
 	if len(c.Fronts) == 0 {
 		return fmt.Errorf("%w: no fronts", ErrInvalidConfig)
 	}

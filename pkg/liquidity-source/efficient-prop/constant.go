@@ -160,6 +160,10 @@ var defaultMinTipCapWei = map[valueobject.ChainID]uint64{valueobject.ChainIDEthe
 // doors.
 var builderChains = map[valueobject.ChainID]bool{valueobject.ChainIDEthereum: true}
 
+// unreadChains are the chains whose front is a builder build this source has no next-block read for: BNB Chain. A
+// config for one is refused, since read at the head such a front holds no word that stands for a fill.
+var unreadChains = map[valueobject.ChainID]bool{valueobject.ChainIDBSC: true}
+
 var (
 	ErrInvalidConfig = errors.New("efficient-prop: invalid config")
 	ErrInvalidState  = errors.New("efficient-prop: invalid pool state")
