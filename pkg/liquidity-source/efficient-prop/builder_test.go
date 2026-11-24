@@ -94,6 +94,10 @@ func ethChain() *fakeChain {
 	chain := trackedChain()
 	chain.clockMode, chain.subMs, chain.ageSlackMs = clockSeconds, 0, 2_000
 	chain.listings[1].view.Desk = 7
+	// a tip cap at Ethereum's default floor, 2 gwei
+	for _, l := range chain.listings {
+		l.view.TipCap = 0x9002
+	}
 	return chain
 }
 
@@ -1003,4 +1007,39 @@ func TestBuilderListsAndQuotesEveryDesksListings(t *testing.T) {
 	unserved(t, p, "desk 7's update is not in the map")
 	p, _ = ruledTrack(t, n, cfg, 4)
 	served(t, chain, 4, p, target, "desk 9's is")
+}
+
+// With no floor configured Ethereum's default stands, 2 gwei: a listing whose tip cap is 1 wei, which every
+// transaction that tips at all would revert on, is neither listed nor quoted, one at the default is, and a config
+// that names a floor of 1 wei lists every listing. A chain read at the head has no default.
+func TestBuilderDefaultTipCapFloor(t *testing.T) {
+	ctx := context.Background()
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	st.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := ethConfig(st.URL)
+	require.Zero(t, cfg.MinTipCapWei)
+	assert.Equal(t, uint64(2e9), cfg.minTipCapWei())
+	p := ethListed(t, n, cfg) // listed at a 2 gwei cap
+	require.NotEmpty(t, extraOf(t, ethTrack(t, n, cfg, p)).Ladders[0], "a cap at the default floor")
+
+	chain.listings[1].view.TipCap = 0x0001 // 1 wei
+	u, err := NewPoolsListUpdater(cfg, n.client())
+	require.NoError(t, err)
+	pools, _, err := u.GetNewPools(ctx, nil)
+	require.NoError(t, err)
+	for _, q := range pools {
+		assert.NotEqual(t, door(1), q.Address, "a 1 wei cap is not listed")
+	}
+	e := extraOf(t, ethTrack(t, n, cfg, p))
+	assert.Equal(t, uint64(1), e.TipCapWei)
+	assert.Empty(t, e.Ladders[0], "a 1 wei cap is not quoted")
+	assert.Empty(t, e.Ladders[1])
+
+	open := ethConfig(st.URL)
+	open.MinTipCapWei = 1
+	assert.NotEmpty(t, extraOf(t, ethTrack(t, n, open, p)).Ladders[0], "a configured floor of 1 wei")
+
+	assert.Zero(t, testConfig().minTipCapWei(), "no default on a chain read at the head")
 }

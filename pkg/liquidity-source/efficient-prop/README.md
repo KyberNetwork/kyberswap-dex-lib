@@ -406,12 +406,18 @@ held.
 
 Per front: `address` and `doorFactory` are required, and no door code hash is configured (the source reads
 `DOOR_CODEHASH()` from the deployed factory). `fillMode` is required, `front` or `door`; a pool keeps the mode it was
-listed with and is quoted only under it, so after a switch of `fillMode` the front's pools are listed again. `implementations` lists the front implementations its proxy may run while its listings are quoted (at
-least one, no default): list a new one only after checking that its storage layout, clock and pricing rules are the
-ones this source reads. `approvedSources` lists the price sources a listing of the front may read and be quoted; none
-by default (Pricing, How to approve a source). `listingGas` (any chain) names a listing with no credit mode and its
-own two figures in the front's fill mode, each above 0 and at most 3,000,000. A listing named twice, or in both lists,
-is refused at load. `inclusionAllowance` is the time a routed fill takes to land, in seconds.
+listed with and is quoted only under it, so after a switch of `fillMode` the front's pools are listed again.
+`implementations` lists the front implementations its proxy may run while its listings are quoted (at least one, no
+default): list a new one only after checking that its storage layout, clock and pricing rules are the ones this source
+reads. `approvedSources` lists the price sources a listing of the front may read and be quoted; none by default
+(Pricing, How to approve a source). `listingGas` (any chain) names a listing with no credit mode and its own two
+figures in the front's fill mode, each above 0 and at most 3,000,000. A listing named twice, or in both lists, is
+refused at load. `inclusionAllowance` is the time a routed fill takes to land, in seconds.
+
+`minTipCapWei` is the least nonzero taker tip cap of a listing listed and quoted: a fill sent at a higher tip than
+its listing's cap reverts at the taker's gas. Unset, Ethereum's default is 2 gwei (`2000000000`): over the day to
+block 26,486,699 the 90th-percentile priority fee of a block was at most 2.0 gwei in 90% of blocks and 2.1 gwei in
+99%. No other chain has a default. A listing with no cap passes any floor; `1` lists every listing.
 
 On a builder chain (Ethereum alone today) `layout` and `cellCodehash` are required, and refused on any other chain.
 `layout` names the layout of the front's quote contract; its only value is `builder`. `cellCodehash` is the front's

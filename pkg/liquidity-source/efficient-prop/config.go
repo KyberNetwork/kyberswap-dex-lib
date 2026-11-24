@@ -40,8 +40,8 @@ type Config struct {
 
 	// MinTipCapWei is the least nonzero taker tip cap, wei per gas above the base fee, of a listing listed and quoted:
 	// a fill sent at a higher tip than its listing's cap reverts, and nothing here sees the taker's tip. A listing whose
-	// cap is 0 passes (on a storage build it fills nothing, and quotes no size; on any other it has no cap); zero lists
-	// every listing.
+	// cap is 0 passes (on a storage build it fills nothing, and quotes no size; on any other it has no cap). Zero: the
+	// chain's default (defaultMinTipCapWei: 2 gwei on Ethereum, none on any other chain); 1 lists every listing.
 	MinTipCapWei uint64 `json:"minTipCapWei,omitempty"`
 
 	// InclusionAllowance is the time a routed fill takes to land, seconds: route finding quotes a listing only where a
@@ -408,9 +408,17 @@ func (c *Config) maxListings() int {
 	return c.MaxListings
 }
 
-// tipCapOK reports whether a listing's taker tip cap (wei) is 0 or at the configured floor or above it.
+// minTipCapWei is the tip cap floor: the configured one, else the chain's default.
+func (c *Config) minTipCapWei() uint64 {
+	if c.MinTipCapWei != 0 {
+		return c.MinTipCapWei
+	}
+	return defaultMinTipCapWei[c.ChainID]
+}
+
+// tipCapOK reports whether a listing's taker tip cap (wei) is 0 or at the floor or above it.
 func (c *Config) tipCapOK(capWei uint64) bool {
-	return capWei == 0 || capWei >= c.MinTipCapWei
+	return capWei == 0 || capWei >= c.minTipCapWei()
 }
 
 func (c *Config) inclusionAllowance() uint64 {

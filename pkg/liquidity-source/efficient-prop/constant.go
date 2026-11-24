@@ -159,6 +159,15 @@ const (
 // subSecondInclusionAllowance.
 var subSecondChains = map[valueobject.ChainID]bool{valueobject.ChainIDBase: true}
 
+// defaultMinTipCapWei is each chain's tip cap floor where the config names none (Config.MinTipCapWei): a listing
+// whose cap is under it reverts fills an ordinary transaction would send, at the taker's gas, so it is not quoted.
+// Ethereum's is 2 gwei, from eth_feeHistory over the 7,168 blocks to 26,486,699 (one day to 24 Nov 2026, a public
+// node): the 90th-percentile priority fee of a block, by gas, was 1.0 gwei at the median block, at most 2.0 gwei in
+// 90% of blocks and at most 2.1 gwei in 99% (the median transaction's: 0.011 gwei at the median block). So a cap of 2
+// gwei takes nine transactions in ten in nine blocks in ten, and a cap under it turns ordinary wallet tips away. No
+// other chain has a default: a chain read at the head sets its own.
+var defaultMinTipCapWei = map[valueobject.ChainID]uint64{valueobject.ChainIDEthereum: 2_000_000_000}
+
 // builderChains are the chains whose builders sell a block's placement, where a desk's update lands only in a block a
 // builder built with it ahead of a fill: a front there is read through /state (Front.Titan) and filled through its
 // doors.
