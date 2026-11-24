@@ -536,6 +536,10 @@ func (t *PoolSimulator) CalculateTokenAmountU256(
 
 			// new_balances[i] -= _dynamic_fee_i * difference / FEE_DENOMINATOR
 			fee := number.Div(number.SafeMul(&_dynamic_fee_i, &difference), FeeDenominator)
+			// A fee larger than the new balance is ErrNegativeResult, not a panic (same rule as the withdraw check).
+			if newBalances[i].Lt(fee) {
+				return ErrNegativeResult
+			}
 			number.SafeSubZ(&newBalances[i], fee, &newBalances[i])
 
 			// record fee so we can update balance later
