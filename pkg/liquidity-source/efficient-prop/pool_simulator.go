@@ -384,57 +384,31 @@ func gasOf(mode uint8, print, guarded, past bool) (baseIn, quoteIn int64, ok boo
 	return baseIn, quoteIn, true
 }
 
-// gasOfBuilder is gasOf for a listing read through /state, on Ethereum, by its fill mode, whether its fill reads a
-// price source (print), whether its pair is past its pool's hook pair (past) and, past it, whether neither of its
-// tokens is the pool's asset (noAsset). In the front's mode only the classes measured in it have a figure, a listing
-// that reads a price source: ok is false for any other, which is quoted there only with figures of its own
-// (Front.ListingGas). Each side's figure follows its input token, not
-// its place as base or quote: with the pool's asset one of the pair's tokens, the asset-in figure goes to the side
-// whose input is the asset, the quote's where the quote is the asset (assetQuote), else the base's. Only pairs whose
-// base is the asset were measured: a pair whose quote is the asset is charged the swapped figures without a measurement
-// of its own, and that shape is measured before such a pair is listed. On the hook pair the base is the asset (its
-// index 0). With neither the asset, the figures stay by base and quote, as measured. A listing bound to a guarded
-// entry, which is never quoted there (its sources are price contracts, never guarded), has no figure (ok false).
+// gasOfBuilder is the class figures of a listing read through /state, on Ethereum, by its fill mode, whether its
+// fill reads a price source (print), whether its pair is past its pool's hook pair (past) and, past it, whether
+// neither of its tokens is the pool's asset (noAsset). A class has a figure only where it was measured on the deployed
+// build, each the least first fill over the pairs measured (constant.go): a listing that reads a price source, on the
+// hook pair, past it with the pool's asset its base, or past it with neither token the asset. ok is false for every
+// other class, whose listings are quoted only with figures of their own (Front.ListingGas): a listing that reads no
+// price source (WORD or NONE), one past the hook pair whose quote is the pool's asset (assetQuote), and one bound to
+// a guarded entry, which is never quoted there (its sources are price contracts, never guarded).
 func gasOfBuilder(mode uint8, print, guarded, past, noAsset, assetQuote bool) (baseIn, quoteIn int64, ok bool) {
-	if guarded {
-		return 0, 0, false
-	}
-	if mode == modeFront {
-		switch {
-		case !print:
-			return 0, 0, false
-		case !past:
-			return gasEthFrontPrintBaseIn, gasEthFrontPrintQuoteIn, true
-		case noAsset:
-			return gasEthFrontPrintBaseInPastNoAsset, gasEthFrontPrintQuoteInPastNoAsset, true
-		case assetQuote:
-			return gasEthFrontPrintOtherInPast, gasEthFrontPrintAssetInPast, true
-		}
-		return gasEthFrontPrintAssetInPast, gasEthFrontPrintOtherInPast, true
-	}
-	if mode != modeDoor {
+	if guarded || !print {
 		return 0, 0, false
 	}
 	switch {
-	case past && noAsset:
-		baseIn, quoteIn = gasEthWordBaseInPastNoAsset, gasEthWordQuoteInPastNoAsset
-		if print {
-			baseIn, quoteIn = gasEthPrintBaseInPastNoAsset, gasEthPrintQuoteInPastNoAsset
-		}
-		return baseIn, quoteIn, true
-	case past:
-		baseIn, quoteIn = gasEthWordAssetInPast, gasEthWordOtherInPast
-		if print {
-			baseIn, quoteIn = gasEthPrintAssetInPast, gasEthPrintOtherInPast
-		}
-	default:
-		baseIn, quoteIn = gasEthWordBaseIn, gasEthWordQuoteIn
-		if print {
-			baseIn, quoteIn = gasEthPrintBaseIn, gasEthPrintQuoteIn
-		}
+	case mode == modeFront && !past:
+		return gasEthFrontPrintBaseIn, gasEthFrontPrintQuoteIn, true
+	case mode == modeFront && noAsset:
+		return gasEthFrontPrintBaseInPastNoAsset, gasEthFrontPrintQuoteInPastNoAsset, true
+	case mode == modeFront && !assetQuote:
+		return gasEthFrontPrintAssetInPast, gasEthFrontPrintOtherInPast, true
+	case mode == modeDoor && !past:
+		return gasEthPrintBaseIn, gasEthPrintQuoteIn, true
+	case mode == modeDoor && noAsset:
+		return gasEthPrintBaseInPastNoAsset, gasEthPrintQuoteInPastNoAsset, true
+	case mode == modeDoor && !assetQuote:
+		return gasEthPrintAssetInPast, gasEthPrintOtherInPast, true
 	}
-	if past && assetQuote {
-		baseIn, quoteIn = quoteIn, baseIn
-	}
-	return baseIn, quoteIn, true
+	return 0, 0, false
 }

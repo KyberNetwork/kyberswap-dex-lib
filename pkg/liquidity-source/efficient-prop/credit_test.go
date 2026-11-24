@@ -38,6 +38,20 @@ func creditChain() *fakeChain {
 
 // creditTrack refreshes listing 1 of chain under a /state answer for block 1235 (carry: its word carries), its
 // front's config naming the credit listings given, and answers the state, the node and the target block's second.
+// setCredit names cfg's front's credit listings, and drops the listing gas of each: a credit listing's figures are its
+// credit entry's alone.
+func setCredit(cfg *Config, credit ...CreditListing) {
+	f := &cfg.Fronts[0]
+	f.CreditListings = credit
+	var kept []ListingGas
+	for _, g := range f.ListingGas {
+		if f.creditListing(g.Listing) == nil {
+			kept = append(kept, g)
+		}
+	}
+	f.ListingGas = kept
+}
+
 func creditTrack(t *testing.T, chain *fakeChain, carry bool, credit ...CreditListing) (entity.Pool, *node, uint64) {
 	t.Helper()
 	n := builderNode(t, chain, 1234)
@@ -45,7 +59,7 @@ func creditTrack(t *testing.T, chain *fakeChain, carry bool, credit ...CreditLis
 	slot := slotAfter(n.time)
 	st.set(slot, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, carry)})
 	cfg := ethConfig(st.URL)
-	cfg.Fronts[0].CreditListings = credit
+	setCredit(cfg, credit...)
 	p := ethListed(t, n, cfg)
 	return ethTrack(t, n, cfg, p), n, slotTime(slot)
 }
@@ -259,7 +273,7 @@ func TestCreditClassThatFlipsInTheCarriedBlockIsNoPoint(t *testing.T) {
 func TestCreditListingsConfig(t *testing.T) {
 	eth := func(cl ...CreditListing) Config {
 		c := *ethConfig("http://state")
-		c.Fronts[0].CreditListings = cl
+		setCredit(&c, cl...)
 		return c
 	}
 	good := eth(testCredit)
@@ -462,7 +476,7 @@ func TestCreditRouteClosesItsPoolInTheRoute(t *testing.T) {
 		return sim
 	}
 	newB := func() *PoolSimulator {
-		p := creditPool(t, 2, func(e *Extra) { e.CreditMode, e.Credit = 0, nil; e.Ladders = simLadders() })
+		p := creditPool(t, 2, func(e *Extra) { e.CreditMode, e.Credit, e.Print = 0, nil, true; e.Ladders = simLadders() })
 		p.Address = "0x6666666666666666666666666666666666666666"
 		p.Reserves = entity.PoolReserves{"100000000000000000000", "7000000000"}
 		sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: p})
@@ -576,7 +590,7 @@ func TestCreditCarriedBlockThatRefusesKeepsTheTargetBlock(t *testing.T) {
 	st := newStateServer(t)
 	st.set(slot, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, true)})
 	cfg := ethConfig(st.URL)
-	cfg.Fronts[0].CreditListings = []CreditListing{testCredit}
+	setCredit(cfg, testCredit)
 	got := ethTrack(t, n, cfg, ethListed(t, n, cfg))
 	e := extraOf(t, got)
 	bid := e.Credit.Ladders[0]

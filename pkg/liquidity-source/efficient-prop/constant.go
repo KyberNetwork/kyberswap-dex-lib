@@ -75,21 +75,10 @@ const (
 	gasEthPrintOtherInPast        = 136_333
 	gasEthPrintBaseInPastNoAsset  = 150_796
 	gasEthPrintQuoteInPastNoAsset = 154_012
-	// A WORD or NONE listing on Ethereum, one that reads no price source, by the same classes and inputs: the least
-	// first fill of its side seen across runs through the adapter, under the same conditions as the print figures above.
-	// None was measured on the deployed build: the pools the print figures were measured on list no pair of this kind,
-	// so measure them before such a listing is served. The four past the hook pair are the earlier build's, whose print
-	// figures past the hook pair stood 2,088 to 2,834 under the deployed build's. The two on the hook pair are a sum,
-	// not a measurement: the deployed build's print figures there less the earlier build's print difference (10,087
-	// with the base in, 10,287 with the quote in). The earlier build's own figures there were 115,769 and 109,098; the
-	// deployed build's print figures on that pair came out 8,148 and 3,046 under the earlier build's, and a charge must
-	// not stand above a fill's gas.
-	gasEthWordBaseIn             = 107_621
-	gasEthWordQuoteIn            = 106_052
-	gasEthWordAssetInPast        = 132_553
-	gasEthWordOtherInPast        = 123_212
-	gasEthWordBaseInPastNoAsset  = 138_621
-	gasEthWordQuoteInPastNoAsset = 141_125
+	// No listing that reads no price source (WORD or NONE) was measured on the deployed build in either mode, nor a pair
+	// past the hook pair whose quote is the pool's asset: those classes have no figure, and such a listing is quoted
+	// only with figures of its own (Front.ListingGas).
+	//
 	// Ethereum's figures in the front's mode, the same fills through the front's own entries (the paid entry where the
 	// front names the listing's pool): measured on the same fork of the deployed build and the same pool as the door's
 	// four above, the same runs, the same frame. Past the hook pair with the pool's asset one of the pair's tokens:
@@ -97,9 +86,7 @@ const (
 	// wstETH/USDT 126,448); with neither token the pool's asset, both sides of USDT/USDC. Each is 9,885 to 13,031
 	// under the door's figure for the same fill (29,785 to 32,931 before refunds: the door's mode earns 19,900 more).
 	// The hook pair's two
-	// were measured on the two-token pool of the door's hook-pair figures, the same fills. No listing that reads no
-	// price source was measured in this mode, so none has a figure: such a listing is quoted in the front's mode only
-	// with figures of its own (Front.ListingGas).
+	// were measured on the two-token pool of the door's hook-pair figures, the same fills.
 	gasEthFrontPrintBaseIn             = 106_000
 	gasEthFrontPrintQuoteIn            = 106_561
 	gasEthFrontPrintAssetInPast        = 133_036

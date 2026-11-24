@@ -171,7 +171,8 @@ func builderNode(t *testing.T, chain *fakeChain, block uint64) *node {
 	return n
 }
 
-// ethConfig is the test front on Ethereum, read through the /state server at url.
+// ethConfig is the test front on Ethereum, read through the /state server at url. Its test listings read no price
+// source (WORD), a class with no figure on Ethereum, so the config names listings 1 and 4 with gas of their own.
 func ethConfig(url string) *Config {
 	return &Config{ChainID: valueobject.ChainIDEthereum, ApprovedDesks: testDesks(), Fronts: []Front{{
 		Address:         hexutil.Encode(testFront[:]),
@@ -181,8 +182,16 @@ func ethConfig(url string) *Config {
 		FillMode:        FillModeDoor,
 		Implementations: []string{hexutil.Encode(testImpl[:])},
 		Titan:           &titan.Config{URLs: []string{url}, Timeout: 2 * time.Second},
+		ListingGas: []ListingGas{{Listing: 1, BaseIn: testGasBaseIn, QuoteIn: testGasQuoteIn},
+			{Listing: 4, BaseIn: testGasBaseIn, QuoteIn: testGasQuoteIn}},
 	}}}
 }
+
+// testGasBaseIn and testGasQuoteIn are the test listings' own gas under ethConfig.
+const (
+	testGasBaseIn  = 107_621
+	testGasQuoteIn = 106_052
+)
 
 // ethListed is the chain's listing 1 as the lister records it under cfg.
 func ethListed(t *testing.T, n *node, cfg *Config) entity.Pool {
@@ -591,27 +600,25 @@ func TestEventParserOnABuilderChain(t *testing.T) {
 }
 
 // A listing read through /state is charged Ethereum's figures of its fill mode, by its pair's place (on its pool's
-// hook pair, past it with the pool's asset one of its tokens, or past it with neither the asset), by whether its fill
-// reads a price source, and by its input token: a print listing the least first fill measured of its class, a WORD
-// listing the least first fill measured on a WORD listing. Past the hook pair with the asset, the side is picked by
-// whether the input is the pool's asset, not by base or quote, so a pair whose quote is the asset is charged the
-// asset-in figure on its quote-in side. A listing bound to a guarded entry, never quoted there, has no figure. In the
-// front's mode only the classes measured in it have one: a state with a ladder of any other is no pool, and one with
-// no ladder is an empty pool. A listing's own figures, where its state carries them, stand in place of its class's
-// in either mode.
+// hook pair, past it with the pool's asset its base, or past it with neither token the asset) and by its input token:
+// the least first fill measured of its class on the deployed build. A class never measured there has no figure in
+// either mode: a listing that reads no price source, a pair past the hook pair whose quote is the pool's asset, and a
+// listing bound to a guarded entry. A state with a ladder of such a class is no pool, and one with no ladder is an
+// empty pool. A listing's own figures, where its state carries them, stand in place of its class's in either mode.
 func TestSimulatorChargesEthereumsGas(t *testing.T) {
-	want := map[[4]bool][2]int64{
+	type figures struct{ door, front [2]int64 }
+	want := map[[4]bool]figures{
 		// {print, past, noAsset, assetQuote}: base in, quote in
-		{true, false, false, false}:  {117_708, 116_339},
-		{true, true, false, false}:   {144_744, 136_333},
-		{true, true, false, true}:    {136_333, 144_744},
-		{true, true, true, false}:    {150_796, 154_012},
-		{false, false, false, false}: {107_621, 106_052},
-		{false, true, false, false}:  {132_553, 123_212},
-		{false, true, false, true}:   {123_212, 132_553},
-		{false, true, true, false}:   {138_621, 141_125},
+		{true, false, false, false}: {door: [2]int64{117_708, 116_339}, front: [2]int64{106_000, 106_561}},
+		{true, true, false, false}:  {door: [2]int64{144_744, 136_333}, front: [2]int64{133_036, 125_307}},
+		{true, true, true, false}:   {door: [2]int64{150_796, 154_012}, front: [2]int64{140_911, 141_041}},
 		// noAsset sets nothing on the hook pair, whose base is the pool's asset
-		{true, false, true, false}: {117_708, 116_339},
+		{true, false, true, false}: {door: [2]int64{117_708, 116_339}, front: [2]int64{106_000, 106_561}},
+	}
+	unmeasured := [][4]bool{
+		{true, true, false, true}, // past the hook pair, the quote the pool's asset
+		{false, false, false, false}, {false, true, false, false}, {false, true, false, true},
+		{false, true, true, false}, // no price source read
 	}
 	builderPool := func(k [4]bool, guarded, base1 bool, mode uint8) entity.Pool {
 		p := simPool(t, simLadders(), time.Now().Unix())
@@ -624,54 +631,34 @@ func TestSimulatorChargesEthereumsGas(t *testing.T) {
 		p.Extra = string(b)
 		return withStatic(t, p, func(se *StaticExtra) { se.Mode = mode })
 	}
-	for k, w := range want {
-		for _, base1 := range []bool{false, true} {
-			sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: builderPool(k, false, base1, modeDoor)})
-			require.NoError(t, err)
-			token0, token1 := w[0], w[1]
-			if base1 {
-				token0, token1 = token1, token0
+	for k, f := range want {
+		for mode, w := range map[uint8][2]int64{modeDoor: f.door, modeFront: f.front} {
+			for _, base1 := range []bool{false, true} {
+				sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: builderPool(k, false, base1, mode)})
+				require.NoError(t, err)
+				token0, token1 := w[0], w[1]
+				if base1 {
+					token0, token1 = token1, token0
+				}
+				res, err := calc(sim, simWETH, simUSDC, big.NewInt(1e18), nil)
+				require.NoError(t, err)
+				assert.Equal(t, token0, res.Gas, "mode %d, token 0 in: %v, base token 1 %v", mode, k, base1)
+				res, err = calc(sim, simUSDC, simWETH, big.NewInt(3000e6), nil)
+				require.NoError(t, err)
+				assert.Equal(t, token1, res.Gas, "mode %d, token 1 in: %v, base token 1 %v", mode, k, base1)
 			}
-			res, err := calc(sim, simWETH, simUSDC, big.NewInt(1e18), nil)
-			require.NoError(t, err)
-			assert.Equal(t, token0, res.Gas, "token 0 in: %v, base token 1 %v", k, base1)
-			res, err = calc(sim, simUSDC, simWETH, big.NewInt(3000e6), nil)
-			require.NoError(t, err)
-			assert.Equal(t, token1, res.Gas, "token 1 in: %v, base token 1 %v", k, base1)
+			_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: builderPool(k, true, false, mode)})
+			assert.ErrorIs(t, err, ErrInvalidState, "no guarded class on a builder chain: %v", k)
 		}
-		_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: builderPool(k, true, false, modeDoor)})
-		assert.ErrorIs(t, err, ErrInvalidState, "no guarded class on a builder chain: %v", k)
+		assert.Less(t, f.front[0]+f.front[1], f.door[0]+f.door[1], "the front's mode is under the door's: %v", k)
 	}
-	inFront := map[[4]bool][2]int64{
-		{true, false, false, false}: {106_000, 106_561},
-		{true, false, true, false}:  {106_000, 106_561},
-		{true, true, false, false}:  {133_036, 125_307},
-		{true, true, false, true}:   {125_307, 133_036},
-		{true, true, true, false}:   {140_911, 141_041},
-	}
-	for k := range want {
-		for _, base1 := range []bool{false, true} {
-			sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: builderPool(k, false, base1, modeFront)})
-			w, measured := inFront[k]
-			if !measured {
-				assert.ErrorIs(t, err, ErrInvalidState, "no figure in the front's mode: %v", k)
-				continue
-			}
-			require.NoError(t, err)
-			token0, token1 := w[0], w[1]
-			if base1 {
-				token0, token1 = token1, token0
-			}
-			res, err := calc(sim, simWETH, simUSDC, big.NewInt(1e18), nil)
-			require.NoError(t, err)
-			assert.Equal(t, token0, res.Gas, "the front's mode, token 0 in: %v, base token 1 %v", k, base1)
-			res, err = calc(sim, simUSDC, simWETH, big.NewInt(3000e6), nil)
-			require.NoError(t, err)
-			assert.Equal(t, token1, res.Gas, "the front's mode, token 1 in: %v, base token 1 %v", k, base1)
-			assert.Less(t, token0, want[k][0]+want[k][1], "under the door's")
+	for _, k := range unmeasured {
+		for _, mode := range []uint8{modeDoor, modeFront} {
+			_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: builderPool(k, false, false, mode)})
+			assert.ErrorIs(t, err, ErrInvalidState, "a class never measured, mode %d: %v", mode, k)
 		}
 	}
-	// a class with no figure in the front's mode and no ladder is an empty pool, not an error
+	// a class with no figure and no ladder is an empty pool, not an error
 	empty := builderPool([4]bool{false, false, false, false}, false, false, modeFront)
 	var e Extra
 	require.NoError(t, json.Unmarshal([]byte(empty.Extra), &e))
@@ -719,10 +706,9 @@ func TestSimulatorChargesEthereumsGas(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidState, "a mode the adapter does not take")
 }
 
-// In the front's mode a listing of a class with no measured figure there (one reading no price source) is quoted only
-// where its front's config names its own gas: then its state carries the figures, its pool's meta names the front as
-// the one contract the adapter approves, and the adapter's mode word is the front's. In the door's mode the same
-// listing is quoted at its class's figure, or at its own where named.
+// A listing of a class with no measured figure (one reading no price source) is quoted only where its front's config
+// names its own gas, in either mode: then its state carries the figures, and in the front's mode its pool's meta
+// names the front as the one contract the adapter approves and the adapter's mode word is the front's.
 func TestBuilderFrontModeQuotesAListingWithItsOwnGas(t *testing.T) {
 	track := func(mode string, g ...ListingGas) entity.Pool {
 		chain := ethChain()
@@ -762,9 +748,10 @@ func TestBuilderFrontModeQuotesAListingWithItsOwnGas(t *testing.T) {
 
 	door := track(FillModeDoor)
 	e = extraOf(t, door)
-	require.NotEmpty(t, e.Ladders[0], "the door's mode has a figure for every class")
-	assert.Nil(t, e.Gas)
+	assert.Empty(t, e.Ladders[0], "no figure in the door's mode either, none of its own: not quoted")
+	assert.Empty(t, e.Ladders[1])
 	named := track(FillModeDoor, own)
+	require.NotEmpty(t, extraOf(t, named).Ladders[0])
 	require.NotNil(t, extraOf(t, named).Gas)
 }
 

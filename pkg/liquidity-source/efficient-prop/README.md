@@ -200,40 +200,31 @@ credit listing's custody fill in the door's mode, paid 50,265 to 51,599 of its 5
 is paid more of it, so the figure nets all of it and is short by up to 9,435 for a fill alone behind the lightest hop.
 
 **Ethereum.** On chain 1 a front fills in either mode, and the front's is the cheaper and the one the config below
-names (Ethereum, Entry mode). A listing's gas is one figure per input token and class: on the pool's hook pair; past
-it with the pool's asset (its token 0) one of the pair's tokens; or past it with neither token the asset. The figure
-follows the input token, not its side. Only pairs whose base is the asset were measured: a pair whose quote is the
-asset is charged the same figures swapped, and that shape is measured before such a pair is listed. Same-size first
-fills vary by up to about 500 gas from run to run, so a later run may see a fill a little under its figure.
+names (Ethereum, Entry mode). A listing's class figure is one per input token: on the pool's hook pair; past it with
+the pool's asset (its token 0) the pair's base; or past it with neither token the asset. Each is the least first fill
+measured on the deployed build over the pairs listed below, so a new listing of an approved desk in one of these
+classes is quoted with no config change. A class never measured on the deployed build has no figure, and its
+listings are quoted only where `listingGas` names them: a listing that reads no price source (WORD or NONE), a pair
+past the hook pair whose quote is the pool's asset, and an asset-module pair. Same-size first fills vary by up to
+about 500 gas from run to run, so a later run may see a fill a little under its figure.
 
-| Class (door mode) | Input | Reads a price source | WORD or NONE |
+| Class, a listing that reads a price source | Input | Door mode | Front mode |
 |---|---|---|---|
-| on the pool's hook pair | the base, the pool's asset | 117,708 | 107,621 |
-| on the pool's hook pair | the quote | 116,339 | 106,052 |
-| past the hook pair, the pool's asset one of its tokens | the asset, base or quote | 144,744 | 132,553 |
-| past the hook pair, the pool's asset one of its tokens | the other token | 136,333 | 123,212 |
-| past the hook pair, neither token the pool's asset | the base | 150,796 | 138,621 |
-| past the hook pair, neither token the pool's asset | the quote | 154,012 | 141,125 |
+| on the pool's hook pair | the base, the pool's asset | 117,708 | 106,000 |
+| on the pool's hook pair | the quote | 116,339 | 106,561 |
+| past the hook pair, the base the pool's asset | the asset | 144,744 | 133,036 |
+| past the hook pair, the base the pool's asset | the quote | 136,333 | 125,307 |
+| past the hook pair, neither token the pool's asset | the base | 150,796 | 140,911 |
+| past the hook pair, neither token the pool's asset | the quote | 154,012 | 141,041 |
 
-| Class (front mode) | Input | Reads a price source |
-|---|---|---|
-| on the pool's hook pair | the base, the pool's asset | 106,000 |
-| on the pool's hook pair | the quote | 106,561 |
-| past the hook pair, the pool's asset one of its tokens | the asset, base or quote | 133,036 |
-| past the hook pair, the pool's asset one of its tokens | the other token | 125,307 |
-| past the hook pair, neither token the pool's asset | the base | 140,911 |
-| past the hook pair, neither token the pool's asset | the quote | 141,041 |
-
-The price-source figures past the hook pair were measured on a fork of Ethereum holding the deployed build (front
+The figures past the hook pair were measured on a fork of Ethereum holding the deployed build (front
 `0x0000000000403aeB66691063CC2fD42E71d6AcD6`) and a pool of wstETH, WETH, USDC and USDT: wstETH/USDC, wstETH/USDT and
 both sides of USDT/USDC. A class's figure is the least of its listings. The two hook-pair figures were measured on the
 same build on a pool of two tokens, wstETH and WETH, whose listing has no credit mode; the same pool with a lender
 bound and unused spent the same within 16 gas. The front's mode came out 9,885 to 13,031 under the door's on the same
-fills (29,785 to 32,931 before refunds: the door's mode earns one refund more). The WORD or NONE column was not
-measured on the deployed build, whose measured pools list no pair that reads no price source: it is the price-source
-column less a difference measured on an earlier build (10,087 with the base or the pool's asset in, 10,287 with the
-other token in), and is measured before such a listing is served. No WORD or NONE class has a figure in the front's
-mode: a listing of one is quoted there only where `listingGas` names it.
+fills (29,785 to 32,931 before refunds: the door's mode earns one refund more). The leg tokens measured are wstETH,
+WETH, USDC and USDT: a listing whose token transfers cheaper than these may fill a little under its class figure, and
+takes figures of its own once measured.
 
 **A listing's own gas.** Two listings of one class differ by their tokens' own transfer costs: by up to 2,005 gas in
 the door's mode and up to 1,141 in the front's. `listingGas` names a listing with its own two figures, which then
