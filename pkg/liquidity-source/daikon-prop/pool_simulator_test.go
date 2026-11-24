@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -40,13 +41,17 @@ func newTestSim(t *testing.T, extra string, staleCheck bool, feePpm uint64) *Poo
 	return sim
 }
 
-func calc(sim *PoolSimulator, buy bool, amt string) (*pool.CalcAmountOutResult, error) {
+func calc(sim *PoolSimulator, buy bool, amt string) (*pool.CalcAmtOutResult, error) {
 	in, out := testBase, testQuote
 	if buy {
 		in, out = out, in
 	}
 	a, _ := new(big.Int).SetString(amt, 10)
-	return sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: in, Amount: a}, TokenOut: out})
+	var amountIn uint256.Int
+	if amountIn.SetFromBig(a) {
+		return nil, ErrOverflow
+	}
+	return sim.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: in, Amount: amountIn}, TokenOut: out})
 }
 
 // Pins the pair's rounding (ceil spread price, one final floor, ceil fees, mid-price capacity
@@ -139,13 +144,15 @@ func TestUpdateBalanceSpendsCapacity(t *testing.T) {
 	} {
 		res, err := calc(sim, c.buy, c.amount)
 		require.NoError(t, err)
-		in, _ := new(big.Int).SetString(c.amount, 10)
+		var in uint256.Int
+		a, _ := new(big.Int).SetString(c.amount, 10)
+		require.False(t, in.SetFromBig(a))
 		tokenIn := testBase
 		if c.buy {
 			tokenIn = testQuote
 		}
-		sim.UpdateBalance(pool.UpdateBalanceParams{
-			TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: in},
+		sim.UpdateState(pool.UpdateStateParams{
+			TokenAmountIn:  pool.TokenAmt{Token: tokenIn, Amount: in},
 			TokenAmountOut: *res.TokenAmountOut, SwapInfo: res.SwapInfo,
 		})
 		assert.Equal(t, c.want, c.check(sim))
@@ -180,5 +187,32 @@ func TestCalcAmountOutWithFeeMatchesOnChain(t *testing.T) {
 			TokenAmountIn: pool.TokenAmount{Token: in, Amount: a}, TokenOut: out}, c.fee)
 		require.NoError(t, err)
 		assert.Equal(t, c.out, res.TokenAmountOut.Amount.String(), "buy=%v amount=%s fee=%d", c.buy, c.amount, c.fee)
+	}
+}
+
+// The uint256 CalcAmtOutWithFee must return the same on-chain amounts as the big.Int path.
+func TestCalcAmtOutWithFeeMatchesOnChain(t *testing.T) {
+	sim := newTestSim(t, testExtra, false, 0)
+	for _, c := range []struct {
+		buy         bool
+		amount, out string
+		fee         uint64
+	}{
+		{true, "1000000", "1634063253800702699", 2500},
+		{true, "100000000", "155625071790543114215", 60000},
+		{false, "1000000000000000000", "605877", 2500},
+		{false, "1000000000000000000000", "577027044", 60000},
+	} {
+		in, out := testBase, testQuote
+		if c.buy {
+			in, out = out, in
+		}
+		a, _ := new(big.Int).SetString(c.amount, 10)
+		var amountIn uint256.Int
+		require.False(t, amountIn.SetFromBig(a))
+		res, err := sim.CalcAmtOutWithFee(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: in, Amount: amountIn}, TokenOut: out}, c.fee)
+		require.NoError(t, err)
+		assert.Equal(t, c.out, res.TokenAmountOut.Amount.Dec(), "buy=%v amount=%s fee=%d", c.buy, c.amount, c.fee)
 	}
 }
