@@ -41,6 +41,9 @@ func newDeskListServer(t *testing.T, chain uint64, desks ...common.Address) *des
 		defer s.mu.Unlock()
 		s.hits++
 		if s.status != 0 {
+			if s.status == http.StatusServiceUnavailable {
+				w.Header().Set("Retry-After", "30")
+			}
 			w.WriteHeader(s.status)
 			return
 		}
@@ -181,6 +184,84 @@ func TestApprovedDesksRefusesABadList(t *testing.T) {
 		assert.True(t, d.approved(ctx, deskA), "%s: the held list stands", name)
 		assert.Equal(t, 1, warned, name)
 	}
+}
+
+// The list's answer may carry fields this source does not read (the api's version and bundleSha256): they are ignored,
+// and the list is taken.
+func TestApprovedDesksIgnoresUnknownFields(t *testing.T) {
+	now := time.Unix(1_800_000_000, 0)
+	srv := newDeskListServer(t, 1)
+	srv.set(func(s *deskListServer) {
+		s.body = `{"chainId":1,"updatedAt":1800000000,"version":7,"bundleSha256":"0x` + strings.Repeat("ab", 32) +
+			`","desks":["` + hexutil.Encode(deskB[:]) + `"],"next":{"any":[1,2]}}`
+	})
+	d := gateOf(srv, &now)
+	var warned int
+	d.warn = func(error) { warned++ }
+	assert.True(t, d.approved(context.Background(), deskB))
+	assert.Zero(t, warned)
+}
+
+// An address of the list is taken in lower case and checksummed alike.
+func TestApprovedDesksParsesLowerCaseAndChecksummedAddresses(t *testing.T) {
+	const checksummed = "0x4f8dd270acE370dE2f6Ac5EBf3230cBE099a0753"
+	desk := common.HexToAddress(checksummed)
+	require.NotEqual(t, checksummed, strings.ToLower(checksummed))
+	for name, written := range map[string]string{"checksummed": checksummed, "lower case": strings.ToLower(checksummed)} {
+		now := time.Unix(1_800_000_000, 0)
+		srv := newDeskListServer(t, 1)
+		srv.set(func(s *deskListServer) { s.body = `{"chainId":1,"updatedAt":1,"desks":["` + written + `"]}` })
+		d := gateOf(srv, &now)
+		assert.True(t, d.approved(context.Background(), desk), name)
+		assert.False(t, d.approved(context.Background(), deskA), name)
+	}
+}
+
+// A 503 (the api with no valid source, answering Retry-After) is a failed fetch like any other status than 200: with
+// no list held the config's set rules, and with one held it stands to its max age and the config's set then rules,
+// less the desks it had left out. The failure approves no desk the config does not name.
+func TestApprovedDesksA503IsAFailedFetch(t *testing.T) {
+	ctx := context.Background()
+	for _, status := range []int{http.StatusServiceUnavailable, http.StatusNoContent, http.StatusNotFound} {
+		now := time.Unix(1_800_000_000, 0)
+		srv := newDeskListServer(t, 1)
+		srv.set(func(s *deskListServer) { s.status = status })
+		d := gateOf(srv, &now, deskA)
+		var warned int
+		d.warn = func(error) { warned++ }
+		assert.True(t, d.approved(ctx, deskA), "%d: the config's set rules", status)
+		assert.False(t, d.approved(ctx, deskB), "%d: no desk the config does not name", status)
+		assert.Equal(t, 1, warned, "%d: the failed fetch is reported once a fetch", status)
+
+		// the api answers a list, then fails again
+		srv.set(func(s *deskListServer) { s.status, s.desks, s.updatedAt = 0, []common.Address{deskB}, 2 })
+		now = now.Add(deskListEvery)
+		assert.True(t, d.approved(ctx, deskB), "%d: the list names it", status)
+		assert.False(t, d.approved(ctx, deskA), "%d: the list leaves it out", status)
+		srv.set(func(s *deskListServer) { s.status = status })
+		now = now.Add(deskListEvery)
+		assert.True(t, d.approved(ctx, deskB), "%d: the held list stands while it is fresh", status)
+		now = now.Add(defaultDeskListMaxAge)
+		assert.False(t, d.approved(ctx, deskB), "%d: the list's alone, gone once it is stale", status)
+		assert.False(t, d.approved(ctx, deskA), "%d: the list had left it out", status)
+	}
+}
+
+// A 200 answer whose desks are empty is a list, and it approves nobody: not the config's desks while it is fresh, and
+// not once it is stale either, since the last list left them out.
+func TestApprovedDesksAnEmptyListApprovesNobody(t *testing.T) {
+	now := time.Unix(1_800_000_000, 0)
+	ctx := context.Background()
+	srv := newDeskListServer(t, 1)
+	srv.set(func(s *deskListServer) { s.body = `{"chainId":1,"updatedAt":1,"desks":[]}` })
+	d := gateOf(srv, &now, deskA)
+	var warned int
+	d.warn = func(error) { warned++ }
+	assert.False(t, d.approved(ctx, deskA), "the empty list rules")
+	assert.Zero(t, warned, "an empty list is no bad list")
+	srv.set(func(s *deskListServer) { s.status = http.StatusServiceUnavailable })
+	now = now.Add(defaultDeskListMaxAge + time.Second)
+	assert.False(t, d.approved(ctx, deskA), "the last list left it out")
 }
 
 // The url is https or the config is refused, and a list never comes over plain http.
