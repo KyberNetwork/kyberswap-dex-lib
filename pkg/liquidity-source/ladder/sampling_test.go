@@ -5,10 +5,22 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
+
+func u(b *big.Int) *uint256.Int { return uint256.MustFromBig(b) }
+
+func u256s(vs ...int64) []*uint256.Int {
+	out := make([]*uint256.Int, len(vs))
+	for i, v := range vs {
+		out[i] = uint256.NewInt(uint64(v))
+	}
+	return out
+}
 
 // TestEstimateNearCapacityAmount_Found uses liquidcoreUSDCkHYPELadder (block
 // 41125109, reserve1=260569475582118373524 at capture time) as the
@@ -186,11 +198,12 @@ func TestWithGrowthCanaries(t *testing.T) {
 		t.Parallel()
 		nearCap := big.NewInt(1000)
 		reserve := big.NewInt(1_000_000_000) // far larger than any canary should reach
-		got := withGrowthCanaries([]*big.Int{big.NewInt(500), big.NewInt(1000)}, nearCap, reserve)
+		got, err := withGrowthCanariesU256(u256s(500, 1000), u(nearCap), u(reserve))
+		require.NoError(t, err)
 		want := []int64{500, 1000, 2000, 4000} // nearCap*2, nearCap*4 appended
 		if assert.Len(t, got, len(want)) {
 			for i, w := range want {
-				assert.Equal(t, w, got[i].Int64())
+				assert.Equal(t, uint64(w), got[i].Uint64())
 			}
 		}
 	})
@@ -199,11 +212,12 @@ func TestWithGrowthCanaries(t *testing.T) {
 		t.Parallel()
 		nearCap := big.NewInt(600_000) // *2 and *4 both exceed reserve below
 		reserve := big.NewInt(1_000_000)
-		got := withGrowthCanaries([]*big.Int{big.NewInt(300_000)}, nearCap, reserve)
+		got, err := withGrowthCanariesU256(u256s(300_000), u(nearCap), u(reserve))
+		require.NoError(t, err)
 		want := []int64{300_000, 1_000_000} // both canaries clamp to reserve and dedupe into one
 		if assert.Len(t, got, len(want)) {
 			for i, w := range want {
-				assert.Equal(t, w, got[i].Int64())
+				assert.Equal(t, uint64(w), got[i].Uint64())
 			}
 		}
 	})

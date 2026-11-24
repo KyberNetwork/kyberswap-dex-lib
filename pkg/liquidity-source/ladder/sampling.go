@@ -3,12 +3,10 @@ package ladder
 import (
 	"math"
 	"math/big"
-	"sort"
 
-	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // SampleSize is the default number of reserve-fraction probe points built by
@@ -91,33 +89,14 @@ func geometricBpsRange(lo, hi, n int) []int {
 
 // BuildSamplePointsN returns a sorted, deduplicated grid of n probe amounts,
 // geometrically spaced between sampleBpsMin and sampleBpsMax and scaled by
-// reserve. Geometric (constant-ratio) spacing keeps every gap the same
-// relative size, unlike a hand-picked list where an arbitrary large gap can
-// sit exactly under a real trade size and blow up the interpolation error
-// (see Spline). SamplePoints itself no longer uses this for a ladder's own
-// first probe (see firstProbePoints) -- kept as a reserve-based grid builder
-// for other callers still anchored on a real AMM reserve (e.g. the
-// uniswap-v4 auto-hook calibrator).
+// reserve. Amounts that do not fit in uint256 (or a negative reserve) map to
+// nil, matching the legacy embedder contract (see BuildSamplePointsNU256).
 func BuildSamplePointsN(reserve *big.Int, n int) []*big.Int {
-	return buildSamplePointsFromReserve(reserve, geometricBpsRange(sampleBpsMin, sampleBpsMax, n))
-}
-
-func buildSamplePointsFromReserve(reserve *big.Int, bps []int) []*big.Int {
-	if reserve == nil || reserve.Sign() <= 0 {
+	u, ok := fromBigOrNil(reserve)
+	if !ok {
 		return nil
 	}
-
-	points := make([]*big.Int, 0, len(bps))
-	for _, b := range bps {
-		pt := new(big.Int).Mul(reserve, big.NewInt(int64(b)))
-		pt.Div(pt, bignumber.BasisPoint)
-		if pt.Sign() > 0 {
-			points = append(points, pt)
-		}
-	}
-
-	sort.Slice(points, func(a, b int) bool { return points[a].Cmp(points[b]) < 0 })
-	return dedupSorted(points)
+	return toBigs(BuildSamplePointsNU256(u, n))
 }
 
 // rateDropFraction is how far a ladder's marginal rate of return (the
@@ -166,201 +145,62 @@ func DepletionAmountIn(ladder []Point) (float64, bool) {
 	return 0, false
 }
 
-// EstimateNearCapacityAmount estimates, with no extra on-chain calls, the
-// amountIn just past where the previous cycle's ladder showed the pool's
-// marginal rate of return start dropping (see DepletionAmountIn), using the
-// previous cycle's ladder and output-side reserve as a guide.
-//
-// reserve0 alone can badly overstate the tradeable range for an imbalanced
-// pool (see BuildSamplePointsN's doc): sampling up to 99% of reserve0 assumes
-// the other side has enough inventory to pay it out, which isn't always
-// true, and the real depletion point can sit at a small fraction of the
-// reserve for a badly imbalanced pool. The previous ladder already recorded
-// where the rate started dropping last cycle (in terms of that cycle's
-// reserve); scaling it by how much the output-side reserve has since changed
-// re-estimates it for this cycle without probing anything new.
-//
-// Returns nil if the previous ladder never showed a rate drop (no knee
-// observed last time), in which case the caller should fall back to its
-// default reserve-based basis.
+// EstimateNearCapacityAmount is EstimateNearCapacityAmountU256 on big.Int.
+// Out-of-range reserves map to nil.
 func EstimateNearCapacityAmount(prevLadder []Point, prevOutputReserve, currentOutputReserve *big.Int) *big.Int {
-	nearCapIn, found := DepletionAmountIn(prevLadder)
-	if !found {
+	prev, okPrev := fromBigOrNil(prevOutputReserve)
+	cur, okCur := fromBigOrNil(currentOutputReserve)
+	if !okPrev || !okCur {
 		return nil
 	}
-	return scaleByOutputReserveChange(nearCapIn, prevOutputReserve, currentOutputReserve)
+	return toBig(EstimateNearCapacityAmountU256(prevLadder, prev, cur))
 }
 
-// EstimateFarthestProbedAmount estimates, with no extra on-chain calls, the
-// amountIn as far as the previous cycle's ladder ever actually reached (its
-// own last point), using the same output-reserve-ratio projection as
-// EstimateNearCapacityAmount, applied to the ladder's full extent instead of
-// just its depletion point.
-//
-// EstimateNearCapacityAmount's dense grid concentrates accuracy right at the
-// knee, but a caller with no better liquidity source for a larger trade
-// would rather get a rough, lower-confidence quote than none at all --
-// SamplePoints includes this alongside the dense grid so the pool is never
-// artificially capped at the knee's much tighter range. Since we know this
-// amount was actually quotable (no revert) last cycle, scaling it is safer
-// than the decimals-anchored sweep firstProbePoints falls back to before
-// there's any history to go on.
-//
-// Returns nil if prevLadder is empty.
+// EstimateFarthestProbedAmount is EstimateFarthestProbedAmountU256 on big.Int.
+// Out-of-range reserves map to nil.
 func EstimateFarthestProbedAmount(prevLadder []Point, prevOutputReserve, currentOutputReserve *big.Int) *big.Int {
-	if len(prevLadder) == 0 {
+	prev, okPrev := fromBigOrNil(prevOutputReserve)
+	cur, okCur := fromBigOrNil(currentOutputReserve)
+	if !okPrev || !okCur {
 		return nil
 	}
-	return scaleByOutputReserveChange(prevLadder[len(prevLadder)-1].AmountIn(), prevOutputReserve, currentOutputReserve)
+	return toBig(EstimateFarthestProbedAmountU256(prevLadder, prev, cur))
 }
 
-// scaleByOutputReserveChange projects amountIn (observed against
-// prevOutputReserve last cycle) to what it would be against
-// currentOutputReserve this cycle, assuming the pool's price curve shape
-// hasn't changed -- only the amount of inventory backing it.
-func scaleByOutputReserveChange(amountIn float64, prevOutputReserve, currentOutputReserve *big.Int) *big.Int {
-	if amountIn <= 0 || prevOutputReserve == nil || prevOutputReserve.Sign() <= 0 ||
-		currentOutputReserve == nil || currentOutputReserve.Sign() <= 0 {
-		return nil
-	}
-
-	prevReserveF, _ := prevOutputReserve.Float64()
-	currentReserveF, _ := currentOutputReserve.Float64()
-	estimate := amountIn * (currentReserveF / prevReserveF)
-	if estimate <= 0 {
-		return nil
-	}
-
-	result, _ := big.NewFloat(estimate).Int(nil)
-	return result
-}
-
-// BuildSamplePointsFrom is like BuildSamplePointsN, but scales a
-// double-geometric ("dgeo") grid -- geometric from sampleBpsMin up to the
-// midpoint (sampleBpsMin+sampleBpsMax)/2, mirrored around that midpoint for
-// the top half -- from nearCapacityAmount (see EstimateNearCapacityAmount)
-// instead of directly off a reserve: nearCapacityAmount is treated as the
-// sampleBpsMax point, and the equivalent "reserve" is backed out so the
-// existing bps math applies unchanged.
-//
-// A plain geometric progression spends half its points on the bottom half
-// of the range even though, once re-anchored at a real depletion point this
-// way, the real knee is almost always right at the top -- mirroring the
-// bottom half's spacing onto the top half concentrates far more points
-// there instead.
+// BuildSamplePointsFrom is BuildSamplePointsFromU256 on big.Int. A negative
+// or out-of-range input maps to an empty grid.
 func BuildSamplePointsFrom(nearCapacityAmount *big.Int, n int) []*big.Int {
-	if nearCapacityAmount == nil || nearCapacityAmount.Sign() <= 0 {
-		return nil
-	}
-	reserve := new(big.Int).Mul(nearCapacityAmount, bignumber.BasisPoint)
-	reserve.Div(reserve, big.NewInt(sampleBpsMax))
-	return buildSamplePointsFromReserve(reserve, dgeoBps(n))
-}
-
-// SamplePoints builds a pool tracker's probe grid for one swap direction's
-// next tracking cycle: dir's amountIn side is currentInputReserve, its
-// amountOut side is currentOutputReserve. It prefers guiding off the
-// previous cycle's ladder and output-side reserve, already sitting in
-// p.Extra / p.Reserves (no extra RPC calls needed -- just unmarshalling),
-// via EstimateNearCapacityAmount, and falls back to a decimals-anchored
-// sweep (firstProbePoints) when there's nothing to guide from (a pool's
-// first probe, or a previous ladder that never showed a depletion knee).
-//
-// p.Extra is expected to already hold a JSON-marshaled Extra from the same
-// pool tracker (i.e. dir indexes p.Extra's Ladders the same way it indexes
-// p.Reserves), which every ladder-quoted pool tracker's persisted state
-// satisfies.
-//
-// A guided grid also gets a couple of "canary" points appended past its own
-// ceiling (nearCapacityAmount), scaled off that ceiling rather than the raw
-// reserve -- see canaryGrowthMultiples's doc for why: without them, once a
-// cycle's guided range undershoots the pool's real capacity, it can never
-// grow back on its own. It also always carries forward
-// EstimateFarthestProbedAmount, so the pool stays quotable (if imprecisely)
-// out to the full extent it's ever actually been probed to, not just the
-// knee's tighter, higher-accuracy range.
-func SamplePoints(p entity.Pool, dir int, currentInputReserve, currentOutputReserve *big.Int) []*big.Int {
-	prevLadder, prevOutputReserve, ok := prevLadderAndReserve(p, dir)
+	u, ok := fromBigOrNil(nearCapacityAmount)
 	if !ok {
-		return firstProbePoints(p, dir)
-	}
-
-	nearCap := EstimateNearCapacityAmount(prevLadder, prevOutputReserve, currentOutputReserve)
-	if nearCap == nil {
-		return firstProbePoints(p, dir)
-	}
-
-	points := withGrowthCanaries(BuildSamplePointsFrom(nearCap, SampleSize), nearCap, currentInputReserve)
-	if farthest := EstimateFarthestProbedAmount(prevLadder, prevOutputReserve, currentOutputReserve); farthest != nil {
-		points = appendClamped(points, farthest, currentInputReserve)
-	}
-	return points
-}
-
-// firstProbePoints sizes a direction's probe grid when there's no prior
-// ladder to guide from. Every ladder embedder quotes via an opaque on-chain
-// call, not a reserve-ratio formula, so the input-side reserve is never a
-// reliable basis -- sweep by decimals instead and let on-chain revert/success
-// define the real curve.
-func firstProbePoints(p entity.Pool, dir int) []*big.Int {
-	if dir < 0 || dir >= len(p.Tokens) {
 		return nil
 	}
-	return BuildDecimalsSweep(p.Tokens[dir].Decimals)
+	pts, err := BuildSamplePointsFromU256(u, n)
+	if err != nil {
+		return nil
+	}
+	return toBigs(pts)
 }
 
-// decimalsSweepSteps is how many multiplier steps on each side of
-// 10^decimals BuildDecimalsSweep spans (7 magnitude anchors total: center
-// plus decimalsSweepSteps steps down and up).
-const decimalsSweepSteps = 3
+// SamplePoints is SamplePointsU256 on big.Int. An out-of-range input maps to
+// nil.
+func SamplePoints(p entity.Pool, dir int, currentInputReserve, currentOutputReserve *big.Int) []*big.Int {
+	in, _ := fromBigOrNil(currentInputReserve)
+	out, _ := fromBigOrNil(currentOutputReserve)
+	pts, err := SamplePointsU256(p, dir, in, out)
+	if err != nil {
+		return nil
+	}
+	return toBigs(pts)
+}
 
-// decimalsSweepStepMultiplier is the per-step multiplier between adjacent
-// magnitude anchors -- wider than a plain order-of-magnitude (10x) step so
-// the sweep still brackets tokens whose real tradeable range sits well away
-// from 10^decimals.
-const decimalsSweepStepMultiplier = 32
-
-// BuildDecimalsSweep returns a geometric probe grid of n points spanning
-// 10^decimals / decimalsSweepStepMultiplier^decimalsSweepSteps to
-// 10^decimals * decimalsSweepStepMultiplier^decimalsSweepSteps.
+// BuildDecimalsSweep is BuildDecimalsSweepU256 on big.Int.
 func BuildDecimalsSweep(decimals uint8) []*big.Int {
 	return BuildDecimalsSweepN(decimals, SampleSize)
 }
 
-// BuildDecimalsSweepN is BuildDecimalsSweep for a grid of n points.
+// BuildDecimalsSweepN is BuildDecimalsSweepNU256 on big.Int.
 func BuildDecimalsSweepN(decimals uint8, n int) []*big.Int {
-	var base, exp big.Int
-	center := new(big.Int).Exp(base.SetInt64(10), exp.SetInt64(int64(decimals)), nil)
-	factor := new(big.Int).Exp(base.SetInt64(decimalsSweepStepMultiplier), exp.SetInt64(decimalsSweepSteps), nil)
-
-	lo := new(big.Int).Div(center, factor)
-	if lo.Sign() <= 0 {
-		lo.SetInt64(1)
-	}
-	hi := center.Mul(center, factor) // center's last use; reuse its storage for hi
-	return dedupSorted(geometricBigRange(lo, hi, n))
-}
-
-// geometricBigRange returns n geometrically-spaced *big.Int points from lo
-// to hi inclusive, sorted ascending (both endpoints pinned against float
-// drift, same approach as geometricBpsRange).
-func geometricBigRange(lo, hi *big.Int, n int) []*big.Int {
-	if n <= 1 {
-		return []*big.Int{new(big.Int).Set(hi)}
-	}
-	loF, _ := lo.Float64()
-	hiF, _ := hi.Float64()
-	ratio := math.Pow(hiF/loF, 1/float64(n-1))
-	points := make([]*big.Int, n)
-	v := loF
-	for i := range n - 1 {
-		pt, _ := big.NewFloat(v).Int(nil)
-		points[i] = pt
-		v *= ratio
-	}
-	points[0] = new(big.Int).Set(lo)
-	points[n-1] = new(big.Int).Set(hi)
-	return points
+	return toBigs(BuildDecimalsSweepNU256(decimals, n))
 }
 
 // canaryGrowthMultiples scales nearCapacityAmount by each factor to produce
@@ -381,81 +221,20 @@ func geometricBigRange(lo, hi *big.Int, n int) []*big.Int {
 // happens to come back with no rate-drop detected at all.
 var canaryGrowthMultiples = []int64{2, 4}
 
-func withGrowthCanaries(points []*big.Int, nearCap, currentInputReserve *big.Int) []*big.Int {
-	for _, m := range canaryGrowthMultiples {
-		points = appendClamped(points, new(big.Int).Mul(nearCap, big.NewInt(m)), currentInputReserve)
-	}
-	return points
-}
-
-// appendClamped appends amount to points, capped at currentInputReserve
-// (never sampling more than the pool's input reserve actually holds) and
-// re-sorted/deduplicated. A currentInputReserve <= 0 means the input side's
-// own balance isn't a meaningful cap (see firstProbePoints -- a desk-style
-// pool can hold zero inventory of the token being sold in), so it's treated
-// as no cap rather than clamping every amount down to zero.
-func appendClamped(points []*big.Int, amount, currentInputReserve *big.Int) []*big.Int {
-	if currentInputReserve != nil && currentInputReserve.Sign() > 0 && amount.Cmp(currentInputReserve) > 0 {
-		amount = currentInputReserve
-	}
-	if amount.Sign() > 0 {
-		points = append(points, amount)
-	}
-	sort.Slice(points, func(a, b int) bool { return points[a].Cmp(points[b]) < 0 })
-	return dedupSorted(points)
-}
-
-// prevLadderAndReserve unmarshals p's previous cycle state for direction
-// dir: its ladder, and the output-side reserve that ladder was probed
-// against (dir=0's output is token1, reserve index 1; dir=1 the reverse).
-// ok is false if there's no usable previous state (a pool's first probe, or
-// malformed/missing Extra).
-func prevLadderAndReserve(p entity.Pool, dir int) (prevLadder []Point, prevOutputReserve *big.Int, ok bool) {
-	if p.Extra == "" || len(p.Reserves) != 2 {
-		return nil, nil, false
-	}
-
-	var prevExtra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &prevExtra); err != nil {
-		return nil, nil, false
-	}
-
-	prevOutputReserve, ok = new(big.Int).SetString(p.Reserves[1-dir], 10)
-	if !ok {
-		return nil, nil, false
-	}
-
-	return prevExtra.Ladders[dir], prevOutputReserve, true
-}
-
-func dedupSorted(sorted []*big.Int) []*big.Int {
-	if len(sorted) <= 1 {
-		return sorted
-	}
-	result := sorted[:1]
-	for _, v := range sorted[1:] {
-		if v.Cmp(result[len(result)-1]) != 0 {
-			result = append(result, v)
-		}
-	}
-	return result
-}
-
-// CollectLadder pairs each probe amount with its quoted output, converting to
-// float64 and dropping any point that reverted or returned zero.
+// CollectLadder is CollectLadderU256 on big.Int. An out-of-range amount or
+// output maps to a dropped point.
 func CollectLadder(points []*big.Int, results []*big.Int) []Point {
 	pts := make([]Point, 0, len(points))
 	for i, amt := range points {
 		if i >= len(results) {
 			break
 		}
-		out := results[i]
-		if out == nil || out.Sign() <= 0 {
+		a, okA := fromBigOrNil(amt)
+		o, okO := fromBigOrNil(results[i])
+		if !okA || !okO {
 			continue
 		}
-		amtF, _ := amt.Float64()
-		outF, _ := out.Float64()
-		pts = append(pts, Point{amtF, outF})
+		pts = append(pts, CollectLadderU256([]*uint256.Int{a}, []*uint256.Int{o})...)
 	}
 	return pts
 }
@@ -470,4 +249,32 @@ func ZeroUnquotedReserves(reserves entity.PoolReserves, ladders [2][]Point) enti
 		}
 	}
 	return reserves
+}
+
+// fromBigOrNil converts a big.Int to uint256. A nil or negative value maps to
+// nil, and an out-of-range value reports ok=false.
+func fromBigOrNil(b *big.Int) (*uint256.Int, bool) {
+	if b == nil || b.Sign() < 0 {
+		return nil, false
+	}
+	u, overflow := uint256.FromBig(b)
+	return u, !overflow
+}
+
+func toBig(u *uint256.Int) *big.Int {
+	if u == nil {
+		return nil
+	}
+	return u.ToBig()
+}
+
+func toBigs(us []*uint256.Int) []*big.Int {
+	if us == nil {
+		return nil
+	}
+	out := make([]*big.Int, len(us))
+	for i, u := range us {
+		out[i] = u.ToBig()
+	}
+	return out
 }
