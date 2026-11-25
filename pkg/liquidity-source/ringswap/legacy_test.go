@@ -3,9 +3,10 @@ package ringswap
 import (
 	"math/big"
 
+	"github.com/holiman/uint256"
+
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/holiman/uint256"
 )
 
 // Legacy big.Int CalcAmountOut, kept for parity tests until the golden data is removed.

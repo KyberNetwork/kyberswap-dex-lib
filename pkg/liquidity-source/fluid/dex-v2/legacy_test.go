@@ -1,8 +1,9 @@
 package dexv2
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 // Legacy big.Int CalcAmountOut, kept for parity tests until the golden data is removed.

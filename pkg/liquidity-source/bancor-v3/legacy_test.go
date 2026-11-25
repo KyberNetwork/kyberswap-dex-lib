@@ -1,8 +1,9 @@
 package bancorv3
 
 import (
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/holiman/uint256"
+
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 // Legacy big.Int CalcAmountOut, kept for parity tests until the golden data is removed.

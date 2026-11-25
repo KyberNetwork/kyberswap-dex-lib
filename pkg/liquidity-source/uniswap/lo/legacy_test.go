@@ -2,6 +2,7 @@ package uniswaplo
 
 import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
