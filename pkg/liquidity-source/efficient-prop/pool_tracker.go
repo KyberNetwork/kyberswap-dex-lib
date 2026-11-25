@@ -577,8 +577,12 @@ func (t *PoolTracker) GetNewPoolState(
 			h.ce.setPriced(h.key, &pricedOut{extra: p.Extra, reserves: slices.Clone(p.Reserves),
 				blockNumber: p.BlockNumber, timestamp: p.Timestamp, desk: v.Desk, approved: approved})
 		}
-		// the sizes the next refresh will ask on this state, where its inputs stand: its head read asks them ahead
-		if ask != nil {
+		// the sizes the next refresh will ask on this state, where it is quoted: its head read asks them ahead. Where
+		// its answer covered it and a gate refused it, the next refresh asks nothing ahead, as a refresh of a listing a
+		// gate refuses asks the door nothing; where no answer covered it, the sizes stand for the refresh that next
+		// quotes it
+		switch {
+		case quoted && ask != nil:
 			var guide *sizeGuide
 			if l := extra.ladders(); len(l[0]) > 0 || len(l[1]) > 0 {
 				guide = &sizeGuide{extra: p.Extra, reserves: slices.Clone(p.Reserves)}
@@ -588,6 +592,8 @@ func (t *PoolTracker) GetNewPoolState(
 				g = h.ce.getGuide()
 			}
 			h.ce.setAsked(&nextAsk{sizes: ask.sizes(t, sizingPool(p, g)), plan: ask.credit, view: v}, guide)
+		case mapped:
+			h.ce.setAsked(nil, nil)
 		}
 	}
 	return p, nil

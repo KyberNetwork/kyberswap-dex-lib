@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -509,5 +510,114 @@ func TestBNBLogsAStateWhoseWindowIsOver(t *testing.T) {
 		if c.overMs != nil {
 			assert.Len(t, got, 1, "%s: once a minute at most", c.name)
 		}
+	}
+}
+
+// A refresh's head read asks the door ahead, at the sizes the listing's last quoted refresh named, and on BNB Chain
+// the late sample beside it, before the refresh knows whether a gate refuses the listing. Every gate is decided on the
+// head read as on a refresh that asked nothing ahead: where one refuses the listing under its answer (BNB Chain's
+// bundleOnly unset, a class with no figure of the chain's, the millisecond precompile answering, a desk no longer
+// approved), the state is the one a tracker that holds nothing reads, with no ladder, though the answers asked ahead
+// are there; and the next refresh asks nothing ahead, as a refresh of a refused listing asks the door nothing. Where
+// none refuses it, the state taken from the answers asked ahead is that tracker's too, its end on BNB Chain the last
+// whole second before the target block's time less the allowance configured (lastSecond).
+func TestPrefetchedReadPassesNoGate(t *testing.T) {
+	now := uint64(time.Now().Unix())
+	headMs := now*1000 + 610
+	targetMs := headMs + 450 // now+1.060: less 100 ms in second now, less 50 in second now+1
+	for _, c := range []struct {
+		name string
+		bnb  bool
+		gate func(cfg *Config, tr *PoolTracker, precompile *bool)
+		idle bool
+		// the config's inclusionAllowanceMs (0: the chain's), and a quoted state's allowance and end in whole seconds
+		// (allow 0: a gate refuses the listing)
+		set, allow, until uint64
+	}{
+		{name: "BNB Chain, no gate", bnb: true, allow: 100, until: now - 1},
+		{name: "BNB Chain, a 50 ms allowance", bnb: true, set: 50, allow: 50, until: now},
+		{name: "BNB Chain, bundleOnly unset", bnb: true, idle: true,
+			gate: func(cfg *Config, _ *PoolTracker, _ *bool) { cfg.Fronts[0].BundleOnly = false }},
+		{name: "BNB Chain, no gas of its own", bnb: true, idle: true,
+			gate: func(cfg *Config, _ *PoolTracker, _ *bool) { cfg.Fronts[0].ListingGas = nil }},
+		{name: "BNB Chain, the precompile answers", bnb: true,
+			gate: func(_ *Config, _ *PoolTracker, precompile *bool) { *precompile = true }},
+		{name: "Ethereum, a class with no figure", idle: true,
+			gate: func(cfg *Config, _ *PoolTracker, _ *bool) { cfg.Fronts[0].ListingGas = nil }},
+		{name: "Ethereum, the desk not approved", idle: true,
+			gate: func(_ *Config, tr *PoolTracker, _ *bool) { tr.desks.static = map[common.Address]struct{}{} }},
+	} {
+		chain, precompile := ethChain(), false
+		var n *node
+		var cfg *Config
+		st := newStateServer(t)
+		slot := uint64(1235)
+		if c.bnb {
+			chain = bnbChain()
+			n = bnbNode(t, chain, 1234, headMs, true, &precompile)
+			cfg = bnbConfig(st.URL)
+		} else {
+			n = builderNode(t, chain, 1234)
+			slot = slotAfter(n.time)
+			cfg = ethConfig(st.URL)
+		}
+		cfg.InclusionAllowanceMs = c.set
+		// the maker's k-th post of the listing's word for block 1235
+		post := func(k int) {
+			w := deskSlot0(1235, false)
+			w.SetBit(w, 100+k, 1)
+			st.set(slot, 1235, map[common.Address]*big.Int{testCellA: w})
+		}
+		clock := time.Now()
+		// a refresh a second after the one before, so the head is probed and the answers fetched again: the eth_call
+		// requests and door quotes it asked
+		refresh := func(tr *PoolTracker, p entity.Pool) (entity.Pool, int, int) {
+			t.Helper()
+			clock = clock.Add(time.Second)
+			before, k := n.requestCounts()["eth_call"], len(n.calls())
+			got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+			require.NoError(t, err, c.name)
+			return got, n.requestCounts()["eth_call"] - before, len(quotesAfter(n, k))
+		}
+		tr := ethTracker(t, n, cfg, clock)
+		tr.now = func() time.Time { return clock }
+		post(1)
+		last, _, _ := refresh(tr, ethListed(t, n, cfg))
+		require.NotEmpty(t, extraOf(t, last).Ladders[0], c.name)
+
+		if c.gate != nil {
+			c.gate(cfg, tr, &precompile)
+		}
+		post(2)
+		got, calls, asked := refresh(tr, last)
+		assert.Positive(t, asked, "%s: the sizes asked ahead in the head read", c.name)
+		fresh := ethTracker(t, n, cfg, clock)
+		if c.gate != nil {
+			c.gate(cfg, fresh, &precompile)
+		}
+		want, _, _ := refresh(fresh, last)
+		assert.Equal(t, want.Extra, got.Extra, "%s: the state a tracker that asked nothing ahead reads", c.name)
+		assert.Equal(t, want.Reserves, got.Reserves, c.name)
+		assert.Equal(t, want.BlockNumber, got.BlockNumber, c.name)
+		assert.Equal(t, want.Timestamp, got.Timestamp, c.name)
+		e := extraOf(t, got)
+		if c.allow != 0 {
+			require.NotEmpty(t, e.Ladders[0], c.name)
+			assert.Equal(t, 2, calls, "%s: the head read with the pinned read in it, and the late sample", c.name)
+			assert.Equal(t, c.allow, e.AllowanceMs, c.name)
+			assert.Equal(t, targetMs, e.ValidUntilMs, c.name)
+			assert.Equal(t, c.until, e.ValidUntil, "%s: the last whole second before the end", c.name)
+			assert.Equal(t, bnbSecond(targetMs-c.allow), e.ValidUntil, c.name)
+			continue
+		}
+		unserved(t, got, c.name)
+		assert.Equal(t, c.idle, e.Idle, c.name)
+
+		// refused under its answer: the next refresh asks nothing ahead, its head read alone
+		post(3)
+		got, calls, asked = refresh(tr, got)
+		unserved(t, got, c.name)
+		assert.Zero(t, asked, "%s: nothing asked ahead after a refusal", c.name)
+		assert.Equal(t, 1, calls, "%s: the head read alone", c.name)
 	}
 }

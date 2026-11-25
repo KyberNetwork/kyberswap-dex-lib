@@ -136,24 +136,25 @@ block:
   `Posted`; and a fill's `Swapped`, which on Ethereum and BNB Chain the listing's quote contract logs. A `Swapped` from
   an address the parser does not know maps to nothing. Base's packed desk logs `DeskPush` only where its record asks
   and no `LaneFill`, so a post it does not log is quoted at the listing's next scheduled refresh.
-- **Node load.** The tracker keeps, a listing, what the chain's head fixes, under the head's hash (never its number,
-  so a head replaced at the same height reads again), and the result priced under the bytes of the listing's own
-  override. The head's hash is asked of the node once a front per 250 ms, 100 ms on BNB Chain
-  (`eth_getBlockByNumber`), whatever the number of its listings. The head read under an override asks, in its own
-  multicall, the door's quotes at the sizes the listing's last quoted refresh drew for the next, and beside it, in the
-  same batch, the window's samples at them; a refresh that needs a size not asked there reads the pinned read after it.
-  At a new head the head read is asked beside the head's facts, on the binding and slots of the head before, and is
-  asked again where the facts name others. A refresh of a quoted listing that reads a price source (a primary and a
-  backup), on Ethereum, then makes at a new head 2 `eth_call` and 3 `eth_getStorageAt` (on a tracker's first refresh,
-  which reads the front's code hashes and holds no sizes, 5 and 7; 6 and 7 where the listing and its word carry into
-  the next block); at a new head no answer covers yet, 1 `eth_call` and 3 `eth_getStorageAt`; at the same head under a
-  new override (the maker's update), 1 `eth_call`; at the same head under the same override, no node call
-  (`TestBuilderRefreshNodeLoad`, `TestBuilderHeadCacheSavesTheNodeCalls`, `TestBuilderPrefetchedReadIsTheReadItSaves`,
+- **Node load.** The tracker keeps, a listing, what the chain's head fixes, under the head's hash (never its number, so
+  a head replaced at the same height reads again), and the result priced under the bytes of the listing's own override.
+  The head's hash is asked of the node once a front per 250 ms, 100 ms on BNB Chain (`eth_getBlockByNumber`), whatever
+  the number of its listings. The head read under an override asks, in its own multicall, the door's quotes at the sizes
+  the listing's last quoted refresh drew for the next, and beside it, in the same batch, the window's samples at them; a
+  refresh that needs a size not asked there reads the pinned read after it. Every gate is decided on the head read as
+  before, and a listing a gate refused under its answer asks nothing ahead until it is quoted again. At a new head the
+  head read is asked beside the head's facts, on the binding and slots of the head before, and is asked again where the
+  facts name others. A refresh of a quoted listing that reads a price source (a primary and a backup), on Ethereum, then
+  makes at a new head 2 `eth_call` and 3 `eth_getStorageAt` (on a tracker's first refresh, which reads the front's code
+  hashes and holds no sizes, 5 and 7; 6 and 7 where the listing and its word carry into the next block); at a new head
+  no answer covers yet, 1 `eth_call` and 3 `eth_getStorageAt`; at the same head under a new override (the maker's
+  update), 1 `eth_call`; at the same head under the same override, no node call (`TestBuilderRefreshNodeLoad`,
+  `TestBuilderHeadCacheSavesTheNodeCalls`, `TestBuilderPrefetchedReadIsTheReadItSaves`,
   `TestBuilderNewHeadAsksTheHeadReadBesideTheFacts`, `TestBuilderListingNoAnswerCoversReadsTheFactsAlone`,
-  `TestBuilderListingsRefreshedTogetherShareOneStateFetch`). The listings of
-  a front refreshed within 250 ms (100 ms on BNB Chain) share one `/state` read of each url. On BNB Chain the window
-  also samples the second after the target block's, and the head read asks the millisecond precompile, one more inner
-  call of its multicall. At the head a refresh makes 3 to 16 `eth_call` by the listing's kind.
+  `TestPrefetchedReadPassesNoGate`, `TestBuilderListingsRefreshedTogetherShareOneStateFetch`). The listings of a front
+  refreshed within 250 ms (100 ms on BNB Chain) share one `/state` read of each url. On BNB Chain the window also
+  samples the second after the target block's, and the head read asks the millisecond precompile, one more inner call of
+  its multicall. At the head a refresh makes 3 to 16 `eth_call` by the listing's kind.
 
 ## Execution and gas
 
