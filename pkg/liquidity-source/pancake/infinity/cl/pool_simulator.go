@@ -84,35 +84,132 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 }
 
 // CalcAmtOut is CalcAmountOut with uint256 amounts. It shadows the embedded v3 CalcAmtOut, which would skip
-// this pool's hook logic. It runs the shared big.Int CalcAmountOut body and converts at the boundary.
+// this pool's hook logic.
 func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
-	res, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: params.TokenAmountIn.Amount.ToBig()},
-		TokenOut:      params.TokenOut,
-		Limit:         pool.AsSwapLimitBig(params.Limit),
-	})
-	if err != nil {
+	originalTokenIn, originalTokenOut := params.TokenAmountIn.Token, params.TokenOut
+	amountIn := params.TokenAmountIn.Amount
+
+	// A native-flagged side trades at native's own decimals on-chain, not the wrapped-native
+	// address's used in p.Tokens; only Arc's differ (18 vs 6). Rescale around the v3 math below.
+	if idx := p.GetTokenIndex(originalTokenIn); idx >= 0 && p.staticExtra.IsNative[idx] &&
+		p.unwrapNativeU256(&amountIn) {
+		return nil, uniswapv3.ErrOverflow
+	}
+
+	var beforeSwapResult *BeforeSwapResult
+	var afterSwapResult *AfterSwapResult
+	var swapResult *pool.CalcAmtOutResult
+	var err error
+	if p.hook == nil {
+		if swapResult, err = p.PoolSimulator.CalcAmtOut(pool.CalcAmtOutParams{
+			TokenAmountIn: pool.TokenAmt{Token: originalTokenIn, Amount: amountIn},
+			TokenOut:      originalTokenOut,
+		}); err != nil {
+			return nil, err
+		}
+	} else if swapResult, beforeSwapResult, afterSwapResult, err = p.calcAmtOutHooked(originalTokenIn, originalTokenOut,
+		amountIn); err != nil {
 		return nil, err
 	}
-	out, err := tokenAmtFromBigCL(res.TokenAmountOut)
-	if err != nil {
-		return nil, err
+
+	// Hook deltas are signed: out -= DeltaUnspecified, out -= HookFee. A negative value below zero is
+	// checked after the native rescale, like the big.Int body.
+	swapResult.TokenAmountOut.Token = originalTokenOut
+	amountOut := &swapResult.TokenAmountOut.Amount
+	var outNeg, overflow, outOverflow bool
+	v4SwapInfo := SwapInfo{PoolSwapInfo: swapResult.SwapInfo.(PoolSwapInfo)}
+	if beforeSwapResult != nil {
+		outNeg, overflow = big256.SubSigned(amountOut, outNeg, beforeSwapResult.DeltaUnspecified)
+		outOverflow = outOverflow || overflow
+		swapResult.Gas += beforeSwapResult.Gas
+		v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
 	}
-	fee, err := tokenAmtFromBigCL(res.Fee)
-	if err != nil {
-		return nil, err
+	if afterSwapResult != nil {
+		outNeg, overflow = big256.SubSigned(amountOut, outNeg, afterSwapResult.HookFee)
+		outOverflow = outOverflow || overflow
+		swapResult.Gas += afterSwapResult.Gas
 	}
-	remaining, err := tokenAmtFromBigCL(res.RemainingTokenAmountIn)
-	if err != nil {
-		return nil, err
+	if outOverflow {
+		return nil, uniswapv3.ErrOverflow
 	}
-	return &pool.CalcAmtOutResult{
-		TokenAmountOut:         out,
-		Fee:                    fee,
-		RemainingTokenAmountIn: remaining,
-		Gas:                    res.Gas,
-		SwapInfo:               res.SwapInfo,
-	}, nil
+	if idx := p.GetTokenIndex(originalTokenOut); idx >= 0 && p.staticExtra.IsNative[idx] {
+		if p.chainID == valueobject.ChainIDArc {
+			amountOut.Div(amountOut, arcNativeScale)
+			outNeg = outNeg && !amountOut.IsZero() // big.Int Quo truncates a small negative to zero
+		}
+	}
+	swapResult.SwapInfo = v4SwapInfo
+	if swapResult.RemainingTokenAmountIn != nil {
+		swapResult.RemainingTokenAmountIn.Token = originalTokenIn
+	}
+	if outNeg {
+		return nil, ErrInvalidAmountOut
+	}
+	return swapResult, nil
+}
+
+// calcAmtOutHooked runs the hook's BeforeSwap, the v3 swap on the adjusted input, and AfterSwap. It returns
+// the v3 result before the hook output deltas are applied.
+func (p *PoolSimulator) calcAmtOutHooked(tokenIn, tokenOut string, amountIn uint256.Int) (swapResult *pool.CalcAmtOutResult,
+	beforeSwapResult *BeforeSwapResult, afterSwapResult *AfterSwapResult, err error) {
+	zeroForOne := p.GetTokenIndex(tokenIn) == 0
+	if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
+		CalcOut:         true,
+		ZeroForOne:      zeroForOne,
+		AmountSpecified: new(uint256.Int).Set(&amountIn),
+	}); err != nil {
+		return nil, nil, nil, fmt.Errorf("[BeforeSwap] %w", err)
+	} else if err = ValidateBeforeSwapResult(beforeSwapResult); err != nil {
+		return nil, nil, nil, fmt.Errorf("[BeforeSwap] validation failed: %w", err)
+	}
+
+	neg, amountInOverflow := big256.SubSigned(&amountIn, false, beforeSwapResult.DeltaSpecified)
+	if neg {
+		return nil, nil, nil, ErrInvalidAmountIn
+	}
+
+	poolSim := p.PoolSimulator
+	if beforeSwapResult.SwapFee >= FeeMax {
+		return nil, nil, nil, ErrInvalidFee
+	} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
+		cloned := *poolSim
+		clonedV3Pool := *poolSim.V3Pool
+		cloned.V3Pool = &clonedV3Pool
+		cloned.V3Pool.Fee = beforeSwapResult.SwapFee
+		poolSim = &cloned
+	}
+
+	if amountInOverflow {
+		return nil, nil, nil, uniswapv3.ErrOverflow
+	} else if amountIn.IsZero() {
+		// The hook consumed the whole input, so its BeforeSwap delta fully sets the output. Skip the v3
+		// tick math, which errors on a zero input. The all-nil PoolSwapInfo tells UpdateState v3 was skipped.
+		swapResult = &pool.CalcAmtOutResult{
+			TokenAmountOut: &pool.TokenAmt{Token: tokenOut},
+			Fee:            &pool.TokenAmt{Token: tokenOut},
+			SwapInfo:       PoolSwapInfo{},
+		}
+	} else if swapResult, err = poolSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: amountIn},
+		TokenOut:      tokenOut,
+	}); err != nil {
+		return nil, nil, nil, err
+	}
+
+	if afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
+		BeforeSwapParams: &BeforeSwapParams{
+			CalcOut:         true,
+			ZeroForOne:      zeroForOne,
+			AmountSpecified: new(uint256.Int).Set(&amountIn),
+		},
+		AmountIn:  new(uint256.Int).Set(&amountIn),
+		AmountOut: new(uint256.Int).Set(&swapResult.TokenAmountOut.Amount),
+	}); err != nil {
+		return nil, nil, nil, fmt.Errorf("[AfterSwap] %w", err)
+	} else if err = ValidateAfterSwapResult(afterSwapResult); err != nil {
+		return nil, nil, nil, fmt.Errorf("[AfterSwap] validation failed: %w", err)
+	}
+	return swapResult, beforeSwapResult, afterSwapResult, nil
 }
 
 // CalcAmtIn is CalcAmountIn with uint256 amounts. It runs the shared big.Int CalcAmountIn body and converts at
@@ -468,13 +565,14 @@ func (p *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 }
 
 // unwrapNativeU256 rescales a native-flagged amount to the wrapped-native decimals, Arc only.
-// Mirrors valueobject.UnwrapNativeAmount on uint256. UpdateState has no error return, so an
-// overflowing product is left truncated.
-func (p *PoolSimulator) unwrapNativeU256(amount *uint256.Int) {
+// Mirrors valueobject.UnwrapNativeAmount on uint256. It reports overflow; UpdateState has no error
+// return, so it leaves an overflowing product truncated.
+func (p *PoolSimulator) unwrapNativeU256(amount *uint256.Int) (overflow bool) {
 	if p.chainID != valueobject.ChainIDArc {
-		return
+		return false
 	}
-	amount.MulOverflow(amount, arcNativeScale)
+	_, overflow = amount.MulOverflow(amount, arcNativeScale)
+	return overflow
 }
 
 var arcNativeScale = uint256.NewInt(1e12)
