@@ -203,6 +203,23 @@ func TestConfigOnABuilderChain(t *testing.T) {
 	assert.False(t, testConfig().Fronts[0].builder(), "Base reads no /state")
 }
 
+// A front's /state timeout is 0 (the source's default) or in (0, 10 s]: a longer one holds the front's lock that long
+// on a host that hangs.
+func TestConfigStateTimeout(t *testing.T) {
+	for d, ok := range map[time.Duration]bool{0: true, time.Second: true, maxStateTimeout: true,
+		-time.Second: false, maxStateTimeout + time.Nanosecond: false} {
+		f := ethFront("https://state.example/v1/1/state")
+		f.Titan.Timeout = d
+		cfg := Config{ChainID: valueobject.ChainIDEthereum, Fronts: []Front{f}}
+		if ok {
+			assert.NoError(t, cfg.validate(), "%s", d)
+		} else {
+			assert.ErrorIs(t, cfg.validate(), ErrInvalidConfig, "%s", d)
+		}
+	}
+	assert.Equal(t, time.Second, defaultStateTimeout)
+}
+
 // On the /state read a quote is good for its target block, and route finding stops the inclusion allowance before the
 // block's second: 1 s by default, a configured allowance standing.
 func TestConfigBuilderInclusionAllowance(t *testing.T) {

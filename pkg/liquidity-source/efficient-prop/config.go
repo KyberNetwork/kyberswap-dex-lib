@@ -387,6 +387,10 @@ func (c *Config) validateBuilder(i int) error {
 	if f.Titan == nil || len(f.Titan.URLs) == 0 {
 		return fmt.Errorf("%w: fronts[%d].titan.urls is empty on chain %d", ErrInvalidConfig, i, c.ChainID)
 	}
+	if f.Titan.Timeout < 0 || f.Titan.Timeout > maxStateTimeout {
+		return fmt.Errorf("%w: fronts[%d].titan.timeout=%s, want 0 (%s) or at most %s", ErrInvalidConfig, i,
+			f.Titan.Timeout, defaultStateTimeout, maxStateTimeout)
+	}
 	for k, u := range f.Titan.URLs {
 		if strings.TrimSpace(u) == "" {
 			return fmt.Errorf("%w: fronts[%d].titan.urls[%d] is empty", ErrInvalidConfig, i, k)

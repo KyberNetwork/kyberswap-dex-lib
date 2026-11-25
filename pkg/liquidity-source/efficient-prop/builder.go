@@ -152,8 +152,10 @@ type stateClient struct {
 }
 
 // fetchAnswers asks each of a front's /state urls (clients, in the config's order) for its answer, as Kyber's titan
-// client does: in parallel, until each has answered or failed, or until titan.DefaultMergeWindow after the first that
-// holds an account, or the timeout (titan.DefaultTimeout where 0). It answers them in the url order, never merged. A
+// client does: in parallel, until each has answered or failed, or until titan.DefaultMergeWindow after the first
+// answer of any kind (an empty one starts it too, so a host that hangs cannot hold the fetch past the window once
+// another has answered), or the timeout (defaultStateTimeout where 0). An answer after the window is not kept: the
+// next fetch reads it. It answers them in the url order, never merged. A
 // url whose call fails is passed to failed, before its answer is counted; one the window or the caller cancelled
 // (context.Canceled) has not failed. titan.FetchState is not called in its place: it merges the urls' answers into one
 // override map, and a listing here is read from one answer whole (pick), with the slots an answer's entries disagree
@@ -164,7 +166,7 @@ func fetchAnswers(ctx context.Context, clients []stateClient, timeout time.Durat
 		return nil
 	}
 	if timeout == 0 {
-		timeout = titan.DefaultTimeout
+		timeout = defaultStateTimeout
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -194,11 +196,10 @@ collect:
 			if g.result == nil {
 				continue
 			}
-			a := parseAnswer(g.rank, g.result)
-			if window == nil && len(a.accounts) > 0 {
+			if window == nil {
 				window = time.After(titan.DefaultMergeWindow)
 			}
-			answers = append(answers, a)
+			answers = append(answers, parseAnswer(g.rank, g.result))
 		case <-window:
 			break collect
 		case <-ctx.Done():

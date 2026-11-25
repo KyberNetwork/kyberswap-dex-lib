@@ -231,7 +231,7 @@ KiB or 1,024 desks, names a bad address or no `updatedAt`, or is older than the 
 | `fillMode` | Required, `front` or `door`. A pool is quoted only under the mode it was listed with |
 | `implementations` | Required. List a new one only after checking its storage layout, clock and pricing rules are the ones this source reads |
 | `approvedSources` | The price sources a listing may read and be quoted; none by default |
-| `layout`, `cellCodehash`, `titan` | Required on Ethereum, refused elsewhere. `layout` is `builder`; `titan.timeout` is in nanoseconds (unset: 10 s) |
+| `layout`, `cellCodehash`, `titan` | Required on Ethereum, refused elsewhere. `layout` is `builder`; `titan.timeout` is in nanoseconds (unset: 1 s, at most 10 s) |
 | `creditListings` | Ethereum alone: `listing`, `custodyBaseIn`, `custodyQuoteIn`, `routeBaseIn`, `routeQuoteIn`, optional `routeLimitBaseIn`, `routeLimitQuoteIn`. A route figure of 0 leaves that side's routed sizes unquoted |
 | `listingGas` | A listing with no credit mode and its own `baseIn` and `quoteIn` figures, in place of its class's |
 | `minTipCapWei` | The least nonzero tip cap listed. Unset, 2 gwei on Ethereum and none elsewhere; `1` lists every listing |

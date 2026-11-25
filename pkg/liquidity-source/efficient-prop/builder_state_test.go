@@ -277,20 +277,51 @@ func TestBuilderDeskContractServedWhereItsBalanceOrNonceSplits(t *testing.T) {
 	}
 }
 
-// The merge window starts at the first answer that holds an account, not at the first answer: an empty answer from a
-// fast url does not cut off a slower url's answer with the entries, which is read.
-func TestBuilderWaitsPastAnEmptyAnswer(t *testing.T) {
+// The merge window starts at the first answer of any kind, an empty one included: a url that hangs cannot hold the
+// fetch (and the front's lock) past the window once another has answered, and one that answers empty then.
+func TestBuilderStateFetchReturnsWithinTheWindowPastAHangingHost(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	empty, hang := newStateServer(t), newStateServer(t)
+	empty.set(slotAfter(n.time), 1235, nil)
+	hang.delay = defaultStateTimeout + 500*time.Millisecond
+	hang.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := ethConfig(empty.URL)
+	cfg.Fronts[0].Titan.URLs = []string{hang.URL, empty.URL}
+	cfg.Fronts[0].Titan.Timeout = 0
+	tr := ethTracker(t, n, cfg, time.Now())
+	start := time.Now()
+	answers := tr.stateAnswers(context.Background(), &cfg.Fronts[0])
+	elapsed := time.Since(start)
+	assert.Less(t, elapsed, titan.DefaultMergeWindow+200*time.Millisecond, "the window, not the timeout")
+	require.Len(t, answers, 1)
+	assert.Equal(t, 1, answers[0].rank, "the host that answered empty")
+	assert.Empty(t, answers[0].accounts)
+}
+
+// An answer past the window is not kept, and the next fetch reads it: a slower, fuller answer waits one tick.
+func TestBuilderSlowFullerAnswerIsReadOnTheNextFetch(t *testing.T) {
 	chain := ethChain()
 	n := builderNode(t, chain, 1234)
 	empty, slow := newStateServer(t), newStateServer(t)
 	empty.set(slotAfter(n.time), 1235, nil)
-	slow.delay = titan.DefaultMergeWindow + 150*time.Millisecond
+	slow.delay = titan.DefaultMergeWindow + 300*time.Millisecond
 	slow.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
 	cfg := ethConfig(empty.URL)
 	cfg.Fronts[0].Titan.URLs = []string{empty.URL, slow.URL}
-	got := ethTrack(t, n, cfg, ethListed(t, n, cfg))
-	assert.NotEmpty(t, extraOf(t, got).Ladders[0], "the slower url's answer, after the empty one")
-	assert.Equal(t, int64(1), slow.hits.Load())
+	p := ethListed(t, n, cfg)
+
+	tr := ethTracker(t, n, cfg, time.Now())
+	first, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	assert.Empty(t, extraOf(t, first).Ladders[0], "the first tick: the slow answer is past the window")
+
+	slow.delay = 0
+	tr = ethTracker(t, n, cfg, time.Now())
+	next, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	assert.NotEmpty(t, extraOf(t, next).Ladders[0], "the next tick reads the fuller answer")
+	time.Sleep(300 * time.Millisecond)
 }
 
 // A /state url that fails is logged, at most once a minute per url, its key-bearing parts (userinfo and query) left

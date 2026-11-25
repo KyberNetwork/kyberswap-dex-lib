@@ -115,6 +115,11 @@ const (
 	// stateShareWindow is how long one fetch of a front's /state answers serves the refreshes of its listings: they
 	// come together, a listing each, and one fetch a url stands for all of them.
 	stateShareWindow = 250 * time.Millisecond
+	// defaultStateTimeout is the /state read's timeout where a front's titan.timeout is unset, and maxStateTimeout the
+	// longest one a config may set. The fetch holds the front's lock, so a host that hangs holds every listing of the
+	// front for as long as the timeout lets it.
+	defaultStateTimeout = time.Second
+	maxStateTimeout     = 10 * time.Second
 
 	// defaultInclusionAllowance is the time a routed fill takes to land, s, where no allowance is configured
 	// (Config.InclusionAllowance), and subSecondInclusionAllowance the same on a chain whose blocks are under a second
