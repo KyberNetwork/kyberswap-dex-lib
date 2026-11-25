@@ -18,6 +18,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -101,8 +102,8 @@ func (l launch) tokens(buy bool) (in, out string) {
 
 func quoteOut(t testing.TB, sim *uniswapv4.PoolSimulator, tokenIn, tokenOut string, amount *big.Int) (*big.Int, error) {
 	t.Helper()
-	res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-		TokenAmountIn: poolpkg.TokenAmount{Token: tokenIn, Amount: new(big.Int).Set(amount)}, TokenOut: tokenOut})
+	res, err := testutil.CalcAmountOutNative(sim,
+		poolpkg.TokenAmount{Token: tokenIn, Amount: new(big.Int).Set(amount)}, tokenOut, nil)
 	if err != nil {
 		return nil, err
 	}

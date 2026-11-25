@@ -70,6 +70,6 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 	param := pool.CalcAmountOutParams{TokenAmountIn: in, TokenOut: "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"}
 	b.ReportAllocs()
 	for b.Loop() {
-		_, _ = poolSim.CalcAmountOut(param)
+		_, _ = testutil.CalcAmountOutNative(poolSim, param.TokenAmountIn, param.TokenOut, nil)
 	}
 }

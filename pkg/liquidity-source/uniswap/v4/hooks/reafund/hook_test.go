@@ -14,6 +14,7 @@ import (
 	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/pons-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -40,8 +41,8 @@ func TestQuotesMatchPonsV2(t *testing.T) {
 	ours, pons := newTestSim(t, HookAddresses[0]), newTestSim(t, ponsv2.HookAddresses[0])
 	tokens := ours.Info.Tokens
 	swapOut := func(sim *uniswapv4.PoolSimulator, in, out int, amount *big.Int) *big.Int {
-		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokens[in], Amount: amount}, TokenOut: tokens[out]})
+		res, err := testutil.CalcAmountOutNative(sim,
+			pool.TokenAmount{Token: tokens[in], Amount: amount}, tokens[out], nil)
 		require.NoError(t, err)
 		return res.TokenAmountOut.Amount
 	}

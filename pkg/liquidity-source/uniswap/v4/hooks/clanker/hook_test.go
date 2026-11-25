@@ -91,13 +91,13 @@ func Test_CalcAmountOut(t *testing.T) {
 	pSim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDBase)
 	assert.NoError(t, err)
 
-	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	got, err := testutil.CalcAmountOutNative(pSim,
+		pool.TokenAmount{
 			Token:  "0x4200000000000000000000000000000000000006",
 			Amount: big.NewInt(1000000000000000),
 		},
-		TokenOut: "0x109ddc73b46b2f8141880a5573d2b0d2acf10b07",
-	})
+		"0x109ddc73b46b2f8141880a5573d2b0d2acf10b07", nil)
+
 	assert.NoError(t, err)
 	assert.Equal(t, "18870367192095562543977004", got.TokenAmountOut.Amount.String())
 }

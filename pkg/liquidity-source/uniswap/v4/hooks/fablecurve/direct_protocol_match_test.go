@@ -13,6 +13,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -112,10 +113,10 @@ type quoteCase struct{ name, tokenIn, tokenOut, amount, want string }
 func runExactIn(t *testing.T, sim *uniswapv4.PoolSimulator, cases []quoteCase) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{Token: c.tokenIn, Amount: bi(t, c.amount)},
-				TokenOut:      c.tokenOut,
-			})
+			res, err := testutil.CalcAmountOutNative(sim,
+				poolpkg.TokenAmount{Token: c.tokenIn, Amount: bi(t, c.amount)},
+				c.tokenOut, nil)
+
 			require.NoError(t, err)
 			assert.Equal(t, c.want, res.TokenAmountOut.Amount.String())
 			assert.Zero(t, res.RemainingTokenAmountIn.Amount.Sign())
@@ -209,10 +210,10 @@ func TestBirthFloor_SellsStopAtBirthPrice(t *testing.T) {
 				assert.True(t, meta.PriceLimit.Gt(birth), "sell limit %s must stay above birth %s", meta.PriceLimit, birth)
 			}
 
-			_, err := c.sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{Token: c.coin, Amount: bi(t, c.tooBig)},
-				TokenOut:      c.asset,
-			})
+			_, err := testutil.CalcAmountOutNative(c.sim,
+				poolpkg.TokenAmount{Token: c.coin, Amount: bi(t, c.tooBig)},
+				c.asset, nil)
+
 			if c.coinIsCurrency1 {
 				require.ErrorIs(t, err, uniswapv3.ErrAtOrAboveLargest)
 			} else {
@@ -236,9 +237,9 @@ func TestMeshPool_NoFloor(t *testing.T) {
 		staticExtra(true, "10", native), `{`+meshState+`}`, 10000)
 
 	tooBigForLaunchPool := bi(t, "100000000000000000000000000") // 1e8 FABLE, refused by the launch pool above
-	a, err := mesh.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: poolpkg.TokenAmount{Token: fableToken, Amount: tooBigForLaunchPool}, TokenOut: native})
+	a, err := testutil.CalcAmountOutNative(mesh, poolpkg.TokenAmount{Token: fableToken, Amount: tooBigForLaunchPool}, native, nil)
 	require.NoError(t, err)
-	b, err := plain.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: poolpkg.TokenAmount{Token: fableToken, Amount: tooBigForLaunchPool}, TokenOut: native})
+	b, err := testutil.CalcAmountOutNative(plain, poolpkg.TokenAmount{Token: fableToken, Amount: tooBigForLaunchPool}, native, nil)
 	require.NoError(t, err)
 	assert.Positive(t, a.TokenAmountOut.Amount.Sign())
 	assert.Equal(t, b.TokenAmountOut.Amount.String(), a.TokenAmountOut.Amount.String())
@@ -272,9 +273,9 @@ func TestSameAsStaticFeePool(t *testing.T) {
 				if amt.Sign() < 0 {
 					tokenIn, tokenOut, amt = fableToken, c.asset, amt.Neg(amt)
 				}
-				a, err := c.hooked.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: poolpkg.TokenAmount{Token: tokenIn, Amount: amt}, TokenOut: tokenOut})
+				a, err := testutil.CalcAmountOutNative(c.hooked, poolpkg.TokenAmount{Token: tokenIn, Amount: amt}, tokenOut, nil)
 				require.NoError(t, err)
-				b, err := c.plain.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: poolpkg.TokenAmount{Token: tokenIn, Amount: amt}, TokenOut: tokenOut})
+				b, err := testutil.CalcAmountOutNative(c.plain, poolpkg.TokenAmount{Token: tokenIn, Amount: amt}, tokenOut, nil)
 				require.NoError(t, err)
 				assert.Equal(t, b.TokenAmountOut.Amount.String(), a.TokenAmountOut.Amount.String(), "%s -> %s %s", tokenIn, tokenOut, amt)
 				assert.Equal(t, int64(gasBeforeSwap), a.Gas-b.Gas)
@@ -297,10 +298,9 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 	amountIn := bi(t, "100000000000000")
 	b.ReportAllocs()
 	for b.Loop() {
-		if _, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{Token: native, Amount: amountIn},
-			TokenOut:      fableToken,
-		}); err != nil {
+		if _, err := testutil.CalcAmountOutNative(sim,
+			poolpkg.TokenAmount{Token: native, Amount: amountIn},
+			fableToken, nil); err != nil {
 			b.Fatal(err)
 		}
 	}

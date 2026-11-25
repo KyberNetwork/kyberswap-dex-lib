@@ -11,6 +11,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/few/hook"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -42,17 +43,17 @@ func TestFewHook_RegisteredAndPassthrough(t *testing.T) {
 	require.NoError(t, err)
 
 	amountIn := big.NewInt(1_000000000000000000) // 1 DAI
-	result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: entityPool.Tokens[0].Address, Amount: amountIn},
-		TokenOut:      entityPool.Tokens[1].Address,
-	})
+	result, err := testutil.CalcAmountOutNative(simulator,
+		pool.TokenAmount{Token: entityPool.Tokens[0].Address, Amount: amountIn},
+		entityPool.Tokens[1].Address, nil)
+
 	require.NoError(t, err)
 	assert.Equal(t, amountIn, result.TokenAmountOut.Amount, "DAI->fwDAI must be exact 1:1")
 
-	resultRev, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: entityPool.Tokens[1].Address, Amount: amountIn},
-		TokenOut:      entityPool.Tokens[0].Address,
-	})
+	resultRev, err := testutil.CalcAmountOutNative(simulator,
+		pool.TokenAmount{Token: entityPool.Tokens[1].Address, Amount: amountIn},
+		entityPool.Tokens[0].Address, nil)
+
 	require.NoError(t, err)
 	assert.Equal(t, amountIn, resultRev.TokenAmountOut.Amount, "fwDAI->DAI must be exact 1:1")
 }
@@ -82,15 +83,15 @@ func TestFewHook_UnwrapCappedByUnderlyingBalance(t *testing.T) {
 	require.NoError(t, err)
 
 	overBalance, _ := new(big.Int).SetString("1000000000000000000001", 10)
-	_, err = simulator.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: fwDAI, Amount: overBalance},
-		TokenOut:      dai,
-	})
+	_, err = testutil.CalcAmountOutNative(simulator,
+		pool.TokenAmount{Token: fwDAI, Amount: overBalance},
+		dai, nil)
+
 	assert.ErrorIs(t, err, uniswapv4.ErrFewUnwrapExceeded)
 
-	_, err = simulator.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: dai, Amount: overBalance},
-		TokenOut:      fwDAI,
-	})
+	_, err = testutil.CalcAmountOutNative(simulator,
+		pool.TokenAmount{Token: dai, Amount: overBalance},
+		fwDAI, nil)
+
 	assert.NoError(t, err, "wrapping is not capped")
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func BenchmarkCalcAmountOut(b *testing.B) {
@@ -21,7 +22,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 		b.Run(bc.name, func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := sim.CalcAmountOut(params); err != nil {
+				if _, err := testutil.CalcAmountOutNative(sim, params.TokenAmountIn, params.TokenOut, nil); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -33,7 +34,7 @@ func BenchmarkCloneStateUpdateBalance(b *testing.B) {
 	sim := newTestSim(b)
 	params := pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{Token: simUsdg, Amount: big.NewInt(1_000_000)}, TokenOut: simLot}
-	res, err := sim.CalcAmountOut(params)
+	res, err := testutil.CalcAmountOutNative(sim, params.TokenAmountIn, params.TokenOut, nil)
 	if err != nil {
 		b.Fatal(err)
 	}

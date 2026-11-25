@@ -13,6 +13,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -108,14 +109,14 @@ func TestHistoricalSwaps(t *testing.T) {
 				assert.Equal(t, tax, big256.ToBig(res.DeltaSpecified), "buy tax on the ETH input")
 			}
 
-			res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn}, TokenOut: tokenOut})
+			res, err := testutil.CalcAmountOutNative(sim,
+				pool.TokenAmount{Token: tokenIn, Amount: amountIn}, tokenOut, nil)
 			require.NoError(t, err)
 			assert.Equal(t, wantOut, res.TokenAmountOut.Amount, "amountOut")
 
 			// a clone keeps the hook state (a BaseHook clone would quote tax-free)
-			res2, err := sim.CloneState().(*uniswapv4.PoolSimulator).CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn}, TokenOut: tokenOut})
+			res2, err := testutil.CalcAmountOutNative(sim.CloneState().(*uniswapv4.PoolSimulator),
+				pool.TokenAmount{Token: tokenIn, Amount: amountIn}, tokenOut, nil)
 			require.NoError(t, err)
 			assert.Equal(t, wantOut, res2.TokenAmountOut.Amount, "clone amountOut")
 
@@ -124,8 +125,8 @@ func TestHistoricalSwaps(t *testing.T) {
 				TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: wantOut}, TokenIn: tokenIn})
 			require.NoError(t, err)
 			assert.LessOrEqual(t, in.TokenAmountIn.Amount.Cmp(amountIn), 0, "CalcAmountIn above the real input")
-			out, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: in.TokenAmountIn.Amount}, TokenOut: tokenOut})
+			out, err := testutil.CalcAmountOutNative(sim,
+				pool.TokenAmount{Token: tokenIn, Amount: in.TokenAmountIn.Amount}, tokenOut, nil)
 			require.NoError(t, err)
 			assert.GreaterOrEqual(t, out.TokenAmountOut.Amount.Cmp(wantOut), 0, "CalcAmountIn's input falls short")
 		})

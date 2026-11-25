@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -73,7 +74,7 @@ func TestPoolSimulatorWithMissingHookExtraReserves(t *testing.T) {
 	require.NoError(t, err)
 	params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: token0, Amount: big.NewInt(10)}, TokenOut: token1}
 	for range 2 {
-		result, err := sim.CalcAmountOut(params)
+		result, err := testutil.CalcAmountOutNative(sim, params.TokenAmountIn, params.TokenOut, nil)
 		require.NoError(t, err)
 		require.Equal(t, big.NewInt(10), result.TokenAmountOut.Amount)
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -79,10 +80,10 @@ func TestDirectProtocolMatch_ClankerLaunch(t *testing.T) {
 	for _, c := range buyCases {
 		t.Run(c.name, func(t *testing.T) {
 			amt, _ := new(big.Int).SetString(c.amountIn, 10)
-			res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{Token: usdc, Amount: amt},
-				TokenOut:      token,
-			})
+			res, err := testutil.CalcAmountOutNative(sim,
+				poolpkg.TokenAmount{Token: usdc, Amount: amt},
+				token, nil)
+
 			require.NoError(t, err)
 			assertWithinDrift(t, c.wantOut, res.TokenAmountOut.Amount)
 		})
@@ -95,10 +96,10 @@ func TestDirectProtocolMatch_ClankerLaunch(t *testing.T) {
 	for _, c := range sellCases {
 		t.Run(c.name, func(t *testing.T) {
 			amt, _ := new(big.Int).SetString(c.amountIn, 10)
-			res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{Token: token, Amount: amt},
-				TokenOut:      usdc,
-			})
+			res, err := testutil.CalcAmountOutNative(sim,
+				poolpkg.TokenAmount{Token: token, Amount: amt},
+				usdc, nil)
+
 			require.NoError(t, err)
 			assertWithinDrift(t, c.wantOut, res.TokenAmountOut.Amount)
 		})
@@ -189,19 +190,19 @@ func TestDirectProtocolMatch_GraduatedPump(t *testing.T) {
 
 			for _, c := range f.buys {
 				amt, _ := new(big.Int).SetString(c.amountIn, 10)
-				res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-					TokenAmountIn: poolpkg.TokenAmount{Token: f.usdc, Amount: amt},
-					TokenOut:      f.token,
-				})
+				res, err := testutil.CalcAmountOutNative(sim,
+					poolpkg.TokenAmount{Token: f.usdc, Amount: amt},
+					f.token, nil)
+
 				require.NoError(t, err, c.name)
 				assertWithinDrift(t, c.wantOut, res.TokenAmountOut.Amount)
 			}
 			for _, c := range f.sells {
 				amt, _ := new(big.Int).SetString(c.amountIn, 10)
-				res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-					TokenAmountIn: poolpkg.TokenAmount{Token: f.token, Amount: amt},
-					TokenOut:      f.usdc,
-				})
+				res, err := testutil.CalcAmountOutNative(sim,
+					poolpkg.TokenAmount{Token: f.token, Amount: amt},
+					f.usdc, nil)
+
 				require.NoError(t, err, c.name)
 				assertWithinDrift(t, c.wantOut, res.TokenAmountOut.Amount)
 			}
@@ -362,10 +363,10 @@ func TestDirectProtocolMatch_GraduatedPumpV2(t *testing.T) {
 			exactIn := func(cases []swapCase, tokenIn, tokenOut string) {
 				for _, c := range cases {
 					amt, _ := new(big.Int).SetString(c.specified, 10)
-					res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-						TokenAmountIn: poolpkg.TokenAmount{Token: tokenIn, Amount: amt},
-						TokenOut:      tokenOut,
-					})
+					res, err := testutil.CalcAmountOutNative(sim,
+						poolpkg.TokenAmount{Token: tokenIn, Amount: amt},
+						tokenOut, nil)
+
 					require.NoError(t, err, c.name)
 					assertExactInWithinDrift(t, c.specified, c.want, c.words, res.TokenAmountOut.Amount)
 				}

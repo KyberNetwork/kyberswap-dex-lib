@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -105,10 +106,10 @@ func TestDirectProtocolMatch_ReferenceLaunch(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			amt, ok := new(big.Int).SetString(c.amountWei, 10)
 			require.True(t, ok)
-			res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{Token: native, Amount: amt},
-				TokenOut:      token,
-			})
+			res, err := testutil.CalcAmountOutNative(sim,
+				poolpkg.TokenAmount{Token: native, Amount: amt},
+				token, nil)
+
 			require.NoError(t, err)
 			assertWithinDrift(t, c.wantOut, res.TokenAmountOut.Amount)
 		})
@@ -124,10 +125,10 @@ func TestDirectProtocolMatch_ReferenceLaunch(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			amt, ok := new(big.Int).SetString(c.amountToken, 10)
 			require.True(t, ok)
-			res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{Token: token, Amount: amt},
-				TokenOut:      native,
-			})
+			res, err := testutil.CalcAmountOutNative(sim,
+				poolpkg.TokenAmount{Token: token, Amount: amt},
+				native, nil)
+
 			require.NoError(t, err)
 			// Bit-exact at every size tested -- the AfterSwap (post-swap, fee-on-output)
 			// path doesn't touch the pre-swap sqrtPrice math that produces the buy-side drift.

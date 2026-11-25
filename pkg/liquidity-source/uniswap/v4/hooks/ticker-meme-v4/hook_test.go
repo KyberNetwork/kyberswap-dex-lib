@@ -16,6 +16,7 @@ import (
 	ticker "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/ticker-meme-v4"
 	cache "github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpack"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -89,7 +90,7 @@ func TestExactOutIsSmallestInputSurvivingOutputFee(t *testing.T) {
 		return res.TokenAmountIn.Amount
 	}
 	out := func(amount *big.Int) *big.Int {
-		res, err := p.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: tokens[0], Amount: amount}, TokenOut: tokens[1]})
+		res, err := testutil.CalcAmountOutNative(p, pool.TokenAmount{Token: tokens[0], Amount: amount}, tokens[1], nil)
 		require.NoError(t, err)
 		return res.TokenAmountOut.Amount
 	}

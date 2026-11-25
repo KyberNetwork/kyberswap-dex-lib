@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -35,10 +36,10 @@ func TestDynamicFeeMatchesChain(t *testing.T) {
 	sim, err := uniswapv4.NewPoolSimulator(ent, valueobject.ChainIDBase)
 	require.NoError(t, err)
 
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: weth, Amount: big.NewInt(1e15)},
-		TokenOut:      udof,
-	})
+	res, err := testutil.CalcAmountOutNative(sim,
+		pool.TokenAmount{Token: weth, Amount: big.NewInt(1e15)},
+		udof, nil)
+
 	require.NoError(t, err)
 	require.Equal(t, "8097196988910049141775", res.TokenAmountOut.Amount.String())
 }

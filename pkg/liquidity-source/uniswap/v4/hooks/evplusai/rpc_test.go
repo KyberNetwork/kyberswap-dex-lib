@@ -19,6 +19,7 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -67,7 +68,7 @@ func compareQuote(t *testing.T, f fixture, q quoteCase) {
 			sim = sim.CloneState().(*uniswapv4.PoolSimulator)
 		}
 		if q.ExactInput {
-			result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: input, Amount: amount}, TokenOut: output})
+			result, err := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: input, Amount: amount}, output, nil)
 			require.NoError(t, err)
 			require.Equal(t, q.Expected, result.TokenAmountOut.Amount.String(), q.Name)
 		} else {

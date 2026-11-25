@@ -15,6 +15,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -94,10 +95,10 @@ func TestLive_PluginVsV4Quoter(t *testing.T) {
 				}
 				refs := v4Quotes(ctx, t, rpc, block, v, d.zeroForOne, amts...)
 				for i, amt := range amts {
-					res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-						TokenAmountIn: pool.TokenAmount{Token: d.tokenIn, Amount: new(big.Int).Set(amt)},
-						TokenOut:      d.tokenOut,
-					})
+					res, err := testutil.CalcAmountOutNative(sim,
+						pool.TokenAmount{Token: d.tokenIn, Amount: new(big.Int).Set(amt)},
+						d.tokenOut, nil)
+
 					ref := refs[i]
 					if ref == nil {
 						log.Printf("%s %s in=%s quoter=REVERT plugin_err=%v", v.Name, d.name, amt, err)
@@ -124,8 +125,8 @@ func TestLive_PluginVsV4Quoter(t *testing.T) {
 		// Beyond the float: the hook reverts SellExceedsFloat, the plugin must refuse.
 		if hx.Float != nil {
 			over := new(big.Int).Add(hx.Float.ToBig(), bignumber.TenPowInt(18))
-			_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: lot, Amount: over}, TokenOut: usdg})
+			_, err := testutil.CalcAmountOutNative(sim,
+				pool.TokenAmount{Token: lot, Amount: over}, usdg, nil)
 			ok := v4Quotes(ctx, t, rpc, block, v, false, over)[0] != nil
 			log.Printf("%s sell-over-float in=%s quoter_ok=%v plugin_err=%v", v.Name, over, ok, err)
 			assert.Error(t, err)

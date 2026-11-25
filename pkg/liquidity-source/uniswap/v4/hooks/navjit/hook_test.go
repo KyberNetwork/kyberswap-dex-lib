@@ -17,6 +17,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -290,15 +291,15 @@ func newTestSim(tb testing.TB) *uniswapv4.PoolSimulator {
 func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 	sim, usdg, lot := newTestSim(t), simUsdg, simLot
 
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: usdg, Amount: big.NewInt(100_000_000)}, TokenOut: lot})
+	res, err := testutil.CalcAmountOutNative(sim,
+		pool.TokenAmount{Token: usdg, Amount: big.NewInt(100_000_000)}, lot, nil)
 	require.NoError(t, err)
 	assert.Equal(t, net(buyLadder[1].Out).Dec(), res.TokenAmountOut.Amount.String(),
 		"exactly the (haircut) ladder: the standing ticks contribute nothing")
 	assert.Equal(t, int64(1_130_794), res.Gas, "the quoter's gas estimate for the whole swap")
 
-	res, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, TokenOut: usdg})
+	res, err = testutil.CalcAmountOutNative(sim,
+		pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, usdg, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "991370", res.TokenAmountOut.Amount.String())
 
@@ -308,8 +309,8 @@ func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 	// raw = ceil(1e18 * 1e6 / 999850) = 1000150022503375507; in = ceil(raw * 1e6 / 991667573448564743)
 	assert.Equal(t, "1008554", inRes.TokenAmountIn.Amount.String())
 
-	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: usdg, Amount: big.NewInt(30_000_000_000)}, TokenOut: lot})
+	_, err = testutil.CalcAmountOutNative(sim,
+		pool.TokenAmount{Token: usdg, Amount: big.NewInt(30_000_000_000)}, lot, nil)
 	assert.ErrorIs(t, err, ErrBeyondLadder)
 
 	// The JIT fill runs past the standing ticks [276277, 276477]: their limit stopped it part-way
@@ -337,8 +338,8 @@ func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 	again, err := cloned.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: lot, Amount: *uint256.NewInt(1e18)}, TokenOut: usdg})
 	require.NoError(t, err)
 	assert.Equal(t, "991370", again.TokenAmountOut.Amount.String(), "the clone is untouched")
-	next, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, TokenOut: usdg})
+	next, err := testutil.CalcAmountOutNative(sim,
+		pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, usdg, nil)
 	require.NoError(t, err)
 	// The 2nd LOT is priced on the rung0-rung1 chord at 2 LOT: 991370 + floor(1e18*(9913706-991370)/9e18)
 	// = 1982740, less the 991370 the first swap consumed.

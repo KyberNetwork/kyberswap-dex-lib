@@ -12,6 +12,7 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -121,10 +122,10 @@ func assertConservative(t *testing.T, want string, got *big.Int, exactIn bool) {
 func runExactIn(t *testing.T, sim *uniswapv4.PoolSimulator, cases []quoteCase) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{Token: c.tokenIn, Amount: bi(t, c.amount)},
-				TokenOut:      c.tokenOut,
-			})
+			res, err := testutil.CalcAmountOutNative(sim,
+				poolpkg.TokenAmount{Token: c.tokenIn, Amount: bi(t, c.amount)},
+				c.tokenOut, nil)
+
 			require.NoError(t, err)
 			assertConservative(t, c.want, res.TokenAmountOut.Amount, true)
 			assert.Zero(t, res.RemainingTokenAmountIn.Amount.Sign())
@@ -213,10 +214,10 @@ func TestBirthFloor_SellsStopAtBirthPrice(t *testing.T) {
 
 			// a sell of 1e15 MOFO (more than the whole supply) would take the price past birth: refused
 			huge := bi(t, "1000000000000000000000000000000000")
-			_, err := c.sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{Token: c.coin, Amount: huge},
-				TokenOut:      c.asset,
-			})
+			_, err := testutil.CalcAmountOutNative(c.sim,
+				poolpkg.TokenAmount{Token: c.coin, Amount: huge},
+				c.asset, nil)
+
 			if c.coinIsCurrency1 {
 				require.ErrorIs(t, err, uniswapv3.ErrAtOrAboveLargest)
 			} else {
@@ -272,9 +273,9 @@ func TestSameAsStaticFeePool(t *testing.T) {
 		{native, mofoToken, "100000000000000"}, {native, mofoToken, "10000000000000000"},
 		{mofoToken, native, "10000000000000000000000"}, {mofoToken, native, "5000000000000000000000000"},
 	} {
-		a, err := hooked.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: poolpkg.TokenAmount{Token: c.tokenIn, Amount: bi(t, c.amount)}, TokenOut: c.tokenOut})
+		a, err := testutil.CalcAmountOutNative(hooked, poolpkg.TokenAmount{Token: c.tokenIn, Amount: bi(t, c.amount)}, c.tokenOut, nil)
 		require.NoError(t, err)
-		b, err := plain.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: poolpkg.TokenAmount{Token: c.tokenIn, Amount: bi(t, c.amount)}, TokenOut: c.tokenOut})
+		b, err := testutil.CalcAmountOutNative(plain, poolpkg.TokenAmount{Token: c.tokenIn, Amount: bi(t, c.amount)}, c.tokenOut, nil)
 		require.NoError(t, err)
 		assert.Equal(t, b.TokenAmountOut.Amount.String(), a.TokenAmountOut.Amount.String(), "%s -> %s %s", c.tokenIn, c.tokenOut, c.amount)
 	}

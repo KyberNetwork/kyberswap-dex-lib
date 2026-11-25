@@ -6,12 +6,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 func feeHook() *Hook {
@@ -196,13 +198,13 @@ func TestEndToEnd_SellQuotesThroughPoolSimulator(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, string(valueobject.ExchangeUniswapV4Cashcat), sim.GetExchange())
 
-	out, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	out, err := testutil.CalcAmountOutNative(sim,
+		pool.TokenAmount{
 			Token:  "0x65fa36fe3c0f4beb9d793cd9a79c7f53ef4b82cc",
 			Amount: mustBig("264665000000000000000000"),
 		},
-		TokenOut: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
-	})
+		"0x0bd7d308f8e1639fab988df18a8011f41eacad73", nil)
+
 	require.NoError(t, err, "previously banned size must quote once migrated")
 	// raw AMM ~16019790377638234; flat 3% -> ~15539196666309087, matching the
 	// Tenderly execution intermediate. Allow 1% tolerance for state drift.

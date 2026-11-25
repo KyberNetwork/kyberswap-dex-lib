@@ -23,6 +23,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -139,8 +140,8 @@ func TestHookIntegrationPriceLimit(t *testing.T) {
 					Prefund: true, SqrtPriceLimitX96: meta.PriceLimit.ToBig()})
 				require.NoError(t, err)
 				require.Zero(t, want.Venue.AmountIn.Cmp(amount), "test trade fills completely at the encoded limit")
-				got, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: in, Amount: amount}, TokenOut: out})
+				got, err := testutil.CalcAmountOutNative(sim,
+					pool.TokenAmount{Token: in, Amount: amount}, out, nil)
 				require.NoError(t, err)
 				require.Zero(t, got.TokenAmountOut.Amount.Cmp(want.AmountOut), "quote uses the executor limit")
 				// the complete simulator (outer v4 base gas + hook gas) totals the swap's gas, not +BaseGas

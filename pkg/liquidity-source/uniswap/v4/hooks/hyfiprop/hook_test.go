@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/hooktest"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // hooktest's pool: token0 (0x109d...) is the pair's base here, token1 the quote.
@@ -132,13 +133,14 @@ func TestCalcAmountIn_RoundTrip(t *testing.T) {
 		in, err := sim.CalcAmountIn(pool.CalcAmountInParams{TokenIn: tokenBase,
 			TokenAmountOut: pool.TokenAmount{Token: tokenQuote, Amount: want}})
 		require.NoError(t, err)
-		got, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenOut: tokenQuote,
-			TokenAmountIn: pool.TokenAmount{Token: tokenBase, Amount: in.TokenAmountIn.Amount}})
+		got, err := testutil.CalcAmountOutNative(sim,
+			pool.TokenAmount{Token: tokenBase, Amount: in.TokenAmountIn.Amount}, tokenQuote, nil)
+
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, got.TokenAmountOut.Amount.Cmp(want), 0)
 		less := new(big.Int).Sub(in.TokenAmountIn.Amount, big.NewInt(1))
-		if got, err = sim.CalcAmountOut(pool.CalcAmountOutParams{TokenOut: tokenQuote,
-			TokenAmountIn: pool.TokenAmount{Token: tokenBase, Amount: less}}); err == nil {
+		if got, err = testutil.CalcAmountOutNative(sim,
+			pool.TokenAmount{Token: tokenBase, Amount: less}, tokenQuote, nil); err == nil {
 			assert.Negative(t, got.TokenAmountOut.Amount.Cmp(want), "input is not minimal")
 		}
 	}
@@ -151,8 +153,9 @@ func TestPoolSimulator_QuotesAndGas(t *testing.T) {
 	sim := hooktest.NewPoolSimulatorAt(t, HookAddresses[0], h, int64(f.Steps[0].Now))
 	s := f.Steps[0]
 	in := u(s.In)
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenOut: tokenQuote,
-		TokenAmountIn: pool.TokenAmount{Token: tokenBase, Amount: in.ToBig()}})
+	res, err := testutil.CalcAmountOutNative(sim,
+		pool.TokenAmount{Token: tokenBase, Amount: in.ToBig()}, tokenQuote, nil)
+
 	require.NoError(t, err)
 	assert.Equal(t, s.Out, res.TokenAmountOut.Amount.String())
 	assert.Equal(t, gasDirect, res.Gas)

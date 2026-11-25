@@ -14,6 +14,7 @@ import (
 	ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/pons-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -90,8 +91,8 @@ func TestCalcAmountIn_DeliversRequestedOutput(t *testing.T) {
 		tokens := sim.Info.Tokens
 		want := big.NewInt(1_000_000)
 		delivered := func(in *big.Int) *big.Int {
-			res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokens[0], Amount: in}, TokenOut: tokens[1]})
+			res, err := testutil.CalcAmountOutNative(sim,
+				pool.TokenAmount{Token: tokens[0], Amount: in}, tokens[1], nil)
 			require.NoError(t, err)
 			return res.TokenAmountOut.Amount
 		}

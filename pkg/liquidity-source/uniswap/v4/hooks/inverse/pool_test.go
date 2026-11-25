@@ -14,6 +14,7 @@ import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestV4DispatchAndSequentialUpdate(t *testing.T) {
@@ -74,9 +75,9 @@ func testSequentialDispatch(t *testing.T, addr common.Address, vs []vector, init
 		}
 		amount := pool.TokenAmount{Token: in, Amount: v.Input.ToBig()}
 		before := newHook(s).PoolState()
-		_, e := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: in, Amount: new(big.Int).Lsh(n(1), 128)}, TokenOut: out})
+		_, e := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: in, Amount: new(big.Int).Lsh(n(1), 128)}, out, nil)
 		require.Error(t, e)
-		result, e := sim.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: amount, TokenOut: out})
+		result, e := testutil.CalcAmountOutNative(sim, amount, out, nil)
 		require.NoError(t, e)
 		// Neither a failed nor a successful quote may consume mutable pool state.
 		require.Equal(t, before.SqrtPriceX96, sim.V3Pool.SqrtRatioX96)
