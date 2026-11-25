@@ -34,7 +34,7 @@ func TestFluidV2UpdatedStateRoundTrip(t *testing.T) {
 			sim, err := fluid.NewPoolSimulator(entity.Pool{Address: f.Address, Type: fluid.DexType, Exchange: fluid.DexType, Extra: string(extra), StaticExtra: string(static), Tokens: []*entity.PoolToken{{Address: f.Tokens[0], Decimals: 6}, {Address: f.Tokens[1], Decimals: 6}}, Reserves: []string{"10000000000", "10000000000"}}, valueobject.ChainIDEthereum)
 			require.NoError(t, err)
 			params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: f.Tokens[0], Amount: big.NewInt(100_000_000)}, TokenOut: f.Tokens[1]}
-			first, err := sim.CalcAmountOut(params)
+			first, err := pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, nil)
 			require.NoError(t, err)
 			require.Equal(t, firstOutput, first.TokenAmountOut.Amount.Int64(), "deployed Tenderly output at fixture block")
 			sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *first.TokenAmountOut, SwapInfo: first.SwapInfo})
@@ -43,7 +43,7 @@ func TestFluidV2UpdatedStateRoundTrip(t *testing.T) {
 			decoded, err := DecodePoolSimulatorsMap(encoded)
 			require.NoError(t, err)
 			restored := decoded[f.Address]
-			want, err := sim.CalcAmountOut(params)
+			want, err := pool.DefaultCalcAmtOut(context.Background(), sim, params.TokenAmountIn, params.TokenOut, nil)
 			require.NoError(t, err)
 			got, err := pool.DefaultCalcAmtOut(context.Background(), restored, params.TokenAmountIn, params.TokenOut, nil)
 			require.NoError(t, err)
