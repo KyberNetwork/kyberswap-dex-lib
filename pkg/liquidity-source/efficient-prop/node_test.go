@@ -494,6 +494,9 @@ type fakeListing struct {
 	carryBit int
 	// route, where a direction's is set, is that side's credit route (a listing with a credit mode)
 	route [2]*fakeRoute
+	// boards, where set, are the listing's board words as the front stores them (record words 8 and 9): the fill
+	// memory of the side with the base in, and of the side with the quote in
+	boards [2]*big.Int
 }
 
 // fakeRoute is a credit-mode listing's side past its pool's custody: a size above the custody's cut fills through the
@@ -616,6 +619,8 @@ type fakeChain struct {
 	sources map[uint32]*big.Int
 	// impl is the front proxy's implementation (its ERC-1967 slot); testImpl where unset
 	impl common.Address
+	// noSloads: the front does not answer extSloads
+	noSloads bool
 	// baseTime is where the chain's millisecond-time contract (BaseTime) answers; testBaseTime where unset
 	baseTime common.Address
 	// holdMs is each price lane's HOLD_MS(), by its address; a lane not in it reverts the call
@@ -767,6 +772,19 @@ func (c *fakeChain) respond(to common.Address, data []byte, at, number uint64, s
 		// BaseTime's timestampMs(): the block's second plus the sub-second it stores
 		return true, packOut(baseTimeABI, "timestampMs", new(big.Int).SetUint64(at*1000+c.baseSub(sub)))
 	case c.front:
+		if sl, err := slotsABI.MethodById(data[:4]); err == nil && sl.Name == "extSloads" {
+			if c.noSloads {
+				return false, nil
+			}
+			// the front's own storage, word by word
+			args, _ := sl.Inputs.Unpack(data[4:])
+			slots := args[0].([][32]byte)
+			words := make([][32]byte, len(slots))
+			for k, slot := range slots {
+				words[k] = c.storage(c.front, slot)
+			}
+			return true, packOut(slotsABI, "extSloads", words)
+		}
 		m, err := frontABI.MethodById(data[:4])
 
 		if err == nil && m.Name == "clock" && !c.noClock {
@@ -980,8 +998,8 @@ func (c *fakeChain) node(t testing.TB, block uint64) *node {
 	return n
 }
 
-// storage answers a storage read: each listing's controls word, source ids, live source word and session word at
-// their slots in the front, and each source's entry at its slot, every other slot zero.
+// storage answers a storage read: each listing's controls word, source ids, live source word, session word and board
+// words at their slots in the front, and each source's entry at its slot, every other slot zero.
 func (c *fakeChain) storage(a common.Address, slot common.Hash) common.Hash {
 	if v, ok := c.headSlots[a][slot]; ok {
 		return v
@@ -1014,6 +1032,11 @@ func (c *fakeChain) storage(a common.Address, slot common.Hash) common.Hash {
 		}
 		if recordSlot(id, 2) == slot {
 			return common.BigToHash(c.liveWord(l))
+		}
+		for k, board := range l.boards {
+			if board != nil && recordSlot(id, int64(boardBidWord+k)) == slot {
+				return common.BigToHash(board)
+			}
 		}
 	}
 	for id, e := range c.sources {

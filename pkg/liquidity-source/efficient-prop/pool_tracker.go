@@ -264,7 +264,7 @@ func (t *PoolTracker) GetNewPoolState(
 		}
 	}
 	view, balances, clock, tops := h.view, h.balances, h.clock, h.tops
-	if len(h.result) != 6 || !h.result[0] || !h.result[3] || !clock.valid() {
+	if len(h.result) != headReads || !h.result[0] || !h.result[3] || !clock.valid() {
 		return p, ErrInvalidState
 	}
 	block := h.block
@@ -372,6 +372,9 @@ func (t *PoolTracker) GetNewPoolState(
 	if quoted && v.CreditMode != 0 {
 		plan = &planRead{front: front, listing: staticExtra.Listing}
 	}
+	// the front's words are read by their layout only under an implementation its config lists, as read with them in
+	// the head read: under any other the grid stays as it was, and the pinned read below then quotes nothing
+	layout := f != nil && h.rungs.ok && f.implements(h.rungs.implementation)
 	var points [2][]*big.Int
 	if quoted {
 		points = [2][]*big.Int{t.probeSizes(p, 0, gridReserve(p, 1, reserves[1], plan != nil)),
@@ -380,6 +383,10 @@ func (t *PoolTracker) GetNewPoolState(
 			if top := tops[dir].FillableAmountIn; h.result[4+dir] && top != nil && top.Sign() > 0 &&
 				top.Cmp(maxPointInput) < 0 {
 				points[dir] = withSize(points[dir], top)
+			}
+			// a point on every rung boundary: between two neighbouring sizes the walk is then on one rung
+			if layout {
+				points[dir] = withEdges(points[dir], rungEdges(v, dir, h.rungs))
 			}
 		}
 	}
@@ -537,8 +544,8 @@ func (t *PoolTracker) deskApproved(ctx context.Context, f *Front, desk uint32) (
 	return t.desks.approved(ctx, deskContractOf(common.HexToAddress(f.Address), cell, desk)), nil
 }
 
-// readHead is a listing's head read at the head, in one multicall: its block, the front's clock and the listing as
-// it stands there.
+// readHead is a listing's head read at the head, in one multicall: its block, the front's clock, the listing as it
+// stands there and the words its rung boundaries are read from.
 func (t *PoolTracker) readHead(ctx context.Context, p entity.Pool, se StaticExtra, tokens [2]common.Address,
 	custody common.Address, maxIn *big.Int) (h headRead, err error) {
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).
@@ -553,6 +560,9 @@ func (t *PoolTracker) readHead(ctx context.Context, p entity.Pool, se StaticExtr
 		req.AddCall(&ethrpc.Call{ABI: doorABI, Target: p.Address, Method: "quoteFillable",
 			Params: []any{tokens[dir], tokens[1-dir], maxIn}}, []any{&h.tops[dir]})
 	}
+	var words [][32]byte
+	req.AddCall(&ethrpc.Call{ABI: slotsABI, Target: se.Front, Method: "extSloads",
+		Params: []any{rungSlots(se.Listing)}}, []any{&words})
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return h, err
@@ -561,6 +571,9 @@ func (t *PoolTracker) readHead(ctx context.Context, p entity.Pool, se StaticExtr
 		return h, ErrNoBlockNumber
 	}
 	h.result, h.block = resp.Result, resp.BlockNumber
+	if len(h.result) == headReads && h.result[6] {
+		h.rungs = rungReadOf(words)
+	}
 	if resp.Request != nil && resp.Request.RawCallMsg.To != nil {
 		multicall := *resp.Request.RawCallMsg.To
 		h.multicall = &multicall

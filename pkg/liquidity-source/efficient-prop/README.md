@@ -54,13 +54,19 @@ block:
 
 - Sizes come from the shared `ladder` grid, dense at the last ladder's knee. A size the door refuses is no point. A
   direction's ladder is the run of passing sizes up to the first refusal or falling output, at most 64 points.
+- The grid also holds every rung boundary. A side fills from at most ten rungs, each at one price, and the output
+  bends only where the fill moves to the next rung. The tracker reads the rung sizes from `doorView` and the side's
+  fill memory from the front's storage (`extSloads`, one more call in the head read's multicall, no request of its
+  own). The boundaries are sizes to ask the door at. They are never prices. They are read only while the front runs
+  an implementation the config lists. Under any other the grid is the shared one alone.
 - The ladder holds for its whole window. A listing's levels may widen with its quote's age, so every size is sampled
   again at the window's last block (and around a premium's end, and at each block of a guarded source's hold) by an
   `eth_call` with a block override, and the least output of each size is kept. Each sample reads its block's time and
   number beside its quotes, so a node that ignores the override is caught.
 - The simulator never pays more than the door at the refresh block. The front's output is a floored concave function
   of the input: at a sampled size the simulator pays the door's answer, between two sizes the floored chord, and under
-  the smallest or past the largest nothing.
+  the smallest or past the largest nothing. With a point on every rung boundary the chord is the door's answer or one
+  base unit of the output token less, on a ladder one block sampled. A credit route's sizes are quoted as before.
 - It pays no more than the listing's pool holds of the output token. Listings of one pool share a swap limit keyed by
   pool and token, and a direction takes one fill a route, since a fill moves the levels the ladder was sampled from.
 - `StaleCheck`: route finding refuses a ladder older than 10 s and stops `inclusionAllowance` seconds before the

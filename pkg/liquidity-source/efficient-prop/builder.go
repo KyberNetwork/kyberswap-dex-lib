@@ -321,16 +321,18 @@ func pick(answers []answer, l listingSlots, carryLife bool, need ...common.Addre
 	return nil, false
 }
 
-// headRead is a listing's head read: its doorView, its pool's balances of both tokens, the front's clock and each
-// side's top (the door's quoteFillable of the most the front takes), result saying which of the six answered, the
-// block they were read at and the multicall that read them (nil where the node's answer did not name it). On a front
-// read through /state, carried is whether the listing's update in the answer is stamped with the block before the
-// target's, which a fill reads in the target block alone (readBuilderHead).
+// headRead is a listing's head read: its doorView, its pool's balances of both tokens, the front's clock, each side's
+// top (the door's quoteFillable of the most the front takes) and the words its rung boundaries are read from (rungs),
+// result saying which of the seven answered, the block they were read at and the multicall that read them (nil where
+// the node's answer did not name it). On a front read through /state, carried is whether the listing's update in the
+// answer is stamped with the block before the target's, which a fill reads in the target block alone
+// (readBuilderHead).
 type headRead struct {
 	view      doorViewOut
 	balances  [2]*big.Int
 	clock     frontClock
 	tops      [2]fillableOut
+	rungs     rungRead
 	result    []bool
 	block     *big.Int
 	multicall *common.Address
@@ -345,7 +347,10 @@ type headRead struct {
 	sourceIds *big.Int
 }
 
-// headCalls are a listing's six head reads, in headRead's order.
+// headReads is how many calls a head read makes (headCalls).
+const headReads = 7
+
+// headCalls are a listing's seven head reads, in headRead's order.
 func headCalls(front, door common.Address, listing uint32, tokens [2]common.Address, custody common.Address,
 	maxIn *big.Int) []call {
 	calls := []call{{abi: &frontABI, target: front, method: "doorView", params: []any{big.NewInt(int64(listing))}}}
@@ -357,7 +362,7 @@ func headCalls(front, door common.Address, listing uint32, tokens [2]common.Addr
 		calls = append(calls, call{abi: &doorABI, target: door, method: "quoteFillable",
 			params: []any{tokens[dir], tokens[1-dir], maxIn}})
 	}
-	return calls
+	return append(calls, rungCall(front, listing))
 }
 
 // readBuilderHead is the head read of a listing of a front read through /state (f, a builder chain's), in three steps:
@@ -515,6 +520,7 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 			_ = doorABI.UnpackIntoInterface(&h.tops[dir], "quoteFillable", rets[4+dir])
 		}
 	}
+	h.rungs = unpackRungRead(rets[6])
 	if !ahead || !readsBlock(rets[head:slotsAt], o, o.number) {
 		return h, o, false, nil
 	}

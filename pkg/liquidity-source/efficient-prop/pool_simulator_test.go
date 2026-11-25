@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math/big"
 	"math/rand"
+	"slices"
 	"testing"
 	"time"
 
@@ -255,6 +256,75 @@ func TestSimulatorNeverQuotesAboveTheDoor(t *testing.T) {
 		}
 	}
 	assert.Greater(t, checked, 10_000, "most random sizes fall inside the sampled range")
+
+	// The same on grids with a point on every rung boundary, against sides packed and walked as the front does
+	// (fakeBook): 1 to 10 rungs, rungs of one price, rungs the fill memory used up, a single rung, a capped output. Each
+	// is checked exactly at, one unit under and one unit over every boundary and every other point, and at random sizes.
+	rng = rand.New(rand.NewSource(8))
+	one := big.NewInt(1)
+	atEdges, between, single, equal := 0, 0, 0, 0
+	for trial := range 600 {
+		b := randomBook(rng, trial%2 == 0)
+		edges := b.edges()
+		if len(edges) == 0 {
+			continue
+		}
+		var sizes []*big.Int
+		switch trial % 3 {
+		case 0: // a first refresh's grid
+			sizes = bookGrid(b, nil, true)
+		case 1: // a later refresh's, sized from the ladder before it
+			sizes = bookGrid(b, bookLadder(b, bookGrid(b, nil, true)), true)
+		default: // the boundaries and a few sizes anywhere
+			twice := new(big.Int).Lsh(edges[len(edges)-1], 1)
+			for range rng.Intn(12) {
+				sizes = withSize(sizes, new(big.Int).Add(new(big.Int).Rand(rng, twice), one))
+			}
+			sizes = withEdges(sizes, edges)
+		}
+		points := bookLadder(b, sizes)
+		sim, in, out := bookSim(t, b, points)
+		check := func(x *big.Int) bool {
+			if x.Sign() <= 0 {
+				return false
+			}
+			res, err := calc(sim, in, out, x, nil)
+			if err != nil {
+				return false
+			}
+			want, err := b.quote(x)
+			require.NoError(t, err, "trial %d: the simulator quotes %s where the door refuses", trial, x)
+			require.LessOrEqual(t, res.TokenAmountOut.Amount.Cmp(want), 0,
+				"trial %d: at %s the simulator pays %s, the door %s", trial, x, res.TokenAmountOut.Amount, want)
+			return true
+		}
+		quoted := 0
+		for _, x := range append(append([]*big.Int{}, edges...), sizes...) {
+			for _, d := range []int64{-1, 0, 1} {
+				if check(new(big.Int).Add(x, big.NewInt(d))) {
+					quoted++
+				}
+			}
+		}
+		atEdges += quoted
+		twice := new(big.Int).Lsh(edges[len(edges)-1], 1)
+		for range 100 {
+			if check(new(big.Int).Add(new(big.Int).Rand(rng, twice), one)) {
+				between++
+				quoted++
+			}
+		}
+		if quoted > 0 && len(b.sizes) == 1 {
+			single++
+		}
+		if quoted > 0 && len(edges) > 1 && (b.lim != nil || slices.Contains(b.offsets[1:], 0)) {
+			equal++
+		}
+	}
+	assert.Greater(t, atEdges, 10_000, "sizes at and beside the points")
+	assert.Greater(t, between, 10_000, "random sizes")
+	assert.Greater(t, single, 20, "sides of a single rung")
+	assert.Greater(t, equal, 50, "sides with rungs of one price")
 }
 
 func randomSide(rng *rand.Rand) fakeSide {
