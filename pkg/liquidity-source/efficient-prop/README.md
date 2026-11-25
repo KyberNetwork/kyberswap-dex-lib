@@ -61,9 +61,9 @@ block:
   prices. They are read only while the front runs an implementation the config lists. Under any other the grid is
   the shared one alone.
 - The grid holds a size at the listing's minimum fill, so a ladder starts where the listing does. The minimum is in
-  the listing's settings word, read in that same storage call. With the quote token in it is an input, and the size
-  is the minimum itself. With the base token in it is an output: the sizes are the two inputs that bracket it on the
-  last ladder's first point, so the ladder reaches the minimum from the second refresh.
+  the listing's settings word, read in that same storage call (a listing with a credit mode is not given it). With
+  the quote token in it is an input, and the size is the minimum itself. With the base token in it is an output: the
+  sizes are the two inputs that bracket it on the last ladder's first point, so the ladder reaches the minimum from the second refresh.
 - The ladder holds for its whole window. A listing's levels may widen with its quote's age, so every size is sampled
   again at the window's last block (and around a premium's end, and at each block of a guarded source's hold) by an
   `eth_call` with a block override, and the least output of each size is kept. Each sample reads its block's time and
@@ -71,7 +71,10 @@ block:
 - The simulator never pays more than the door at the refresh block. The front's output is a floored concave function
   of the input: at a sampled size the simulator pays the door's answer, between two sizes the floored chord, and under
   the smallest or past the largest nothing. With a point on every rung boundary the chord is the door's answer or one
-  base unit of the output token less, on a ladder one block sampled. A credit route's sizes are quoted as before.
+  base unit of the output token less, on a ladder one block sampled. A listing with a credit mode keeps the shared grid
+  alone, with no boundary, middle or minimum-fill size: it takes one fill a route whatever the state says, so they
+  would buy it nothing, and each of its sizes costs a plan beside its quote in the one pinned call.
+  The pinned call of a listing without a credit mode asks up to 44 sizes a side, where the shared grid asked up to 22.
 - It pays no more than the listing's pool holds of the output token. Listings of one pool share a swap limit keyed by
   pool and token.
 - A direction takes more than one fill a route. A fill moves the side's fill memory by its input, rounded up to the
@@ -81,6 +84,16 @@ block:
   the ladder proves this (`repeat`). Where it does not, the direction takes one fill a route as before: a ladder whose
   sampled blocks disagree unevenly, a front whose implementation is not listed. A listing with a credit mode always
   takes one fill a route in all, since a fill moves the custody and the debt its route reads.
+  Two more rules keep a later fill to what the chain pays. A side whose standing word may refill it at a later fill
+  (the controls let a word refill, the word asks it of the side, and it acknowledges a sequence 1 to 1,023 ahead of the
+  board's) takes one fill a route: a refill sends the next fill back to the first rung. And a later fill is quoted only
+  where the ladder's answer at its end is at least n bucket units and 2 under the ladder's last output, n being the
+  fills the direction took before it and the unit 10^max(0, decimals - 6) of the token paid out: the pool books each
+  fill's payout apart, rounded up to that unit, so fills that end at the ladder's top could pass its bucket. A pool that
+  takes a fee in the token it pays out (a spread rate, a notional rate or an operator's share) leaves the next fill
+  less room than the samples show, and this source does not model it: name its listing in `oneFillListings`, and it
+  takes one fill a route in each direction (`ErrSecondFill`). The source cannot read the pool's rates, so a listing
+  not named there is priced as if its pool took no fee, which the launch pool does.
 - `StaleCheck`: route finding refuses a ladder older than 10 s and stops `inclusionAllowance` seconds before the
   ladder's `validUntil`. With `StaleCheck` off, no age gate applies.
 
@@ -263,6 +276,7 @@ list had left out: a failing url never brings a desk in. A list is refused whole
 | `approvedSources` | The price sources a listing may read and be quoted; none by default |
 | `layout`, `cellCodehash`, `titan` | Required on Ethereum, refused elsewhere. `layout` is `builder`; `titan.timeout` is in nanoseconds (unset: 1 s, at most 10 s) |
 | `creditListings` | Ethereum alone: `listing`, `custodyBaseIn`, `custodyQuoteIn`, `routeBaseIn`, `routeQuoteIn`, optional `routeLimitBaseIn`, `routeLimitQuoteIn`. A route figure of 0 leaves that side's routed sizes unquoted |
+| `oneFillListings` | Listings whose pool sets a spread rate, a notional rate or an operator's share: they take one fill a route in each direction. None by default; the launch pool sets none |
 | `listingGas` | A listing with no credit mode and its own `baseIn` and `quoteIn` figures, in place of its class's |
 | `minTipCapWei` | The least nonzero tip cap listed. Unset, 2 gwei on Ethereum and none elsewhere; `1` lists every listing |
 | `inclusionAllowance` | Seconds a routed fill takes to land: 1 on Ethereum and on chains with sub-second blocks, 3 elsewhere |
