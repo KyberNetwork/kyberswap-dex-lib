@@ -728,3 +728,48 @@ func TestCreditListingOnAFrontReadAtTheHead(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(610_501), res.Gas, "a routed size is charged the route's gas")
 }
+
+// A listing with a credit mode asks each size's plan beside its quote ahead too: its refresh under the maker's next
+// post takes its pinned read, plans and all, from the head read, and its state, each size's class with it, is the one
+// a tracker that asked nothing ahead reads.
+func TestCreditListingPrefetchedReadIsTheReadItSaves(t *testing.T) {
+	chain := creditChain()
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	slot := slotAfter(n.time)
+	post := func(k int) {
+		w := deskSlot0(1235, false)
+		w.SetBit(w, 100+k, 1)
+		st.set(slot, 1235, map[common.Address]*big.Int{testCellA: w})
+	}
+	cfg := ethConfig(st.URL)
+	setCredit(cfg, testCredit)
+	clock := time.Now()
+	refresh := func(tr *PoolTracker, p entity.Pool) (entity.Pool, int) {
+		t.Helper()
+		clock = clock.Add(time.Second)
+		before := n.requestCounts()["eth_call"]
+		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		return got, n.requestCounts()["eth_call"] - before
+	}
+	tr := ethTracker(t, n, cfg, clock)
+	tr.now = func() time.Time { return clock }
+	post(1)
+	first, _ := refresh(tr, ethListed(t, n, cfg))
+	e := extraOf(t, first)
+	require.NotNil(t, e.Credit)
+	require.Less(t, e.Credit.From[0], len(e.Credit.Ladders[0]), "routed points")
+
+	post(2)
+	got, calls := refresh(tr, first)
+	assert.Equal(t, 1, calls, "the pinned read and its plans asked ahead in the head read")
+	fresh := ethTracker(t, n, cfg, clock)
+	fresh.now = func() time.Time { return clock }
+	want, _ := refresh(fresh, first)
+	require.NotNil(t, extraOf(t, want).Credit)
+	assert.Equal(t, want.Extra, got.Extra, "the state a tracker that asked nothing ahead reads")
+	assert.Equal(t, want.Reserves, got.Reserves)
+	assert.Equal(t, want.BlockNumber, got.BlockNumber)
+	assert.Equal(t, want.Timestamp, got.Timestamp)
+}

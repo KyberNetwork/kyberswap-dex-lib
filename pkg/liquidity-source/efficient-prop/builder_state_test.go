@@ -1,6 +1,7 @@
 package efficientprop
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"maps"
@@ -1128,4 +1129,83 @@ func TestBuilderNewHeadAsksTheHeadReadBesideTheFacts(t *testing.T) {
 	d = r.refresh()
 	assert.Equal(t, 3, d["eth_call"], "the head read asked again on the facts' plan")
 	samePriced(t, r.fresh(last), r.p, "on the facts' plan, the same state")
+}
+
+// A window sample asked ahead in the head read's batch counts only where the node ran it in its block, as one asked
+// after the pinned read does. The node here ignores the block override of every multicall that asks the door's quotes
+// and not each side's top: the window samples, asked ahead or not. The head read asks both, so it runs where it is
+// told, and the pinned read asked inside it stands. A sample run elsewhere is no sample: the direction is quoted no
+// later than its cap, the target block's time.
+func TestBuilderSampleAskedAheadIsCheckedForItsBlock(t *testing.T) {
+	quote, fillable := common.FromHex("0xb6466384"), doorABI.Methods["quoteFillable"].ID
+	samples := func(data []byte) bool { return bytes.Contains(data, quote) && !bytes.Contains(data, fillable) }
+	for _, bnb := range []bool{true, false} {
+		name := "Ethereum, the carried word's next block"
+		if bnb {
+			name = "BNB Chain, the late sample"
+		}
+		t.Run(name, func(t *testing.T) {
+			var chain *fakeChain
+			var n *node
+			var cfg *Config
+			var targetMs, slot uint64
+			st := newStateServer(t)
+			if bnb {
+				now := uint64(time.Now().Unix()) + 1
+				headMs := now*1000 + 610
+				targetMs, slot = headMs+450, 1235
+				chain = bnbChain()
+				n = bnbNode(t, chain, 1234, headMs, true, nil)
+				cfg = bnbConfig(st.URL)
+			} else {
+				chain = printChain(false, false)
+				chain.listings[1].view.Scopes |= 8 // a carry life, which the word's carry bit makes one block
+				n = builderNode(t, chain, 1234)
+				slot = slotAfter(n.time)
+				targetMs = slotTime(slot) * 1000
+				// the door fills on the answer's state in any block, so only the sample's own block check can tell
+				n.respondState = func(to common.Address, data []byte, at, number uint64, sub int64,
+					state stateDiffs) (bool, []byte) {
+					if _, l := chain.doorListing(to); l != nil {
+						number = 1235
+					}
+					return chain.builderRespond(to, data, at, number, sub, state)
+				}
+				cfg = printConfig(st.URL)
+			}
+			// the maker's k-th post of the listing's word for block 1235
+			post := func(k int) {
+				if !bnb {
+					st.setEntries(slot, 1235, map[string]stateEntry{"a": {testCellA: cellSlots(1235, true, uint(100+k)),
+						create3Child(testFront, printIDs[0]): printSlots}})
+					return
+				}
+				w := deskSlot0(1235, false)
+				w.SetBit(w, 100+k, 1)
+				st.set(slot, 1235, map[common.Address]*big.Int{testCellA: w})
+			}
+			clock := time.Now()
+			tr := ethTracker(t, n, cfg, clock)
+			tr.now = func() time.Time { return clock }
+			refresh := func(p entity.Pool) entity.Pool {
+				t.Helper()
+				clock = clock.Add(time.Second)
+				got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+				require.NoError(t, err)
+				return got
+			}
+			post(1)
+			first := refresh(ethListed(t, n, cfg))
+			require.NotEmpty(t, extraOf(t, first).Ladders[0])
+			if !bnb {
+				require.Greater(t, extraOf(t, first).ValidUntilMs, targetMs, "the carried word's block sampled")
+			}
+
+			n.ignoreOverridesIf = samples
+			post(2)
+			e := extraOf(t, refresh(first))
+			require.NotEmpty(t, e.Ladders[0], "the pinned read asked ahead ran in the target block")
+			assert.Equal(t, targetMs, e.ValidUntilMs, "the sample run elsewhere is none: to the cap")
+		})
+	}
 }
