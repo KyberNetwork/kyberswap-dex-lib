@@ -335,6 +335,9 @@ type headRead struct {
 	block     *big.Int
 	multicall *common.Address
 	carried   bool
+	// sourceIds is the listing's source ids word (record word 10) as the facts batch read it at block, nil where it
+	// was not read: sourcesApproved takes it in place of a read of its own
+	sourceIds *big.Int
 }
 
 // headCalls are a listing's six head reads, in headRead's order.
@@ -461,6 +464,7 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	keep := []common.Address{slots.account}
 	if facts[1].Error == nil && len(ids) == common.HashLength {
 		w := new(big.Int).SetBytes(ids)
+		h.sourceIds = w
 		for _, id := range []uint64{bits(w, 0, 32), bits(w, 32, 32)} {
 			if id != 0 {
 				keep = append(keep, priceContract(front, uint32(id)))

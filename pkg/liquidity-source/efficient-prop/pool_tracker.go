@@ -335,7 +335,7 @@ func (t *PoolTracker) GetNewPoolState(
 	front := common.HexToAddress(staticExtra.Front)
 	var lanes []common.Address
 	if quoted && printed(v.Scopes) {
-		if quoted, lanes, err = t.sourcesApproved(ctx, front, staticExtra.Listing, block); err != nil {
+		if quoted, lanes, err = t.sourcesApproved(ctx, front, staticExtra.Listing, block, h.sourceIds); err != nil {
 			return p, err
 		}
 		// a builder build's sources are price contracts, never guarded: a listing bound to a guarded entry there is
@@ -760,9 +760,10 @@ func (t *PoolTracker) ends(v DoorView, s pinned, c frontClock) (ends [2]uint64) 
 // the guarded entries among them, whose holds the window samples (window). Any source answers the front's call as it
 // likes, so the door's quote, sampled by an eth_call, is what a fill pays only on a source trusted to answer every call
 // alike. With no source approved nothing is read. A listing bound to none, one whose ids or entries the node does not
-// answer, or one bound to a source not approved, is not quoted; a transport failure fails the refresh.
+// answer, or one bound to a source not approved, is not quoted; a transport failure fails the refresh. ids is the
+// listing's source ids word where the refresh has read it at block already (nil: it is read here).
 func (t *PoolTracker) sourcesApproved(ctx context.Context, front common.Address, listing uint32,
-	block *big.Int) (approved bool, lanes []common.Address, err error) {
+	block *big.Int, ids *big.Int) (approved bool, lanes []common.Address, err error) {
 	f := t.cfg.front(hexutil.Encode(front[:]))
 	if f == nil || len(f.ApprovedSources) == 0 {
 		return false, nil, nil
@@ -786,11 +787,14 @@ func (t *PoolTracker) sourcesApproved(ctx context.Context, front common.Address,
 		}
 		return out, nil
 	}
-	ids, err := read([]common.Hash{sourceIdsSlot(listing)})
-	if err != nil || ids[0] == nil {
-		return false, nil, err
+	if ids == nil {
+		words, err := read([]common.Hash{sourceIdsSlot(listing)})
+		if err != nil || words[0] == nil {
+			return false, nil, err
+		}
+		ids = words[0]
 	}
-	primary, backup := uint32(bits(ids[0], 0, 32)), uint32(bits(ids[0], 32, 32))
+	primary, backup := uint32(bits(ids, 0, 32)), uint32(bits(ids, 32, 32))
 	if primary == 0 {
 		return false, nil, nil
 	}

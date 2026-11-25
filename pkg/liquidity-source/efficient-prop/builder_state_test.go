@@ -702,7 +702,7 @@ func TestBuilderRefreshNodeLoad(t *testing.T) {
 		carry     bool
 		ethCall   int
 		storageAt int
-	}{{"the word does not carry", false, 5, 10}, {"the word carries", true, 6, 10}} {
+	}{{"the word does not carry", false, 5, 9}, {"the word carries", true, 6, 9}} {
 		chain := printChain(false, false)
 		if c.carry {
 			chain.listings[1].view.Scopes |= 8 // a carry life, which the word's carry bit then makes one
