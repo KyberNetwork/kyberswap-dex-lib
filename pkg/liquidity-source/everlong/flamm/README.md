@@ -130,7 +130,9 @@ Hub and Prime Hub (Aave V4 takes one kind number a pair of Hubs, from 16 up), fo
 other build has their cells, and no fill was measured borrowing on Ethereum's other Aave V4 kinds, which stay
 unrouted. An Aave V4 venue holds no minimum position. `venueKinds` narrows the kinds, never widens them. A
 pair with a live venue of any other kind, or priced by a build the table does not measure, is not routed: no charge
-stands in for a fill that was not measured.
+stands in for a fill that was not measured. The EverlongHook build Ethereum runs (0x8d89…7d55) has cells on Ethereum
+alone; the table's Base and BSC rows are earlier builds'. A pool of that build on Base or BNB Chain is not routed until
+its fills there are measured, and none is deployed there yet.
 
 A Lista Moolah venue holds a minimum position: the Router passes it over where a draw would leave its debt under
 that minimum, or within 4 units over it while it owes, and the pool's quote then refuses. With F what the pool frees

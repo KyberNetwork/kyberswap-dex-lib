@@ -12,7 +12,21 @@ factory at the CREATE2 address of the listing id (`doorOf(listing)`):
 | `FRONT`, `LISTING`, `TOKEN0`, `TOKEN1` | Immutables: the front, the listing id and the pair |
 
 A fill is all or nothing. Nothing routes until the dex is enabled in config with an approved desk and a listing of
-that desk is live on the front. No listing is registered on Ethereum's front yet.
+that desk is live on the front.
+
+## Chains
+
+The front (`0x0000000000403aeB66691063CC2fD42E71d6AcD6`, implementation
+`0x48C6efab497EeC8501483Ceb23B6623f626d8371`) and its door factory (`0x39eD9993449C96503f6a629cCD2BB5F132D7cc93`)
+have one address on every chain, each chain's own code behind it:
+
+| Chain | The front's build | Read | Deployed |
+|---|---|---|---|
+| Ethereum (1) | builder build: a maker's update lands only in a block a builder builds with it | `/state` (Ethereum) | Yes |
+| Base (8453) | storage build with the packed desk: a maker's word stands in storage | the head (Base) | Yes. No listing of desk 1 at block 62,193,110 (25 Nov 2026) |
+| BNB Chain (56) | builder build, Ethereum's desk code | `/state` (BNB Chain) | No. The front holds no code at block 135,697,167 (25 Nov 2026), and no url answers `/v1/56/state` yet |
+
+Everything below holds on every chain unless a chain's section says otherwise.
 
 ## What is listed and quoted
 
@@ -31,11 +45,13 @@ listed and quoted only where:
   rebound to another source is dropped at the next refresh;
 - the front's implementation (its proxy's ERC-1967 slot, read at every refresh) is in `implementations`: the source
   reads the front's storage by its layout, which an upgrade may change;
-- its tip cap is at least `minTipCapWei`, or 0, which on Ethereum means no cap. A fill sent at a higher priority fee
-  than its listing's cap reverts (`TipCapped`), and nothing in a route says what the taker will tip, so the cap is
-  also in the pool meta (`tipCapWei`);
-- its gas class has a measured figure in the front's fill mode (Execution and gas);
-- on Ethereum, its maker's update for the next block is in a `/state` answer (Ethereum).
+- its tip cap is at least `minTipCapWei`, or 0, which on a builder build (Ethereum, BNB Chain) means no cap and on
+  Base's storage build fills nothing, so such a listing is idle there. A fill sent at a higher priority fee than its
+  listing's cap reverts (`TipCapped`), and nothing in a route says what the taker will tip, so the cap is also in the
+  pool meta (`tipCapWei`);
+- its gas class has a measured figure in the front's fill mode (Execution and gas), or `listingGas` names it. On BNB
+  Chain no class was measured: only a listing `listingGas` or `creditListings` names is quoted;
+- on Ethereum and BNB Chain, its maker's update for the next block is in a `/state` answer (Ethereum, BNB Chain).
 
 Not quoted at all: a SESSION listing in a closed phase, a tied listing, a listing with a credit mode that
 `creditListings` does not name, and an asset-module pair (a tokenized stock's) that `listingGas` does not name.
@@ -108,22 +124,26 @@ block:
 ## Refresh
 
 - **Schedule.** The tracker implements `NextUpdateAt`: one second after the state's block time; on Ethereum a second
-  from now, or at `validUntil` where that is sooner. A listing not quoted for a standing reason (its desk not
-  approved, its fill mode, its tip cap, no gas figure, not live) is read every 5 s.
+  from now, or at `validUntil` where that is sooner; on BNB Chain, whose second is two blocks and more, at once. A
+  listing not quoted for a standing reason (its desk not approved, its fill mode, its tip cap, no gas figure, not
+  live) is read every 5 s.
 - **Logs.** The event parser (a `poolfactory` decoder) maps each log that moves a listing to its door: the front's
   logs naming a listing, a desk or a pair; a desk contract's `DeskPush` and `LaneFill`; an approved price lane's
-  `Posted`; and a fill's `Swapped`, which on Ethereum the listing's quote contract logs. A `Swapped` from an address
-  the parser does not know maps to nothing.
+  `Posted`; and a fill's `Swapped`, which on Ethereum and BNB Chain the listing's quote contract logs. A `Swapped` from
+  an address the parser does not know maps to nothing. Base's packed desk logs `DeskPush` only where its record asks
+  and no `LaneFill`, so a post it does not log is quoted at the listing's next scheduled refresh.
 - **Node load.** The tracker keeps, a listing, what the chain's head fixes, under the head's hash (never its number,
   so a head replaced at the same height reads again), and the result priced under the bytes of the listing's own
-  override. The head's hash is asked of the node once a front per 250 ms (`eth_getBlockByNumber`), whatever the number
-  of its listings. A refresh of a quoted listing that reads a price source (a primary and a backup), on Ethereum, then
-  makes at a new head 4 `eth_call` (5 on a tracker's first refresh, which reads the front's code hashes; 5 and 6 where
-  the listing and its word carry into the next block) and 9 `eth_getStorageAt`; at the same head under a new override
-  (the maker's update), 2 `eth_call` and no storage read; at the same head under the same override, no node call
-  (`TestBuilderRefreshNodeLoad`, `TestBuilderHeadCacheSavesTheNodeCalls`,
-  `TestBuilderListingsRefreshedTogetherShareOneStateFetch`). The listings of a front refreshed within 250 ms share one
-  `/state` read of each url. At the head a refresh makes 3 to 16 `eth_call` by the listing's kind.
+  override. The head's hash is asked of the node once a front per 250 ms, 100 ms on BNB Chain
+  (`eth_getBlockByNumber`), whatever the number of its listings. A refresh of a quoted listing that reads a price
+  source (a primary and a backup), on Ethereum, then makes at a new head 4 `eth_call` (5 on a tracker's first refresh,
+  which reads the front's code hashes; 5 and 6 where the listing and its word carry into the next block) and 9
+  `eth_getStorageAt`; at the same head under a new override (the maker's update), 2 `eth_call` and no storage read; at
+  the same head under the same override, no node call (`TestBuilderRefreshNodeLoad`,
+  `TestBuilderHeadCacheSavesTheNodeCalls`, `TestBuilderListingsRefreshedTogetherShareOneStateFetch`). The listings of
+  a front refreshed within 250 ms (100 ms on BNB Chain) share one `/state` read of each url. On BNB Chain the window
+  also samples the second after the target block's, and the head read asks the millisecond precompile, one more inner
+  call of its multicall. At the head a refresh makes 3 to 16 `eth_call` by the listing's kind.
 
 ## Execution and gas
 
@@ -161,7 +181,10 @@ cheaper than these may fill a little under its class figure. Two listings of one
 transfer costs, by up to 2,005 gas, and `listingGas` gives a listing its own figures. A class never measured on the
 deployed build has no figure and is quoted only where `listingGas` names the listing with its own two figures: a
 listing that reads no price source, a pair past the hook pair whose quote is the pool's asset, and an asset-module
-pair. The figures of a front read at the head are in `constant.go`.
+pair. The figures of a front read at the head (Base) are in `constant.go`: they were measured on the front's earlier
+storage build on Base, a retired deployment, and not yet on the deployed one, whose desk is new code (the packed desk).
+No class was measured on BNB Chain: a listing there is quoted only with figures of its own (`listingGas`,
+`creditListings`).
 
 - **A pool holding none of the input.** Such a fill writes the pool's balance from zero and costs 17,044 more. The
   state marks it (`noneHeld`), and the simulator charges it until a fill of the route, through any listing of the
@@ -206,12 +229,13 @@ door refuses every size. So on chain 1 the source reads the state the next block
 
 A listing with a credit mode fills inside its pool's custody where that fills it whole and, past it, through the
 pool's credit route, which may borrow the token it pays out. The door's `quote` answers what either fill pays and the
-adapter fills both; the gas differs several times over. So such a listing is quoted only on chain 1 and only where
+adapter fills both; the gas differs several times over. So such a listing is quoted, on every chain, only where
 `creditListings` names it with figures measured on its own pool:
 
 - Beside each `quote`, the refresh asks the front's plan for the size (`quoteFrom` with `PLAN_ONLY`), which says
-  whether the size is routed. A side's ladder is its custody points, then its routed points, and the simulator quotes
-  nothing strictly between the two (`ErrCreditStep`).
+  whether the size is routed: in each block a state is sampled in on a builder chain, and at each moment the window
+  samples on Base, whose front has the same credit route and entries. A side's ladder is its custody points, then its
+  routed points, and the simulator quotes nothing strictly between the two (`ErrCreditStep`).
 - A route borrows or repays, which moves what every listing of the pool fills: a route is quoted only on a pool no
   fill of the route has touched, and once taken no listing of that pool is quoted again in that route.
 - The route reads state the sample cannot pin (the lending venue's rate, a feed update). A fill that meets a change
@@ -227,6 +251,60 @@ adapter fills both; the gas differs several times over. So such a listing is quo
   every state and path the route may take: it is the least, so a dearer fill is under-charged (the repaying one by
   112,700), and `routeLimitBaseIn` and `routeLimitQuoteIn` state the gas limit the dearest needs. Measure the figures
   again on the live pool after any change of its settings.
+- **Not measured** on Base or BNB Chain. A route's gas is its pool's (its lending venue, its tokens), so a credit
+  listing there is named with figures measured on its own pool once it is live. On a BNB Chain fork of a rehearsal, a
+  route fill of QQQB into a pool that borrows USD1 at Lista paid the simulator's output to the wei, in a transaction of
+  1,227,913 gas sent by an account straight to the door (`TestForkBNBFillsTheSampledQuote`): not an adapter figure.
+
+## BNB Chain
+
+BNB Chain's front is the builder build with Ethereum's desk code, so it is read as on Ethereum, through `/state`
+(`layout`, `cellCodehash` and `titan` are required), on BNB Chain's own clock:
+
+- **Blocks.** 450 ms apart (450.4 ms on average over the 30,000 blocks to 135,693,393). An answer's `slot` is its
+  block's number, or absent, and gives no time. Its block must be the head's next. The target block is taken at the
+  head's milliseconds (`milliTimestamp` in the node's block; the start of its second where the node gives none) plus
+  450 ms. The window samples that block's second and the second after, where a block comes late, and where the listing
+  and its word carry, the block after, 450 ms on; each size keeps its least output.
+- **Validity.** `validUntilMs` is the target block's time in milliseconds, and the allowance (`inclusionAllowanceMs`)
+  is 100 ms by default: route finding stops 100 ms before the block. An allowance of a block or more is refused.
+- **The clock.** The front's clock is mode 3: it reads BNB Chain's millisecond precompile (BEP-706, address `0x70`)
+  and, while that answers nothing, the block's second. The precompile answers nothing today. Every head read asks it,
+  and a front in mode 3 is quoted only while it answers nothing: once it answers, the front reads each block's own
+  milliseconds, which no block override sets, and nothing is quoted until this source places them.
+- **Gas.** No class figure was measured on BNB Chain's build. A listing is quoted only where `listingGas` or
+  `creditListings` names it with figures measured on its own pool, and is idle otherwise.
+- **Tip cap.** `minTipCapWei` defaults to 0.1 gwei. BNB Chain's base fee is 0; on 25 Nov 2026 a block's tips were 0.05
+  gwei at the 10th percentile and 0.1 gwei at the 90th. A cap of 0 is no cap, as on Ethereum.
+- **Placement.** The builder for these fronts (48 Club) places a desk's update ahead of the bundles that touch the
+  desk, and only bundles: a fill sent to the public mempool finds no update in its block, unless a carried word
+  stands, and reverts (`NoWord`) at the taker's gas. A route through these listings must reach that builder as a
+  bundle.
+- **Timings.** One `/state` fetch and one head probe serve a front's listings for 100 ms; a fetch waits 100 ms for the
+  other urls once one answer holds an account, and times out at 400 ms unless `titan.timeout` says otherwise. A state
+  that is not idle is asked for again at once (Refresh).
+- **Logs.** A fill's `Swapped` is the desk contract's in either mode, as on Ethereum. The builder's own door, which
+  settles the bundles it places, logs none.
+- **Not live.** The front is not deployed on BNB Chain yet, and no url answers `/v1/56/state`. Until both, nothing on
+  chain 56 is quoted.
+
+## Base
+
+Base's front is the storage build with the packed desk: a maker's word stands in the desk's storage until it ends, so
+every listing is read at the head and its window sampled by block overrides (Pricing). `layout`, `cellCodehash` and
+`titan` are refused.
+
+- **The clock.** The front's clock is the block count (mode 2) from an anchor block, 200 ms a block. `baseTime` names
+  the OP Stack predeploy `0x4200000000000000000000000000000000000030`, whose stored sub-second a sample sets by an
+  override.
+- **Refresh.** The packed desk logs `DeskPush` only where its record asks and never `LaneFill`, so a post it does not
+  log is quoted at the listing's next scheduled refresh, a second after its state's block. A fill through a door logs
+  the door's `Swapped`; one through the front's entries logs the front's `PoolFill` alone. Both map to the door.
+- **Gas.** The class figures were measured on the front's earlier storage build on Base, a retired deployment
+  (Execution and gas). Measure them again on the deployed build, or give a listing its own (`listingGas`).
+- **Tip cap.** A listing whose tip cap is 0 fills nothing on this build, so with no ladder it is idle.
+- **Credit listings** are quoted where `creditListings` names them (Credit-mode listings).
+- **Live.** Deployed, with no listing of desk 1 yet (Chains).
 
 ## Config
 
@@ -264,6 +342,52 @@ These are Ethereum's deployed front (proxy and implementation), its door factory
 price contracts and its first maker's desk contract (desk 1). The `creditListings` entry is the fork measurement above
 for a wstETH/WETH listing with id 1; ids and figures are checked against the live pool before the config is used.
 
+A front on Base, read at the head: its deployed front, door factory, its price lane for USDe/USDC and its first
+maker's desk contract (desk 1, the CREATE2 child of the front under the packed desk's code hash):
+
+```json
+{
+  "dexID": "efficient-prop",
+  "chainID": 8453,
+  "approvedDesks": ["0x2b347C8e89520aF26d30e6932f6273B699Ae746A"],
+  "fronts": [
+    {
+      "address": "0x0000000000403aeB66691063CC2fD42E71d6AcD6",
+      "doorFactory": "0x39eD9993449C96503f6a629cCD2BB5F132D7cc93",
+      "fillMode": "front",
+      "implementations": ["0x48C6efab497EeC8501483Ceb23B6623f626d8371"],
+      "approvedSources": ["0xd42d07791f520d86ac827463e40D07101c5f2329"],
+      "baseTime": "0x4200000000000000000000000000000000000030"
+    }
+  ]
+}
+```
+
+A front on BNB Chain, read through `/state` once it is deployed there: the front and door factory at the same
+addresses, its desk code hash and desk 1 (both Ethereum's: the same desk code under the same front), and its first
+price contract. The rehearsal's first listing (QQQB/USD1) borrows on fill: such a listing is quoted only once
+`creditListings` names it with figures measured on its pool.
+
+```json
+{
+  "dexID": "efficient-prop",
+  "chainID": 56,
+  "approvedDesks": ["0x4f8dd270acE370dE2f6Ac5EBf3230cBE099a0753"],
+  "fronts": [
+    {
+      "address": "0x0000000000403aeB66691063CC2fD42E71d6AcD6",
+      "doorFactory": "0x39eD9993449C96503f6a629cCD2BB5F132D7cc93",
+      "layout": "builder",
+      "cellCodehash": "0xb4f7512e65eee793ac5939d62b8383d8544eb1ca850c276fd706e97a0b7938de",
+      "fillMode": "door",
+      "implementations": ["0x48C6efab497EeC8501483Ceb23B6623f626d8371"],
+      "approvedSources": ["0xF166e802fb1994929b522f1ca5410a5f5BD1A366"],
+      "titan": {"urls": ["https://<api host>/v1/56/state"]}
+    }
+  ]
+}
+```
+
 **`approvedDesks` is empty by default, and empty means nothing is listed or quoted.** A listing's maker is its desk, and
 a desk's contract is the front's `deskCellOf` of the listing's desk; a listing bound to no desk is never quoted.
 `approvedDesksURL` (optional, https only) answers the chain's approved desks as
@@ -282,17 +406,17 @@ list had left out: a failing url never brings a desk in. A list is refused whole
 | `fillMode` | Required, `front` or `door`. A pool is quoted only under the mode it was listed with |
 | `implementations` | Required. List a new one only after checking its storage layout, clock and pricing rules are the ones this source reads |
 | `approvedSources` | The price sources a listing may read and be quoted; none by default |
-| `layout`, `cellCodehash`, `titan` | Required on Ethereum, refused elsewhere. `layout` is `builder`; `titan.timeout` is in nanoseconds (unset: 1 s, at most 10 s) |
-| `creditListings` | Ethereum alone: `listing`, `custodyBaseIn`, `custodyQuoteIn`, `routeBaseIn`, `routeQuoteIn`, optional `routeLimitBaseIn`, `routeLimitQuoteIn`. A route figure of 0 leaves that side's routed sizes unquoted |
+| `layout`, `cellCodehash`, `titan` | Required on Ethereum and BNB Chain, refused elsewhere. `layout` is `builder`; `titan.timeout` is in nanoseconds (unset: 1 s on Ethereum, 400 ms on BNB Chain; at most 10 s) |
+| `creditListings` | Every chain: `listing`, `custodyBaseIn`, `custodyQuoteIn`, `routeBaseIn`, `routeQuoteIn`, optional `routeLimitBaseIn`, `routeLimitQuoteIn`. A route figure of 0 leaves that side's routed sizes unquoted |
 | `oneFillListings` | Listings that take one fill a route in each direction whatever their pool's fee, as an override of the fee read. A listing id in 1 to 2^24 - 1, named once. None by default |
 | `listingGas` | A listing with no credit mode and its own `baseIn` and `quoteIn` figures, in place of its class's |
-| `minTipCapWei` | The least nonzero tip cap listed. Unset, 2 gwei on Ethereum and none elsewhere; `1` lists every listing |
-| `inclusionAllowance` | Seconds a routed fill takes to land: 1 on Ethereum and on chains with sub-second blocks, 3 elsewhere |
+| `minTipCapWei` | The least nonzero tip cap listed. Unset, 2 gwei on Ethereum, 0.1 gwei on BNB Chain and none elsewhere; `1` lists every listing |
+| `inclusionAllowance` | Seconds a routed fill takes to land: 1 on Ethereum and on chains with sub-second blocks (Base), 3 elsewhere |
+| `inclusionAllowanceMs` | Builder chains alone, in place of `inclusionAllowance`: the same in milliseconds, under one block. Unset, 1,000 on Ethereum and 100 on BNB Chain |
 | `baseTime` | Head chains with a block-count clock: the chain's millisecond-time predeploy |
 
 The 2 gwei default: over the day to block 26,486,699 the 90th-percentile priority fee of a block was at most 2.0 gwei
-in 90% of blocks. A config for BNB Chain is refused at load: its front is a builder build and this source has no
-next-block read for it. No front is configured on Base: this build is not deployed there.
+in 90% of blocks. The 0.1 gwei default on BNB Chain: BNB Chain, Tip cap.
 
 ## Tests
 
@@ -301,9 +425,26 @@ go test ./pkg/liquidity-source/efficient-prop
 ```
 
 The unit tests run offline: the lister and the tracker against a fake chain whose doors walk concave levels, the
-simulator against the door at random sizes, and the Ethereum path against fake `/state` servers and a fake node. The
-fork tests (`TestFork*`) are skipped unless their `EFFICIENT_PROP_*` variables are set.
+simulator against the door at random sizes, and the Ethereum and BNB Chain paths against fake `/state` servers and a
+fake node (`TestBNB*`: the head's milliseconds, the late and carried blocks, the precompile's mode, gas of a listing's
+own, the tip floor and the refresh schedule). The fork and live tests (`TestFork*`, `TestLive*`) are skipped unless
+their `EFFICIENT_PROP_*` variables are set.
+
+`TestLiveFrontsOnBaseAndBNBChain` (`EFFICIENT_PROP_LIVE=1`) reads the deployed front on Base and on BNB Chain from a
+public node and checks it against each chain's deployment record: its desk and door code hashes, its implementation
+and that implementation's code, desk 1's contract, its clock mode, and on BNB Chain that the millisecond precompile
+answers nothing. It then lists every listing of desk 1 from the chain and refreshes each. A chain whose front holds no
+code yet is skipped. `EFFICIENT_PROP_LIVE_RPC_<chain id>` points a chain at another node, such as a rehearsal's fork.
+
+`TestForkBNBFillsTheSampledQuote` (`EFFICIENT_PROP_BNB_FORK`, `EFFICIENT_PROP_TAKER`) runs on a local fork of BNB
+Chain holding a rehearsal's deployment of its build with a listing of desk 1. It lists the listing from the front,
+serves the desk's update for the head's next block as a `/state` answer, refreshes, lands the update and fills the
+ladder's first size through the door in that block, which pays the simulator's output to the wei.
+
 `TestForkBuilderFillsTheSampledQuote` runs on a local fork of Ethereum that a stepper drives a block at a time with a
 `/state` server answering for its next block: for each listing and direction it refreshes, checks the simulator
 against `door.quote` under the same overrides, lands the update and fills the ladder's first size, which pays the
 state's output to the wei, a credit listing's first routed size included.
+
+`TestForkSimulatorAgainstTheDoor` and the other head-read fork tests run on a fork of Base.
+`EFFICIENT_PROP_CREDIT_LISTINGS` (the config's JSON list) gives them a front's credit listings.
