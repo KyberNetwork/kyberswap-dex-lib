@@ -3,6 +3,8 @@ package ghost
 import (
 	"math/big"
 
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
@@ -55,4 +57,6 @@ type PoolMeta struct {
 // amountIn on-chain (see totalFeeBps in pool_simulator.go).
 type SwapInfo struct {
 	TotalFeeBps int64 `json:"totalFeeBps"`
+	// Fee is the protocol fee taken from the amount in. Internal state, not part of the route response.
+	Fee uint256.Int `json:"-"`
 }

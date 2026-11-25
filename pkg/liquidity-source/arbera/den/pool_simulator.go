@@ -66,7 +66,7 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amtOut},
-		Fee:            &pool.TokenAmt{Token: tokenAmountIn.Token, Amount: *fee},
+		SwapInfo:       SwapInfo{Fee: *fee},
 	}, nil
 }
 
@@ -127,9 +127,10 @@ func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 		return
 	}
 
+	swapInfo, _ := params.SwapInfo.(SwapInfo) // a missing SwapInfo means a zero fee
 	feeBurned, newSupply, newAssetBalance := new(uint256.Int), new(uint256.Int), new(uint256.Int)
 	// (fee * fees.burn) / DEN
-	feeBurned.Mul(&params.Fee.Amount, s.Fee.Burn).Div(feeBurned, DEN)
+	feeBurned.Mul(&swapInfo.Fee, s.Fee.Burn).Div(feeBurned, DEN)
 	if indexIn == 0 { // debond - brToken -> token
 		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Info.Tokens[indexOut] })
 		if !found {
@@ -138,7 +139,7 @@ func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 		// burn amountIn after fee + burn part of fee
 		s.Supply = newSupply.
 			Sub(s.Supply, &params.TokenAmountIn.Amount).
-			Add(newSupply, &params.Fee.Amount).
+			Add(newSupply, &swapInfo.Fee).
 			Sub(newSupply, feeBurned)
 
 		// decrease balance of token out
@@ -152,7 +153,7 @@ func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 		// mint amountOut before fee + burn part of fee
 		s.Supply = newSupply.
 			Add(s.Supply, &params.TokenAmountOut.Amount).
-			Add(newSupply, &params.Fee.Amount).
+			Add(newSupply, &swapInfo.Fee).
 			Sub(newSupply, feeBurned)
 		// increase balance of token in
 		s.AssetSupplies[tokenIdx] = newAssetBalance.

@@ -252,7 +252,7 @@ func (s *PoolSimulator) CalcAmtOut(p pool.CalcAmtOutParams) (*pool.CalcAmtOutRes
 		}
 	}
 	info := SwapInfo{Next: next, Previous: s.Curve, Token: s.Info.Address, MinQuote: minQuote, AmountOut: out, Refund: refund, RefundRouteOutput: refundRouteOutput, Buy: buy, Route: s.Route, Refunds: !refund.IsZero(), Steps: steps, Revision: s.Revision}
-	return &pool.CalcAmtOutResult{TokenAmountOut: &pool.TokenAmt{Token: p.TokenOut, Amount: out}, RemainingTokenAmountIn: &pool.TokenAmt{Token: p.TokenAmountIn.Token, Amount: refund}, Fee: &pool.TokenAmt{Token: WETH, Amount: fee}, Gas: gas, SwapInfo: info}, nil
+	return &pool.CalcAmtOutResult{TokenAmountOut: &pool.TokenAmt{Token: p.TokenOut, Amount: out}, RemainingTokenAmountIn: &pool.TokenAmt{Token: p.TokenAmountIn.Token, Amount: refund}, Gas: gas, SwapInfo: info}, nil
 }
 func (s *PoolSimulator) UpdateState(p pool.UpdateStateParams) {
 	info, ok := p.SwapInfo.(SwapInfo)

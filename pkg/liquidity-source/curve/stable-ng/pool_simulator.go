@@ -198,8 +198,8 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: param.TokenOut, Amount: amountOut},
-		Fee:            &pool.TokenAmt{Token: param.TokenOut, Amount: adminFee},
 		Gas:            t.gas.Exchange,
+		SwapInfo:       SwapInfo{AdminFee: adminFee},
 	}, nil
 }
 
@@ -221,8 +221,8 @@ func (t *PoolSimulator) CalcAmtIn(param pool.CalcAmtInParams) (*pool.CalcAmtInRe
 
 	return &pool.CalcAmtInResult{
 		TokenAmountIn: &pool.TokenAmt{Token: param.TokenIn, Amount: amountIn},
-		Fee:           &pool.TokenAmt{Token: param.TokenAmountOut.Token, Amount: adminFee},
 		Gas:           t.gas.Exchange,
+		SwapInfo:      SwapInfo{AdminFee: adminFee},
 	}, nil
 }
 
@@ -236,8 +236,9 @@ func (t *PoolSimulator) CloneState() pool.IPoolSim {
 // UpdateState applies a swap. CalcAmtOut has already rejected any write that would drive a reserve negative.
 func (t *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
+	swapInfo, _ := params.SwapInfo.(SwapInfo) // a missing SwapInfo means a zero admin fee
 	var outputAmount uint256.Int
-	outputAmount.Add(&output.Amount, &params.Fee.Amount)
+	outputAmount.Add(&output.Amount, &swapInfo.AdminFee)
 	for i := range t.Info.Tokens {
 		if t.Info.Tokens[i] == input.Token {
 			t.Reserves[i].Add(&t.Reserves[i], &input.Amount)

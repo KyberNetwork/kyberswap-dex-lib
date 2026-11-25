@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/holiman/uint256"
@@ -36,8 +38,6 @@ func parityRowOf(name, tokenOut string, r *pool.CalcAmtOutResult, err error, val
 	}
 	row.Amount = r.TokenAmountOut.Amount.Dec()
 	row.Remaining = r.RemainingTokenAmountIn.Amount.Dec()
-	row.Fee = r.Fee.Amount.Dec()
-	row.FeeToken = r.Fee.Token
 	row.Gas = r.Gas
 	return row
 }
@@ -49,6 +49,11 @@ func TestParityGolden(t *testing.T) {
 	require.NoError(t, err)
 	var want []parityRow
 	require.NoError(t, json.Unmarshal(b, &want))
+	// The fee is no longer on the native result: drop the fee rows and the fee columns.
+	want = slices.DeleteFunc(want, func(r parityRow) bool { return strings.HasSuffix(r.Case, "/fee") })
+	for i := range want {
+		want[i].Fee, want[i].FeeToken = "", ""
+	}
 
 	var got []parityRow
 	for i, p := range snapshots(t) {
@@ -61,18 +66,17 @@ func TestParityGolden(t *testing.T) {
 			if err != nil {
 				continue
 			}
-			got = append(got, parityRowOf(fmt.Sprintf("%s/buy/%d/fee", name, amt), r.Fee.Token, r, nil, s.Valid))
 			sellIn := pool.TokenAmt{Token: s.Info.Address, Amount: r.TokenAmountOut.Amount}
 			sell, serr := s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: sellIn, TokenOut: WETH})
 			got = append(got, parityRowOf(fmt.Sprintf("%s/sell/%d", name, amt), WETH, sell, serr, s.Valid))
 			if amt == 1000000000 {
 				clone := s.CloneState().(*PoolSimulator)
-				s.UpdateState(pool.UpdateStateParams{TokenAmountIn: in, TokenAmountOut: *r.TokenAmountOut, Fee: *r.Fee, SwapInfo: r.SwapInfo})
+				s.UpdateState(pool.UpdateStateParams{TokenAmountIn: in, TokenAmountOut: *r.TokenAmountOut, SwapInfo: r.SwapInfo})
 				next, nerr := s.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: in, TokenOut: s.Info.Address})
 				got = append(got, parityRowOf(name+"/after-update", s.Info.Address, next, nerr, s.Valid))
-				clone.UpdateState(pool.UpdateStateParams{TokenAmountIn: in, TokenAmountOut: *r.TokenAmountOut, Fee: *r.Fee, SwapInfo: r.SwapInfo})
+				clone.UpdateState(pool.UpdateStateParams{TokenAmountIn: in, TokenAmountOut: *r.TokenAmountOut, SwapInfo: r.SwapInfo})
 				got = append(got, parityRowOf(name+"/clone-update", s.Info.Address, nil, nil, clone.Valid))
-				s.UpdateState(pool.UpdateStateParams{TokenAmountIn: in, TokenAmountOut: *r.TokenAmountOut, Fee: *r.Fee, SwapInfo: r.SwapInfo})
+				s.UpdateState(pool.UpdateStateParams{TokenAmountIn: in, TokenAmountOut: *r.TokenAmountOut, SwapInfo: r.SwapInfo})
 				got = append(got, parityRowOf(name+"/stale-replay", s.Info.Address, nil, nil, s.Valid))
 			}
 		}

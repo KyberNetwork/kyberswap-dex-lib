@@ -27,12 +27,12 @@ func TestCalcAmtOutRedeemUsesGrossAmountForReserveAndState(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, "97000000", res.TokenAmountOut.Amount.Dec())
-	require.Equal(t, "3000000", res.Fee.Amount.Dec())
+	fee := res.SwapInfo.(SwapInfo).Fee
+	require.Equal(t, "3000000", fee.Dec())
 
 	s.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  pool.TokenAmt{Token: testLT, Amount: *amountIn},
 		TokenAmountOut: *res.TokenAmountOut,
-		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
 	})
 
@@ -95,9 +95,8 @@ func TestCalcAmtOutMatchesLegacyGolden(t *testing.T) {
 			})
 			require.NoError(t, err)
 			require.Equal(t, tc.wantOut, res.TokenAmountOut.Amount.Dec())
-			require.Equal(t, tc.wantFee, res.Fee.Amount.Dec())
 			require.Equal(t, tc.wantGas, res.Gas)
-			require.Equal(t, SwapInfo{IsMint: tc.wantMint}, res.SwapInfo)
+			require.Equal(t, SwapInfo{IsMint: tc.wantMint, Fee: *uint256.MustFromDecimal(tc.wantFee)}, res.SwapInfo)
 		})
 	}
 }
@@ -127,8 +126,7 @@ func TestCloneStateDeepCopies(t *testing.T) {
 	clone.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  pool.TokenAmt{Token: testLT, Amount: *uint256.NewInt(1e18)},
 		TokenAmountOut: pool.TokenAmt{Token: testUSDC, Amount: *uint256.NewInt(970000)},
-		Fee:            pool.TokenAmt{Token: testUSDC, Amount: *uint256.NewInt(30000)},
-		SwapInfo:       SwapInfo{IsMint: false},
+		SwapInfo:       SwapInfo{IsMint: false, Fee: *uint256.NewInt(30000)},
 	})
 
 	require.Equal(t, origReserves, s.GetReserves(), "UpdateState on the clone changed the original reserves")

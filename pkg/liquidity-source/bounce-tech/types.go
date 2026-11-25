@@ -20,4 +20,6 @@ type StaticExtra struct {
 // The aggregator router reads this to build the executor calldata.
 type SwapInfo struct {
 	IsMint bool `json:"isMint"`
+	// Fee is the redemption fee in USDC that UpdateState adds to the base balance decrease. Internal state.
+	Fee uint256.Int `json:"-"`
 }

@@ -154,7 +154,6 @@ func TestParityAgainstLegacyGoldens(t *testing.T) {
 				}
 				require.NoError(t, err, "step %d", i)
 				require.Equal(t, st.AmountOut, decOrEmpty(&res.TokenAmountOut.Amount), "step %d amountOut", i)
-				require.Equal(t, st.Fee, decOrEmpty(&res.Fee.Amount), "step %d fee", i)
 				require.Equal(t, st.Gas, res.Gas, "step %d gas", i)
 
 				remaining := ""
@@ -171,7 +170,6 @@ func TestParityAgainstLegacyGoldens(t *testing.T) {
 				s.UpdateState(pool.UpdateStateParams{
 					TokenAmountIn:  pool.TokenAmt{Token: tokenIn, Amount: amt},
 					TokenAmountOut: *res.TokenAmountOut,
-					Fee:            *res.Fee,
 					SwapInfo:       res.SwapInfo,
 				})
 				require.Equal(t, st.ReserveToken, decOrEmpty(s.reserveToken), "step %d reserveToken", i)

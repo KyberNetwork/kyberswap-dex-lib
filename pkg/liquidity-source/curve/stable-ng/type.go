@@ -21,3 +21,9 @@ type (
 		RateMultipliers []uint256.Int `json:",omitempty"`
 	}
 )
+
+// SwapInfo carries the admin fee (in tokenOut) that UpdateState takes from the output reserve. It is not part of the
+// route response.
+type SwapInfo struct {
+	AdminFee uint256.Int `json:"-"`
+}

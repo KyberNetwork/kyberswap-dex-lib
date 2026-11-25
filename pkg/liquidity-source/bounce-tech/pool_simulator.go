@@ -121,9 +121,8 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
-		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *fee},
 		Gas:            gas,
-		SwapInfo:       SwapInfo{IsMint: isMint},
+		SwapInfo:       SwapInfo{IsMint: isMint, Fee: *fee},
 	}, nil
 }
 
@@ -202,7 +201,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountIn.ToBig()},
 		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: fee.ToBig()},
 		Gas:           gas,
-		SwapInfo:      SwapInfo{IsMint: isMint},
+		SwapInfo:      SwapInfo{IsMint: isMint, Fee: *fee},
 	}, nil
 }
 
@@ -277,7 +276,7 @@ func (s *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
 		ltReserve.Add(ltReserve, amountOut)
 	} else {
 		// LT in, USDC out: base balance decreases by gross USDC (user output + redemption fee).
-		grossOut := new(uint256.Int).Add(amountOut, &params.Fee.Amount)
+		grossOut := new(uint256.Int).Add(amountOut, &si.Fee)
 		if grossOut.Gt(usdcReserve) {
 			usdcReserve.Clear()
 		} else {

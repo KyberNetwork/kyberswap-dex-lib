@@ -73,9 +73,9 @@ func (h *Hook) BeforeSwap(p *cl.BeforeSwapParams) (*cl.BeforeSwapResult, error) 
 			DeltaUnspecified: new(uint256.Int).Neg(&res.TokenAmountOut.Amount),
 			Gas:              defaultGas,
 			SwapInfo: updateBalanceInfo{
-				in:  poolpkg.TokenAmt{Token: tokens[i], Amount: *p.AmountSpecified},
-				out: *res.TokenAmountOut,
-				fee: *res.Fee,
+				in:       poolpkg.TokenAmt{Token: tokens[i], Amount: *p.AmountSpecified},
+				out:      *res.TokenAmountOut,
+				swapInfo: res.SwapInfo,
 			},
 		}, nil
 	}
@@ -99,9 +99,9 @@ func (h *Hook) BeforeSwap(p *cl.BeforeSwapParams) (*cl.BeforeSwapResult, error) 
 		DeltaUnspecified: new(uint256.Int).Set(&res.TokenAmountIn.Amount),
 		Gas:              defaultGas,
 		SwapInfo: updateBalanceInfo{
-			in:  *res.TokenAmountIn,
-			out: poolpkg.TokenAmt{Token: tokens[j], Amount: *p.AmountSpecified},
-			fee: *res.Fee,
+			in:       *res.TokenAmountIn,
+			out:      poolpkg.TokenAmt{Token: tokens[j], Amount: *p.AmountSpecified},
+			swapInfo: res.SwapInfo,
 		},
 	}, nil
 }
@@ -131,12 +131,13 @@ func (h *Hook) UpdateBalance(swapInfo any) {
 	h.inner.UpdateState(poolpkg.UpdateStateParams{
 		TokenAmountIn:  info.in,
 		TokenAmountOut: info.out,
-		Fee:            info.fee,
+		SwapInfo:       info.swapInfo,
 	})
 }
 
 type updateBalanceInfo struct {
-	in, out, fee poolpkg.TokenAmt
+	in, out  poolpkg.TokenAmt
+	swapInfo any
 }
 
 func (h *Hook) Track(ctx context.Context, param *cl.HookParam) ([]byte, error) {

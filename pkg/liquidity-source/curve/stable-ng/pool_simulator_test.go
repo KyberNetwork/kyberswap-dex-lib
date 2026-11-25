@@ -70,7 +70,6 @@ func TestCalcAmountOut(t *testing.T) {
 			require.Nil(t, err)
 			assert.Equal(t, uint256.NewInt(uint64(tc.expectedOutAmount)).Dec(), out.TokenAmountOut.Amount.Dec())
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
-			fmt.Println("fee", out.Fee.Amount.Dec())
 		})
 	}
 }
@@ -242,7 +241,6 @@ func TestCalcAmountIn(t *testing.T) {
 
 			assert.Equal(t, tc.tokenIn, amountIn.TokenAmountIn.Token)
 			assert.Equalf(t, tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.Dec(), "expected amount in %s, got %s", tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.Dec())
-			fmt.Println("fee", amountIn.Fee.Amount.Dec())
 		})
 	}
 }
@@ -307,7 +305,6 @@ func TestUpdateState(t *testing.T) {
 			p.UpdateState(pool.UpdateStateParams{
 				TokenAmountIn:  pool.TokenAmt{Token: tc.in, Amount: *uint256.NewInt(uint64(tc.inAmount))},
 				TokenAmountOut: *out.TokenAmountOut,
-				Fee:            *out.Fee,
 				SwapInfo:       out.SwapInfo,
 			})
 		})

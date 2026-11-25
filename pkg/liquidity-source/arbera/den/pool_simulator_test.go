@@ -76,7 +76,7 @@ func TestPoolSimulator_CalcAmtOutWithUpdateState(t *testing.T) {
 				sim.UpdateState(pool.UpdateStateParams{
 					TokenAmountIn:  pool.TokenAmt{Token: tokenIn, Amount: *amtIn},
 					TokenAmountOut: *res.TokenAmountOut,
-					Fee:            *res.Fee,
+					SwapInfo:       res.SwapInfo,
 				})
 			}
 		})

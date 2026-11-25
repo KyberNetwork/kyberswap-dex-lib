@@ -59,7 +59,7 @@ func requireSameQuotes(t *testing.T, s *PoolSimulator, rng *rand.Rand) {
 				require.Equal(t, errMsg(wantErr), errMsg(gotErr))
 				if wantErr == nil {
 					require.Equal(t, want.TokenAmountOut.Amount, got.TokenAmountOut.Amount, "%s→%s %s", tokenIn, tokenOut, amount.Dec())
-					require.Equal(t, want.Fee.Amount, got.Fee.Amount)
+					require.Equal(t, want.SwapInfo, got.SwapInfo)
 				}
 
 				out := pool.CalcAmtInParams{TokenAmountOut: pool.TokenAmt{Token: tokenOut, Amount: amount},
@@ -69,7 +69,7 @@ func requireSameQuotes(t *testing.T, s *PoolSimulator, rng *rand.Rand) {
 				require.Equal(t, errMsg(wantErr), errMsg(gotErr))
 				if wantErr == nil {
 					require.Equal(t, wantIn.TokenAmountIn.Amount, gotIn.TokenAmountIn.Amount)
-					require.Equal(t, wantIn.Fee.Amount, gotIn.Fee.Amount)
+					require.Equal(t, wantIn.SwapInfo, gotIn.SwapInfo)
 				}
 			}
 		}
@@ -121,7 +121,7 @@ func TestDCacheMatchesUncachedThroughSwaps(t *testing.T) {
 			}
 			s = s.CloneState().(*PoolSimulator)
 			s.UpdateState(pool.UpdateStateParams{TokenAmountIn: amountIn, TokenAmountOut: *res.TokenAmountOut,
-				Fee: *res.Fee, SwapInfo: res.SwapInfo})
+				SwapInfo: res.SwapInfo})
 		}
 	}
 }

@@ -83,9 +83,6 @@ func hopSwap(p pool.IPoolSim, amount *uint256.Int, in, out string, index int) (u
 		return zero, SwapStep{}, 0, ErrAmount
 	}
 	step := SwapStep{Index: index, Params: pool.UpdateStateParams{TokenAmountIn: amountIn, TokenAmountOut: *r.TokenAmountOut, SwapInfo: r.SwapInfo}}
-	if r.Fee != nil {
-		step.Params.Fee = *r.Fee
-	}
 	return r.TokenAmountOut.Amount, step, r.Gas, nil
 }
 
@@ -117,7 +114,7 @@ func swapCL(p pool.IPoolSim, amount *uint256.Int, in, out string, fee uint32, in
 	if _, ok := p.(*v4.PoolSimulator); ok {
 		info = v4.SwapInfo{PoolSwapInfo: r.SwapInfo.(v3.SwapInfo)}
 	}
-	step := SwapStep{Index: index, Before: fingerprint(p), Params: pool.UpdateStateParams{TokenAmountIn: amountIn, TokenAmountOut: *r.TokenAmountOut, Fee: *r.Fee, SwapInfo: info}}
+	step := SwapStep{Index: index, Before: fingerprint(p), Params: pool.UpdateStateParams{TokenAmountIn: amountIn, TokenAmountOut: *r.TokenAmountOut, SwapInfo: info}}
 	p.UpdateState(step.Params)
 	return r.TokenAmountOut.Amount, step, r.Gas, nil
 }

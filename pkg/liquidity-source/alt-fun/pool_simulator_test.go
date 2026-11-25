@@ -92,7 +92,6 @@ func TestCalcAmtOutBuyPresizesAgainstGraduationAndProratesFee(t *testing.T) {
 		new(uint256.Int).Div(k, new(uint256.Int).Add(reserveAsset, ltUntilGrad)),
 	)
 	require.Equal(t, wantTokensOut.Dec(), res.TokenAmountOut.Amount.Dec())
-	require.Equal(t, "505050", res.Fee.Amount.Dec())
 	require.NotNil(t, res.RemainingTokenAmountIn)
 	require.Equal(t, "49494950", res.RemainingTokenAmountIn.Amount.Dec())
 
@@ -103,7 +102,6 @@ func TestCalcAmtOutBuyPresizesAgainstGraduationAndProratesFee(t *testing.T) {
 	s.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  pool.TokenAmt{Token: testUSDC, Amount: *uint256.NewInt(100_000_000)},
 		TokenAmountOut: *res.TokenAmountOut,
-		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
 	})
 
@@ -166,7 +164,6 @@ func TestUpdateStateSellUpdatesCurveReserves(t *testing.T) {
 	s.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  pool.TokenAmt{Token: testMeme, Amount: *tokenIn},
 		TokenAmountOut: *res.TokenAmountOut,
-		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
 	})
 

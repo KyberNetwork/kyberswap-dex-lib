@@ -26,3 +26,9 @@ type Fee struct {
 	Sell        *uint256.Int `json:"sell"`
 	BlockNumber uint64       `json:"blockNumber"`
 }
+
+// SwapInfo carries the fee in tokenIn that CalcAmtOut charged, which UpdateState needs. It is not part of the route
+// response.
+type SwapInfo struct {
+	Fee uint256.Int `json:"-"`
+}

@@ -42,6 +42,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Amount: fee.ToBig(),
 		},
 		Gas:      p.gas,
-		SwapInfo: SwapInfo{TotalFeeBps: totalFeeBps(principal, fee)},
+		SwapInfo: SwapInfo{TotalFeeBps: totalFeeBps(principal, fee), Fee: *fee},
 	}, nil
 }

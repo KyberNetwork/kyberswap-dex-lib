@@ -16,6 +16,7 @@ const (
 
 var (
 	ErrInvalidToken          = errors.New("invalid token")
+	ErrInvalidSwapInfo       = errors.New("invalid swap info")
 	ErrPoolGraduated         = errors.New("pool is graduated or graduating")
 	ErrZeroAmount            = errors.New("zero amount")
 	ErrZeroExchangeRate      = errors.New("zero exchange rate")

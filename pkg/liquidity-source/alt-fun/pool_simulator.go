@@ -125,7 +125,6 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	isBuy := indexIn == 0
 	var (
 		amountOut      *uint256.Int
-		fee            *uint256.Int
 		remainingAmtIn *pool.TokenAmt
 		amountInUsed   *uint256.Int
 		baseToConvert  *uint256.Int
@@ -134,14 +133,14 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 
 	if isBuy {
 		var err error
-		amountOut, fee, remainingAmtIn, amountInUsed, baseToConvert, err = s.calcBuyOut(amountIn, tokenAmountIn.Token)
+		amountOut, _, remainingAmtIn, amountInUsed, baseToConvert, err = s.calcBuyOut(amountIn, tokenAmountIn.Token)
 		if err != nil {
 			return nil, err
 		}
 		gas = buyGas
 	} else {
 		var err error
-		amountOut, fee, err = s.calcSellOut(amountIn)
+		amountOut, _, err = s.calcSellOut(amountIn)
 		if err != nil {
 			return nil, err
 		}
@@ -154,7 +153,6 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 
 	result := &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
-		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *fee},
 		Gas:            gas,
 		SwapInfo: SwapInfo{
 			Pool:          s.zapAddress,
@@ -312,7 +310,11 @@ func (s *PoolSimulator) calcSellOut(tokenIn *uint256.Int) (*uint256.Int, *uint25
 		return nil, nil, ErrBelowMinAmount
 	}
 
-	btFee := &btResult.Fee.Amount
+	btInfo, ok := btResult.SwapInfo.(bouncetech.SwapInfo)
+	if !ok {
+		return nil, nil, ErrInvalidSwapInfo
+	}
+	btFee := &btInfo.Fee
 
 	// Zap sell fee on grossUsdc (= what redeem() returns, i.e. after btFee).
 	zapFee := new(uint256.Int).Mul(grossUsdc, s.sellFeeBps)
