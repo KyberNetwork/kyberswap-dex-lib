@@ -126,6 +126,29 @@ func CalcAmountOutNative(sim any, in pool.TokenAmount, tokenOut string,
 	}, nil
 }
 
+// CalcAmountInNative quotes with the native CalcAmtIn and returns big.Int amounts, or with the legacy
+// CalcAmountIn for a pool that has no native method. For tests of a pool whose legacy method is gone.
+func CalcAmountInNative(sim any, param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	native, ok := sim.(pool.ICalcAmtIn)
+	if !ok {
+		return sim.(pool.IPoolExactOutSimulator).CalcAmountIn(param)
+	}
+	res, err := native.CalcAmtIn(pool.CalcAmtInParams{
+		TokenAmountOut: pool.TokenAmt{Token: param.TokenAmountOut.Token, Amount: *uint256.MustFromBig(param.TokenAmountOut.Amount)},
+		TokenIn:        param.TokenIn,
+	})
+	if err != nil || res == nil {
+		return nil, err
+	}
+	return &pool.CalcAmountInResult{
+		TokenAmountIn:           bigAmt(res.TokenAmountIn),
+		Fee:                     &pool.TokenAmount{Token: res.TokenAmountIn.Token, Amount: new(big.Int)}, // native results have no fee
+		RemainingTokenAmountOut: bigAmt(res.RemainingTokenAmountOut),
+		Gas:                     res.Gas,
+		SwapInfo:                res.SwapInfo,
+	}, nil
+}
+
 // TestUpdateStateParity checks that a legacy pool updated through the IPoolSim adapter (CalcAmtOut, then
 // UpdateState without a fee) reaches the same state as CalcAmountOut then UpdateBalance with the fee set: same
 // pool state, reserves and next quote. mk builds a fresh pool for each run.
