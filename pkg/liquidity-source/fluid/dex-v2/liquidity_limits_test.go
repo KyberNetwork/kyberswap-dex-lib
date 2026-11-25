@@ -6,7 +6,6 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 )
 
@@ -35,10 +34,11 @@ func TestFloatAggregateEndpointLimits(t *testing.T) {
 		if input {
 			p.liquidityLimits[0].Allowed[0] = false
 		}
-		limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit())))
+		inv := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit()))
+		limit := limitGetter(inv.GetLimit)
 		usage, err := p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(75), uint256.NewInt(75), uint256.NewInt(0))
 		require.NoError(t, err)
-		p.applyLiquidity(usage, limit)
+		p.applyLiquidity(usage, updateLimit(inv))
 		_, err = p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(75), uint256.NewInt(75), uint256.NewInt(0))
 		require.ErrorIs(t, err, ErrUnsupportedLiquidityState)
 	}
@@ -49,10 +49,11 @@ func TestFloatAggregateAcrossPools(t *testing.T) {
 	p.liquidityLimits[1].Float.SetUint64(100)
 	p.liquidityLimits[1].Withdraw.SetUint64(100)
 	other := *p
-	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit())))
+	inv := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit()))
+	limit := limitGetter(inv.GetLimit)
 	usage, err := p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(75), uint256.NewInt(75), uint256.NewInt(0))
 	require.NoError(t, err)
-	p.applyLiquidity(usage, limit)
+	p.applyLiquidity(usage, updateLimit(inv))
 	_, err = other.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(75), uint256.NewInt(75), uint256.NewInt(0))
 	require.ErrorIs(t, err, ErrUnsupportedLiquidityState)
 }
@@ -110,12 +111,13 @@ func TestLiquidityGrowthAndRoundingBound(t *testing.T) {
 	p := testLiquiditySimulator()
 	p.liquidityLimits[0].Growth.SetUint64(100)
 	p.liquidityLimits[0].RoundingBuffer.SetUint64(10)
-	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit())))
+	inv := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit()))
+	limit := limitGetter(inv.GetLimit)
 	_, err := p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(10), uint256.NewInt(20), uint256.NewInt(0))
 	require.ErrorIs(t, err, ErrUnsupportedLiquidityState)
 	usage, err := p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(60), uint256.NewInt(20), uint256.NewInt(0))
 	require.NoError(t, err)
-	p.applyLiquidity(usage, limit)
+	p.applyLiquidity(usage, updateLimit(inv))
 	other := testLiquiditySimulator()
 	other.liquidityLimits[0].Growth.SetUint64(100)
 	other.liquidityLimits[0].RoundingBuffer.SetUint64(10)
@@ -157,19 +159,20 @@ func TestSubBaseDepositsShareHeadroom(t *testing.T) {
 	p.liquidityLimits[0].DepositSafe = false
 	p.liquidityLimits[0].DepositHeadroom.SetUint64(100)
 	p.liquidityLimits[0].Withdraw.SetUint64(100)
-	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit())))
+	inv := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(p.CalculateLimit()))
+	limit := limitGetter(inv.GetLimit)
 	usage, err := p.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(75), uint256.NewInt(75), uint256.NewInt(0))
 	require.NoError(t, err)
-	p.applyLiquidity(usage, limit)
+	p.applyLiquidity(usage, updateLimit(inv))
 	require.Equal(t, uint64(25), p.liquidityLimits[0].DepositHeadroom.Uint64())
 	other := testLiquiditySimulator()
 	other.liquidityLimits[0].DepositSafe = false
 	other.liquidityLimits[0].DepositHeadroom.SetUint64(100)
 	usage, err = other.quoteLiquidity(limit, 0, 1, D3_MODULE, uint256.NewInt(75), uint256.NewInt(75), uint256.NewInt(0))
 	require.NoError(t, err)
-	other.applyLiquidity(usage, limit)
-	require.Zero(t, limit.GetLimit("vault:token0:withdraw").Sign())
-	require.Zero(t, limit.GetLimit("vault:token0:depositHeadroom").Sign())
+	other.applyLiquidity(usage, updateLimit(inv))
+	require.Zero(t, inv.GetLimit("vault:token0:withdraw").Sign())
+	require.Zero(t, inv.GetLimit("vault:token0:depositHeadroom").Sign())
 	_, err = p.quoteLiquidity(limit, 1, 0, D3_MODULE, uint256.NewInt(1), uint256.NewInt(1), uint256.NewInt(0))
 	require.ErrorIs(t, err, ErrUnsupportedLiquidityState)
 }

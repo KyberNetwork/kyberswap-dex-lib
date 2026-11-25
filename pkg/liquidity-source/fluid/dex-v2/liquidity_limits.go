@@ -97,15 +97,18 @@ func (p *PoolSimulator) liquidityKey(i, field int) string {
 	return p.liquidityKeys[i] + liquidityFieldNames[field]
 }
 
-func (p *PoolSimulator) liquidityValues(i int, limit pool.SwapLimitBig) ([liquidityFieldCount]uint256.Int, error) {
+// limitGetter reads a shared limit by key; nil means no shared limit, a nil result means the key is absent.
+type limitGetter func(key string) *uint256.Int
+
+func (p *PoolSimulator) liquidityValues(i int, limit limitGetter) ([liquidityFieldCount]uint256.Int, error) {
 	v := p.liquidityLimits[i].values()
 	if limit != nil {
 		for field := range v {
-			shared := limit.GetLimit(p.liquidityKey(i, field))
-			var x uint256.Int
-			if shared == nil || shared.Sign() < 0 || x.SetFromBig(shared) {
+			shared := limit(p.liquidityKey(i, field))
+			if shared == nil {
 				return v, ErrUnsupportedLiquidityState
 			}
+			x := *shared
 			policy := liquidityMergePolicy(field)
 			if (policy == pool.SwapLimitMergeMax && x.Gt(&v[field])) || (policy == pool.SwapLimitMergeMin && x.Lt(&v[field])) {
 				v[field] = x
@@ -179,7 +182,7 @@ func addLiquidityTotal(v *uint256.Int, amount *uint256.Int) error {
 	return nil
 }
 
-func (p *PoolSimulator) quoteLiquidity(limit pool.SwapLimitBig, in, out int, dexType uint32, amountIn, amountOut, fee *uint256.Int) (usage [2]liquidityUsage, err error) {
+func (p *PoolSimulator) quoteLiquidity(limit limitGetter, in, out int, dexType uint32, amountIn, amountOut, fee *uint256.Int) (usage [2]liquidityUsage, err error) {
 	if !p.staticExtra.TrackLiquidityLimits {
 		return
 	}
@@ -336,23 +339,54 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	return result
 }
 
-func updateLiquidityLimit(limit pool.SwapLimitBig, key string, amount *uint256.Int, increase bool) {
-	if limit == nil || amount.IsZero() {
-		return
-	}
-	var zero big.Int
-	var err error
-	if increase {
-		_, _, err = limit.UpdateLimit(key, key, &zero, amount.ToBig())
-	} else {
-		_, _, err = limit.UpdateLimit(key, key, amount.ToBig(), &zero)
-	}
-	if err != nil {
-		logger.Warnf("failed to update Fluid liquidity limit: %v", err)
+// limitUpdater applies a spent (increase=false) or gained (increase=true) amount to a shared limit.
+type limitUpdater func(key string, amount *uint256.Int, increase bool)
+
+// apply skips zero amounts and a nil updater, like the legacy path.
+func (u limitUpdater) apply(key string, amount *uint256.Int, increase bool) {
+	if u != nil && !amount.IsZero() {
+		u(key, amount, increase)
 	}
 }
 
-func (p *PoolSimulator) applyLiquidity(usage [2]liquidityUsage, limit pool.SwapLimitBig) {
+func updateLimit(limit pool.SwapLimit) limitUpdater {
+	if limit == nil {
+		return nil
+	}
+	return func(key string, amount *uint256.Int, increase bool) {
+		var zero uint256.Int
+		var err error
+		if increase {
+			_, _, err = limit.UpdateLimit(key, key, &zero, amount)
+		} else {
+			_, _, err = limit.UpdateLimit(key, key, amount, &zero)
+		}
+		if err != nil {
+			logger.Warnf("failed to update Fluid liquidity limit: %v", err)
+		}
+	}
+}
+
+// updateLimitBig is updateLimit for the legacy big.Int limit used by UpdateBalance.
+func updateLimitBig(limit pool.SwapLimitBig) limitUpdater {
+	if limit == nil {
+		return nil
+	}
+	return func(key string, amount *uint256.Int, increase bool) {
+		var zero big.Int
+		var err error
+		if increase {
+			_, _, err = limit.UpdateLimit(key, key, &zero, amount.ToBig())
+		} else {
+			_, _, err = limit.UpdateLimit(key, key, amount.ToBig(), &zero)
+		}
+		if err != nil {
+			logger.Warnf("failed to update Fluid liquidity limit: %v", err)
+		}
+	}
+}
+
+func (p *PoolSimulator) applyLiquidity(usage [2]liquidityUsage, update limitUpdater) {
 	if !p.staticExtra.TrackLiquidityLimits {
 		return
 	}
@@ -363,14 +397,14 @@ func (p *PoolSimulator) applyLiquidity(usage [2]liquidityUsage, limit pool.SwapL
 			dst, amount *uint256.Int
 		}{{liquidityWithdraw, &s.Withdraw, &u.Withdraw}, {liquidityBorrow, &s.Borrow, &u.Borrow}, {liquidityDebt, &s.Debt, &u.Debt}, {liquidityCash, &s.Cash, &u.Cash}, {liquidityGrowth, &s.Growth, &u.Growth}, {liquidityDepositHeadroom, &s.DepositHeadroom, &u.DepositHeadroom}} {
 			field.dst.Sub(field.dst, field.amount)
-			updateLiquidityLimit(limit, p.liquidityKey(i, field.kind), field.amount, false)
+			update.apply(p.liquidityKey(i, field.kind), field.amount, false)
 		}
 		for _, field := range []struct {
 			kind        int
 			dst, amount *uint256.Int
 		}{{liquidityInputTotal, &s.InputTotal, &u.Input}, {liquidityOutputTotal, &s.OutputTotal, &u.Output}, {liquidityOutputReserved, &s.OutputReserved, &u.OutputReserved}} {
 			field.dst.Add(field.dst, field.amount)
-			updateLiquidityLimit(limit, p.liquidityKey(i, field.kind), field.amount, true)
+			update.apply(p.liquidityKey(i, field.kind), field.amount, true)
 		}
 	}
 }

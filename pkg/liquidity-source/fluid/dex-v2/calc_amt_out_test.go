@@ -90,8 +90,7 @@ func TestCalcAmtOutSequentialParity(t *testing.T) {
 			require.Equal(t, lRes.RemainingTokenAmountIn == nil, nRes.RemainingTokenAmountIn == nil, msg+" remaining nil")
 			require.Equal(t, lRes.Gas, nRes.Gas, msg+" gas")
 			lSim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: lIn, TokenAmountOut: *lRes.TokenAmountOut, SwapInfo: lRes.SwapInfo, SwapLimitBig: pool.AsSwapLimitBig(lLimit)})
-			nSim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: nIn.Amount.ToBig()},
-				TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: nRes.TokenAmountOut.Amount.ToBig()}, SwapInfo: nRes.SwapInfo, SwapLimitBig: pool.AsSwapLimitBig(nLimit)})
+			nSim.UpdateState(pool.UpdateStateParams{TokenAmountIn: nIn, TokenAmountOut: *nRes.TokenAmountOut, SwapInfo: nRes.SwapInfo, SwapLimit: nLimit})
 			require.Equal(t, lSim.tokenReserves, nSim.tokenReserves, msg+" reserves")
 			require.Equal(t, dumpLimits(lSim), dumpLimits(nSim), msg+" limits")
 		}

@@ -236,11 +236,11 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	if err := p.checkSupported(); err != nil {
 		return nil, err
 	}
-	res, err := p.calcAmountOut(params.TokenAmountIn.Token, params.TokenOut, &params.TokenAmountIn.Amount, pool.AsSwapLimitBig(params.Limit))
-	if err != nil {
-		return nil, err
+	var get limitGetter
+	if params.Limit != nil {
+		get = params.Limit.GetLimit
 	}
-	return calcAmtOutFromBig(res), nil
+	return p.calcAmtOut(params.TokenAmountIn.Token, params.TokenOut, &params.TokenAmountIn.Amount, get)
 }
 
 // checkSupported refuses a controller or dynamic-fee pool before any amount is read.
@@ -254,26 +254,7 @@ func (p *PoolSimulator) checkSupported() error {
 	return nil
 }
 
-func calcAmtOutFromBig(r *pool.CalcAmountOutResult) *pool.CalcAmtOutResult {
-	return &pool.CalcAmtOutResult{
-		TokenAmountOut: tokenAmtFromBigAmount(r.TokenAmountOut),
-		Gas:            r.Gas,
-		SwapInfo:       r.SwapInfo,
-	}
-}
-
-func tokenAmtFromBigAmount(t *pool.TokenAmount) *pool.TokenAmt {
-	if t == nil {
-		return nil
-	}
-	out := &pool.TokenAmt{Token: t.Token, AmountUsd: t.AmountUsd}
-	if t.Amount != nil {
-		out.Amount.SetFromBig(t.Amount)
-	}
-	return out
-}
-
-func (p *PoolSimulator) calcAmountOut(tokenIn, tokenOut string, in *uint256.Int, limit pool.SwapLimitBig) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) calcAmtOut(tokenIn, tokenOut string, in *uint256.Int, limit limitGetter) (*pool.CalcAmtOutResult, error) {
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if tokenInIndex < 0 || tokenOutIndex < 0 || tokenInIndex == tokenOutIndex {
 		return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
@@ -374,15 +355,9 @@ func (p *PoolSimulator) calcAmountOut(tokenIn, tokenOut string, in *uint256.Int,
 		gas += 10000
 	}
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
-		},
-		Fee: &pool.TokenAmount{
-			Token: tokenIn,
-		},
-		Gas: gas,
+	return &pool.CalcAmtOutResult{
+		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: amountOut},
+		Gas:            gas,
 		SwapInfo: SwapInfo{
 			RemainingAmountIn:     amountOutResult.RemainingAmountIn,
 			NextStateSqrtRatioX96: amountOutResult.SqrtRatioX96,
@@ -405,7 +380,15 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	si, ok := params.SwapInfo.(SwapInfo)
+	p.update(params.SwapInfo, params.TokenAmountIn.Token, params.TokenAmountOut.Token, updateLimitBig(params.SwapLimitBig))
+}
+
+func (p *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
+	p.update(params.SwapInfo, params.TokenAmountIn.Token, params.TokenAmountOut.Token, updateLimit(params.SwapLimit))
+}
+
+func (p *PoolSimulator) update(swapInfo any, tokenIn, tokenOut string, limit limitUpdater) {
+	si, ok := swapInfo.(SwapInfo)
 	if !ok {
 		logger.Warn("failed to UpdateBalance for FluidDexV2 pool, wrong swapInfo type")
 		return
@@ -418,13 +401,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.V3Pool.dynamicPacked.Set(&si.nextDynamicPacked)
 	}
 
-	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenAmountOut.Token
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
-
 	p.tokenReserves[tokenInIndex].Add(&p.tokenReserves[tokenInIndex], &si.amountInRawAdjusted)
 	p.tokenReserves[tokenOutIndex].Sub(&p.tokenReserves[tokenOutIndex], &si.amountOutRawAdjusted)
-	p.applyLiquidity(si.liquidityUsage, params.SwapLimitBig)
-
+	p.applyLiquidity(si.liquidityUsage, limit)
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
