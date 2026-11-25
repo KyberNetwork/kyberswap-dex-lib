@@ -193,26 +193,8 @@ func (p *PoolSimulator) hookSwaps() bool {
 		p.hook.CanAfterSwap(p.staticExtra.HooksAddress))
 }
 
-// CalcAmtOut is CalcAmountOut with uint256 amounts. The no-hook path runs natively; a swapping hook runs
-// the shared CalcAmountOut body through the big.Int boundary, since Hook takes big.Int amounts.
+// CalcAmtOut is CalcAmountOut with uint256 amounts, including the BeforeSwap and AfterSwap hook terms.
 func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
-	if p.hookSwaps() {
-		res, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: params.TokenAmountIn.Amount.ToBig()},
-			TokenOut:      params.TokenOut,
-			Limit:         pool.AsSwapLimitBig(params.Limit),
-		})
-		if err != nil {
-			return nil, err
-		}
-		return &pool.CalcAmtOutResult{
-			TokenAmountOut:         tokenAmtFromBigV4(res.TokenAmountOut),
-			Fee:                    tokenAmtFromBigV4(res.Fee),
-			RemainingTokenAmountIn: tokenAmtFromBigV4(res.RemainingTokenAmountIn),
-			Gas:                    res.Gas,
-			SwapInfo:               res.SwapInfo,
-		}, nil
-	}
 	originalTokenIn, originalTokenOut := params.TokenAmountIn.Token, params.TokenOut
 	amountIn := params.TokenAmountIn.Amount
 	var wrapAdditionalGas int64
@@ -249,7 +231,38 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 		unwrapIdx = p.fewWrapperIdx
 	}
 
-	swapFee, _ := p.swapFee(p.GetTokenIndex(tokenIn) == 0, nil)
+	zeroForOne := p.GetTokenIndex(tokenIn) == 0
+	var beforeSwapResult *BeforeSwapResult
+	var afterSwapResult *AfterSwapResult
+	var amountInOverflow bool // the hook's negative DeltaSpecified pushed the input past 256 bits
+	hooked := p.hookSwaps()
+
+	if hooked && p.hook.CanBeforeSwap(p.staticExtra.HooksAddress) {
+		var err error
+		if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
+			CalcOut:         true,
+			ZeroForOne:      zeroForOne,
+			AmountSpecified: new(uint256.Int).Set(&amountIn),
+			SqrtPriceX96:    &p.V3Pool.SqrtRatioX96,
+		}); err != nil {
+			return nil, fmt.Errorf("[BeforeSwap] %w", err)
+		} else if err = ValidateBeforeSwapResult(beforeSwapResult); err != nil {
+			return nil, fmt.Errorf("[BeforeSwap] validation failed: %w", err)
+		}
+
+		var neg bool
+		if neg, amountInOverflow = subSigned(&amountIn, false, beforeSwapResult.DeltaSpecified); neg {
+			return nil, ErrInvalidAmountIn
+		}
+	}
+
+	swapFee, err := p.swapFee(zeroForOne, beforeSwapResult)
+	if err != nil {
+		return nil, err
+	} else if amountInOverflow {
+		return nil, uniswapv3.ErrOverflow
+	}
+
 	swapResult, err := p.withSwapFee(swapFee).CalcAmtOut(pool.CalcAmtOutParams{
 		TokenAmountIn: pool.TokenAmt{Token: tokenIn, Amount: amountIn},
 		TokenOut:      tokenOut,
@@ -258,14 +271,57 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 		return nil, err
 	}
 
+	if hooked && p.hook.CanAfterSwap(p.staticExtra.HooksAddress) {
+		afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
+			BeforeSwapParams: &BeforeSwapParams{
+				CalcOut:         true,
+				ZeroForOne:      zeroForOne,
+				AmountSpecified: new(uint256.Int).Set(&amountIn),
+				SqrtPriceX96:    &p.V3Pool.SqrtRatioX96,
+			},
+			AmountIn:         new(uint256.Int).Set(&amountIn),
+			AmountOut:        new(uint256.Int).Set(&swapResult.TokenAmountOut.Amount),
+			BeforeSwapResult: beforeSwapResult,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("[AfterSwap] %w", err)
+		} else if err = ValidateAfterSwapResult(afterSwapResult); err != nil {
+			return nil, fmt.Errorf("[AfterSwap] validation failed: %w", err)
+		}
+	}
+
 	swapResult.TokenAmountOut.Token = originalTokenOut
 	swapResult.RemainingTokenAmountIn.Token = originalTokenIn
 	swapResult.Gas += wrapAdditionalGas
-	if idx := p.GetTokenIndex(originalTokenOut); idx >= 0 && p.staticExtra.IsNative[idx] {
-		p.wrapNativeU256(&swapResult.TokenAmountOut.Amount)
-	}
 
+	// Hook deltas are signed: out -= DeltaUnspecified, out -= HookFee. A negative value below zero is
+	// checked after the native rescale, like the big.Int body.
+	amountOut := &swapResult.TokenAmountOut.Amount
+	var outNeg, outOverflow bool
 	v4SwapInfo := SwapInfo{PoolSwapInfo: swapResult.SwapInfo.(PoolSwapInfo)}
+	if beforeSwapResult != nil {
+		var overflow bool
+		outNeg, overflow = subSigned(amountOut, outNeg, beforeSwapResult.DeltaUnspecified)
+		outOverflow = outOverflow || overflow
+		swapResult.Gas += beforeSwapResult.Gas
+		v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
+	}
+	if afterSwapResult != nil {
+		var overflow bool
+		outNeg, overflow = subSigned(amountOut, outNeg, afterSwapResult.HookFee)
+		outOverflow = outOverflow || overflow
+		swapResult.Gas += afterSwapResult.Gas
+	}
+	if outOverflow {
+		return nil, uniswapv3.ErrOverflow
+	}
+	if idx := p.GetTokenIndex(originalTokenOut); idx >= 0 && p.staticExtra.IsNative[idx] {
+		p.wrapNativeU256(amountOut)
+		outNeg = outNeg && !amountOut.IsZero() // big.Int Quo truncates a small negative to zero
+	}
+	if outNeg {
+		return nil, ErrInvalidAmountOut
+	}
 	fewReserve, err := p.unwrapFewU256(unwrapIdx, &swapResult.TokenAmountOut.Amount)
 	if err != nil {
 		return nil, err
@@ -275,6 +331,28 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	}
 	swapResult.SwapInfo = v4SwapInfo
 	return swapResult, nil
+}
+
+// subSigned sets (mag, neg) -= d, where (mag, neg) is a sign-magnitude value and d a two's-complement int256,
+// matching the big.Int subtraction of big256.ToBig(d). overflow reports a magnitude past 256 bits.
+func subSigned(mag *uint256.Int, neg bool, d *uint256.Int) (newNeg, overflow bool) {
+	dNeg := d.Sign() < 0
+	var dMag uint256.Int
+	dMag.Set(d)
+	if dNeg {
+		dMag.Neg(&dMag)
+	}
+	// mag - d == mag + (-d): -d has sign !dNeg.
+	if neg == !dNeg {
+		_, overflow = mag.AddOverflow(mag, &dMag)
+		return neg, overflow
+	}
+	if mag.Lt(&dMag) {
+		mag.Sub(&dMag, mag)
+		return !neg, false
+	}
+	mag.Sub(mag, &dMag)
+	return neg && !mag.IsZero(), false
 }
 
 // zeroNilFeeAmount sets the big.Int fee amount to zero. v3 leaves it nil on the big.Int path,

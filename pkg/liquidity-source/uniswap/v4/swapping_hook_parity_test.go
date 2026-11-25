@@ -115,3 +115,57 @@ func TestCalcAmtOutSwappingHookParity(t *testing.T) {
 		})
 	}
 }
+
+// TestCalcAmtOutSignedHookDeltaParity: hook deltas are signed. Negative values and a result that goes below
+// zero must match the legacy big.Int body, errors included.
+func TestCalcAmtOutSignedHookDeltaParity(t *testing.T) {
+	t.Parallel()
+	var poolEnt entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(poolData), &poolEnt))
+	base, err := NewPoolSimulator(poolEnt, valueobject.ChainIDEthereum)
+	require.NoError(t, err)
+
+	neg := func(v uint64) *uint256.Int { return new(uint256.Int).Neg(uint256.NewInt(v)) }
+	u := func(v uint64) *uint256.Int { return uint256.NewInt(v) }
+	huge := new(uint256.Int).Lsh(uint256.NewInt(1), 200)
+	cases := []struct {
+		name string
+		hook *stubHook
+	}{
+		{"neg-delta-specified", &stubHook{BaseHook: &BaseHook{}, canBefore: true,
+			before: &BeforeSwapResult{DeltaSpecified: neg(100), DeltaUnspecified: u(0)}}},
+		{"neg-delta-unspecified", &stubHook{BaseHook: &BaseHook{}, canBefore: true,
+			before: &BeforeSwapResult{DeltaSpecified: u(0), DeltaUnspecified: neg(5000)}}},
+		{"neg-hook-fee", &stubHook{BaseHook: &BaseHook{}, canAfter: true, after: &AfterSwapResult{HookFee: neg(77)}}},
+		{"delta-specified-above-input", &stubHook{BaseHook: &BaseHook{}, canBefore: true,
+			before: &BeforeSwapResult{DeltaSpecified: huge, DeltaUnspecified: u(0)}}},
+		{"delta-unspecified-above-output", &stubHook{BaseHook: &BaseHook{}, canBefore: true,
+			before: &BeforeSwapResult{DeltaSpecified: u(0), DeltaUnspecified: huge}}},
+		{"hook-fee-above-output-then-negative-delta", &stubHook{BaseHook: &BaseHook{}, canBefore: true, canAfter: true,
+			before: &BeforeSwapResult{DeltaSpecified: u(0), DeltaUnspecified: huge},
+			after:  &AfterSwapResult{HookFee: new(uint256.Int).Neg(huge)}}},
+		{"unspecified-leaves-negative-then-fee-refund", &stubHook{BaseHook: &BaseHook{}, canBefore: true, canAfter: true,
+			before: &BeforeSwapResult{DeltaSpecified: u(0), DeltaUnspecified: new(uint256.Int).Lsh(u(1), 81)},
+			after:  &AfterSwapResult{HookFee: new(uint256.Int).Neg(new(uint256.Int).Lsh(u(1), 82))}}},
+	}
+	const usdc, rez = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0x3b50805453023a91a8bf641e279401a0b23fa6f9"
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			sim := *base
+			sim.hook = tc.hook
+			want, wantErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: usdc, Amount: big.NewInt(15497045801)}, TokenOut: rez})
+			got, gotErr := sim.CalcAmtOut(pool.CalcAmtOutParams{
+				TokenAmountIn: pool.TokenAmt{Token: usdc, Amount: *uint256.NewInt(15497045801)}, TokenOut: rez})
+			if wantErr != nil {
+				require.Error(t, gotErr)
+				require.Equal(t, wantErr.Error(), gotErr.Error())
+				return
+			}
+			require.NoError(t, gotErr)
+			require.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.Dec())
+			require.Equal(t, want.Gas, got.Gas)
+		})
+	}
+}
