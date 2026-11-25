@@ -299,7 +299,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if s.credit {
 		s.filled[out] = true
 	}
-	s.fills[in] = min(s.fills[in]+1, math.MaxUint8)
+	if s.fills[in] < math.MaxUint8 {
+		s.fills[in]++
+	}
 	if s.repeat[in] != 0 {
 		// the front's fill memory rises by the input rounded up to the board unit (PropAMMFront._evaluate)
 		var units, rem uint256.Int

@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -172,4 +173,23 @@ func TestChainAWordRefillsTheSideAtTheSecondFill(t *testing.T) {
 	_, extra = chCaseSim(t, l2, blk)
 	require.NotNil(t, extra.Repeat)
 	assert.Equal(t, uint8(repeatOwn), extra.Repeat.Kind[0])
+}
+
+// The bucket margin counts a direction's fills in a uint8: it stops at 255 and does not wrap to 0, which would drop the
+// margin to 2 units.
+func TestChainTheFillCountStopsAt255(t *testing.T) {
+	l := chCase()
+	sim, _ := chCaseSim(t, l, chBlock{nowMs: chNow0})
+	one := pool.UpdateBalanceParams{TokenAmountIn: pool.TokenAmount{Token: chTokens[1], Amount: big.NewInt(1)},
+		TokenAmountOut: pool.TokenAmount{Token: chTokens[0], Amount: big.NewInt(1)}}
+	for range 255 {
+		sim.UpdateBalance(one)
+	}
+	require.Equal(t, uint8(255), sim.fills[1])
+	margin := new(uint256.Int).Set(sim.poolSlack(1))
+	for range 3 {
+		sim.UpdateBalance(one)
+	}
+	assert.Equal(t, uint8(255), sim.fills[1], "the count stops at 255")
+	assert.Equal(t, margin, sim.poolSlack(1), "and the margin with it")
 }
