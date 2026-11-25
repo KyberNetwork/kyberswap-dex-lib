@@ -219,8 +219,9 @@ func refillsLater(word, board, controls *big.Int, bid bool) bool {
 
 // repeatOf is a listing's Repeat: for each direction with a ladder, its input's board unit and what its ladder proves
 // of a later fill in one route (repeatKind). Nil where no direction's proves anything. A direction whose side's word
-// may refill it at a later fill (refillsLater) proves nothing: it takes one fill a route.
-func repeatOf(v DoorView, r rungRead, sizes [2][]*big.Int, ladders [2][]Point, samples [2][][]*big.Int) *Repeat {
+// may refill it at a later fill (refillsLater) proves nothing: it takes one fill a route. So does the base-in direction
+// of a pool that takes a fee (fee, takesFee): the fee comes off the quote's room, which that direction pays from.
+func repeatOf(v DoorView, r rungRead, fee bool, sizes [2][]*big.Int, ladders [2][]Point, samples [2][][]*big.Int) *Repeat {
 	var rep Repeat
 	for dir := range 2 {
 		// the side's unit, and its depth post of the version whose fill memory this reads (rungEdges)
@@ -230,7 +231,8 @@ func repeatOf(v DoorView, r rungRead, sizes [2][]*big.Int, ladders [2][]Point, s
 			d0, board = v.Depth[0], r.board[0]
 		}
 		exp, ok := boardExp(v.PairWord, bid)
-		if !ok || bits(d0, 0, 4) != 1 || refillsLater(v.Word, board, r.controls, bid) {
+		if !ok || bits(d0, 0, 4) != 1 || refillsLater(v.Word, board, r.controls, bid) ||
+			fee && bid {
 			continue
 		}
 		rep.Unit[dir], rep.Kind[dir] = exp, repeatKind(sizes[dir], ladders[dir], samples[dir])

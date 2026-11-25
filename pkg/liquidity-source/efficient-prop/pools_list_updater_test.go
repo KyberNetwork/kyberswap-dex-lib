@@ -19,10 +19,12 @@ import (
 var (
 	testFront   = common.HexToAddress("0x0000000000403aeb66691063cc2fd42e71d6acd6")
 	testFactory = common.HexToAddress("0x39ed9993449c96503f6a629ccd2bb5f132d7cc93")
-	testWETH    = common.HexToAddress("0x4200000000000000000000000000000000000006")
-	testUSDC    = common.HexToAddress("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913")
-	testPoolA   = common.HexToAddress("0x7000000000000000000000000000000000000a11")
-	testPoolB   = common.HexToAddress("0x1111111111111111111111111111111111111111")
+	// testFeeFactory is the Factory of the test pools: it holds their fee rates (feeFactoryABI)
+	testFeeFactory = common.HexToAddress("0x5e11e5000000000000000000000000000000fee1")
+	testWETH       = common.HexToAddress("0x4200000000000000000000000000000000000006")
+	testUSDC       = common.HexToAddress("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913")
+	testPoolA      = common.HexToAddress("0x7000000000000000000000000000000000000a11")
+	testPoolB      = common.HexToAddress("0x1111111111111111111111111111111111111111")
 	// testSource is a price source the test config approves, registered as source 1, as source 65,538 and, guarded,
 	// as source 4; testOther one it does not, registered guarded as source 2; testThird one it does not, registered as
 	// source 3 and as source 65,537, whose low 16 bits name source 1
@@ -392,6 +394,6 @@ func TestListerReadsTheDoorsInBatches(t *testing.T) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	for _, k := range n.multis {
-		assert.LessOrEqual(t, k, 4*scanBatch)
+		assert.LessOrEqual(t, k, 5*scanBatch) // four immutables and the pool's factory a door
 	}
 }

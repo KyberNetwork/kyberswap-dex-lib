@@ -10,6 +10,10 @@ type StaticExtra struct {
 	Custody string `json:"custody"`
 	// Door is the listing's door, the pool's address.
 	Door string `json:"door"`
+	// Factory is the Factory of the listing's pool (its factory()), read where the listing is scanned: the contract
+	// that holds the pool's spread and notional rates. Empty where that read failed, or on a pool listed before it
+	// was read: such a pool is read as taking a fee (takesFee).
+	Factory string `json:"factory,omitempty"`
 	// Mode is the adapter's fill mode, from the front's config: 0 the door, 1 the front (Front.FillMode).
 	Mode uint8 `json:"mode"`
 }

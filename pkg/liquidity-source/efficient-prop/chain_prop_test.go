@@ -502,10 +502,9 @@ func chRefresh(t *PoolTracker, l *chListing, p entity.Pool, blocks []chBlock, la
 		extra.Ladders[dir], _ = collectClassedRun(points[dir], outputs, ok, nil)
 		st.grid = max(st.grid, len(points[dir]))
 	}
-	// a listing whose pool takes a fee in the token it pays out is named in its front's config (OneFillListings): it
-	// takes one fill a route
-	if layout && l.class != "fee" {
-		extra.Repeat = repeatOf(v, r, points, extra.Ladders, samples)
+	// the pool's fee as the head read finds it: a pool with a spread rate, a notional rate or an owed fee takes one
+	if layout {
+		extra.Repeat = repeatOf(v, r, l.class == "fee", points, extra.Ladders, samples)
 	}
 	b, _ := json.Marshal(extra)
 	p.Extra = string(b)

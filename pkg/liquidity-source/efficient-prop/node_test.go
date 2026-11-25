@@ -627,6 +627,12 @@ type fakeChain struct {
 	impl common.Address
 	// noSloads: the front does not answer extSloads
 	noSloads bool
+	// the pool's fee as the chain reads it (takesFee): feeRates is the Factory's spreadFeeRatesOf(pool) word and feeShare
+	// the pool's operator share, bp, both zero where unset (a pool that takes no fee); feeBreak, where set, breaks one
+	// read: "rates-revert", "rates-short", "share-revert", "share-short" or "factory-revert"
+	feeRates *big.Int
+	feeShare uint16
+	feeBreak string
 	// baseTime is where the chain's millisecond-time contract (BaseTime) answers; testBaseTime where unset
 	baseTime common.Address
 	// holdMs is each price lane's HOLD_MS(), by its address; a lane not in it reverts the call
@@ -857,6 +863,9 @@ func (c *fakeChain) respond(to common.Address, data []byte, at, number uint64, s
 		}
 		return false, nil
 	}
+	if ok, ret := c.fee(to, data); ok != nil {
+		return *ok, ret
+	}
 	if hold, ok := c.holdMs[to]; ok {
 		if m, err := laneABI.MethodById(data[:4]); err == nil && m.Name == "HOLD_MS" {
 			return true, packOut(laneABI, "HOLD_MS", big.NewInt(hold))
@@ -956,6 +965,51 @@ func (c *fakeChain) respond(to common.Address, data []byte, at, number uint64, s
 		return true, packOut(doorABI, "quoteFillable", fill, out)
 	}
 	return false, nil
+}
+
+// fee answers the three views that read a pool's fee: factory() and operatorShare() on any pool, and
+// spreadFeeRatesOf(pool) on testFeeFactory; nil where the call is none of them.
+func (c *fakeChain) fee(to common.Address, data []byte) (*bool, []byte) {
+	yes, no := true, false
+	if len(data) < 4 {
+		return nil, nil
+	}
+	if to == testFeeFactory {
+		if m, err := feeFactoryABI.MethodById(data[:4]); err == nil && m.Name == "spreadFeeRatesOf" {
+			switch c.feeBreak {
+			case "rates-revert":
+				return &no, nil
+			case "rates-short":
+				return &yes, []byte{1, 2, 3}
+			}
+			rates := c.feeRates
+			if rates == nil {
+				rates = new(big.Int)
+			}
+			return &yes, packOut(feeFactoryABI, "spreadFeeRatesOf", rates)
+		}
+		return nil, nil
+	}
+	m, err := poolFeeABI.MethodById(data[:4])
+	if err != nil {
+		return nil, nil
+	}
+	switch m.Name {
+	case "factory":
+		if c.feeBreak == "factory-revert" {
+			return &no, nil
+		}
+		return &yes, packOut(poolFeeABI, "factory", testFeeFactory)
+	case "operatorShare":
+		switch c.feeBreak {
+		case "share-revert":
+			return &no, nil
+		case "share-short":
+			return &yes, []byte{1, 2, 3}
+		}
+		return &yes, packOut(poolFeeABI, "operatorShare", c.feeShare, uint16(0), big.NewInt(0))
+	}
+	return nil, nil
 }
 
 // quoteAt is the door's quote of listing l in direction dir in a block of second at and number, on the head's state.

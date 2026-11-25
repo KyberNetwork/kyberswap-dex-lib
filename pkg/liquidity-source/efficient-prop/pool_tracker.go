@@ -470,7 +470,7 @@ func (t *PoolTracker) GetNewPoolState(
 		} else if layout && !f.oneFill(staticExtra.Listing) {
 			// a direction takes a further fill a route where its ladder proves what one pays; its board unit is read
 			// by the layout
-			extra.Repeat = repeatOf(v, h.rungs, points, extra.Ladders, samples)
+			extra.Repeat = repeatOf(v, h.rungs, h.fee, points, extra.Ladders, samples)
 		}
 		// valid to the end of the window sampled, never later: route finding checks no other bound once the
 		// simulator is built
@@ -583,6 +583,11 @@ func (t *PoolTracker) readHead(ctx context.Context, p entity.Pool, se StaticExtr
 	var words [][32]byte
 	req.AddCall(&ethrpc.Call{ABI: slotsABI, Target: se.Front, Method: "extSloads",
 		Params: []any{rungSlots(se.Listing)}}, []any{&words})
+	var ratesOut *big.Int
+	var shareRead shareOut
+	req.AddCall(&ethrpc.Call{ABI: feeFactoryABI, Target: common.HexToAddress(se.Factory).Hex(), Method: "spreadFeeRatesOf",
+		Params: []any{custody}}, []any{&ratesOut})
+	req.AddCall(&ethrpc.Call{ABI: poolFeeABI, Target: custody.Hex(), Method: "operatorShare"}, []any{&shareRead})
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return h, err
@@ -593,6 +598,19 @@ func (t *PoolTracker) readHead(ctx context.Context, p entity.Pool, se StaticExtr
 	h.result, h.block = resp.Result, resp.BlockNumber
 	if len(h.result) == headReads && h.result[6] {
 		h.rungs = rungReadOf(words)
+	}
+	if len(h.result) == headReads {
+		// a call that reverted leaves its output nil: read as a fee
+		var rates *big.Int
+		var share *shareOut
+		if h.result[7] {
+			rates = ratesOut
+		}
+		if h.result[8] {
+			share = &shareOut{}
+			*share = shareRead
+		}
+		h.fee = takesFee(rates, share)
 	}
 	if resp.Request != nil && resp.Request.RawCallMsg.To != nil {
 		multicall := *resp.Request.RawCallMsg.To

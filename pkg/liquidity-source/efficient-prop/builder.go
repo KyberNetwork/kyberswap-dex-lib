@@ -323,16 +323,18 @@ func pick(answers []answer, l listingSlots, carryLife bool, need ...common.Addre
 
 // headRead is a listing's head read: its doorView, its pool's balances of both tokens, the front's clock, each side's
 // top (the door's quoteFillable of the most the front takes) and the words its rung boundaries are read from (rungs),
-// result saying which of the seven answered, the block they were read at and the multicall that read them (nil where
+// result saying which of the nine answered, the block they were read at and the multicall that read them (nil where
 // the node's answer did not name it). On a front read through /state, carried is whether the listing's update in the
 // answer is stamped with the block before the target's, which a fill reads in the target block alone
 // (readBuilderHead).
 type headRead struct {
-	view      doorViewOut
-	balances  [2]*big.Int
-	clock     frontClock
-	tops      [2]fillableOut
-	rungs     rungRead
+	view     doorViewOut
+	balances [2]*big.Int
+	clock    frontClock
+	tops     [2]fillableOut
+	rungs    rungRead
+	// fee is whether the listing's pool is read as taking a fee (takesFee)
+	fee       bool
 	result    []bool
 	block     *big.Int
 	multicall *common.Address
@@ -348,9 +350,10 @@ type headRead struct {
 }
 
 // headReads is how many calls a head read makes (headCalls).
-const headReads = 7
+const headReads = 9
 
-// headCalls are a listing's seven head reads, in headRead's order.
+// headCalls are a listing's seven head reads, in headRead's order. The caller adds the two that read its pool's fee
+// (feeCalls), which are the eighth and ninth of the head read (headReads).
 func headCalls(front, door common.Address, listing uint32, tokens [2]common.Address, custody common.Address,
 	maxIn *big.Int) []call {
 	calls := []call{{abi: &frontABI, target: front, method: "doorView", params: []any{big.NewInt(int64(listing))}}}
@@ -479,6 +482,7 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 		return h, o, false, nil
 	}
 	calls := headCalls(front, door, se.Listing, tokens, common.HexToAddress(se.Custody), maxIn)
+	calls = append(calls, feeCalls(common.HexToAddress(se.Factory), common.HexToAddress(se.Custody))...)
 	head := len(calls)
 	calls = append(calls, blockCalls(multicall, o)...)
 	slotsAt := len(calls)
@@ -521,6 +525,7 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 		}
 	}
 	h.rungs = unpackRungRead(rets[6])
+	h.fee = feeOf(rets[7], rets[8])
 	if !ahead || !readsBlock(rets[head:slotsAt], o, o.number) {
 		return h, o, false, nil
 	}
