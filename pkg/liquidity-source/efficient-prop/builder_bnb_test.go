@@ -82,7 +82,10 @@ func msCalls(n *node) int {
 // state is valid to the target block's time in ms, and route finding stops 100 ms before it (BNB Chain's allowance).
 func TestBNBSamplesTheTargetBlockAtTheHeadsMillisecondsPlusOneBlock(t *testing.T) {
 	chain := bnbChain()
-	now := uint64(time.Now().Unix())
+	// the head's second is the one after the wall clock's, so the state's end less the allowance, now+1.050, comes
+	// 1.051 to 2.050 s after the clock is read, whatever its moment in the second: the simulator's stale check below,
+	// the one check that reads the wall clock, has over a second (in the clock's own second it had 0.050 to 1.050 s)
+	now := uint64(time.Now().Unix()) + 1
 	headMs := now*1000 + 700
 	targetMs := headMs + 450 // in the second after the head's
 	n := bnbNode(t, chain, 1234, headMs, true, nil)
