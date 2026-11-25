@@ -84,6 +84,17 @@ func (b *fakeBook) fill(amountIn *big.Int) (*big.Int, error) {
 
 func shl(v uint64, n uint) *big.Int { return new(big.Int).Lsh(new(big.Int).SetUint64(v), n) }
 
+// amount24 is the front's 24-bit amount at or under v, an 18-bit mantissa times ten to a 6-bit exponent, and the
+// amount it stands for (PropAMMLaneLib.amount24).
+func amount24(v *big.Int) (field uint64, amount *big.Int) {
+	m, e := new(big.Int).Set(v), uint64(0)
+	for m.BitLen() > 18 {
+		m.Quo(m, big.NewInt(10))
+		e++
+	}
+	return m.Uint64() | e<<18, m.Mul(m, pow10(uint(e)))
+}
+
 func pow10(e uint) *big.Int { return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(e)), nil) }
 
 // depth is the side's two depth words (PropAMMWords: depth).
@@ -248,7 +259,12 @@ func (b *fakeBook) top() *big.Int {
 func (b *fakeBook) seen() (dir int, v DoorView, r rungRead) {
 	v = zeroView()
 	d0, d1 := b.depth()
-	r = rungRead{board: [2]*big.Int{new(big.Int), new(big.Int)}, controls: new(big.Int), ok: true}
+	r = rungRead{board: [2]*big.Int{new(big.Int), new(big.Int)}, controls: new(big.Int), settings: new(big.Int),
+		ok: true}
+	if b.minFill != nil {
+		field, _ := amount24(b.minFill)
+		r.settings = shl(field, 160)
+	}
 	v.PairWord = big.NewInt(1 << 8)
 	if b.bid {
 		v.PairWord.Or(v.PairWord, shl(uint64(b.unitExp), 112))
@@ -322,7 +338,9 @@ func randomBook(rng *rand.Rand, bid bool) *fakeBook {
 		if bid {
 			leg = full
 		}
-		b.minFill = new(big.Int).Rand(rng, new(big.Int).Add(new(big.Int).Quo(leg, big.NewInt(50)), big.NewInt(1)))
+		// an amount the listing's settings can hold
+		_, b.minFill = amount24(new(big.Int).Rand(rng, new(big.Int).Add(new(big.Int).Quo(leg, big.NewInt(50)),
+			big.NewInt(1))))
 		if rng.Intn(5) == 0 {
 			// the pool's room ends inside the side
 			b.outBound = new(big.Int).Rand(rng, full)
@@ -361,7 +379,7 @@ func bookLadder(b *fakeBook, sizes []*big.Int) []Point {
 }
 
 // bookGrid is the sizes the tracker asks a side at in a refresh that follows a state with ladder prev: its grid and
-// the side's top, and with edges, the side's rung boundaries.
+// the side's top, and with edges, the side's rung boundaries and the sizes at its minimum fill.
 func bookGrid(b *fakeBook, prev []Point, edges bool) []*big.Int {
 	dir := 1
 	if b.bid {
@@ -375,6 +393,14 @@ func bookGrid(b *fakeBook, prev []Point, edges bool) []*big.Int {
 	}
 	if edges {
 		sizes = withEdges(sizes, b.edges())
+		var first Point
+		if len(prev) > 0 {
+			first = prev[0]
+		}
+		_, v, r := b.seen()
+		for _, size := range minSizes(v, dir, r, first) {
+			sizes = withSize(sizes, size)
+		}
 	}
 	return sizes
 }
@@ -744,4 +770,119 @@ func TestTrackerKeepsTheOldGridUnderAnUnknownImplementation(t *testing.T) {
 			"direction %d: the listed implementation adds the boundaries and each rung's middle alone", dir)
 		assert.Greater(t, len(withEdges.Ladders[dir]), len(old.Ladders[dir]))
 	}
+}
+
+// The minimum fill is read from the listing's settings word as the front packs it, and the sizes at it are the input
+// itself with the quote in, and with the base in the two inputs that bracket the least one paying it, from the last
+// ladder's first point.
+func TestMinSizes(t *testing.T) {
+	assert.Zero(t, minFill(nil).Sign())
+	assert.Equal(t, big.NewInt(50e6), minFill(shl(5|7<<18, 160)), "mantissa 5, exponent 7")
+	all := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
+	all.Xor(all, shl(1<<24-1, 160))
+	assert.Zero(t, minFill(all).Sign(), "no other bit of the word is read")
+	field, amount := amount24(big.NewInt(123_456_789))
+	assert.Equal(t, big.NewInt(123_456_000), amount)
+	assert.Equal(t, amount, minFill(shl(field, 160)))
+
+	v := zeroView()
+	v.PairWord = big.NewInt(1 << 8) // the base is token 0: direction 0 has the base in
+	r := rungRead{settings: shl(5|7<<18, 160), ok: true}
+	assert.Equal(t, []*big.Int{big.NewInt(50e6)}, minSizes(v, 1, r, Point{}), "the quote in: the input itself")
+	assert.Empty(t, minSizes(v, 0, r, Point{}), "the base in, no ladder yet")
+	// 0.03 WETH paid 90.000001 USDC: 50 USDC takes over 50e6 * 3e16 / 90000002 and at most 50e6 * 3e16 / 90000001
+	first := Point{uint256.NewInt(3e16), uint256.NewInt(90_000_001)}
+	assert.Equal(t, []*big.Int{bi("16666666296296305"), bi("16666666481481484")}, minSizes(v, 0, r, first))
+	v.PairWord = new(big.Int) // the base is token 1
+	assert.Equal(t, []*big.Int{big.NewInt(50e6)}, minSizes(v, 0, r, Point{}))
+	assert.Empty(t, minSizes(v, 0, rungRead{settings: new(big.Int), ok: true}, first), "no minimum")
+	assert.Empty(t, minSizes(v, 0, rungRead{settings: r.settings}, first), "no storage read")
+}
+
+// With the sizes at the minimum fill the ladder starts where the listing does: with the quote in at the minimum
+// itself from the first refresh, with the base in within a few refreshes at an input the door refuses a little
+// under. Without them it starts at the grid's first size the door fills, and every smaller fill goes unquoted.
+func TestLadderStartsAtTheMinimumFill(t *testing.T) {
+	rng := rand.New(rand.NewSource(41))
+	var asks, bids int
+	var before, after float64
+	for trial := range 600 {
+		b := randomBook(rng, trial%2 == 0)
+		b.outBound = nil
+		if b.minFill == nil || b.minFill.Sign() == 0 {
+			continue
+		}
+		old := refreshed(b, false)
+		points := bookLadder(b, bookGrid(b, nil, true))
+		if len(old) == 0 || len(points) == 0 {
+			continue
+		}
+		least := b.minFill
+		if b.bid {
+			for range 3 {
+				points = bookLadder(b, bookGrid(b, points, true))
+			}
+			// the least input that pays the minimum: the door fills the first point and refuses 0.1% under it
+			x := points[0][0].ToBig()
+			under := new(big.Int).Sub(x, new(big.Int).Add(new(big.Int).Quo(x, big.NewInt(1000)), big.NewInt(2)))
+			if _, err := b.quote(under); under.Sign() > 0 {
+				require.ErrorIs(t, err, errBelowMinimum, "trial %d: the ladder starts at %s and the door fills %s", trial,
+					x, under)
+			}
+			least = x
+			bids++
+		} else {
+			if _, err := b.quote(b.minFill); err != nil {
+				continue // the rungs pay nothing for the minimum
+			}
+			require.Equal(t, b.minFill, points[0][0].ToBig(), "trial %d: the ladder starts at the minimum", trial)
+			asks++
+		}
+		was, _ := new(big.Rat).SetFrac(old[0][0].ToBig(), least).Float64()
+		now, _ := new(big.Rat).SetFrac(points[0][0].ToBig(), least).Float64()
+		before, after = before+was, after+now
+	}
+	assert.Greater(t, asks, 150)
+	assert.Greater(t, bids, 150)
+	t.Logf("%d sides: the first point is %.2f times the least fill in the mean on the grid as before, %.4f with the "+
+		"sizes at the minimum", asks+bids, before/float64(asks+bids), after/float64(asks+bids))
+}
+
+// The tracker reads the minimum fill in the head read's storage call and starts each ladder there: 50 USDC in with
+// the quote in, and with the base in, from the second refresh, the least WETH that pays 50 USDC.
+func TestTrackerStartsTheLadderAtTheMinimumFill(t *testing.T) {
+	chain, _ := rungChain()
+	l := chain.listings[1]
+	l.settings = shl(5|7<<18, 160)
+	l.sides[0].minOut, l.minIn[1] = 50e6, 50e6
+	n := chain.node(t, 1234)
+	p := track(t, n, listed(t, n))
+	e := extraOf(t, p)
+	assert.Equal(t, "50000000", e.Ladders[1][0][0].Dec(), "the quote in starts at the minimum")
+	assert.Greater(t, e.Ladders[0][0][0].Uint64(), uint64(17e15), "the base in starts on the grid at first")
+
+	multis := len(n.multis)
+	e = extraOf(t, track(t, n, p))
+	first := e.Ladders[0][0]
+	assert.GreaterOrEqual(t, first[1].Uint64(), uint64(50e6))
+	_, err := l.sides[0].quote(new(big.Int).Sub(first[0].ToBig(), big.NewInt(1e9)))
+	assert.ErrorIs(t, err, errBelowMinimum, "a billionth of a WETH less pays under the minimum")
+
+	// under an implementation not listed the settings are not read: the grid as it was
+	other, _ := rungChain()
+	other.listings[1].settings, other.listings[1].minIn[1] = l.settings, 50e6
+	other.impl = common.HexToAddress("0x6000000000000000000000000000000000000002")
+	m := other.node(t, 1234)
+	q := listed(t, m)
+	from := len(m.calls())
+	track(t, m, q)
+	assert.False(t, quotedSizes(t, m, from)[1]["50000000"])
+	// and the read is no request of its own
+	plain := trackedChain()
+	plain.listings[1].sides = l.sides
+	k := plain.node(t, 1234)
+	r := track(t, k, listed(t, k))
+	kMultis := len(k.multis)
+	track(t, k, r)
+	assert.Equal(t, len(k.multis)-kMultis, len(n.multis)-multis)
 }

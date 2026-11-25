@@ -20,6 +20,8 @@ import (
 // 9 for the quote in: its depth tag (bits 4-51) and the board units filled (bits 52-91), which count only while the
 // tag is the depth word's nonce (bits 12-59), and not where the standing word refills the side (refills).
 const (
+	// settingsWord is the record word of the listing's settings (P1): its minimum fill in bits 160-183
+	settingsWord = 1
 	boardBidWord = 8
 	boardAskWord = 9
 
@@ -36,20 +38,22 @@ const (
 var slotsABI = mustABI([]byte(`[{"type":"function","name":"extSloads","stateMutability":"view",` +
 	`"inputs":[{"name":"slots","type":"bytes32[]"}],"outputs":[{"name":"","type":"bytes32[]"}]}]`))
 
-// rungRead is what the rung boundaries need beside doorView, read from the front's storage in the head read: the two
-// sides' board words (0: the base in, 1: the quote in), the listing's controls word and the front proxy's
-// implementation, all at the head read's block. ok is whether the front answered all four.
+// rungRead is what the rung boundaries and the minimum fill need beside doorView, read from the front's storage in
+// the head read: the two sides' board words (0: the base in, 1: the quote in), the listing's controls word, the front
+// proxy's implementation and the listing's settings word, all at the head read's block. ok is whether the front
+// answered all five.
 type rungRead struct {
 	board          [2]*big.Int
 	controls       *big.Int
 	implementation common.Address
+	settings       *big.Int
 	ok             bool
 }
 
 // rungSlots are the slots of a listing's rungRead, in its order.
 func rungSlots(listing uint32) [][32]byte {
 	return [][32]byte{listingSlot(listing, boardBidWord), listingSlot(listing, boardAskWord),
-		controlsSlot(listing), implementationSlot}
+		controlsSlot(listing), implementationSlot, listingSlot(listing, settingsWord)}
 }
 
 // rungCall is the head read's call for a listing's rungRead: one more call of the head multicall, no request of its
@@ -60,7 +64,7 @@ func rungCall(front common.Address, listing uint32) call {
 
 // rungReadOf is a rungRead from extSloads' answer for rungSlots; not ok for any other answer.
 func rungReadOf(words [][32]byte) (r rungRead) {
-	if len(words) != 4 {
+	if len(words) != 5 {
 		return r
 	}
 	for i := range r.board {
@@ -68,6 +72,7 @@ func rungReadOf(words [][32]byte) (r rungRead) {
 	}
 	r.controls = new(big.Int).SetBytes(words[2][:])
 	r.implementation = common.BytesToAddress(words[3][:])
+	r.settings = new(big.Int).SetBytes(words[4][:])
 	r.ok = true
 	return r
 }
@@ -262,4 +267,43 @@ func repeatKind(sizes []*big.Int, run []Point, samples [][]*big.Int) uint8 {
 		return repeatOwn
 	}
 	return repeatSteady
+}
+
+// minFill is the listing's minimum fill, from its settings word: a 24-bit amount at bits 160-183, an 18-bit mantissa
+// times ten to a 6-bit exponent (PropAMMLaneLib.amount24), in base units of the pair's quote token. The front counts
+// it on a fill's quote leg: the output of a fill with the base in, the input of one with the quote in.
+func minFill(settings *big.Int) *big.Int {
+	m := new(big.Int).SetUint64(bits(settings, 160, 18))
+	return m.Mul(m, new(big.Int).Exp(big.NewInt(10), new(big.Int).SetUint64(bits(settings, 178, 6)), nil))
+}
+
+// minSizes are sizes at direction dir's minimum fill, so its ladder starts where the listing does and nothing it
+// fills is under the first point. With the quote in, the minimum is an input: that size. With the base in it is an
+// output, and the least input that pays it is not read from any word: the sizes are the two that bracket it on the
+// line from nothing to the last ladder's first point (first), which a concave output is never under, so the larger
+// pays the minimum while the state stands, and each refresh moves the first point down to it. None on a first
+// refresh of the base in, nor where the listing has no minimum. They are sizes to ask the door at, as the
+// boundaries are.
+func minSizes(v DoorView, dir int, r rungRead, first Point) []*big.Int {
+	if !r.ok || v.PairWord == nil {
+		return nil
+	}
+	m := minFill(r.settings)
+	if m.Sign() == 0 {
+		return nil
+	}
+	if !sideIsBid(v.PairWord, dir) {
+		return []*big.Int{m}
+	}
+	if first[0] == nil || first[1] == nil || first[0].IsZero() || first[1].IsZero() {
+		return nil
+	}
+	x, y := first[0].ToBig(), first[1].ToBig()
+	// the least input that pays m is over m * x / (y + 1) and at most m * x / y, rounded up
+	mx := new(big.Int).Mul(m, x)
+	lo := new(big.Int).Quo(mx, new(big.Int).Add(y, big.NewInt(1)))
+	lo.Add(lo, big.NewInt(1))
+	hi := new(big.Int).Add(mx, y)
+	hi.Sub(hi, big.NewInt(1)).Quo(hi, y)
+	return []*big.Int{lo, hi}
 }

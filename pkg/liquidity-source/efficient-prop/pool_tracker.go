@@ -377,6 +377,10 @@ func (t *PoolTracker) GetNewPoolState(
 	layout := f != nil && h.rungs.ok && f.implements(h.rungs.implementation)
 	var points [2][]*big.Int
 	if quoted {
+		var last Extra
+		if layout && p.Extra != "" {
+			_ = json.Unmarshal([]byte(p.Extra), &last)
+		}
 		points = [2][]*big.Int{t.probeSizes(p, 0, gridReserve(p, 1, reserves[1], plan != nil)),
 			t.probeSizes(p, 1, gridReserve(p, 0, reserves[0], plan != nil))}
 		for dir := range points {
@@ -387,6 +391,16 @@ func (t *PoolTracker) GetNewPoolState(
 			// a point on every rung boundary: between two neighbouring sizes the walk is then on one rung
 			if layout {
 				points[dir] = withEdges(points[dir], rungEdges(v, dir, h.rungs))
+				// and one at the listing's minimum fill, so the ladder starts where the listing does
+				var first Point
+				if l := last.ladders()[dir]; len(l) > 0 {
+					first = l[0]
+				}
+				for _, size := range minSizes(v, dir, h.rungs, first) {
+					if size.Sign() > 0 && size.Cmp(maxPointInput) < 0 {
+						points[dir] = withSize(points[dir], size)
+					}
+				}
 			}
 		}
 	}

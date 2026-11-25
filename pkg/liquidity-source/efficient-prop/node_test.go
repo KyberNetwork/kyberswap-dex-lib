@@ -497,6 +497,12 @@ type fakeListing struct {
 	// boards, where set, are the listing's board words as the front stores them (record words 8 and 9): the fill
 	// memory of the side with the base in, and of the side with the quote in
 	boards [2]*big.Int
+	// settings, where set, is the listing's settings word as the front stores it (record word 1): its minimum fill in
+	// bits 160-183
+	settings *big.Int
+	// minIn, where a direction's is set, is the least input the door fills of it: the minimum fill of the side with
+	// the quote in, which the front counts on the input
+	minIn [2]int64
 }
 
 // fakeRoute is a credit-mode listing's side past its pool's custody: a size above the custody's cut fills through the
@@ -963,6 +969,9 @@ func (c *fakeChain) quoteAtSub(l *fakeListing, dir int, amountIn *big.Int, at, n
 	if l.shrinkAt != 0 && at >= l.shrinkAt && amountIn.Cmp(big.NewInt(l.shrinkTo)) > 0 {
 		return nil, errNoFill
 	}
+	if l.minIn[dir] != 0 && amountIn.Cmp(big.NewInt(l.minIn[dir])) < 0 {
+		return nil, errBelowMinimum
+	}
 	nowMs, ageNow := c.clockAtSub(at, number, sub)
 	if l.stale(ageNow) {
 		return nil, errNoFill
@@ -1037,6 +1046,9 @@ func (c *fakeChain) storage(a common.Address, slot common.Hash) common.Hash {
 			if board != nil && recordSlot(id, int64(boardBidWord+k)) == slot {
 				return common.BigToHash(board)
 			}
+		}
+		if l.settings != nil && recordSlot(id, settingsWord) == slot {
+			return common.BigToHash(l.settings)
 		}
 	}
 	for id, e := range c.sources {

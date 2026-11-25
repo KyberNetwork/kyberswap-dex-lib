@@ -60,6 +60,10 @@ block:
   own). The grid holds the middle of each rung too. The boundaries are sizes to ask the door at. They are never
   prices. They are read only while the front runs an implementation the config lists. Under any other the grid is
   the shared one alone.
+- The grid holds a size at the listing's minimum fill, so a ladder starts where the listing does. The minimum is in
+  the listing's settings word, read in that same storage call. With the quote token in it is an input, and the size
+  is the minimum itself. With the base token in it is an output: the sizes are the two inputs that bracket it on the
+  last ladder's first point, so the ladder reaches the minimum from the second refresh.
 - The ladder holds for its whole window. A listing's levels may widen with its quote's age, so every size is sampled
   again at the window's last block (and around a premium's end, and at each block of a guarded source's hold) by an
   `eth_call` with a block override, and the least output of each size is kept. Each sample reads its block's time and
