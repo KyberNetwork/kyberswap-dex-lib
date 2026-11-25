@@ -194,17 +194,33 @@ func TestFetchState_MergeWindow(t *testing.T) {
 	}
 }
 
-// TestFetchKeys: keys are the union across regions; slot/blockNumber are not keys.
-func TestFetchKeys(t *testing.T) {
+// TestFetchVenues: venues are merged across regions by quote address, priced addresses unioned.
+func TestFetchVenues(t *testing.T) {
 	t.Parallel()
-	a, b := "0x00000000000000000000000000000000000000a1", "0x00000000000000000000000000000000000000b2"
-	entry := json.RawMessage(`{"stateOverride":{}}`)
-	clients := []*rpc.Client{
-		titanServer(t, 0, map[string]json.RawMessage{a: entry}),
-		titanServer(t, 0, map[string]json.RawMessage{a: entry, b: entry}),
+	server := func(result string) *rpc.Client {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var req struct {
+				ID json.RawMessage `json:"id"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			_, _ = fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":%s}`, req.ID, result)
+		}))
+		t.Cleanup(srv.Close)
+		c, err := rpc.Dial(srv.URL)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(c.Close)
+		return c
 	}
-	got := FetchKeys(context.Background(), clients, time.Second)
-	if len(got) != 2 {
-		t.Fatalf("want union of 2 keys, got %v", got)
+	const a1, b2, c3 = "0x00000000000000000000000000000000000000a1", "0x00000000000000000000000000000000000000b2", "0x00000000000000000000000000000000000000c3"
+	clients := []*rpc.Client{
+		server(`{"venues":[{"maker":"FluxPool","quoteAddress":"` + a1 + `","pricedAddresses":["` + a1 + `"]}]}`),
+		server(`{"venues":[{"maker":"FluxPool","quoteAddress":"` + a1 + `","pricedAddresses":["` + a1 + `","` + b2 + `"]},` +
+			`{"maker":"Jolt","quoteAddress":"` + c3 + `","pricedAddresses":[]}]}`),
+	}
+	got := FetchVenues(context.Background(), clients, time.Second)
+	if len(got) != 2 || got[0].Maker != "FluxPool" || len(got[0].PricedAddresses) != 2 || got[1].Maker != "Jolt" {
+		t.Fatalf("want 2 merged venues (flux with 2 priced), got %+v", got)
 	}
 }

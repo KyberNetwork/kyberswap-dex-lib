@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"slices"
 	"strings"
 	"time"
 
@@ -131,43 +132,59 @@ collect:
 	return state
 }
 
-// FetchKeys returns the union of the venue keys (contract addresses, "slot" and
-// "blockNumber" excluded) across every client's response. Regions each carry only
-// some entries, so one call can miss a venue; callers cache across calls.
-func FetchKeys(ctx context.Context, clients []*rpc.Client, timeout time.Duration) []common.Address {
+// Venue is one entry of titan_getPammVenues: the maker's name and the addresses it quotes
+// through. PricedAddresses includes QuoteAddress and may hold more contracts than the venue itself.
+type Venue struct {
+	Maker           string
+	QuoteAddress    common.Address
+	PricedAddresses []common.Address
+}
+
+// FetchVenues returns the venues of titan_getPammVenues, merged across every client by
+// QuoteAddress. Regions each carry only some venues, so one call can miss one; callers cache.
+func FetchVenues(ctx context.Context, clients []*rpc.Client, timeout time.Duration) []Venue {
 	if timeout == 0 {
 		timeout = DefaultTimeout
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	results := make(chan map[string]json.RawMessage, len(clients))
+	type response struct {
+		Venues []struct {
+			Maker           string           `json:"maker"`
+			QuoteAddress    common.Address   `json:"quoteAddress"`
+			PricedAddresses []common.Address `json:"pricedAddresses"`
+		} `json:"venues"`
+	}
+	results := make(chan response, len(clients))
 	for _, client := range clients {
 		go func() {
-			var result map[string]json.RawMessage
-			if err := client.CallContext(ctx, &result, "titan_getPammStateOverrides"); err != nil {
+			var result response
+			if err := client.CallContext(ctx, &result, "titan_getPammVenues"); err != nil {
 				logger.WithFields(logger.Fields{"error": err.Error()}).Warn("titan RPC failed")
 			}
 			results <- result
 		}()
 	}
 
-	seen := make(map[common.Address]struct{})
-	var keys []common.Address
+	var venues []Venue
+	byQuote := make(map[common.Address]int)
 	for range clients {
-		for k := range <-results {
-			if k == "slot" || k == "blockNumber" || !common.IsHexAddress(k) {
-				continue
+		for _, v := range (<-results).Venues {
+			i, ok := byQuote[v.QuoteAddress]
+			if !ok {
+				i = len(venues)
+				byQuote[v.QuoteAddress] = i
+				venues = append(venues, Venue{Maker: v.Maker, QuoteAddress: v.QuoteAddress})
 			}
-			if addr := common.HexToAddress(k); addr != (common.Address{}) {
-				if _, ok := seen[addr]; !ok {
-					seen[addr] = struct{}{}
-					keys = append(keys, addr)
+			for _, a := range v.PricedAddresses {
+				if !slices.Contains(venues[i].PricedAddresses, a) {
+					venues[i].PricedAddresses = append(venues[i].PricedAddresses, a)
 				}
 			}
 		}
 	}
-	return keys
+	return venues
 }
 
 // mergeResponses keeps only the responses for the highest block number, then
