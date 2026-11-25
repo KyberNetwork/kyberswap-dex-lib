@@ -46,7 +46,11 @@ type PoolSimulator struct {
 	// seconds after its quote.
 	validUntil uint64
 	allowance  uint64
-	staleCheck bool
+	// validUntilMs and allowanceMs are the same in milliseconds (Extra.ValidUntilMs, AllowanceMs) where the state has
+	// them, else zero: validAt then reads the second figures.
+	validUntilMs uint64
+	allowanceMs  uint64
+	staleCheck   bool
 }
 
 var (
@@ -110,7 +114,7 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 
 	ladders := extra.ladders()
 	if params.Opts.StaleCheck && (len(ladders[0]) > 0 || len(ladders[1]) > 0) &&
-		uint64(time.Now().Unix())+extra.Allowance > extra.ValidUntil {
+		!extra.validAt(uint64(time.Now().UnixMilli())) {
 		return nil, ladder.ErrStale
 	}
 
@@ -123,13 +127,15 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 			Reserves:    make([]*big.Int, 2),
 			BlockNumber: ep.BlockNumber,
 		}},
-		staticExtra: staticExtra,
-		tipCapWei:   extra.TipCapWei,
-		gas:         [2]int64{baseIn, quoteIn},
-		validUntil:  extra.ValidUntil,
-		allowance:   extra.Allowance,
-		staleCheck:  params.Opts.StaleCheck,
-		noneHeld:    [2]bool{extra.NoneHeld&1 != 0, extra.NoneHeld&2 != 0},
+		staticExtra:  staticExtra,
+		tipCapWei:    extra.TipCapWei,
+		gas:          [2]int64{baseIn, quoteIn},
+		validUntil:   extra.ValidUntil,
+		allowance:    extra.Allowance,
+		validUntilMs: extra.ValidUntilMs,
+		allowanceMs:  extra.AllowanceMs,
+		staleCheck:   params.Opts.StaleCheck,
+		noneHeld:     [2]bool{extra.NoneHeld&1 != 0, extra.NoneHeld&2 != 0},
 	}
 	if extra.BaseToken1 {
 		s.gas = [2]int64{quoteIn, baseIn}
@@ -184,7 +190,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if in < 0 || out < 0 || in == out {
 		return nil, ladder.ErrInvalidToken
 	}
-	if s.staleCheck && !s.validAt(uint64(time.Now().Unix())) {
+	if s.staleCheck && !s.validAtMs(uint64(time.Now().UnixMilli())) {
 		return nil, ladder.ErrStale
 	}
 	if s.filled[in] {
@@ -305,7 +311,13 @@ func (s *PoolSimulator) routedFill(info any, in int, amountIn *uint256.Int) bool
 // validAt reports whether a fill quoted in unix second now, landing within the allowance, lands within the sampled
 // window, where the sampled word and depth certainly stand.
 func (s *PoolSimulator) validAt(now uint64) bool {
-	return now+s.allowance <= s.validUntil
+	return s.validAtMs(now * 1000)
+}
+
+// validAtMs is validAt for a quote at unix millisecond now (Extra.validAt).
+func (s *PoolSimulator) validAtMs(now uint64) bool {
+	return Extra{ValidUntil: s.validUntil, Allowance: s.allowance, ValidUntilMs: s.validUntilMs,
+		AllowanceMs: s.allowanceMs}.validAt(now)
 }
 
 // CloneState copies what UpdateBalance writes: the custody and filled arrays are values, and Info.Reserves is

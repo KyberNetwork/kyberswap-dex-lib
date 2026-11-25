@@ -147,8 +147,10 @@ door refuses every size. So on chain 1 the source reads the state the next block
 - **What is quoted.** A listing is quoted only where the answer's block is the head's next and its `slot` the head's
   slot plus one. Every sample runs pinned to the head with the target block's number and time as block overrides and,
   as state overrides, the listing's quote contract and bound price contracts alone.
-- **Validity.** A state is good for its target block alone: `validUntil` is that block's second less
-  `inclusionAllowance` (1 s by default here). Where both the listing and the quote carry, the next block is sampled
+- **Validity.** A state is good for its target block alone, and the simulator holds it to the millisecond: its end
+  (`validUntilMs`) is that block's time and its allowance (`allowanceMs`) is `inclusionAllowance` (1 s by default here),
+  so route finding quotes a fill only while now plus the allowance is not past the end. `validUntil` stays beside them in
+  whole seconds, the end less the allowance, rounded down. Where both the listing and the quote carry, the next block is sampled
   too and the lower output of each size kept.
 - **The `NoWord` exposure.** A route that lands in a block without the maker's update reverts at the front (`NoWord`),
   and the taker pays the reverted transaction's gas: about 83,500 to 87,100 in the adapter's frame through the door on

@@ -261,6 +261,13 @@ func TestBuilderSamplesTheDoorUnderTheTargetBlocksState(t *testing.T) {
 	assert.Equal(t, int64(target), got.Timestamp, "its age runs from the target block's second")
 	assert.Equal(t, target-1, e.ValidUntil, "the target block's second less the 1 s allowance")
 	assert.Zero(t, e.Allowance, "the allowance is taken off validUntil already")
+	assert.Equal(t, target*1000, e.ValidUntilMs, "the end of the state, the target block's time in ms")
+	assert.Equal(t, uint64(1000), e.AllowanceMs, "the config's allowance (1 s on a builder front) in ms")
+	// route finding quotes a fill until the target block's time less the allowance, to the millisecond
+	sim, simErr := NewPoolSimulator(pool.FactoryParams{EntityPool: got, Opts: pool.FactoryOpts{StaleCheck: true}})
+	require.NoError(t, simErr)
+	assert.True(t, sim.validAtMs(target*1000-1000), "at the target time less the allowance")
+	assert.False(t, sim.validAtMs(target*1000-1000+1), "a millisecond after")
 	assert.Equal(t, entity.PoolReserves{"9000000000000000000", "40000000000"}, got.Reserves)
 	l := chain.listings[1]
 	for dir := range 2 {

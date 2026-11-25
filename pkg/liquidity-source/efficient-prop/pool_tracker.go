@@ -318,6 +318,7 @@ func (t *PoolTracker) GetNewPoolState(
 		// its allowance is taken off validUntil (builderWindow); its front's clock must be the block's second, which
 		// a time override places
 		extra.Builder, extra.Allowance = true, 0
+		extra.AllowanceMs = t.cfg.builderAllowance() * 1000
 		extra.NoAsset, extra.AssetQuote = v.BaseIndex != 0 && v.QuoteIndex != 0, v.QuoteIndex == 0
 		quoted = quoted && mapped && clock.ClockMode.Uint64() == clockSeconds
 		if !mapped {
@@ -435,6 +436,11 @@ func (t *PoolTracker) GetNewPoolState(
 			if extra.ValidUntil == 0 || until < extra.ValidUntil {
 				extra.ValidUntil = until
 			}
+		}
+		// the same end in milliseconds, the allowance not yet taken off (until is the second a fill may land in, less
+		// the allowance)
+		if builder && extra.ValidUntil != 0 {
+			extra.ValidUntilMs = extra.ValidUntil*1000 + extra.AllowanceMs
 		}
 	}
 

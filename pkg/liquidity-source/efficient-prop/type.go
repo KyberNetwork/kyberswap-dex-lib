@@ -40,6 +40,13 @@ type Extra struct {
 	// Allowance is the time a routed fill takes to land, s (Config.InclusionAllowance): route finding quotes a fill
 	// only where it lands by ValidUntil.
 	Allowance uint64 `json:"allowance,omitempty"`
+	// ValidUntilMs and AllowanceMs are, on a front read through /state (Builder), the end of the state's validity and
+	// the inclusion allowance in milliseconds: the state is good until ValidUntilMs, its target block's time (or the
+	// next block's where it carries), and route finding quotes a fill only where now plus AllowanceMs is not past it.
+	// ValidUntil stays beside them in whole seconds, rounded down (ValidUntilMs less AllowanceMs, in seconds), for a
+	// reader of the state that predates them; on a front read at the head both are zero.
+	ValidUntilMs uint64 `json:"validUntilMs,omitempty"`
+	AllowanceMs  uint64 `json:"allowanceMs,omitempty"`
 	// Idle is whether the listing is not quoted for a reason no new block lifts (its desk not approved, its fill mode,
 	// its tip cap, its class or credit mode with no gas figure, not live): its refresh is asked for less often
 	// (NextUpdateAt).
@@ -64,7 +71,7 @@ type Extra struct {
 	AssetQuote bool `json:"assetQuote,omitempty"`
 	// Builder is whether the listing's front is read through /state (Config's Front.Titan, a builder chain's): its
 	// ladders hold for the answer's target block, and the next where it carries; its ValidUntil is that block's second
-	// less the inclusion allowance, so its Allowance is 0; and it is refreshed on the wall clock (NextUpdateAt).
+	// less the inclusion allowance, so its Allowance is 0 (the allowance is AllowanceMs); and it is refreshed on the wall clock (NextUpdateAt).
 	Builder bool `json:"builder,omitempty"`
 	// Gas, where set, is the listing's own gas with its base token in ([0]) and with its quote token in ([1]), from
 	// its front's config (Front.ListingGas): it stands in place of the class's figure the flags above pick.
@@ -92,6 +99,16 @@ type Credit struct {
 	// Limit is, per direction, the gas limit its config states for a route fill (CreditListing.RouteLimitBaseIn and
 	// RouteLimitQuoteIn), 0 where it states none; nil where it states none for either.
 	Limit *[2]int64 `json:"limit,omitempty"`
+}
+
+// validAt reports whether a fill quoted at unix millisecond now stands: where the state holds its end and allowance in
+// milliseconds (a front read through /state), while now plus the allowance is not past the end; otherwise the
+// whole-second figures apply to the second now falls in.
+func (e Extra) validAt(now uint64) bool {
+	if e.ValidUntilMs != 0 {
+		return now+e.AllowanceMs <= e.ValidUntilMs
+	}
+	return now/1000+e.Allowance <= e.ValidUntil
 }
 
 // ladders is the listing's ladders: Credit's on a listing with a credit mode, else Ladders.
