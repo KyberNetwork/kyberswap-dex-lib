@@ -32,6 +32,8 @@ type headID struct {
 	number *big.Int
 	hash   common.Hash
 	ms     uint64
+	// time is the head's second (0: not given)
+	time uint64
 }
 
 // sharedHead is one front's head as last probed. Its lock is held through a probe, so the refreshes of the front's
@@ -67,13 +69,15 @@ func (t *PoolTracker) headProbe(ctx context.Context, f *Front) (id headID, ok bo
 	return id, ok
 }
 
-// readHead0 reads the chain's latest block's number and hash from the node, and its milliseconds where it gives them
-// (milliTimestamp). They are taken only where they fall in the head's own second, which readBuilderHead checks
-// against the second the head read answers.
+// readHead0 reads the chain's latest block's number, hash and second from the node, and its milliseconds where it
+// gives them (milliTimestamp). They are taken only where they fall in the head's own second, which readBuilderHead
+// checks against the second the head read answers (planHead; a plan drawn on the header's second before the facts are
+// read stands only where the facts draw the same, headPlan.same).
 func (t *PoolTracker) readHead0(ctx context.Context) (id headID, ok bool) {
 	var res struct {
 		Number *hexutil.Big    `json:"number"`
 		Hash   common.Hash     `json:"hash"`
+		Time   *hexutil.Uint64 `json:"timestamp"`
 		Ms     *hexutil.Uint64 `json:"milliTimestamp"`
 	}
 	if err := t.ethrpcClient.GetETHClient().Client().CallContext(ctx, &res, "eth_getBlockByNumber", "latest",
@@ -81,6 +85,9 @@ func (t *PoolTracker) readHead0(ctx context.Context) (id headID, ok bool) {
 		return id, false
 	}
 	id = headID{number: res.Number.ToInt(), hash: res.Hash}
+	if res.Time != nil {
+		id.time = uint64(*res.Time)
+	}
 	if res.Ms != nil {
 		id.ms = uint64(*res.Ms)
 	}
@@ -116,6 +123,15 @@ type factsHint struct {
 	ids       *big.Int
 }
 
+// guessAt is f as a guess of the facts of head hd, read before they are: f's binding, slots and words, at hd's block and
+// second (and its milliseconds where the probe read them). Its plan stands only where the facts read at hd name the
+// same (headPlan.same).
+func (f *builderFacts) guessAt(hd headID) *builderFacts {
+	g := *f
+	g.block, g.headTime, g.headMs = hd.number, new(big.Int).SetUint64(hd.time), hd.ms
+	return &g
+}
+
 // hint is the factsHint of f.
 func (f *builderFacts) hint() *factsHint {
 	if f == nil || !f.atOK {
@@ -143,11 +159,12 @@ type pricedOut struct {
 }
 
 // headEntry is one listing's cache at one head. hint is the listing's binding as an earlier head's facts named it,
-// and next and guide what its last quoted refresh named for the next (nextAsk, sizeGuide), each carried to the entry
-// of the next head (listingCache.at).
+// prev those facts, and next and guide what its last quoted refresh named for the next (nextAsk, sizeGuide), each
+// carried to the entry of the next head (listingCache.at).
 type headEntry struct {
 	id    headID
 	hint  *factsHint
+	prev  *builderFacts
 	next  *nextAsk
 	guide *sizeGuide
 
@@ -182,7 +199,10 @@ func (c *listingCache) at(door common.Address, id headID) *headEntry {
 	if old != nil {
 		e.hint = old.getHint()
 		old.mu.Lock()
-		e.next, e.guide = old.next, old.guide
+		e.prev, e.next, e.guide = old.facts, old.next, old.guide
+		if e.prev == nil {
+			e.prev = old.prev
+		}
 		old.mu.Unlock()
 	}
 	c.m[door] = e
@@ -218,6 +238,16 @@ type nextAsk struct {
 type sizeGuide struct {
 	extra    string
 	reserves entity.PoolReserves
+}
+
+// getPrev is the facts of the last head this listing's facts were read at, before this entry's.
+func (e *headEntry) getPrev() *builderFacts {
+	if e == nil {
+		return nil
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.prev
 }
 
 func (e *headEntry) getNext() *nextAsk {

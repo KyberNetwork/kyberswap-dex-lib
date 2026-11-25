@@ -223,7 +223,8 @@ func (n *node) answer(m rpcMessage) map[string]any {
 		}
 		block := map[string]any{"number": hexutil.EncodeUint64(n.block),
 			"hash": crypto.Keccak256Hash(common.BigToHash(new(big.Int).SetUint64(n.block)).Bytes(),
-				common.BigToHash(new(big.Int).SetUint64(salt)).Bytes())}
+				common.BigToHash(new(big.Int).SetUint64(salt)).Bytes()),
+			"timestamp": hexutil.EncodeUint64(n.time)}
 		if ms != 0 {
 			block["timestamp"], block["milliTimestamp"] = hexutil.EncodeUint64(ms/1000), hexutil.EncodeUint64(ms)
 		}

@@ -1099,3 +1099,33 @@ func TestBuilderFactsReadAgainWhereTheBindingMoved(t *testing.T) {
 	unserved(t, r.p, "a source not approved")
 	assert.NotEmpty(t, storageReads(r.chain, r.n, sourceEntrySlot(3)), "the new id's entry is read")
 }
+
+// At a new head whose answer is already there, the head read under it is asked while the head's facts are read, on
+// the plan the facts of the head before draw (the listing's binding, slots and source ids, at the new head's block and
+// second): where the facts read name the same plan it stands, and the state is the one a tracker that asked nothing
+// ahead reads. Where they name another (the listing bound since to one of the two price contracts the answer holds),
+// it is asked again on the plan they name.
+func TestBuilderNewHeadAsksTheHeadReadBesideTheFacts(t *testing.T) {
+	r := newHeadRig(t)
+	r.answer(0, 1)
+	r.refresh()
+	r.newHead()
+	r.answer(0, 2)
+	last := r.p
+	d := r.refresh()
+	assert.Equal(t, map[string]int{"eth_call": 2, "eth_getStorageAt": 3, "eth_getBlockByNumber": 1}, d,
+		"the facts in one batch, and beside them the head read with the pinned read in it")
+	samePriced(t, r.fresh(last), r.p, "on the plan the head before drew, the state a read after the facts gives")
+
+	r.chain.listings[1].sourceIds = big.NewInt(int64(printIDs[0]))
+	r.newHead()
+	w := quoteWordAt(1235, 0, false, false)
+	w.SetBit(w, 103, 1)
+	r.st.setEntries(slotAfter(r.n.time), 1235, map[string]stateEntry{"a": {
+		cellOf(7): {quoteKey(0): common.BigToHash(w)}, create3Child(testFront, printIDs[0]): printSlots,
+		create3Child(testFront, printIDs[1]): printSlots}})
+	last = r.p
+	d = r.refresh()
+	assert.Equal(t, 3, d["eth_call"], "the head read asked again on the facts' plan")
+	samePriced(t, r.fresh(last), r.p, "on the facts' plan, the same state")
+}

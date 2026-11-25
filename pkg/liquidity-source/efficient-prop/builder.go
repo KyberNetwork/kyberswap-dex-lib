@@ -526,49 +526,154 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	fetched := make(chan []answer, 1)
 	go func() { fetched <- t.stateAnswers(ctx, f) }()
 	front, door := common.HexToAddress(se.Front), common.HexToAddress(p.Address)
+	clk := t.cfg.clock()
+	rule, err := t.slotRule(ctx, f)
+	if err != nil {
+		return h, o, false, err
+	}
 	// the chain's head, by hash, and what is held of this listing at it
 	hd, probed := t.headProbe(ctx, f)
 	var ce *headEntry
 	if probed {
 		ce = t.cache.at(door, hd)
 	}
+	var answers []answer
+	answered := false
+	// a head read asked with the facts, on the plan the facts of the head before drew (guess)
+	var ask *headAsk
+	var guess headPlan
 	bf := ce.getFacts()
 	if bf == nil {
-		var cacheable bool
-		bf, cacheable, err = t.readBuilderFacts(ctx, f, se, front, hd, probed, ce.getHint())
-		if err != nil {
-			return h, o, false, err
+		hint := ce.getHint()
+		type factsRead struct {
+			bf        *builderFacts
+			cacheable bool
+			err       error
 		}
-		if cacheable {
+		read := make(chan factsRead, 1)
+		go func() {
+			bf, cacheable, err := t.readBuilderFacts(ctx, f, se, front, hd, probed, hint)
+			read <- factsRead{bf, cacheable, err}
+		}()
+		// a new head: where an answer covers the listing on the facts the head before named, the head read under it
+		// is asked while the facts are read, and stands where they name the same plan (headPlan.same)
+		if prev := ce.getPrev(); prev != nil && hint != nil && probed && hd.time != 0 {
+			if mc, known := t.multicallOf(); known && mc == prev.multicall {
+				answers, answered = <-fetched, true
+				guess = planHead(front, se, prev.guessAt(hd), answers, rule, clk)
+				if guess.ahead {
+					var askErr error
+					ask, askErr = t.askHead(front, door, se, tokens, maxIn, mc, hd.number, guess, ce.getNext(), rule,
+						clk)
+					if askErr == nil {
+						askErr = eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), ask.batch,
+							eth.DefaultBatchRetry)
+					}
+					// a guess the node did not answer is asked again on the facts' plan
+					if askErr != nil {
+						ask = nil
+					}
+				}
+			}
+		}
+		r := <-read
+		if r.err != nil {
+			return h, o, false, r.err
+		}
+		bf = r.bf
+		if r.cacheable {
 			ce.setFacts(bf)
 		} else {
 			ce = nil
 		}
 	}
-	answers := <-fetched
-	clk := t.cfg.clock()
+	if !answered {
+		answers = <-fetched
+	}
 	h.block = bf.block
 	multicall := bf.multicall
 	h.multicall = &multicall
 	h.ce = ce
 	h.entries = bf.entries
+	if bf.headTime != nil && bf.headTime.IsUint64() {
+		h.headSec = bf.headTime.Uint64()
+	}
+	if bf.ids != nil {
+		h.sourceIds = bf.ids
+	}
+	hp := planHead(front, se, bf, answers, rule, clk)
+	o = hp.o
+	if hp.ahead {
+		h.targetMs = hp.targetMs
+	}
+
+	// the same head under the same override: what the refresh priced then stands
+	h.key = overrideKey(o)
+	if held := ce.getPriced(h.key); held != nil && !skipHeld {
+		h.held = held
+		return h, o, false, nil
+	}
+	// no answer covers the listing's update for the head's next block: nothing of it is quoted this refresh, and its
+	// state is what the head's facts say (its doorView and the front's clock at the head), with no read of its own
+	if !hp.ahead && h.headSec != 0 && bf.clockOK {
+		h.view, h.clock = bf.at, bf.clock
+		h.result = make([]bool, headReads)
+		h.result[0], h.result[3] = bf.atOK, true
+		return h, o, false, nil
+	}
+	// the head read asked with the facts stands where the facts read name its plan, at the block it was pinned to;
+	// else it is asked now
+	if ask != nil && (!hp.same(guess) || bf.block == nil || bf.block.Cmp(hd.number) != 0 || multicall != ask.multicall) {
+		ask = nil
+	}
+	if ask != nil {
+		hp.o, o = guess.o, guess.o
+	} else {
+		if ask, err = t.askHead(front, door, se, tokens, maxIn, multicall, h.block, hp, ce.getNext(), rule,
+			clk); err != nil {
+			return h, o, false, err
+		}
+		if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), ask.batch,
+			eth.DefaultBatchRetry); err != nil {
+			return h, o, false, err
+		}
+	}
+	mapped, err = ask.read(&h, hp, rule, front)
+	return h, o, mapped, err
+}
+
+// headPlan is what a listing's head read under a /state answer is drawn from, as planHead draws it from the head's
+// facts: the override (o), whether the read is ahead (the answer covers the listing for the head's next block) and its
+// target block's time (targetMs), whether the update carried, the listing's binding and the slots the head named.
+type headPlan struct {
+	o        override
+	ahead    bool
+	targetMs uint64
+	carried  bool
+	b        binding
+	slots    listingSlots
+}
+
+// same is whether p and q are one plan: the same binding, slots, carry and target, and overrides of the same bytes.
+func (p headPlan) same(q headPlan) bool {
+	return p.ahead == q.ahead && p.targetMs == q.targetMs && p.carried == q.carried && p.b == q.b &&
+		p.slots.same(q.slots) && p.o.time == q.o.time && p.o.number == q.o.number && overrideKey(p.o) == overrideKey(q.o)
+}
+
+// planHead is the head read's plan on the head's facts bf and the /state answers: of the answers, the one pick takes,
+// and the override that carries of it the listing's quote contract and its price contracts (readBuilderHead).
+func planHead(front common.Address, se StaticExtra, bf *builderFacts, answers []answer, rule deskRule,
+	clk builderClock) (hp headPlan) {
 	at := bf.at
 	desk := uint32(0)
 	if bf.atOK {
 		desk = at.View.Desk
 	}
-	rule, err := t.slotRule(ctx, f)
-	if err != nil {
-		return h, o, false, err
-	}
-	b := binding{listing: se.Listing, desk: desk, wordIndex: at.View.WordIndex}
+	hp.b = binding{listing: se.Listing, desk: desk, wordIndex: at.View.WordIndex}
 	headTime, slots, slotted := bf.headTime, bf.slots, bf.slotted
-	if headTime != nil && headTime.IsUint64() {
-		h.headSec = headTime.Uint64()
-	}
+	hp.slots = slots
 	keep := []common.Address{slots.account}
 	if bf.ids != nil {
-		h.sourceIds = bf.ids
 		for _, id := range []uint64{bits(bf.ids, 0, 32), bits(bf.ids, 32, 32)} {
 			if id != 0 {
 				keep = append(keep, priceContract(front, uint32(id)))
@@ -590,12 +695,11 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 		}
 	}
 	var a *answer
-	carried := false
 	if slotted && desk != 0 {
-		a, carried = pick(answers, slots, carryLife(at.View.Scopes), need...)
+		a, hp.carried = pick(answers, slots, carryLife(at.View.Scopes), need...)
 	}
-	ahead := a != nil && !slices.Contains(need, common.Address{}) &&
-		headTime != nil && headTime.IsUint64() && a.number.IsUint64() && a.number.Uint64() == h.block.Uint64()+1
+	ahead := a != nil && !slices.Contains(need, common.Address{}) && bf.block != nil &&
+		headTime != nil && headTime.IsUint64() && a.number.IsUint64() && a.number.Uint64() == bf.block.Uint64()+1
 	var targetMs uint64
 	switch {
 	case !ahead:
@@ -610,89 +714,102 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 		}
 		ahead, targetMs = a.slot == 0 || a.slot == a.number.Uint64(), headMs+clk.blockMs
 	}
-	if ahead {
-		h.targetMs = targetMs
-		accounts := make(map[common.Address]gethclient.OverrideAccount, len(keep))
-		for _, account := range keep {
-			// the quote contract whole as the answer holds it (covers checked the listing's own slots), every
-			// other account only where nothing of it split
-			if acct, ok := a.accounts[account]; ok && (account == slots.account || a.whole(account)) {
-				accounts[account] = acct
-			}
+	if !ahead {
+		return hp
+	}
+	hp.ahead, hp.targetMs = true, targetMs
+	accounts := make(map[common.Address]gethclient.OverrideAccount, len(keep))
+	for _, account := range keep {
+		// the quote contract whole as the answer holds it (covers checked the listing's own slots), every other
+		// account only where nothing of it split
+		if acct, ok := a.accounts[account]; ok && (account == slots.account || a.whole(account)) {
+			accounts[account] = acct
 		}
-		o = override{time: targetMs / 1000, number: a.number.Uint64(),
-			state: &titan.State{Overrides: accounts, BlockNumber: a.number, BlockTimestamp: targetMs / 1000}}
 	}
+	hp.o = override{time: targetMs / 1000, number: a.number.Uint64(),
+		state: &titan.State{Overrides: accounts, BlockNumber: a.number, BlockTimestamp: targetMs / 1000}}
+	return hp
+}
 
-	// the same head under the same override: what the refresh priced then stands
-	h.key = overrideKey(o)
-	if held := ce.getPriced(h.key); held != nil && !skipHeld {
-		h.held = held
-		return h, o, false, nil
-	}
-	// no answer covers the listing's update for the head's next block: nothing of it is quoted this refresh, and its
-	// state is what the head's facts say (its doorView and the front's clock at the head), with no read of its own
-	if !ahead && h.headSec != 0 && bf.clockOK {
-		h.view, h.clock = at, bf.clock
-		h.result = make([]bool, headReads)
-		h.result[0], h.result[3] = bf.atOK, true
-		return h, o, false, nil
-	}
+// headAsk is a head read asked of the node: its multicall's calls, where its parts sit in them, the slot rule's read
+// again, the door's calls asked ahead (pf), and the batch that asks it all (the multicall first, then each window
+// sample asked ahead).
+type headAsk struct {
+	multicall                  common.Address
+	calls                      []call
+	head, slotsAt, msAt, asked int
+	again                      call
+	againHolder                any
+	raw                        hexutil.Bytes
+	pf                         *prefetch
+	batch                      []rpc.BatchElem
+}
+
+// askHead is the head read of plan hp pinned to block: the listing's head calls and its pool's fee, the block's time
+// and number, the slot rule's read again and, where set, the millisecond precompile, all run in the plan's override;
+// and where the plan is ahead and the listing's last quoted refresh named its next sizes (next), the door's quotes
+// (and plans) at them in the same multicall and each window sample at them beside it.
+func (t *PoolTracker) askHead(front, door common.Address, se StaticExtra, tokens [2]common.Address, maxIn *big.Int,
+	multicall common.Address, block *big.Int, hp headPlan, next *nextAsk, rule deskRule,
+	clk builderClock) (*headAsk, error) {
+	o := hp.o
+	ha := &headAsk{multicall: multicall, msAt: -1}
 	calls := headCalls(front, door, se.Listing, tokens, common.HexToAddress(se.Custody), maxIn)
 	calls = append(calls, feeCalls(common.HexToAddress(se.Factory), common.HexToAddress(se.Custody))...)
-	head := len(calls)
+	ha.head = len(calls)
 	calls = append(calls, blockCalls(multicall, o)...)
-	slotsAt := len(calls)
-	again, againHolder := rule.read(front, b)
-	calls = append(calls, again)
+	ha.slotsAt = len(calls)
+	ha.again, ha.againHolder = rule.read(front, hp.b)
+	calls = append(calls, ha.again)
 	// the chain's millisecond precompile, in the target block: a mode-3 clock reads it where it answers
-	msAt := -1
 	if clk.msPrecompile {
-		msAt = len(calls)
+		ha.msAt = len(calls)
 		calls = append(calls, call{abi: &baseTimeABI, target: msPrecompile, method: "timestampMs"})
 	}
 	// the door's calls the pinned read and the window will make, asked ahead at the sizes the listing's last quoted
 	// refresh named for this one: in the head multicall, and each window sample beside it in the same batch
-	var pf *prefetch
 	var asks []call
-	if next := ce.getNext(); ahead && next != nil {
-		pf = &prefetch{sizes: next.sizes, plan: next.plan}
+	if hp.ahead && next != nil {
+		pf := &prefetch{sizes: next.sizes, plan: next.plan}
 		var plan *planRead
 		if pf.plan {
 			plan = &planRead{front: front, listing: se.Listing}
 		}
 		asks = append(quoteCalls(door, tokens, pf.sizes), plan.calls(door, tokens, pf.sizes)...)
-		pf.at = askedWindow(next.view, o, clk, t.cfg.builderAllowanceMs(), targetMs, carried)
+		pf.at = askedWindow(next.view, o, clk, t.cfg.builderAllowanceMs(), hp.targetMs, hp.carried)
 		pf.raws, pf.ok = make([]hexutil.Bytes, len(pf.at)), make([]bool, len(pf.at))
+		ha.pf = pf
 	}
-	askedAt := len(calls)
-	calls = append(calls, asks...)
-	var raw hexutil.Bytes
-	elem, err := multicallElem(multicall, calls, h.block, o, &raw)
+	ha.asked = len(calls)
+	ha.calls = append(calls, asks...)
+	elem, err := multicallElem(multicall, ha.calls, block, o, &ha.raw)
 	if err != nil {
-		return h, o, false, err
+		return nil, err
 	}
-	batch := []rpc.BatchElem{elem}
-	if pf != nil {
-		for k, at := range pf.at {
-			e, err := multicallElem(multicall, append(blockCalls(multicall, at), asks...), h.block, at, &pf.raws[k])
+	ha.batch = []rpc.BatchElem{elem}
+	if ha.pf != nil {
+		for k, at := range ha.pf.at {
+			e, err := multicallElem(multicall, append(blockCalls(multicall, at), asks...), block, at, &ha.pf.raws[k])
 			if err != nil {
-				return h, o, false, err
+				return nil, err
 			}
-			batch = append(batch, e)
+			ha.batch = append(ha.batch, e)
 		}
 	}
-	if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), batch,
-		eth.DefaultBatchRetry); err != nil {
-		return h, o, false, err
+	return ha, nil
+}
+
+// read takes the head read's answers into h, the batch asked: mapped is whether the listing is quoted on the plan's
+// state (readBuilderHead).
+func (ha *headAsk) read(h *headRead, hp headPlan, rule deskRule, front common.Address) (mapped bool, err error) {
+	if ha.batch[0].Error != nil {
+		return false, ha.batch[0].Error
 	}
-	if batch[0].Error != nil {
-		return h, o, false, batch[0].Error
-	}
-	rets, err := unpackTry(raw, len(calls))
+	rets, err := unpackTry(ha.raw, len(ha.calls))
 	if err != nil {
-		return h, o, false, err
+		return false, err
 	}
+	head, o := ha.head, hp.o
 	h.result = make([]bool, head)
 	for k, ret := range rets[:head] {
 		h.result[k] = ret != nil
@@ -714,24 +831,24 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	}
 	h.rungs = unpackRungRead(rets[6])
 	h.fee = feeOf(rets[7], rets[8])
-	if msAt >= 0 {
-		h.msAnswered = len(rets[msAt]) >= common.HashLength
+	if ha.msAt >= 0 {
+		h.msAnswered = len(rets[ha.msAt]) >= common.HashLength
 	}
-	if pf != nil {
-		pf.block, pf.asked = rets[head:slotsAt], rets[askedAt:]
+	if pf := ha.pf; pf != nil {
+		pf.block, pf.asked = rets[head:ha.slotsAt], rets[ha.asked:]
 		for k := range pf.at {
-			pf.ok[k] = batch[1+k].Error == nil
+			pf.ok[k] = ha.batch[1+k].Error == nil
 		}
 		h.prefetch = pf
 	}
-	if !ahead || !readsBlock(rets[head:slotsAt], o, o.number) {
-		return h, o, false, nil
+	if !hp.ahead || !readsBlock(rets[head:ha.slotsAt], o, o.number) {
+		return false, nil
 	}
-	pinned, ok := slotsOf(rule, front, b, again, againHolder, rets[slotsAt])
+	pinned, ok := slotsOf(rule, front, hp.b, ha.again, ha.againHolder, rets[ha.slotsAt])
 	// an update stamped with the block before the target's stands there only where its word carries
-	mapped = h.view.View.Desk == desk && ok && pinned.same(slots) && (!carried || carries(h.view.View))
-	h.carried = mapped && carried
-	return h, o, mapped, nil
+	mapped = h.view.View.Desk == hp.b.desk && ok && pinned.same(hp.slots) && (!hp.carried || carries(h.view.View))
+	h.carried = mapped && hp.carried
+	return mapped, nil
 }
 
 // readBuilderFacts reads a listing's head-fixed facts: its doorView at the head (a multicall that names the head's
