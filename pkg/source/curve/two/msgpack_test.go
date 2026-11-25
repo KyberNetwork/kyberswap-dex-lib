@@ -1,9 +1,10 @@
 package two_test
 
 import (
-	"math/big"
+	"bytes"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -31,20 +32,24 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	encoded, err := msgpack.EncodePoolSimulatorsMap(map[string]pool.IPoolSimulator{p.GetAddress(): p})
-	require.NoError(t, err)
-	decoded, err := msgpack.DecodePoolSimulatorsMap(encoded)
-	require.NoError(t, err)
+	var buf bytes.Buffer
+	en := msgpack.NewEncoder(&buf)
+	require.NoError(t, en.Encode(map[string]pool.IPoolSim{p.GetAddress(): p}))
+	msgpack.PutEncoder(en)
+	decoded := map[string]pool.IPoolSim{}
+	de := msgpack.NewDecoder(&buf)
+	require.NoError(t, de.Decode(&decoded))
+	msgpack.PutDecoder(de)
 	q := decoded[p.GetAddress()]
 	require.IsType(t, &two.PoolSimulator{}, q)
 	require.Equal(t, p, q.(*two.PoolSimulator))
 
-	params := pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: "weth", Amount: big.NewInt(1e18)}, TokenOut: "cvx"}
-	want, err := p.CalcAmountOut(params)
+	params := pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: "weth", Amount: *uint256.NewInt(1e18)}, TokenOut: "cvx"}
+	want, err := p.CalcAmtOut(params)
 	require.NoError(t, err)
-	got, err := q.CalcAmountOut(params)
+	got, err := q.CalcAmtOut(params)
 	require.NoError(t, err)
-	require.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.String())
-	require.Equal(t, want.Fee.Amount.String(), got.Fee.Amount.String())
+	require.Equal(t, want.TokenAmountOut.Amount, got.TokenAmountOut.Amount)
+	require.Equal(t, want.Fee.Amount, got.Fee.Amount)
 }

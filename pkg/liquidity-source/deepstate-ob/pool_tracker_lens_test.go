@@ -16,6 +16,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
 )
 
 const (
@@ -56,6 +57,7 @@ func (c *countingTransport) RoundTrip(req *http.Request) (*http.Response, error)
 // Robinhood Chain. It counts HTTP round trips at the transport layer to
 // prove -- not assert -- the lens path is exactly one round trip per poll.
 func TestGetNewPoolState_ViaLens_IsOneRoundTrip(t *testing.T) {
+	test.SkipCI(t)
 	if testing.Short() {
 		t.Skip("live-network test, skipped under -short")
 	}
