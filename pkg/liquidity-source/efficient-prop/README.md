@@ -77,13 +77,14 @@ block:
   the parser does not know maps to nothing.
 - **Node load.** The tracker keeps, a listing, what the chain's head fixes, under the head's hash (never its number,
   so a head replaced at the same height reads again), and the result priced under the bytes of the listing's own
-  override. A refresh of a quoted listing that reads a price source (a primary and a backup), on Ethereum, asks the node
-  for the head's hash (`eth_getBlockByNumber`) and then, at a new head, makes 4 `eth_call` (5 on a tracker's first
-  refresh, which reads the front's code hashes; 5 and 6 where the listing and its word carry into the next block) and 9
-  `eth_getStorageAt`; at the same head under a new override (the maker's update), 2 `eth_call` and no storage read; at
-  the same head under the same override, none (`TestBuilderRefreshNodeLoad`, `TestBuilderHeadCacheSavesTheNodeCalls`).
-  The listings of a front refreshed within 250 ms share one `/state` read of each url. At the head a refresh makes 3 to
-  16 `eth_call` by the listing's kind.
+  override. The head's hash is asked of the node once a front per 250 ms (`eth_getBlockByNumber`), whatever the number
+  of its listings. A refresh of a quoted listing that reads a price source (a primary and a backup), on Ethereum, then
+  makes at a new head 4 `eth_call` (5 on a tracker's first refresh, which reads the front's code hashes; 5 and 6 where
+  the listing and its word carry into the next block) and 9 `eth_getStorageAt`; at the same head under a new override
+  (the maker's update), 2 `eth_call` and no storage read; at the same head under the same override, no node call
+  (`TestBuilderRefreshNodeLoad`, `TestBuilderHeadCacheSavesTheNodeCalls`,
+  `TestBuilderListingsRefreshedTogetherShareOneStateFetch`). The listings of a front refreshed within 250 ms share one
+  `/state` read of each url. At the head a refresh makes 3 to 16 `eth_call` by the listing's kind.
 
 ## Execution and gas
 

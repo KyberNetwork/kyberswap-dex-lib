@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -31,8 +32,41 @@ type headID struct {
 	hash   common.Hash
 }
 
-// headProbe reads the chain's latest block's number and hash; ok is false where the node does not answer one.
-func (t *PoolTracker) headProbe(ctx context.Context) (id headID, ok bool) {
+// sharedHead is one front's head as last probed. Its lock is held through a probe, so the refreshes of the front's
+// listings that come together wait for one probe and read its answer, which nothing writes after. A probe that failed
+// is not kept: the next caller probes again.
+type sharedHead struct {
+	mu   sync.Mutex
+	at   time.Time
+	id   headID
+	held bool
+}
+
+// headProbe is the chain's head, number and hash, for front f: the latest block read from the node, or the last
+// probe's where that is under stateEvery old (the window the front's /state read is shared over), so the listings of
+// one front refreshed together ask the node once. Sharing delays seeing a new head by up to that window, which does
+// no harm: a state's validity ends on the wall clock (ValidUntilMs less the allowance), a second before its target
+// block, so a held result is already refused by the time the head can move; and at a new head there is nothing new to
+// quote until the desk signs for the next block, seconds later, with the /state read shared over the same window.
+// ok is false where the node does not answer a block.
+func (t *PoolTracker) headProbe(ctx context.Context, f *Front) (id headID, ok bool) {
+	s := t.heads[f.Address]
+	if s == nil || t.stateEvery <= 0 {
+		return t.readHead0(ctx)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if age := t.now().Sub(s.at); s.held && age >= 0 && age < t.stateEvery {
+		return s.id, true
+	}
+	if id, ok = t.readHead0(ctx); ok && ctx.Err() == nil {
+		s.id, s.at, s.held = id, t.now(), true
+	}
+	return id, ok
+}
+
+// readHead0 reads the chain's latest block's number and hash from the node.
+func (t *PoolTracker) readHead0(ctx context.Context) (id headID, ok bool) {
 	var res struct {
 		Number *hexutil.Big `json:"number"`
 		Hash   common.Hash  `json:"hash"`

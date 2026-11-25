@@ -110,6 +110,8 @@ type node struct {
 	multis []int
 	// reorg salts the head's hash: a node whose head at the same height is another block answers another hash
 	reorg uint64
+	// noBlocks: the node answers no block by number
+	noBlocks bool
 	// requests is how many JSON-RPC requests of each method the node answered, a batch's each counted
 	requests map[string]int
 }
@@ -210,8 +212,12 @@ func (n *node) answer(m rpcMessage) map[string]any {
 		reply["result"] = hexutil.EncodeUint64(n.block)
 	case "eth_getBlockByNumber":
 		n.mu.Lock()
-		salt := n.reorg
+		salt, none := n.reorg, n.noBlocks
 		n.mu.Unlock()
+		if none {
+			reply["error"] = map[string]any{"code": -32000, "message": "no block"}
+			return reply
+		}
 		reply["result"] = map[string]any{"number": hexutil.EncodeUint64(n.block),
 			"hash": crypto.Keccak256Hash(common.BigToHash(new(big.Int).SetUint64(n.block)).Bytes(),
 				common.BigToHash(new(big.Int).SetUint64(salt)).Bytes())}

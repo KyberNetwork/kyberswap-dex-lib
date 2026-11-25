@@ -389,7 +389,7 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	go func() { fetched <- t.stateAnswers(ctx, f) }()
 	front, door := common.HexToAddress(se.Front), common.HexToAddress(p.Address)
 	// the chain's head, by hash, and what is held of this listing at it
-	hd, probed := t.headProbe(ctx)
+	hd, probed := t.headProbe(ctx, f)
 	var ce *headEntry
 	if probed {
 		ce = t.cache.at(door, hd)

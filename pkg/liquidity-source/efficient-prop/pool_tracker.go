@@ -48,6 +48,8 @@ type PoolTracker struct {
 	stateEvery time.Duration
 	// cache holds, a listing of a front read through /state, its head-fixed reads and its priced result (head_cache.go)
 	cache *listingCache
+	// heads is each front's last head probe, by its address (headProbe)
+	heads map[string]*sharedHead
 }
 
 // sharedAnswers is one front's /state answers as last fetched. Its lock is held through a fetch, so the refreshes of
@@ -73,7 +75,7 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 	t := &PoolTracker{cfg: cfg, ethrpcClient: ethrpcClient, titan: map[string][]stateClient{}, now: time.Now,
 		warned: map[string]time.Time{}, warn: warn,
 		hashes: newCodeHashes(ethrpcClient), desks: newApprovedDesks(cfg),
-		shared: map[string]*sharedAnswers{}, stateEvery: stateShareWindow, cache: newListingCache()}
+		shared: map[string]*sharedAnswers{}, stateEvery: stateShareWindow, cache: newListingCache(), heads: map[string]*sharedHead{}}
 	if t.warn == nil {
 		t.warn = func(url string, err error) {
 			logger.WithFields(logger.Fields{"dexId": cfg.dexID(), "url": url, "error": err.Error()}).
@@ -85,6 +87,7 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 			continue
 		}
 		t.shared[f.Address] = &sharedAnswers{}
+		t.heads[f.Address] = &sharedHead{}
 		for _, url := range f.Titan.URLs {
 			// one url at a time, so each client keeps its url; a url that does not dial is logged as a failed one
 			// (its key left out) and left out of the reads

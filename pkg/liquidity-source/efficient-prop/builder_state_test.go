@@ -632,14 +632,42 @@ func TestBuilderListingsRefreshedTogetherShareOneStateFetch(t *testing.T) {
 			require.NotEmpty(t, extraOf(t, got).Ladders[0], p.Address)
 		}
 	}
+	probes := func() int { return n.requestCounts()["eth_getBlockByNumber"] }
 	refresh()
 	assert.Equal(t, int64(1), st.hits.Load(), "both listings read one fetch")
+	assert.Equal(t, 1, probes(), "and ask the node for the head once")
 	now = now.Add(stateShareWindow - time.Millisecond)
 	refresh()
 	assert.Equal(t, int64(1), st.hits.Load(), "inside the share window")
+	assert.Equal(t, 1, probes(), "the head's probe shared too")
 	now = now.Add(time.Millisecond)
 	refresh()
 	assert.Equal(t, int64(2), st.hits.Load(), "the window over: fetched again")
+	assert.Equal(t, 2, probes(), "and probed again, once for both listings")
+}
+
+// A head probe that fails is not shared: the next caller probes again, and with the node answering it is cached.
+func TestBuilderFailedHeadProbeIsNotShared(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	cfg := ethConfig("http://127.0.0.1:1")
+	tr := ethTracker(t, n, cfg, time.Now())
+	f := &cfg.Fronts[0]
+	n.mu.Lock()
+	n.noBlocks = true
+	n.mu.Unlock()
+	_, ok := tr.headProbe(context.Background(), f)
+	assert.False(t, ok)
+	_, ok = tr.headProbe(context.Background(), f)
+	assert.False(t, ok)
+	n.mu.Lock()
+	n.noBlocks = false
+	n.mu.Unlock()
+	id, ok := tr.headProbe(context.Background(), f)
+	require.True(t, ok, "probed again after the failures")
+	assert.Equal(t, uint64(1234), id.number.Uint64())
+	_, _ = tr.headProbe(context.Background(), f)
+	assert.Equal(t, 3, n.requestCounts()["eth_getBlockByNumber"], "two failures and one probe, the last shared")
 }
 
 // A listing not quoted for a standing reason (its desk not approved) is idle: its state says so and its next refresh
@@ -782,7 +810,11 @@ func TestBuilderHeadCacheSavesTheNodeCalls(t *testing.T) {
 	st.setEntries(slot, 1235, entries(0x4001))
 	cfg := printConfig(st.URL)
 	p := ethListed(t, n, cfg)
-	tr := ethTracker(t, n, cfg, time.Now())
+	now := time.Now()
+	tr := ethTracker(t, n, cfg, now)
+	tr.now = func() time.Time { return now }
+	// each refresh is a share window after the one before, so the head is probed and the /state answers fetched again
+	tick := func() { now = now.Add(stateShareWindow) }
 	refresh := func() (entity.Pool, map[string]int) {
 		before := n.requestCounts()
 		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
@@ -800,18 +832,23 @@ func TestBuilderHeadCacheSavesTheNodeCalls(t *testing.T) {
 		"a new head (its first refresh also reads the code hashes)")
 
 	again, d := refresh()
+	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 0}, d,
+		"inside the share window: no node call at all")
+	tick()
+	_, d = refresh()
 	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
-		"the same head, the same override")
+		"the same head, the same override, a window on")
 	assert.Equal(t, first.Extra, again.Extra)
 	assert.Equal(t, first.Reserves, again.Reserves)
 	assert.Equal(t, first.Timestamp, again.Timestamp)
 
 	// a new override: the maker's word changes at the same head
 	st.setEntries(slot, 1235, entries(0x4002))
-	tr.now = func() time.Time { return time.Now().Add(time.Hour) } // the shared /state answers are stale
+	tick()
 	_, d = refresh()
 	assert.Equal(t, map[string]int{"eth_call": 2, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
 		"the same head, a new override")
+	tick()
 	_, d = refresh()
 	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
 		"the new override again")
@@ -821,10 +858,15 @@ func TestBuilderHeadCacheSavesTheNodeCalls(t *testing.T) {
 	n.reorg = 1
 	n.mu.Unlock()
 	_, d = refresh()
+	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 0}, d,
+		"the replaced head not yet seen: the shared probe's")
+	tick()
+	_, d = refresh()
 	assert.Equal(t, map[string]int{"eth_call": 4, "eth_getStorageAt": 9, "eth_getBlockByNumber": 1}, d,
-		"a head replaced at the same height")
+		"a head replaced at the same height, seen by the next probe")
 
 	// the held result is served only while its desk's approval is what it was
+	tick()
 	held, d := refresh()
 	assert.Equal(t, 0, d["eth_call"])
 	require.NotEmpty(t, extraOf(t, held).Ladders[0])
