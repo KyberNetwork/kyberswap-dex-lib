@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/titan"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -759,4 +760,75 @@ func TestBuilderPassesOverTopLevelMembersThatAreNoEntry(t *testing.T) {
 			unserved(t, got, c.name)
 		}
 	}
+}
+
+// One tracker refreshing one listing: at a new head the refresh costs what it did, at the same head under a new
+// override the override's calls alone, and at the same head under the same override nothing but the head's hash. A
+// head the chain replaced at the same height (another hash) is read again whole.
+func TestBuilderHeadCacheSavesTheNodeCalls(t *testing.T) {
+	chain := printChain(false, false)
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	slot := slotAfter(n.time)
+	entries := func(price uint64) map[string]stateEntry {
+		slots := map[common.Hash]common.Hash{}
+		for k, v := range printSlots {
+			slots[k] = v
+		}
+		slots[common.Hash{}] = common.BigToHash(new(big.Int).SetUint64(price))
+		return map[string]stateEntry{"a": {testCellA: cellSlots(1235, false, 0),
+			create3Child(testFront, printIDs[0]): slots}}
+	}
+	st.setEntries(slot, 1235, entries(0x4001))
+	cfg := printConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	tr := ethTracker(t, n, cfg, time.Now())
+	refresh := func() (entity.Pool, map[string]int) {
+		before := n.requestCounts()
+		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		after := n.requestCounts()
+		d := map[string]int{}
+		for _, m := range []string{"eth_call", "eth_getStorageAt", "eth_getBlockByNumber"} {
+			d[m] = after[m] - before[m]
+		}
+		return got, d
+	}
+	first, d := refresh()
+	require.NotEmpty(t, extraOf(t, first).Ladders[0])
+	assert.Equal(t, map[string]int{"eth_call": 5, "eth_getStorageAt": 9, "eth_getBlockByNumber": 1}, d,
+		"a new head (its first refresh also reads the code hashes)")
+
+	again, d := refresh()
+	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"the same head, the same override")
+	assert.Equal(t, first.Extra, again.Extra)
+	assert.Equal(t, first.Reserves, again.Reserves)
+	assert.Equal(t, first.Timestamp, again.Timestamp)
+
+	// a new override: the maker's word changes at the same head
+	st.setEntries(slot, 1235, entries(0x4002))
+	tr.now = func() time.Time { return time.Now().Add(time.Hour) } // the shared /state answers are stale
+	_, d = refresh()
+	assert.Equal(t, map[string]int{"eth_call": 2, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"the same head, a new override")
+	_, d = refresh()
+	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"the new override again")
+
+	// the chain's head at the same height is another block: every read again
+	n.mu.Lock()
+	n.reorg = 1
+	n.mu.Unlock()
+	_, d = refresh()
+	assert.Equal(t, map[string]int{"eth_call": 4, "eth_getStorageAt": 9, "eth_getBlockByNumber": 1}, d,
+		"a head replaced at the same height")
+
+	// the held result is served only while its desk's approval is what it was
+	held, d := refresh()
+	assert.Equal(t, 0, d["eth_call"])
+	require.NotEmpty(t, extraOf(t, held).Ladders[0])
+	tr.desks.static = map[common.Address]struct{}{}
+	revoked, _ := refresh()
+	unserved(t, revoked, "the desk is no longer approved")
 }

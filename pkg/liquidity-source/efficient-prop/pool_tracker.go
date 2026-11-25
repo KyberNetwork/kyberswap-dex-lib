@@ -46,6 +46,8 @@ type PoolTracker struct {
 	// shared is each front's last /state answers, by its address, kept for stateEvery (stateShareWindow)
 	shared     map[string]*sharedAnswers
 	stateEvery time.Duration
+	// cache holds, a listing of a front read through /state, its head-fixed reads and its priced result (head_cache.go)
+	cache *listingCache
 }
 
 // sharedAnswers is one front's /state answers as last fetched. Its lock is held through a fetch, so the refreshes of
@@ -71,7 +73,7 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 	t := &PoolTracker{cfg: cfg, ethrpcClient: ethrpcClient, titan: map[string][]stateClient{}, now: time.Now,
 		warned: map[string]time.Time{}, warn: warn,
 		hashes: newCodeHashes(ethrpcClient), desks: newApprovedDesks(cfg),
-		shared: map[string]*sharedAnswers{}, stateEvery: stateShareWindow}
+		shared: map[string]*sharedAnswers{}, stateEvery: stateShareWindow, cache: newListingCache()}
 	if t.warn == nil {
 		t.warn = func(url string, err error) {
 			logger.WithFields(logger.Fields{"dexId": cfg.dexID(), "url": url, "error": err.Error()}).
@@ -238,12 +240,25 @@ func (t *PoolTracker) GetNewPoolState(
 	builder := f != nil && f.builder()
 	var err error
 	if builder {
-		h, o0, mapped, err = t.readBuilderHead(ctx, f, p, staticExtra, tokens, maxIn)
+		h, o0, mapped, err = t.readBuilderHead(ctx, f, p, staticExtra, tokens, maxIn, false)
 	} else {
 		h, err = t.readHead(ctx, p, staticExtra, tokens, custody, maxIn)
 	}
 	if err != nil {
 		return p, err
+	}
+	// the same head under the same override as a refresh that priced it: its result stands, while its desk's approval
+	// is what it was
+	if h.held != nil {
+		if ok, err := t.deskApproved(ctx, f, h.held.desk); err == nil && ok == h.held.approved {
+			p.Extra, p.Reserves, p.BlockNumber, p.Timestamp = h.held.extra, slices.Clone(h.held.reserves),
+				h.held.blockNumber, h.held.timestamp
+			return p, nil
+		}
+		// its approval changed: read again, the held result left aside
+		if h, o0, mapped, err = t.readBuilderHead(ctx, f, p, staticExtra, tokens, maxIn, true); err != nil {
+			return p, err
+		}
 	}
 	view, balances, clock, tops := h.view, h.balances, h.clock, h.tops
 	if len(h.result) != 6 || !h.result[0] || !h.result[3] || !clock.valid() {
@@ -336,8 +351,12 @@ func (t *PoolTracker) GetNewPoolState(
 	front := common.HexToAddress(staticExtra.Front)
 	var lanes []common.Address
 	if quoted && printed(v.Scopes) {
-		if quoted, lanes, err = t.sourcesApproved(ctx, front, staticExtra.Listing, block, h.sourceIds); err != nil {
+		if ok, held, set := h.ce.getSources(); set {
+			quoted, lanes = ok, held
+		} else if quoted, lanes, err = t.sourcesApproved(ctx, front, staticExtra.Listing, block, h.sourceIds); err != nil {
 			return p, err
+		} else {
+			h.ce.setSources(quoted, lanes)
 		}
 		// a builder build's sources are price contracts, never guarded: a listing bound to a guarded entry there is
 		// not quoted
@@ -363,7 +382,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 	session := quoted && (v.Scopes>>1)&3 == fenceSession
 	s, err := t.probe(ctx, multicall, door, front, staticExtra.Listing, tokens, points, block, quoted, session, clock,
-		lanes, o0, plan)
+		lanes, o0, plan, h.ce)
 	if err != nil {
 		return p, err
 	}
@@ -459,6 +478,13 @@ func (t *PoolTracker) GetNewPoolState(
 	p.BlockNumber = block.Uint64()
 	// the state's age runs from its block, not from the end of the reads
 	p.Timestamp = int64(s.time)
+	// kept under the head's hash and the override's bytes, for a refresh that finds both again
+	if builder && h.ce != nil {
+		if approved, err := t.deskApproved(ctx, f, v.Desk); err == nil {
+			h.ce.setPriced(h.key, &pricedOut{extra: p.Extra, reserves: slices.Clone(p.Reserves),
+				blockNumber: p.BlockNumber, timestamp: p.Timestamp, desk: v.Desk, approved: approved})
+		}
+	}
 	return p, nil
 }
 
@@ -622,7 +648,7 @@ type pinned struct {
 // same multicall, and each size classed by it (classify).
 func (t *PoolTracker) probe(ctx context.Context, multicall, door, front common.Address, listing uint32,
 	tokens [2]common.Address, points [2][]*big.Int, block *big.Int, quoted, session bool,
-	c frontClock, lanes []common.Address, o override, plan *planRead) (s pinned, err error) {
+	c frontClock, lanes []common.Address, o override, plan *planRead, ce *headEntry) (s pinned, err error) {
 	calls := []call{{abi: &abi.Multicall3ABI, target: multicall, method: "getCurrentBlockTimestamp"},
 		{abi: &baseTimeABI, target: c.baseTime, method: "timestampMs"}}
 	if c.ClockMode.Uint64() != clockBlocks || c.baseTime == (common.Address{}) {
@@ -648,23 +674,32 @@ func (t *PoolTracker) probe(ctx context.Context, multicall, door, front common.A
 		return s, err
 	}
 	batch := []rpc.BatchElem{elem}
-	if quoted {
-		batch = append(batch, rpc.BatchElem{Method: "eth_getStorageAt",
-			Args: []any{front, controlsSlot(listing), hexutil.EncodeBig(block)}, Result: &ctl})
-	}
-	reads := len(batch)
-	if quoted {
-		batch = append(batch, rpc.BatchElem{Method: "eth_getStorageAt",
-			Args: []any{front, implementationSlot, hexutil.EncodeBig(block)}, Result: &impl})
-	}
-	liveAt := len(batch)
-	if len(lanes) > 0 {
-		batch = append(batch, rpc.BatchElem{Method: "eth_getStorageAt",
-			Args: []any{front, liveSourceSlot(listing), hexutil.EncodeBig(block)}, Result: &live})
-	}
-	if session {
-		batch = append(batch, rpc.BatchElem{Method: "eth_getStorageAt",
-			Args: []any{front, sessionSlot(listing), hexutil.EncodeBig(block)}, Result: &ses})
+	// the words the head fixes, read once a head where the refresh keeps them (ce)
+	fixed := ce.getFixed(quoted, session, len(lanes) > 0)
+	reads, liveAt, sesAt, implAt := len(batch), -1, -1, -1
+	if fixed != nil {
+		ctl, impl, live, ses = fixed.ctl, fixed.impl, fixed.live, fixed.ses
+	} else {
+		if quoted {
+			batch = append(batch, rpc.BatchElem{Method: "eth_getStorageAt",
+				Args: []any{front, controlsSlot(listing), hexutil.EncodeBig(block)}, Result: &ctl})
+		}
+		reads = len(batch)
+		if quoted {
+			implAt = len(batch)
+			batch = append(batch, rpc.BatchElem{Method: "eth_getStorageAt",
+				Args: []any{front, implementationSlot, hexutil.EncodeBig(block)}, Result: &impl})
+		}
+		if len(lanes) > 0 {
+			liveAt = len(batch)
+			batch = append(batch, rpc.BatchElem{Method: "eth_getStorageAt",
+				Args: []any{front, liveSourceSlot(listing), hexutil.EncodeBig(block)}, Result: &live})
+		}
+		if session {
+			sesAt = len(batch)
+			batch = append(batch, rpc.BatchElem{Method: "eth_getStorageAt",
+				Args: []any{front, sessionSlot(listing), hexutil.EncodeBig(block)}, Result: &ses})
+		}
 	}
 	if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), batch,
 		eth.DefaultBatchRetry); err != nil {
@@ -675,13 +710,22 @@ func (t *PoolTracker) probe(ctx context.Context, multicall, door, front common.A
 			return s, b.Error
 		}
 	}
+	if fixed != nil {
+		// held words were read whole: an implementation, live or session word that did not answer was not held
+		implAt, liveAt, sesAt = -2, -2, -2
+	}
+	failed := func(at int) bool { return at >= 0 && batch[at].Error != nil }
 	// an implementation not read is the zero address, which no front lists
-	if quoted && batch[reads].Error == nil && len(impl) == common.HashLength {
+	if quoted && !failed(implAt) && len(impl) == common.HashLength {
 		s.implementation = common.BytesToAddress(impl)
 	}
 	// a session word not read is nil: the listing is not quoted (closedSession)
-	if session && batch[len(batch)-1].Error == nil && len(ses) == common.HashLength {
+	if session && !failed(sesAt) && len(ses) == common.HashLength {
 		s.session = new(big.Int).SetBytes(ses)
+	}
+	if fixed == nil && ce != nil && !failed(implAt) && !failed(liveAt) && !failed(sesAt) {
+		ce.setFixed(&probeFixed{quoted: quoted, session: session, lanes: len(lanes) > 0,
+			ctl: ctl, impl: impl, live: live, ses: ses})
 	}
 	rets, err := unpackTry(raw, len(calls))
 	if err != nil {
@@ -703,7 +747,7 @@ func (t *PoolTracker) probe(ctx context.Context, multicall, door, front common.A
 	// a lane whose hold is not read holds for the most any lane does
 	s.guarded = len(lanes) > 0
 	s.liveGuarded = s.guarded
-	if s.guarded && batch[liveAt].Error == nil && len(live) == common.HashLength {
+	if s.guarded && !failed(liveAt) && len(live) == common.HashLength {
 		if w := new(big.Int).SetBytes(live); w.Sign() != 0 {
 			s.liveGuarded = w.Bit(entryGuardBit) == 1
 		}

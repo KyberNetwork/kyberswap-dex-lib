@@ -75,10 +75,15 @@ block:
   logs naming a listing, a desk or a pair; a desk contract's `DeskPush` and `LaneFill`; an approved price lane's
   `Posted`; and a fill's `Swapped`, which on Ethereum the listing's quote contract logs. A `Swapped` from an address
   the parser does not know maps to nothing.
-- **Node load.** One refresh of a quoted listing that reads a price source (a primary and a backup), on Ethereum, makes
-  5 `eth_call` (6 where the listing and its word carry into the next block) and 9
-  `eth_getStorageAt` (`TestBuilderRefreshNodeLoad`), and the listings of a front refreshed within 250 ms share one
-  `/state` read of each url. At the head a refresh makes 3 to 16 `eth_call` by the listing's kind.
+- **Node load.** The tracker keeps, a listing, what the chain's head fixes, under the head's hash (never its number,
+  so a head replaced at the same height reads again), and the result priced under the bytes of the listing's own
+  override. A refresh of a quoted listing that reads a price source (a primary and a backup), on Ethereum, asks the node
+  for the head's hash (`eth_getBlockByNumber`) and then, at a new head, makes 4 `eth_call` (5 on a tracker's first
+  refresh, which reads the front's code hashes; 5 and 6 where the listing and its word carry into the next block) and 9
+  `eth_getStorageAt`; at the same head under a new override (the maker's update), 2 `eth_call` and no storage read; at
+  the same head under the same override, none (`TestBuilderRefreshNodeLoad`, `TestBuilderHeadCacheSavesTheNodeCalls`).
+  The listings of a front refreshed within 250 ms share one `/state` read of each url. At the head a refresh makes 3 to
+  16 `eth_call` by the listing's kind.
 
 ## Execution and gas
 
@@ -149,9 +154,9 @@ door refuses every size. So on chain 1 the source reads the state the next block
   as state overrides, the listing's quote contract and bound price contracts alone.
 - **Validity.** A state is good for its target block alone, and the simulator holds it to the millisecond: its end
   (`validUntilMs`) is that block's time and its allowance (`allowanceMs`) is `inclusionAllowance` (1 s by default here),
-  so route finding quotes a fill only while now plus the allowance is not past the end. `validUntil` stays beside them in
-  whole seconds, the end less the allowance, rounded down. Where both the listing and the quote carry, the next block is sampled
-  too and the lower output of each size kept.
+  so route finding quotes a fill only while now plus the allowance is not past the end. `validUntil` stays beside them
+  in whole seconds, the end less the allowance, rounded down. Where both the listing and the quote carry, the next block
+  is sampled too and the lower output of each size kept.
 - **The `NoWord` exposure.** A route that lands in a block without the maker's update reverts at the front (`NoWord`),
   and the taker pays the reverted transaction's gas: about 83,500 to 87,100 in the adapter's frame through the door on
   the price-source listings, and about 32,000 less through the front. The route's minimum output does not prevent it;

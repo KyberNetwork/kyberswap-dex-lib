@@ -108,6 +108,8 @@ type node struct {
 	sent []sent
 	// multis is how many calls each multicall the node answered held
 	multis []int
+	// reorg salts the head's hash: a node whose head at the same height is another block answers another hash
+	reorg uint64
 	// requests is how many JSON-RPC requests of each method the node answered, a batch's each counted
 	requests map[string]int
 }
@@ -198,7 +200,7 @@ func (n *node) answer(m rpcMessage) map[string]any {
 		return reply
 	}
 	tag := "latest"
-	if len(m.Params) > 1 {
+	if len(m.Params) > 1 && m.Method != "eth_getBlockByNumber" {
 		if err := json.Unmarshal(m.Params[1], &tag); err != nil {
 			return fail(err)
 		}
@@ -206,6 +208,13 @@ func (n *node) answer(m rpcMessage) map[string]any {
 	switch m.Method {
 	case "eth_blockNumber":
 		reply["result"] = hexutil.EncodeUint64(n.block)
+	case "eth_getBlockByNumber":
+		n.mu.Lock()
+		salt := n.reorg
+		n.mu.Unlock()
+		reply["result"] = map[string]any{"number": hexutil.EncodeUint64(n.block),
+			"hash": crypto.Keccak256Hash(common.BigToHash(new(big.Int).SetUint64(n.block)).Bytes(),
+				common.BigToHash(new(big.Int).SetUint64(salt)).Bytes())}
 	case "eth_getCode":
 		var a common.Address
 		if err := json.Unmarshal(m.Params[0], &a); err != nil {

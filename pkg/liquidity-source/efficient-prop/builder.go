@@ -335,6 +335,11 @@ type headRead struct {
 	block     *big.Int
 	multicall *common.Address
 	carried   bool
+	// ce is the listing's cache entry at the head the refresh read (nil: none), key the bytes of its override, and held
+	// what was priced under both before: the refresh then reads nothing more
+	ce   *headEntry
+	key  string
+	held *pricedOut
 	// sourceIds is the listing's source ids word (record word 10) as the facts batch read it at block, nil where it
 	// was not read: sourcesApproved takes it in place of a read of its own
 	sourceIds *big.Int
@@ -379,93 +384,49 @@ func headCalls(front, door common.Address, listing uint32, tokens [2]common.Addr
 // the next refresh reads the next answer as usual. Where no answer is such, the read runs at the head with no
 // override, for the reserves alone, and o is zero. A node that refuses a read fails the refresh.
 func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Pool, se StaticExtra,
-	tokens [2]common.Address, maxIn *big.Int) (h headRead, o override, mapped bool, err error) {
+	tokens [2]common.Address, maxIn *big.Int, skipHeld bool) (h headRead, o override, mapped bool, err error) {
 	fetched := make(chan []answer, 1)
 	go func() { fetched <- t.stateAnswers(ctx, f) }()
-	var at doorViewOut
-	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
-		AddCall(&ethrpc.Call{ABI: frontABI, Target: se.Front, Method: "doorView",
-			Params: []any{big.NewInt(int64(se.Listing))}}, []any{&at}).
-		TryBlockAndAggregate()
+	front, door := common.HexToAddress(se.Front), common.HexToAddress(p.Address)
+	// the chain's head, by hash, and what is held of this listing at it
+	hd, probed := t.headProbe(ctx)
+	var ce *headEntry
+	if probed {
+		ce = t.cache.at(door, hd)
+	}
+	bf := ce.getFacts()
+	if bf == nil {
+		var cacheable bool
+		bf, cacheable, err = t.readBuilderFacts(ctx, f, se, front, hd, probed)
+		if err != nil {
+			return h, o, false, err
+		}
+		if cacheable {
+			ce.setFacts(bf)
+		} else {
+			ce = nil
+		}
+	}
 	answers := <-fetched
-	if err != nil {
-		return h, o, false, err
-	}
-	if resp.BlockNumber == nil {
-		return h, o, false, ErrNoBlockNumber
-	}
-	if resp.Request == nil || resp.Request.RawCallMsg.To == nil || len(resp.Result) != 1 {
-		return h, o, false, ErrInvalidState
-	}
-	h.block = resp.BlockNumber
-	multicall := *resp.Request.RawCallMsg.To
+	h.block = bf.block
+	multicall := bf.multicall
 	h.multicall = &multicall
+	h.ce = ce
+	at := bf.at
 	desk := uint32(0)
-	if resp.Result[0] {
+	if bf.atOK {
 		desk = at.View.Desk
 	}
-	front, door := common.HexToAddress(se.Front), common.HexToAddress(p.Address)
 	rule, err := t.slotRule(ctx, f)
 	if err != nil {
 		return h, o, false, err
 	}
 	b := binding{listing: se.Listing, desk: desk, wordIndex: at.View.WordIndex}
-	named, holder := rule.read(front, b)
-
-	// the head's second, the listing's slots and its price contracts, at the head
-	var factsRaw, ids, live, deskWord, headQuote, headFirm hexutil.Bytes
-	factsElem, err := multicallElem(multicall, []call{
-		{abi: &abi.Multicall3ABI, target: multicall, method: "getCurrentBlockTimestamp"}, named}, h.block, override{},
-		&factsRaw)
-	if err != nil {
-		return h, o, false, err
-	}
-	facts := []rpc.BatchElem{factsElem,
-		{Method: "eth_getStorageAt", Args: []any{front, sourceIdsSlot(se.Listing), hexutil.EncodeBig(h.block)},
-			Result: &ids},
-		{Method: "eth_getStorageAt", Args: []any{front, liveSourceSlot(se.Listing), hexutil.EncodeBig(h.block)},
-			Result: &live}}
-	// the desk word, from the chain's head and no answer
-	deskAccount, deskSlot, guarded := rule.deskWord(front, desk)
-	if guarded {
-		facts = append(facts, rpc.BatchElem{Method: "eth_getStorageAt",
-			Args: []any{deskAccount, deskSlot, hexutil.EncodeBig(h.block)}, Result: &deskWord},
-			// and the listing's own quote word, which an update stamped with the head's block must equal
-			rpc.BatchElem{Method: "eth_getStorageAt",
-				Args:   []any{deskAccount, pairSlot(quoteWordBase, b.wordIndex), hexutil.EncodeBig(h.block)},
-				Result: &headQuote},
-			// and its firm word, which a carried update's own must equal: nothing lands the pair in the target block
-			rpc.BatchElem{Method: "eth_getStorageAt",
-				Args:   []any{deskAccount, pairSlot(firmWordBase, b.wordIndex), hexutil.EncodeBig(h.block)},
-				Result: &headFirm})
-	}
-	if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), facts,
-		eth.DefaultBatchRetry); err != nil {
-		return h, o, false, err
-	}
-	var headTime *big.Int
-	var slots listingSlots
-	slotted := false
-	if facts[0].Error == nil {
-		if r, err := unpackTry(factsRaw, 2); err == nil {
-			headTime = unpackUint(&abi.Multicall3ABI, "getCurrentBlockTimestamp", r[0])
-			slots, slotted = slotsOf(rule, front, b, named, holder, r[1])
-		}
-	}
-	if slotted && guarded && facts[3].Error == nil && len(deskWord) == common.HashLength {
-		slots.deskWord, slots.deskKnown = common.BytesToHash(deskWord), true
-	}
-	if slotted && guarded && facts[4].Error == nil && len(headQuote) == common.HashLength {
-		slots.headQuote, slots.headKnown = common.BytesToHash(headQuote), true
-	}
-	if slotted && guarded && facts[5].Error == nil && len(headFirm) == common.HashLength {
-		slots.headFirm, slots.headFirmKnown = common.BytesToHash(headFirm), true
-	}
+	headTime, slots, slotted := bf.headTime, bf.slots, bf.slotted
 	keep := []common.Address{slots.account}
-	if facts[1].Error == nil && len(ids) == common.HashLength {
-		w := new(big.Int).SetBytes(ids)
-		h.sourceIds = w
-		for _, id := range []uint64{bits(w, 0, 32), bits(w, 32, 32)} {
+	if bf.ids != nil {
+		h.sourceIds = bf.ids
+		for _, id := range []uint64{bits(bf.ids, 0, 32), bits(bf.ids, 32, 32)} {
 			if id != 0 {
 				keep = append(keep, priceContract(front, uint32(id)))
 			}
@@ -475,8 +436,8 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	if printed(at.View.Scopes) {
 		// a builder build's live source word names the id it reads at bits 0-31 (0: none, a dark listing)
 		reads := common.Address{}
-		if facts[2].Error == nil && len(live) == common.HashLength {
-			if id := bits(new(big.Int).SetBytes(live), 0, 32); id != 0 {
+		if bf.live != nil {
+			if id := bits(bf.live, 0, 32); id != 0 {
 				reads = priceContract(front, uint32(id))
 			}
 		}
@@ -506,6 +467,12 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 			state: &titan.State{Overrides: accounts, BlockNumber: a.number, BlockTimestamp: a.time}}
 	}
 
+	// the same head under the same override: what the refresh priced then stands
+	h.key = overrideKey(o)
+	if held := ce.getPriced(h.key); held != nil && !skipHeld {
+		h.held = held
+		return h, o, false, nil
+	}
 	calls := headCalls(front, door, se.Listing, tokens, common.HexToAddress(se.Custody), maxIn)
 	head := len(calls)
 	calls = append(calls, blockCalls(multicall, o)...)
@@ -556,6 +523,99 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	mapped = h.view.View.Desk == desk && ok && pinned.same(slots) && (!carried || carries(h.view.View))
 	h.carried = mapped && carried
 	return h, o, mapped, nil
+}
+
+// readBuilderFacts reads a listing's head-fixed facts: its doorView at the head (a multicall that names the head's
+// block), then, pinned to that block, the head's second, the listing's slots and its price contracts. cacheable is
+// whether the head the doorView named is the one probed (hd, where probed): its facts are then the cache's at hd's
+// hash.
+func (t *PoolTracker) readBuilderFacts(ctx context.Context, f *Front, se StaticExtra, front common.Address, hd headID,
+	probed bool) (bf *builderFacts, cacheable bool, err error) {
+	bf = &builderFacts{}
+	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{ABI: frontABI, Target: se.Front, Method: "doorView",
+			Params: []any{big.NewInt(int64(se.Listing))}}, []any{&bf.at}).
+		TryBlockAndAggregate()
+	if err != nil {
+		return nil, false, err
+	}
+	if resp.BlockNumber == nil {
+		return nil, false, ErrNoBlockNumber
+	}
+	if resp.Request == nil || resp.Request.RawCallMsg.To == nil || len(resp.Result) != 1 {
+		return nil, false, ErrInvalidState
+	}
+	bf.block = resp.BlockNumber
+	bf.multicall = *resp.Request.RawCallMsg.To
+	bf.atOK = resp.Result[0]
+	cacheable = probed && hd.number != nil && hd.number.Cmp(bf.block) == 0
+	desk := uint32(0)
+	if bf.atOK {
+		desk = bf.at.View.Desk
+	}
+	multicall := bf.multicall
+	rule, err := t.slotRule(ctx, f)
+	if err != nil {
+		return nil, false, err
+	}
+	b := binding{listing: se.Listing, desk: desk, wordIndex: bf.at.View.WordIndex}
+	named, holder := rule.read(front, b)
+	block := bf.block
+
+	// the head's second, the listing's slots and its price contracts, at the head
+	var factsRaw, ids, live, deskWord, headQuote, headFirm hexutil.Bytes
+	factsElem, err := multicallElem(multicall, []call{
+		{abi: &abi.Multicall3ABI, target: multicall, method: "getCurrentBlockTimestamp"}, named}, block, override{},
+		&factsRaw)
+	if err != nil {
+		return nil, false, err
+	}
+	facts := []rpc.BatchElem{factsElem,
+		{Method: "eth_getStorageAt", Args: []any{front, sourceIdsSlot(se.Listing), hexutil.EncodeBig(block)},
+			Result: &ids},
+		{Method: "eth_getStorageAt", Args: []any{front, liveSourceSlot(se.Listing), hexutil.EncodeBig(block)},
+			Result: &live}}
+	// the desk word, from the chain's head and no answer
+	deskAccount, deskSlot, guarded := rule.deskWord(front, desk)
+	if guarded {
+		facts = append(facts, rpc.BatchElem{Method: "eth_getStorageAt",
+			Args: []any{deskAccount, deskSlot, hexutil.EncodeBig(block)}, Result: &deskWord},
+			// and the listing's own quote word, which an update stamped with the head's block must equal
+			rpc.BatchElem{Method: "eth_getStorageAt",
+				Args:   []any{deskAccount, pairSlot(quoteWordBase, b.wordIndex), hexutil.EncodeBig(block)},
+				Result: &headQuote},
+			// and its firm word, which a carried update's own must equal: nothing lands the pair in the target block
+			rpc.BatchElem{Method: "eth_getStorageAt",
+				Args:   []any{deskAccount, pairSlot(firmWordBase, b.wordIndex), hexutil.EncodeBig(block)},
+				Result: &headFirm})
+	}
+	if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), facts,
+		eth.DefaultBatchRetry); err != nil {
+		return nil, false, err
+	}
+	if facts[0].Error == nil {
+		if r, err := unpackTry(factsRaw, 2); err == nil {
+			bf.headTime = unpackUint(&abi.Multicall3ABI, "getCurrentBlockTimestamp", r[0])
+			bf.slots, bf.slotted = slotsOf(rule, front, b, named, holder, r[1])
+		}
+	}
+	slots := &bf.slots
+	if bf.slotted && guarded && facts[3].Error == nil && len(deskWord) == common.HashLength {
+		slots.deskWord, slots.deskKnown = common.BytesToHash(deskWord), true
+	}
+	if bf.slotted && guarded && facts[4].Error == nil && len(headQuote) == common.HashLength {
+		slots.headQuote, slots.headKnown = common.BytesToHash(headQuote), true
+	}
+	if bf.slotted && guarded && facts[5].Error == nil && len(headFirm) == common.HashLength {
+		slots.headFirm, slots.headFirmKnown = common.BytesToHash(headFirm), true
+	}
+	if facts[1].Error == nil && len(ids) == common.HashLength {
+		bf.ids = new(big.Int).SetBytes(ids)
+	}
+	if facts[2].Error == nil && len(live) == common.HashLength {
+		bf.live = new(big.Int).SetBytes(live)
+	}
+	return bf, cacheable, nil
 }
 
 // slotRule is front f's slot rule: the per-desk rule under the front's CELL_CODEHASH, read from the front once and held
