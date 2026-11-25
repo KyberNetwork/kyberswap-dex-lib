@@ -846,8 +846,8 @@ func TestBuilderHeadCacheSavesTheNodeCalls(t *testing.T) {
 	st.setEntries(slot, 1235, entries(0x4002))
 	tick()
 	_, d = refresh()
-	assert.Equal(t, map[string]int{"eth_call": 2, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
-		"the same head, a new override")
+	assert.Equal(t, map[string]int{"eth_call": 1, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"the same head, a new override: the pinned read asked ahead in the head read")
 	tick()
 	_, d = refresh()
 	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
@@ -862,8 +862,9 @@ func TestBuilderHeadCacheSavesTheNodeCalls(t *testing.T) {
 		"the replaced head not yet seen: the shared probe's")
 	tick()
 	_, d = refresh()
-	assert.Equal(t, map[string]int{"eth_call": 3, "eth_getStorageAt": 3, "eth_getBlockByNumber": 1}, d,
-		"a head replaced at the same height, seen by the next probe: its facts in one batch, the binding known")
+	assert.Equal(t, map[string]int{"eth_call": 2, "eth_getStorageAt": 3, "eth_getBlockByNumber": 1}, d,
+		"a head replaced at the same height, seen by the next probe: its facts in one batch, the binding known, and "+
+			"the pinned read asked ahead in the head read")
 
 	// the held result is served only while its desk's approval is what it was
 	tick()
@@ -882,6 +883,7 @@ type headRig struct {
 	chain *fakeChain
 	n     *node
 	st    *stateServer
+	cfg   *Config
 	tr    *PoolTracker
 	p     entity.Pool
 	now   time.Time
@@ -892,7 +894,7 @@ func newHeadRig(t *testing.T) *headRig {
 	n := builderNode(t, chain, 1234)
 	st := newStateServer(t)
 	cfg := printConfig(st.URL)
-	r := &headRig{t: t, chain: chain, n: n, st: st, p: ethListed(t, n, cfg), now: time.Now()}
+	r := &headRig{t: t, chain: chain, n: n, st: st, cfg: cfg, p: ethListed(t, n, cfg), now: time.Now()}
 	r.tr = ethTracker(t, n, cfg, r.now)
 	r.tr.now = func() time.Time { return r.now }
 	return r
@@ -927,6 +929,122 @@ func (r *headRig) newHead() {
 	r.n.mu.Lock()
 	r.n.reorg++
 	r.n.mu.Unlock()
+}
+
+// fresh is the state a tracker that holds nothing of the listing reads from p at the rig's head and answer: no facts,
+// no binding and no sizes asked ahead.
+func (r *headRig) fresh(p entity.Pool) entity.Pool {
+	r.t.Helper()
+	tr := ethTracker(r.t, r.n, r.cfg, r.now)
+	got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+	require.NoError(r.t, err)
+	return got
+}
+
+// samePriced asserts that got is the state want is: its ladders, reserves, block and time.
+func samePriced(t *testing.T, want, got entity.Pool, msg string) {
+	t.Helper()
+	require.NotEmpty(t, extraOf(t, want).Ladders[0], msg)
+	assert.Equal(t, want.Extra, got.Extra, msg)
+	assert.Equal(t, want.Reserves, got.Reserves, msg)
+	assert.Equal(t, want.BlockNumber, got.BlockNumber, msg)
+	assert.Equal(t, want.Timestamp, got.Timestamp, msg)
+}
+
+// A refresh whose answer covers the listing asks the door, in its head read, at the sizes the listing's last quoted
+// refresh named for it: where every size it then needs was asked there, its pinned read is taken from those answers,
+// and the state is the one a tracker that asked nothing ahead reads. Where a size it needs was not asked ahead, it reads
+// the pinned read as it would, and the state is the same.
+func TestBuilderPrefetchedReadIsTheReadItSaves(t *testing.T) {
+	r := newHeadRig(t)
+	r.answer(0, 1)
+	r.refresh()
+	last := r.p
+	require.NotEmpty(t, extraOf(t, last).Ladders[0])
+
+	r.answer(0, 2)
+	d := r.refresh()
+	assert.Equal(t, map[string]int{"eth_call": 1, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"a new override: the pinned read asked ahead in the head read")
+	samePriced(t, r.fresh(last), r.p, "asked ahead, the state a read after the head read gives")
+
+	// a size the refresh needs that was not asked ahead: the pinned read is read
+	e := r.tr.cache.m[common.HexToAddress(r.p.Address)]
+	e.mu.Lock()
+	require.NotNil(t, e.next)
+	e.next = &nextAsk{sizes: [2][]*big.Int{e.next.sizes[0][1:], e.next.sizes[1]}, plan: e.next.plan,
+		view: e.next.view}
+	e.mu.Unlock()
+	last = r.p
+	r.answer(0, 3)
+	d = r.refresh()
+	assert.Equal(t, map[string]int{"eth_call": 2, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"a size not asked ahead: the pinned read read after the head read")
+	samePriced(t, r.fresh(last), r.p, "not asked ahead, the same state")
+}
+
+// A refresh no answer covers writes no ladder, and the refresh that next quotes the listing draws its sizes from the
+// last state that held one: the ladder it last had, not the first refresh's sweep. So the sizes its last quoted refresh
+// named are the ones it needs, and its pinned read is asked ahead at a new head too; its state is the one read from
+// that last state.
+func TestBuilderSizesFollowTheLastLadderAcrossAHeadWithNoAnswer(t *testing.T) {
+	r := newHeadRig(t)
+	r.answer(0, 1)
+	r.refresh()
+	last := r.p
+	require.NotEmpty(t, extraOf(t, last).Ladders[0])
+
+	r.newHead()
+	r.st.setEntries(0, 1234, nil)
+	r.refresh()
+	require.Empty(t, extraOf(t, r.p).Ladders[0], "no answer: no ladder")
+
+	r.answer(0, 2)
+	d := r.refresh()
+	assert.Equal(t, map[string]int{"eth_call": 1, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"the answer at the same head: the facts held, the pinned read asked ahead")
+	samePriced(t, r.fresh(last), r.p, "the sizes of the last ladder")
+}
+
+// On BNB Chain the window samples the target block a second late too: the head read asks that sample beside it, in
+// the same batch, with the pinned read in its multicall, and the state is the one a tracker that asked nothing ahead
+// reads.
+func TestBNBPrefetchAsksTheLateSampleWithTheHeadRead(t *testing.T) {
+	chain := bnbChain()
+	now := uint64(time.Now().Unix())
+	n := bnbNode(t, chain, 1234, now*1000+700, true, nil)
+	st := newStateServer(t)
+	st.set(1235, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := bnbConfig(st.URL)
+	clock := time.Now()
+	tr := ethTracker(t, n, cfg, clock)
+	tr.now = func() time.Time { return clock }
+	refresh := func(tr *PoolTracker, p entity.Pool) (entity.Pool, int) {
+		t.Helper()
+		clock = clock.Add(time.Second)
+		before := n.requestCounts()["eth_call"]
+		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		return got, n.requestCounts()["eth_call"] - before
+	}
+	first, whole := refresh(tr, ethListed(t, n, cfg))
+	require.NotEmpty(t, extraOf(t, first).Ladders[0])
+
+	w := deskSlot0(1235, false)
+	w.SetBit(w, 101, 1)
+	st.set(1235, 1235, map[common.Address]*big.Int{testCellA: w})
+	before := len(n.calls())
+	second, calls := refresh(tr, first)
+	assert.Equal(t, 2, calls, "a new override: the head read with the pinned read in it, and the late sample")
+	seconds := map[uint64]int{}
+	for _, q := range quotesAfter(n, before) {
+		seconds[q.at]++
+	}
+	assert.Positive(t, seconds[now+1], "the target block's second")
+	assert.Positive(t, seconds[now+2], "the second after")
+	fresh, calls := refresh(ethTracker(t, n, cfg, clock), first)
+	assert.Equal(t, whole, calls, "nothing held: the facts, the head read, the pinned read, the late sample")
+	samePriced(t, fresh, second, "asked ahead, the state a read after the head read gives")
 }
 
 // Where no answer covers the listing's update for the head's next block, a refresh reads the head's facts alone: no
@@ -969,7 +1087,7 @@ func TestBuilderFactsReadAgainWhereTheBindingMoved(t *testing.T) {
 	r.newHead()
 	r.answer(3, 2)
 	d := r.refresh()
-	assert.Equal(t, 1, d["eth_call"]-3, "one more facts read than a head whose binding stood")
+	assert.Equal(t, 1, d["eth_call"]-2, "one more facts read than a head whose binding stood")
 	served(t, r.chain, 1, r.p, slotTime(slotAfter(r.n.time)), "quoted from its new pair slot")
 
 	// and a listing bound since to a source not approved is not quoted: its new id's entry is read

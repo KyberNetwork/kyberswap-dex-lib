@@ -365,6 +365,116 @@ type headRead struct {
 	// source ids read with them (builderFacts.entries)
 	headSec uint64
 	entries map[uint32]*big.Int
+	// prefetch is the door's answers the head read asked ahead (nil: none asked)
+	prefetch *prefetch
+}
+
+// prefetch is the door's answers a refresh's head read asked ahead under its override, at the sizes the listing's
+// last quoted refresh named for this one (nextAsk): in the head multicall, the target block's time and number (block)
+// and the door's quote at each size, then where plan its plan at each (asked); beside it, in the same batch, the same
+// at each sample the listing's window may take (at, each one's raw answer in raws, ok where the node answered it).
+// The calls are the pinned read's and the window's own, in the same block on the same override, so their answers are
+// those reads': probe and sampleWindow take them where every size they ask was asked, and read as they would where
+// one was not.
+type prefetch struct {
+	sizes [2][]*big.Int
+	plan  bool
+	block [][]byte
+	asked [][]byte
+	at    []override
+	raws  []hexutil.Bytes
+	ok    []bool
+}
+
+// answers are pf's answers of the pinned read's door calls at points: each size's quote, then where plan each size's
+// plan. ok is false where pf asked not every size, or no plans where they are wanted.
+func (pf *prefetch) answers(points [2][]*big.Int, plan bool) ([][]byte, bool) {
+	if pf == nil || plan && !pf.plan {
+		return nil, false
+	}
+	return pickRets(pf.asked, pf.sizes, points, pf.plan, plan)
+}
+
+// sample is pf's answers of window sample o at sized, as sampleWindow asks them: its block reads (blockCalls), then
+// each size's quote, then where plan each size's plan. ok is false where pf did not ask o, the node refused it, or a
+// size or the plans were not asked.
+func (pf *prefetch) sample(multicall common.Address, o override, sized [2][]*big.Int, plan bool) ([][]byte, bool) {
+	if pf == nil || plan && !pf.plan {
+		return nil, false
+	}
+	k := slices.Index(pf.at, o)
+	if k < 0 || !pf.ok[k] {
+		return nil, false
+	}
+	head := len(blockCalls(multicall, o))
+	per := 1
+	if pf.plan {
+		per = 2
+	}
+	rets, err := unpackTry(pf.raws[k], head+per*(len(pf.sizes[0])+len(pf.sizes[1])))
+	if err != nil {
+		return nil, false
+	}
+	picked, ok := pickRets(rets[head:], pf.sizes, sized, pf.plan, plan)
+	if !ok {
+		return nil, false
+	}
+	return append(slices.Clone(rets[:head]), picked...), true
+}
+
+// pickRets is, of rets, the answers of door calls at sizes (each direction's ascending and distinct: a quote at each
+// size of both directions, then where hasPlans a plan at each), those at points in the same order: each size's quote,
+// then where wantPlans each size's plan. ok is false where a size of points is not among sizes.
+func pickRets(rets [][]byte, sizes, points [2][]*big.Int, hasPlans, wantPlans bool) ([][]byte, bool) {
+	n := len(sizes[0]) + len(sizes[1])
+	passes, want := 1, 1
+	if hasPlans {
+		passes = 2
+	}
+	if wantPlans {
+		want = 2
+	}
+	if len(rets) != passes*n || want > passes {
+		return nil, false
+	}
+	out := make([][]byte, 0, want*(len(points[0])+len(points[1])))
+	for pass := range want {
+		off := pass * n
+		for dir := range 2 {
+			for _, size := range points[dir] {
+				i, found := slices.BinarySearchFunc(sizes[dir], size, (*big.Int).Cmp)
+				if !found {
+					return nil, false
+				}
+				out = append(out, rets[off+i])
+			}
+			off += len(sizes[dir])
+		}
+	}
+	return out, true
+}
+
+// askedWindow are the samples a window of the listing may take at o (builderWindow), read before the word under o is:
+// its view v is the last quoted refresh's, its word taken to carry wherever its carry life is set, so a carried word's
+// next block is asked whether or not the word under o carries.
+func askedWindow(v DoorView, o override, clk builderClock, allowanceMs, targetMs uint64, carried bool) []override {
+	if carryLife(v.Scopes) {
+		w := new(big.Int)
+		if v.Word != nil {
+			w.Set(v.Word)
+		}
+		v.Word = w.SetBit(w, 4, 1)
+	}
+	w := builderWindow(v, pinned{number: o.number}, o, clk, allowanceMs, targetMs, carried)
+	var at []override
+	for _, os := range w.at {
+		for _, o := range os {
+			if !slices.Contains(at, o) {
+				at = append(at, o)
+			}
+		}
+	}
+	return at
 }
 
 // headReads is how many calls a head read makes (headCalls).
@@ -541,12 +651,37 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 		msAt = len(calls)
 		calls = append(calls, call{abi: &baseTimeABI, target: msPrecompile, method: "timestampMs"})
 	}
+	// the door's calls the pinned read and the window will make, asked ahead at the sizes the listing's last quoted
+	// refresh named for this one: in the head multicall, and each window sample beside it in the same batch
+	var pf *prefetch
+	var asks []call
+	if next := ce.getNext(); ahead && next != nil {
+		pf = &prefetch{sizes: next.sizes, plan: next.plan}
+		var plan *planRead
+		if pf.plan {
+			plan = &planRead{front: front, listing: se.Listing}
+		}
+		asks = append(quoteCalls(door, tokens, pf.sizes), plan.calls(door, tokens, pf.sizes)...)
+		pf.at = askedWindow(next.view, o, clk, t.cfg.builderAllowanceMs(), targetMs, carried)
+		pf.raws, pf.ok = make([]hexutil.Bytes, len(pf.at)), make([]bool, len(pf.at))
+	}
+	askedAt := len(calls)
+	calls = append(calls, asks...)
 	var raw hexutil.Bytes
 	elem, err := multicallElem(multicall, calls, h.block, o, &raw)
 	if err != nil {
 		return h, o, false, err
 	}
 	batch := []rpc.BatchElem{elem}
+	if pf != nil {
+		for k, at := range pf.at {
+			e, err := multicallElem(multicall, append(blockCalls(multicall, at), asks...), h.block, at, &pf.raws[k])
+			if err != nil {
+				return h, o, false, err
+			}
+			batch = append(batch, e)
+		}
+	}
 	if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), batch,
 		eth.DefaultBatchRetry); err != nil {
 		return h, o, false, err
@@ -581,6 +716,13 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	h.fee = feeOf(rets[7], rets[8])
 	if msAt >= 0 {
 		h.msAnswered = len(rets[msAt]) >= common.HashLength
+	}
+	if pf != nil {
+		pf.block, pf.asked = rets[head:slotsAt], rets[askedAt:]
+		for k := range pf.at {
+			pf.ok[k] = batch[1+k].Error == nil
+		}
+		h.prefetch = pf
 	}
 	if !ahead || !readsBlock(rets[head:slotsAt], o, o.number) {
 		return h, o, false, nil

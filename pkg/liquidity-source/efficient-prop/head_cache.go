@@ -143,10 +143,13 @@ type pricedOut struct {
 }
 
 // headEntry is one listing's cache at one head. hint is the listing's binding as an earlier head's facts named it,
-// carried to the entry of the next head (listingCache.at).
+// and next and guide what its last quoted refresh named for the next (nextAsk, sizeGuide), each carried to the entry
+// of the next head (listingCache.at).
 type headEntry struct {
-	id   headID
-	hint *factsHint
+	id    headID
+	hint  *factsHint
+	next  *nextAsk
+	guide *sizeGuide
 
 	mu       sync.Mutex
 	facts    *builderFacts
@@ -178,6 +181,9 @@ func (c *listingCache) at(door common.Address, id headID) *headEntry {
 	e := &headEntry{id: id}
 	if old != nil {
 		e.hint = old.getHint()
+		old.mu.Lock()
+		e.next, e.guide = old.next, old.guide
+		old.mu.Unlock()
 	}
 	c.m[door] = e
 	return e
@@ -194,6 +200,55 @@ func (e *headEntry) getHint() *factsHint {
 		return h
 	}
 	return e.hint
+}
+
+// nextAsk is what a listing's next refresh will ask the door, as its last quoted refresh names it: each direction's
+// sizes (ascending, distinct; askInputs.sizes on the state that refresh wrote), whether a plan is asked beside each
+// quote (a listing with a credit mode), and its doorView, whose scopes say which window samples it takes. A refresh
+// whose answer covers the listing asks the door at those sizes in its head read (prefetch).
+type nextAsk struct {
+	sizes [2][]*big.Int
+	plan  bool
+	view  DoorView
+}
+
+// sizeGuide is the last state of the listing that held a ladder, its Extra and reserves: the sizes of a refresh whose
+// last state holds none (a refresh no answer covered writes none) are drawn from it (sizingPool). Sizes only, never a
+// price.
+type sizeGuide struct {
+	extra    string
+	reserves entity.PoolReserves
+}
+
+func (e *headEntry) getNext() *nextAsk {
+	if e == nil {
+		return nil
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.next
+}
+
+func (e *headEntry) getGuide() *sizeGuide {
+	if e == nil {
+		return nil
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.guide
+}
+
+// setAsked keeps next, and guide where it is set.
+func (e *headEntry) setAsked(next *nextAsk, guide *sizeGuide) {
+	if e == nil {
+		return
+	}
+	e.mu.Lock()
+	e.next = next
+	if guide != nil {
+		e.guide = guide
+	}
+	e.mu.Unlock()
 }
 
 func (e *headEntry) getFacts() *builderFacts {

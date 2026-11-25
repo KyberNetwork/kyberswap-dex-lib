@@ -434,35 +434,11 @@ func (t *PoolTracker) GetNewPoolState(
 	// the head read: under any other the grid stays as it was, and the pinned read below then quotes nothing
 	layout := f != nil && h.rungs.ok && f.implements(h.rungs.implementation)
 	var points [2][]*big.Int
+	var ask *askInputs
 	if quoted {
-		var last Extra
-		if layout && p.Extra != "" {
-			_ = json.Unmarshal([]byte(p.Extra), &last)
-		}
-		points = [2][]*big.Int{t.probeSizes(p, 0, gridReserve(p, 1, reserves[1], plan != nil)),
-			t.probeSizes(p, 1, gridReserve(p, 0, reserves[0], plan != nil))}
-		for dir := range points {
-			if top := tops[dir].FillableAmountIn; h.result[4+dir] && top != nil && top.Sign() > 0 &&
-				top.Cmp(maxPointInput) < 0 {
-				points[dir] = withSize(points[dir], top)
-			}
-			// a point on every rung boundary: between two neighbouring sizes the walk is then on one rung. Not on a
-			// listing with a credit mode: it takes one fill a route whatever the state says, so the middles buy it
-			// nothing, and each size there costs a plan beside its quote in the one pinned call
-			if layout && plan == nil {
-				points[dir] = withEdges(points[dir], rungEdges(v, dir, h.rungs))
-				// and one at the listing's minimum fill, so the ladder starts where the listing does
-				var first Point
-				if l := last.ladders()[dir]; len(l) > 0 {
-					first = l[0]
-				}
-				for _, size := range minSizes(v, dir, h.rungs, first) {
-					if size.Sign() > 0 && size.Cmp(maxPointInput) < 0 {
-						points[dir] = withSize(points[dir], size)
-					}
-				}
-			}
-		}
+		ask = &askInputs{view: v, tops: tops, rungs: h.rungs, reserves: reserves, credit: plan != nil, layout: layout}
+		ask.topsOK[0], ask.topsOK[1] = h.result[4], h.result[5]
+		points = ask.sizes(t, sizingPool(p, h.ce.getGuide()))
 	}
 	session := quoted && (v.Scopes>>1)&3 == fenceSession
 	var s pinned
@@ -475,7 +451,7 @@ func (t *PoolTracker) GetNewPoolState(
 		}
 	default:
 		if s, err = t.probe(ctx, multicall, door, front, staticExtra.Listing, tokens, points, block, quoted, session,
-			clock, lanes, o0, plan, h.ce, h.rungs); err != nil {
+			clock, lanes, o0, plan, h.ce, h.rungs, h.prefetch); err != nil {
 			return p, err
 		}
 	}
@@ -512,7 +488,8 @@ func (t *PoolTracker) GetNewPoolState(
 			}
 			w = t.window(v, s, clock, ends, life)
 		}
-		outputs, caps, samples, err := t.sampleWindow(ctx, multicall, door, tokens, points, block, s, w, plan)
+		outputs, caps, samples, err := t.sampleWindow(ctx, multicall, door, tokens, points, block, s, w, plan,
+			h.prefetch)
 		if err != nil {
 			return p, err
 		}
@@ -599,6 +576,18 @@ func (t *PoolTracker) GetNewPoolState(
 		if approved, err := t.deskApproved(ctx, f, v.Desk); err == nil {
 			h.ce.setPriced(h.key, &pricedOut{extra: p.Extra, reserves: slices.Clone(p.Reserves),
 				blockNumber: p.BlockNumber, timestamp: p.Timestamp, desk: v.Desk, approved: approved})
+		}
+		// the sizes the next refresh will ask on this state, where its inputs stand: its head read asks them ahead
+		if ask != nil {
+			var guide *sizeGuide
+			if l := extra.ladders(); len(l[0]) > 0 || len(l[1]) > 0 {
+				guide = &sizeGuide{extra: p.Extra, reserves: slices.Clone(p.Reserves)}
+			}
+			g := guide
+			if g == nil {
+				g = h.ce.getGuide()
+			}
+			h.ce.setAsked(&nextAsk{sizes: ask.sizes(t, sizingPool(p, g)), plan: ask.credit, view: v}, guide)
 		}
 	}
 	return p, nil
@@ -755,6 +744,71 @@ func (t *PoolTracker) probeSizes(p entity.Pool, dir int, outputReserve *big.Int)
 	return deduped
 }
 
+// askInputs are what a quoted refresh's sizes are drawn from beside its last state: the listing's doorView, each side's
+// top (where its quoteFillable answered: topsOK), the front's words (rungRead), the reserves, whether the listing has a
+// credit mode, and whether its front's words are read by their layout.
+type askInputs struct {
+	view     DoorView
+	tops     [2]fillableOut
+	topsOK   [2]bool
+	rungs    rungRead
+	reserves [2]*big.Int
+	credit   bool
+	layout   bool
+}
+
+// sizes are each direction's sizes to ask the door at on p's state: the shared ladder grid (probeSizes) and the
+// side's top, and on a front whose words are read by their layout and a listing with no credit mode, a point on every
+// rung boundary and the listing's minimum fill.
+func (a *askInputs) sizes(t *PoolTracker, p entity.Pool) (points [2][]*big.Int) {
+	var last Extra
+	if a.layout && p.Extra != "" {
+		_ = json.Unmarshal([]byte(p.Extra), &last)
+	}
+	points = [2][]*big.Int{t.probeSizes(p, 0, gridReserve(p, 1, a.reserves[1], a.credit)),
+		t.probeSizes(p, 1, gridReserve(p, 0, a.reserves[0], a.credit))}
+	for dir := range points {
+		if top := a.tops[dir].FillableAmountIn; a.topsOK[dir] && top != nil && top.Sign() > 0 &&
+			top.Cmp(maxPointInput) < 0 {
+			points[dir] = withSize(points[dir], top)
+		}
+		// a point on every rung boundary: between two neighbouring sizes the walk is then on one rung. Not on a
+		// listing with a credit mode: it takes one fill a route whatever the state says, so the middles buy it
+		// nothing, and each size there costs a plan beside its quote in the one pinned call
+		if a.layout && !a.credit {
+			points[dir] = withEdges(points[dir], rungEdges(a.view, dir, a.rungs))
+			// and one at the listing's minimum fill, so the ladder starts where the listing does
+			var first Point
+			if l := last.ladders()[dir]; len(l) > 0 {
+				first = l[0]
+			}
+			for _, size := range minSizes(a.view, dir, a.rungs, first) {
+				if size.Sign() > 0 && size.Cmp(maxPointInput) < 0 {
+					points[dir] = withSize(points[dir], size)
+				}
+			}
+		}
+	}
+	return points
+}
+
+// sizingPool is p, or where p's state holds no ladder (a refresh no answer covered writes none), p with the Extra and
+// reserves of the last state that held one (g), so the sizes of the refresh that next quotes it are drawn on the
+// ladder it last had, not the first refresh's sweep. Sizes only: no output is taken from g.
+func sizingPool(p entity.Pool, g *sizeGuide) entity.Pool {
+	if g == nil {
+		return p
+	}
+	var e Extra
+	if p.Extra != "" && json.Unmarshal([]byte(p.Extra), &e) == nil {
+		if l := e.ladders(); len(l[0]) > 0 || len(l[1]) > 0 {
+			return p
+		}
+	}
+	p.Extra, p.Reserves = g.extra, slices.Clone(g.reserves)
+	return p
+}
+
 // pinned is the refresh's pinned read: the block's time and number, the moment the front's clock reads in it (ms,
 // moment) and BaseTime's reading there, the door's quote at every size of both directions at it (nil where the door
 // refused), the listing's controls word and the front proxy's implementation (where quoted; the zero address where
@@ -794,7 +848,8 @@ type pinned struct {
 // same multicall, and each size classed by it (classify).
 func (t *PoolTracker) probe(ctx context.Context, multicall, door, front common.Address, listing uint32,
 	tokens [2]common.Address, points [2][]*big.Int, block *big.Int, quoted, session bool,
-	c frontClock, lanes []common.Address, o override, plan *planRead, ce *headEntry, r rungRead) (s pinned, err error) {
+	c frontClock, lanes []common.Address, o override, plan *planRead, ce *headEntry, r rungRead,
+	pf *prefetch) (s pinned, err error) {
 	calls := []call{{abi: &abi.Multicall3ABI, target: multicall, method: "getCurrentBlockTimestamp"},
 		{abi: &baseTimeABI, target: c.baseTime, method: "timestampMs"}}
 	if c.ClockMode.Uint64() != clockBlocks || c.baseTime == (common.Address{}) {
@@ -813,13 +868,23 @@ func (t *PoolTracker) probe(ctx context.Context, multicall, door, front common.A
 	calls = append(calls, quoteCalls(door, tokens, points)...)
 	planned := len(calls)
 	calls = append(calls, plan.calls(door, tokens, points)...)
+	// the multicall's answers where the head read asked them all ahead (pf): in a block override's block, on the block
+	// reads the head read made, with no BaseTime and no lane read
+	var rets [][]byte
+	if asked, ok := pf.answers(points, plan != nil); ok && o.time != 0 && timed == 1 && len(lanes) == 0 &&
+		len(pf.block) == head {
+		rets = append(slices.Clone(pf.block), asked...)
+	}
 	var raw hexutil.Bytes
 	var ctl, ses, impl, live hexutil.Bytes
-	elem, err := multicallElem(multicall, calls, block, o, &raw)
-	if err != nil {
-		return s, err
+	var batch []rpc.BatchElem
+	if rets == nil {
+		elem, err := multicallElem(multicall, calls, block, o, &raw)
+		if err != nil {
+			return s, err
+		}
+		batch = append(batch, elem)
 	}
-	batch := []rpc.BatchElem{elem}
 	// the words the head fixes, read once a head where the refresh keeps them (ce)
 	fixed := ce.getFixed(quoted, session, len(lanes) > 0)
 	reads, liveAt, sesAt, implAt := len(batch), -1, -1, -1
@@ -853,9 +918,11 @@ func (t *PoolTracker) probe(ctx context.Context, multicall, door, front common.A
 				Args: []any{front, sessionSlot(listing), hexutil.EncodeBig(block)}, Result: &ses})
 		}
 	}
-	if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), batch,
-		eth.DefaultBatchRetry); err != nil {
-		return s, err
+	if len(batch) > 0 {
+		if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), batch,
+			eth.DefaultBatchRetry); err != nil {
+			return s, err
+		}
 	}
 	for _, b := range batch[:reads] {
 		if b.Error != nil {
@@ -879,9 +946,10 @@ func (t *PoolTracker) probe(ctx context.Context, multicall, door, front common.A
 		ce.setFixed(&probeFixed{quoted: quoted, session: session, lanes: len(lanes) > 0,
 			ctl: ctl, impl: impl, live: live, ses: ses})
 	}
-	rets, err := unpackTry(raw, len(calls))
-	if err != nil {
-		return s, err
+	if rets == nil {
+		if rets, err = unpackTry(raw, len(calls)); err != nil {
+			return s, err
+		}
 	}
 	ts := unpackUint(&abi.Multicall3ABI, "getCurrentBlockTimestamp", rets[0])
 	if ts == nil || !ts.IsUint64() || ts.Sign() == 0 {
@@ -1295,8 +1363,8 @@ func (t *PoolTracker) window(v DoorView, s pinned, c frontClock, ends [2]uint64,
 // asks the front's plan of every size beside its quote, and a size whose class there is none, or not the pinned
 // block's (s.routed), is no point.
 func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.Address, tokens [2]common.Address,
-	points [2][]*big.Int, block *big.Int, s pinned, w window, plan *planRead) (outputs [2][]*big.Int, caps [2]uint64,
-	samples [2][][]*big.Int, err error) {
+	points [2][]*big.Int, block *big.Int, s pinned, w window, plan *planRead, pf *prefetch) (outputs [2][]*big.Int,
+	caps [2]uint64, samples [2][][]*big.Int, err error) {
 	outputs = s.outputs
 	for dir := range 2 {
 		samples[dir] = [][]*big.Int{slices.Clone(s.outputs[dir])}
@@ -1329,7 +1397,10 @@ func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.A
 	}
 	raws := make([]hexutil.Bytes, len(blocks))
 	masks := make([][2]bool, len(blocks))
-	batch := make([]rpc.BatchElem, len(blocks))
+	// a sample's answers where the head read asked them all ahead (pf), else asked here: batch[j] is blocks[asked[j]]
+	served := make([][][]byte, len(blocks))
+	var batch []rpc.BatchElem
+	var asked []int
 	for k, o := range blocks {
 		var sized [2][]*big.Int
 		for dir := range 2 {
@@ -1337,15 +1408,27 @@ func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.A
 				masks[k][dir], sized[dir] = true, points[dir]
 			}
 		}
+		if rets, ok := pf.sample(multicall, o, sized, plan != nil); ok {
+			served[k] = rets
+			continue
+		}
 		calls := append(blockCalls(multicall, o), quoteCalls(door, tokens, sized)...)
 		calls = append(calls, plan.calls(door, tokens, sized)...)
-		if batch[k], err = multicallElem(multicall, calls, block, o, &raws[k]); err != nil {
+		elem, err := multicallElem(multicall, calls, block, o, &raws[k])
+		if err != nil {
+			return outputs, caps, samples, err
+		}
+		batch, asked = append(batch, elem), append(asked, k)
+	}
+	if len(batch) > 0 {
+		if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), batch,
+			eth.DefaultBatchRetry); err != nil {
 			return outputs, caps, samples, err
 		}
 	}
-	if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), batch,
-		eth.DefaultBatchRetry); err != nil {
-		return outputs, caps, samples, err
+	failed := make([]bool, len(blocks))
+	for j, k := range asked {
+		failed[k] = batch[j].Error != nil
 	}
 	perSize := 1
 	if plan != nil {
@@ -1358,8 +1441,8 @@ func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.A
 				sized[dir] = points[dir]
 			}
 		}
-		var rets [][]byte
-		if batch[k].Error == nil {
+		rets := served[k]
+		if rets == nil && !failed[k] {
 			head := len(blockCalls(multicall, blocks[k]))
 			if rets, err = unpackTry(raws[k], head+perSize*(len(sized[0])+len(sized[1]))); err != nil {
 				return outputs, caps, samples, err
@@ -1369,7 +1452,7 @@ func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.A
 		if number == 0 {
 			number = block.Uint64()
 		}
-		if batch[k].Error != nil || !readsBlock(rets, blocks[k], number) {
+		if failed[k] || !readsBlock(rets, blocks[k], number) {
 			// the node refused the override, or ignored it: no sample, and the direction quoted no later than its cap
 			for dir := range 2 {
 				if masks[k][dir] {
