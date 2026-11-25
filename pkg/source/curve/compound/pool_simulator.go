@@ -154,7 +154,7 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 	var tokenIndexTo = t.GetTokenIndex(tokenOut)
 
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		amountOut, fee, err := GetDyUnderlying(
+		amountOut, _, err := GetDyUnderlying(
 			t.Info.Reserves,
 			t.Rates,
 			t.Multipliers,
@@ -175,7 +175,6 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 			}
 			return &pool.CalcAmtOutResult{
 				TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
-				Fee:            &pool.TokenAmt{Token: tokenOut, Amount: *fee},
 				Gas:            t.gas.ExchangeUnderlying,
 			}, nil
 		}
@@ -194,7 +193,7 @@ func (t *PoolSimulator) CalcAmtIn(param pool.CalcAmtInParams) (*pool.CalcAmtInRe
 		return nil, fmt.Errorf("tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: %v, tokenIndexTo: %v", tokenIndexFrom, tokenIndexTo)
 	}
 
-	amountIn, fee, err := GetDxUnderlying(
+	amountIn, _, err := GetDxUnderlying(
 		t.Info.Reserves,
 		t.Rates,
 		t.Multipliers,
@@ -212,7 +211,6 @@ func (t *PoolSimulator) CalcAmtIn(param pool.CalcAmtInParams) (*pool.CalcAmtInRe
 	}
 	return &pool.CalcAmtInResult{
 		TokenAmountIn: &pool.TokenAmt{Token: tokenIn, Amount: *amountIn},
-		Fee:           &pool.TokenAmt{Token: tokenOut, Amount: *fee},
 		Gas:           t.gas.ExchangeUnderlying,
 	}, nil
 }

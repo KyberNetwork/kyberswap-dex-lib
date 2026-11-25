@@ -1578,12 +1578,6 @@ func TestPool_CalcAmtOut_MatchesCalcAmountOut(t *testing.T) {
 					}
 					filled++
 					assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.Dec(), label+" amountOut")
-					// no-order sides return a nil big.Int fee, which is zero
-					wantFee := "0"
-					if want.Fee.Amount != nil {
-						wantFee = want.Fee.Amount.String()
-					}
-					assert.Equal(t, wantFee, got.Fee.Amount.Dec(), label+" fee")
 					assert.Equal(t, want.Gas, got.Gas, label+" gas")
 					assert.Nil(t, want.RemainingTokenAmountIn, label+" remaining")
 					assert.Nil(t, got.RemainingTokenAmountIn, label+" remaining")

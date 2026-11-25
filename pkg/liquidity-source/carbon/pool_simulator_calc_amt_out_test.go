@@ -94,10 +94,6 @@ func checkCalcAmtOutParity(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut s
 	require.Zero(t, want.TokenAmountOut.Amount.Cmp(got.TokenAmountOut.Amount.ToBig()),
 		"amount: big=%s uint256=%s", want.TokenAmountOut.Amount, got.TokenAmountOut.Amount.Dec())
 
-	require.Equal(t, want.Fee.Token, got.Fee.Token)
-	require.Zero(t, want.Fee.Amount.Cmp(got.Fee.Amount.ToBig()),
-		"fee: big=%s uint256=%s", want.Fee.Amount, got.Fee.Amount.Dec())
-
 	require.Equal(t, want.Gas, got.Gas)
 	wantSwap, ok := want.SwapInfo.(SwapInfo)
 	require.True(t, ok)

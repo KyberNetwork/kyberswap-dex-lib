@@ -201,12 +201,12 @@ func (t *legacyPoolSimulator) Swap(
 		return nil, nil, 0, err
 	}
 	return &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut,
-		}, &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: bignumber.ZeroBI,
-		}, t.gas.Exchange, nil
+		Token:  tokenOut,
+		Amount: amountOut,
+	}, &pool.TokenAmount{
+		Token:  tokenOut,
+		Amount: bignumber.ZeroBI,
+	}, t.gas.Exchange, nil
 }
 
 func (t *legacyPoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {

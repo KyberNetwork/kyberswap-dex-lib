@@ -105,10 +105,8 @@ func checkCompoundRow(t *testing.T, key string, c goldenRow, err error, out *poo
 	require.NoError(t, err, key)
 	if out != nil {
 		require.Equal(t, c.Dy, out.TokenAmountOut.Amount.String(), key)
-		require.Equal(t, c.Fee, out.Fee.Amount.String(), key)
 	} else {
 		require.Equal(t, c.Dy, in.TokenAmountIn.Amount.String(), key)
-		require.Equal(t, c.Fee, in.Fee.Amount.String(), key)
 	}
 }
 
@@ -132,7 +130,7 @@ func TestLegacyParityState(t *testing.T) {
 			upd = append(upd, "err")
 			continue
 		}
-		p.UpdateState(pool.UpdateStateParams{TokenAmountIn: pool.TokenAmt{Token: "bu", Amount: *amt}, TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee})
+		p.UpdateState(pool.UpdateStateParams{TokenAmountIn: pool.TokenAmt{Token: "bu", Amount: *amt}, TokenAmountOut: *res.TokenAmountOut})
 		for _, r := range p.Info.Reserves {
 			upd = append(upd, r.String())
 		}

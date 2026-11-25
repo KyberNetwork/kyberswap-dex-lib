@@ -110,7 +110,7 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 	}
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
 		// get_dy_underlying
-		var amountIn, amountOut, adminFee uint256.Int
+		var amountIn, amountOut uint256.Int
 		var addLiquidityInfo BasePoolAddLiquidityInfo
 		var metaswapInfo MetaPoolSwapInfo
 		var withdrawInfo BasePoolWithdrawInfo
@@ -147,10 +147,6 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 				TokenAmountOut: &pool.TokenAmt{
 					Token:  tokenOut,
 					Amount: amountOut,
-				},
-				Fee: &pool.TokenAmt{
-					Token:  tokenOut,
-					Amount: adminFee,
 				},
 				Gas:      DefaultGasUnderlying,
 				SwapInfo: swapInfo,
@@ -195,7 +191,7 @@ func (t *PoolSimulator) CalcAmtIn(param pool.CalcAmtInParams) (*pool.CalcAmtInRe
 
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
 		// get_dx_underlying
-		var amountIn, amountOut, adminFee uint256.Int
+		var amountIn, amountOut uint256.Int
 		var addLiquidityInfo BasePoolAddLiquidityInfo
 		var metaswapInfo MetaPoolSwapInfo
 		var withdrawInfo BasePoolWithdrawInfo
@@ -225,10 +221,6 @@ func (t *PoolSimulator) CalcAmtIn(param pool.CalcAmtInParams) (*pool.CalcAmtInRe
 				TokenAmountIn: &pool.TokenAmt{
 					Token:  tokenIn,
 					Amount: amountIn,
-				},
-				Fee: &pool.TokenAmt{
-					Token:  tokenOut,
-					Amount: adminFee,
 				},
 				Gas:      DefaultGasUnderlying,
 				SwapInfo: swapInfo,

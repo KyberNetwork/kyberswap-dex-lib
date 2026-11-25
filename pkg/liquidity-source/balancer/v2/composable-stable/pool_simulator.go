@@ -187,14 +187,13 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 
 	var (
 		amountOut *uint256.Int
-		fee       *pool.TokenAmt
 		swapInfo  *SwapInfo
 		err       error
 	)
 	if tokenAmountIn.Token == s.Info.Address || tokenOut == s.Info.Address {
-		amountOut, fee, swapInfo, err = s.bptSimulator._swapWithBpt(true, amountIn, balances, indexIn, indexOut)
+		amountOut, _, swapInfo, err = s.bptSimulator._swapWithBpt(true, amountIn, balances, indexIn, indexOut)
 	} else {
-		amountOut, fee, swapInfo, err = s.regularSimulator._swapGivenIn(amountIn, balances, indexIn, indexOut)
+		amountOut, _, swapInfo, err = s.regularSimulator._swapGivenIn(amountIn, balances, indexIn, indexOut)
 	}
 	if err != nil {
 		return nil, err
@@ -205,7 +204,6 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 			Token:  tokenOut,
 			Amount: *amountOut,
 		},
-		Fee:      fee,
 		Gas:      DefaultGas.Swap,
 		SwapInfo: swapInfo,
 	}, nil
@@ -283,11 +281,7 @@ func (s *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInR
 	if err != nil {
 		return nil, err
 	}
-	fee, err := tokenAmtFromBigComposable(res.Fee)
-	if err != nil {
-		return nil, err
-	}
-	return &pool.CalcAmtInResult{TokenAmountIn: in, Fee: fee, Gas: res.Gas, SwapInfo: res.SwapInfo}, nil
+	return &pool.CalcAmtInResult{TokenAmountIn: in, Gas: res.Gas, SwapInfo: res.SwapInfo}, nil
 }
 
 // tokenAmtFromBigComposable converts a legacy big.Int amount to uint256. A nil amount stays zero.

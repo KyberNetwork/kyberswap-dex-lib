@@ -243,7 +243,6 @@ func TestCalcAmountOut(t *testing.T) {
 			require.Nil(t, err)
 			assert.Equal(t, uint256.NewInt(uint64(tc.expectedOutAmount)).String(), out.TokenAmountOut.Amount.String())
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
-			assert.Equal(t, uint256.NewInt(uint64(tc.expectedFeeAmount)).String(), out.Fee.Amount.String())
 		})
 	}
 }
@@ -277,7 +276,6 @@ func TestCalcAmountOut_interpolate_from_initialA_and_futureA(t *testing.T) {
 	})
 	require.Nil(t, err)
 	assert.Equal(t, uint256.NewInt(509863).String(), out.TokenAmountOut.Amount.String())
-	assert.Equal(t, uint256.NewInt(153).String(), out.Fee.Amount.String())
 }
 
 func TestGetDyVirtualPrice(t *testing.T) {

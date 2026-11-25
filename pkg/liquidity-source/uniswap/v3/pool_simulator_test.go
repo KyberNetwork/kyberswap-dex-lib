@@ -268,9 +268,7 @@ func TestCalcAmtOutParity(t *testing.T) {
 			assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.ToBig().String(), "amountOut")
 			assert.Equal(t, want.TokenAmountOut.Token, got.TokenAmountOut.Token, "tokenOut")
 			assert.Equal(t, want.Gas, got.Gas, "gas")
-			assert.Equal(t, want.Fee.Token, got.Fee.Token, "fee token")
 			assert.Nil(t, want.Fee.Amount, "big.Int path leaves fee amount unset")
-			assert.True(t, got.Fee.Amount.IsZero(), "native path leaves fee amount zero")
 			assert.Equal(t, want.RemainingTokenAmountIn.Amount.String(),
 				got.RemainingTokenAmountIn.Amount.ToBig().String(), "remaining in")
 			assert.Equal(t, want.SwapInfo, got.SwapInfo, "swapInfo")
@@ -346,7 +344,6 @@ func TestCloneState(t *testing.T) {
 	clone.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  pool.TokenAmt{Token: tokenIn, Amount: *amtIn},
 		TokenAmountOut: *before.TokenAmountOut,
-		Fee:            *before.Fee,
 		SwapInfo:       before.SwapInfo,
 	})
 

@@ -167,7 +167,6 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	info := q.result.SwapInfo.(*SwapInfo)
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: s.Info.Tokens[out], Amount: info.AmountOut},
-		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[in], Amount: info.FeeCollected},
 		Gas:            q.result.Gas,
 		SwapInfo:       info,
 	}, nil

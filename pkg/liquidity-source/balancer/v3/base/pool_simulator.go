@@ -180,7 +180,6 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 
 		return &pool.CalcAmtOutResult{
 			TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
-			Fee:            &pool.TokenAmt{Token: tokenIn},
 			SwapInfo: shared.SwapInfo{
 				AggregateFee: bignumber.ZeroBI,
 			},
@@ -201,7 +200,7 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 		gas += bufferGas
 	}
 
-	amountOut, totalSwapFee, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
+	amountOut, _, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
 		Kind:           shared.ExactIn,
 		IndexIn:        indexIn,
 		IndexOut:       indexOut,
@@ -227,7 +226,6 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
-		Fee:            &pool.TokenAmt{Token: tokenIn, Amount: *totalSwapFee},
 		SwapInfo: shared.SwapInfo{
 			AggregateFee:           aggregateFee.ToBig(),
 			AmountOutBeforeConvert: amountOutBeforeConvert,

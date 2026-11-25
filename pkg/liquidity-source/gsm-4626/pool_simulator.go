@@ -94,7 +94,6 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
-		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[0], Amount: *fee},
 		Gas:            lo.Ternary(isBuy, getAssetAmountForBuyAssetGas+buyAssetGas, sellAssetGas),
 		SwapInfo:       &SwapInfo{IsBuy: isBuy, GrossAmount: grossAmount},
 	}, nil

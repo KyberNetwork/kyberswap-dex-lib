@@ -404,7 +404,6 @@ func TestCalcAmountOut_ProtocolFee(t *testing.T) {
 	require.NoError(t, err)
 	// 4000e18 gross, 0.3% to the protocol
 	assert.Equal(t, "3988000000000000000000", res.TokenAmountOut.Amount.String())
-	assert.Equal(t, "12000000000000000000", res.Fee.Amount.String())
 }
 
 func TestCalcAmountOut_GasPerMaker(t *testing.T) {
@@ -463,7 +462,7 @@ func BenchmarkUpdateState(b *testing.B) {
 	require.NoError(b, err)
 	up := pool.UpdateStateParams{
 		TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut,
-		Fee: *res.Fee, SwapInfo: res.SwapInfo,
+		SwapInfo: res.SwapInfo,
 	}
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {

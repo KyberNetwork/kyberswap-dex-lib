@@ -137,10 +137,6 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 			Token:  tokenOut,
 			Amount: *output.AmountOutAfterFee,
 		},
-		Fee: &pool.TokenAmt{
-			Token:  tokenOut,
-			Amount: *output.FeeAmount,
-		},
 		SwapInfo: swapInfo,
 		Gas:      defaultTradeBySourceAmountGas + int64(defaultSingleTradeActionGas*len(output.TradeActions)),
 	}, nil

@@ -92,7 +92,6 @@ func TestCalcAmountOut(t *testing.T) {
 			})
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedOut, res.TokenAmountOut.Amount.String())
-			assert.Equal(t, tc.expectedFee, res.Fee.Amount.String())
 		})
 	}
 }

@@ -176,7 +176,6 @@ func sequentialCLParity(t *testing.T, base *PoolSimulator, tokenIn, tokenOut, am
 			require.Equal(t, lRes.RemainingTokenAmountIn.Amount.String(), nRes.RemainingTokenAmountIn.Amount.Dec(), name+" remaining")
 			require.Equal(t, lRes.RemainingTokenAmountIn.Token, nRes.RemainingTokenAmountIn.Token, name+" remaining token")
 		}
-		require.Equal(t, lRes.Fee.Token, nRes.Fee.Token, name+" fee token")
 		require.Equal(t, lRes.Gas, nRes.Gas, name+" gas")
 		require.Equal(t, lRes.SwapInfo, nRes.SwapInfo, name+" swapinfo")
 

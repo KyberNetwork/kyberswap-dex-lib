@@ -189,7 +189,7 @@ func (p *PoolSimulator) calcAmountOut(
 func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	tokenOut := params.TokenOut
 	swapSide := p.getSwapSide(params.TokenAmountIn.Token, tokenOut)
-	amountOut, feeAmount, swapInfo, _, err := p.calcAmountOutWithSwapInfo(swapSide, params.TokenAmountIn.Amount,
+	amountOut, _, swapInfo, _, err := p.calcAmountOutWithSwapInfo(swapSide, params.TokenAmountIn.Amount,
 		true, params.Limit)
 	if err != nil {
 		return nil, err
@@ -197,7 +197,6 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: amountOut},
-		Fee:            &pool.TokenAmt{Token: tokenOut, Amount: feeAmount},
 		Gas:            p.estimateGas(len(swapInfo.FilledOrders)),
 		SwapInfo:       swapInfo,
 	}, nil

@@ -80,7 +80,6 @@ func TestPool_CalcAmtOut_BindingMakerBalance(t *testing.T) {
 
 	assert.Equal(t, unboundLegacy.TokenAmountOut.Amount.String(), unbound.TokenAmountOut.Amount.Dec())
 	assert.Equal(t, cappedLegacy.TokenAmountOut.Amount.String(), capped.TokenAmountOut.Amount.Dec())
-	assert.Equal(t, cappedLegacy.Fee.Amount.String(), capped.Fee.Amount.Dec())
 	assert.Equal(t, cappedLegacy.Gas, capped.Gas)
 	assert.Equal(t, "3000000000", filledBy(unbound, 1001), "unbound maker fills its full input share")
 	assert.Equal(t, "2000000000", filledBy(capped, 1001), "the binding balance must cap maker fill at 2e9")

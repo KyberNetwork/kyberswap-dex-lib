@@ -173,7 +173,6 @@ func TestPoolSimulator_CalcAmtOutParity(t *testing.T) {
 				return
 			}
 			assert.Equal(t, legacy.TokenAmountOut.Amount.String(), native.TokenAmountOut.Amount.ToBig().String(), "amount out")
-			assert.Equal(t, legacy.Fee.Amount.String(), native.Fee.Amount.ToBig().String(), "fee")
 			assert.Equal(t, legacy.Gas, native.Gas, "gas")
 		})
 	}

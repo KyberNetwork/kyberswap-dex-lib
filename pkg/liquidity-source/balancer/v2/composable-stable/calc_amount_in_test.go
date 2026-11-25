@@ -67,7 +67,6 @@ func TestCalcAmtInParityWithLegacy(t *testing.T) {
 		}
 		require.NoErrorf(t, err, "pool=%d %s->%s out=%s", c.Pool, c.TokenIn, c.TokenOut, c.AmountOut)
 		require.Equalf(t, c.WantIn, res.TokenAmountIn.Amount.String(), "amountIn pool=%d out=%s", c.Pool, c.AmountOut)
-		require.Equalf(t, c.WantFee, res.Fee.Amount.String(), "fee pool=%d out=%s", c.Pool, c.AmountOut)
 	}
 }
 

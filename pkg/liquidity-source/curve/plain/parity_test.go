@@ -95,7 +95,6 @@ func checkGoldenResult(t *testing.T, pi int, kind string, c goldenAmt, err error
 	}
 	require.NoError(t, err, "pool %d %s %s->%s %s", pi, kind, c.In, c.Out, c.Amount)
 	require.Equal(t, c.Dy, res.TokenAmountOut.Amount.String(), "pool %d out dy %s->%s %s", pi, c.In, c.Out, c.Amount)
-	require.Equal(t, c.Fee, res.Fee.Amount.String(), "pool %d out fee %s->%s %s", pi, c.In, c.Out, c.Amount)
 }
 
 func checkGoldenIn(t *testing.T, pi int, c goldenAmt, err error, res *pool.CalcAmtInResult) {
@@ -107,7 +106,6 @@ func checkGoldenIn(t *testing.T, pi int, c goldenAmt, err error, res *pool.CalcA
 	}
 	require.NoError(t, err, "pool %d in %s<-%s %s", pi, c.In, c.Out, c.Amount)
 	require.Equal(t, c.Dy, res.TokenAmountIn.Amount.String(), "pool %d in dy %s<-%s %s", pi, c.In, c.Out, c.Amount)
-	require.Equal(t, c.Fee, res.Fee.Amount.String(), "pool %d in fee %s<-%s %s", pi, c.In, c.Out, c.Amount)
 }
 
 // wantErrText maps a legacy overflow panic to ErrOverflow, the typed error now returned by getD.
@@ -144,7 +142,6 @@ func TestLegacyParityUpdateState(t *testing.T) {
 			p.UpdateState(pool.UpdateStateParams{
 				TokenAmountIn:  pool.TokenAmt{Token: in, Amount: amt},
 				TokenAmountOut: *res.TokenAmountOut,
-				Fee:            *res.Fee,
 			})
 			for _, r := range p.Info.Reserves {
 				got = append(got, r.String())

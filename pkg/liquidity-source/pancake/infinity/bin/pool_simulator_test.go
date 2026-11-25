@@ -130,7 +130,6 @@ func TestMergeSwap(t *testing.T) {
 			pSim.UpdateState(pool.UpdateStateParams{
 				TokenAmountIn:  pool.TokenAmt{Token: tokenIn, Amount: in},
 				TokenAmountOut: *result.TokenAmountOut,
-				Fee:            *result.Fee,
 				SwapInfo:       result.SwapInfo,
 			})
 

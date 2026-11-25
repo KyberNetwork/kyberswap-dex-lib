@@ -48,7 +48,6 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	pSim.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  pool.TokenAmt{Token: tokenAmountIn.Token, Amount: *big256.FromBig(tokenAmountIn.Amount)},
 		TokenAmountOut: *got.TokenAmountOut,
-		Fee:            *got.Fee,
 		SwapInfo:       got.SwapInfo,
 	})
 
@@ -132,7 +131,6 @@ func TestCalcAmtOutParity(t *testing.T) {
 			assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.ToBig().String(), "amountOut")
 			assert.Equal(t, want.TokenAmountOut.Token, got.TokenAmountOut.Token, "tokenOut")
 			assert.Equal(t, want.Gas, got.Gas, "gas")
-			assert.Equal(t, want.Fee.Token, got.Fee.Token, "fee token")
 			assert.Equal(t, want.RemainingTokenAmountIn.Amount.String(),
 				got.RemainingTokenAmountIn.Amount.ToBig().String(), "remaining in")
 			assert.Equal(t, want.SwapInfo, got.SwapInfo, "swapInfo")
@@ -165,7 +163,6 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	pSim.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  pool.TokenAmt{Token: tokenAmountOut.Token, Amount: *big256.FromBig(tokenAmountOut.Amount)},
 		TokenAmountOut: *got.TokenAmountOut,
-		Fee:            *got.Fee,
 		SwapInfo:       got.SwapInfo,
 	})
 

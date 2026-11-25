@@ -120,7 +120,6 @@ func assertParity(t *testing.T, c parityCase, res *pool.CalcAmtOutResult, err er
 	}
 	require.NoError(t, err)
 	assert.Equal(t, c.wantOut, res.TokenAmountOut.Amount.Dec(), "amount out")
-	assert.Equal(t, c.wantFee, res.Fee.Amount.Dec(), "fee")
 	assert.Equal(t, c.wantRem, res.RemainingTokenAmountIn.Amount.Dec(), "remaining amount in")
 	assert.Equal(t, c.wantGas, res.Gas, "gas")
 }

@@ -173,7 +173,6 @@ func TestCalcAmountIn(t *testing.T) {
 			require.Nil(t, err)
 			assert.Equal(t, tc.tokenIn, amountIn.TokenAmountIn.Token)
 			assert.Equalf(t, tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.String(), "expected: %v, got: %v", tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.String())
-			assert.Equalf(t, tc.expectedFee.String(), amountIn.Fee.Amount.String(), "expected: %v, got: %v", tc.expectedFee.String(), amountIn.Fee.Amount.String())
 		})
 	}
 }

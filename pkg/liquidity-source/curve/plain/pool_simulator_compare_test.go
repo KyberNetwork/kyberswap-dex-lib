@@ -537,7 +537,6 @@ func TestCalcAmountOutSnapshot(t *testing.T) {
 			})
 			require.Nil(t, err)
 			assert.Equal(t, mustU256(tc.expectedOutAmount).String(), out.TokenAmountOut.Amount.String())
-			assert.Equal(t, mustU256(tc.expectedFeeAmount).String(), out.Fee.Amount.String())
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 		})
 	}
@@ -956,13 +955,11 @@ func TestUpdateBalanceSnapshot(t *testing.T) {
 			if len(tc.expectedErrMsg) == 0 {
 				require.Nil(t, err)
 				assert.Equal(t, mustU256(tc.expectedOutAmount).String(), out.TokenAmountOut.Amount.String())
-				assert.Equal(t, mustU256(tc.expectedFeeAmount).String(), out.Fee.Amount.String())
 				assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 
 				p.UpdateState(pool.UpdateStateParams{
 					TokenAmountIn:  pool.TokenAmt{Token: tc.in, Amount: *mustU256(tc.inAmount)},
 					TokenAmountOut: *out.TokenAmountOut,
-					Fee:            *out.Fee,
 					SwapInfo:       out.SwapInfo,
 				})
 			} else {

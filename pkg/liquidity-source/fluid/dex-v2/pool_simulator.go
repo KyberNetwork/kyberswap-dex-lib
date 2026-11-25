@@ -257,7 +257,6 @@ func (p *PoolSimulator) checkSupported() error {
 func calcAmtOutFromBig(r *pool.CalcAmountOutResult) *pool.CalcAmtOutResult {
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: tokenAmtFromBigAmount(r.TokenAmountOut),
-		Fee:            tokenAmtFromBigAmount(r.Fee),
 		Gas:            r.Gas,
 		SwapInfo:       r.SwapInfo,
 	}

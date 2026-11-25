@@ -117,7 +117,6 @@ func (s *PoolSimulator) calcAmtOut(param pool.CalcAmtOutParams, getLimit func(st
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: s.Info.Tokens[indexOut], Amount: *amountOut},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &pool.TokenAmt{Token: s.Info.Tokens[indexIn], Amount: *number.Zero},
 		Gas: defaultGas,
 		SwapInfo: SwapInfo{
 			WTokenIn:    wTokenIn,

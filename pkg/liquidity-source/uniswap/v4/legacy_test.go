@@ -193,7 +193,6 @@ func v3CalcAmountOut(sim *uniswapv3.PoolSimulator, param pool.CalcAmountOutParam
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut:         &pool.TokenAmount{Token: res.TokenAmountOut.Token, Amount: res.TokenAmountOut.Amount.ToBig()},
 		RemainingTokenAmountIn: &pool.TokenAmount{Token: res.RemainingTokenAmountIn.Token, Amount: res.RemainingTokenAmountIn.Amount.ToBig()},
-		Fee:                    &pool.TokenAmount{Token: res.Fee.Token, Amount: new(big.Int)},
 		Gas:                    res.Gas,
 		SwapInfo:               res.SwapInfo,
 	}, nil

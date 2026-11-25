@@ -100,7 +100,7 @@ func BenchmarkUpdateBalance(b *testing.B) {
 				b.Fatal(err)
 			}
 			update := pool.UpdateBalanceParams{TokenAmountIn: benchParams(s.i, s.j, s.amount).TokenAmountIn,
-				TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee}
+				TokenAmountOut: *res.TokenAmountOut}
 			b.Run(s.name+"/"+impl.name, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
@@ -127,7 +127,7 @@ func BenchmarkRouteStep(b *testing.B) {
 						b.Fatal(err)
 					}
 					p.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn,
-						TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee})
+						TokenAmountOut: *res.TokenAmountOut})
 					if _, err = p.CalcAmountOut(params); err != nil {
 						b.Fatal(err)
 					}

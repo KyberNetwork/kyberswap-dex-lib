@@ -571,7 +571,6 @@ func (p *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInR
 	return &pool.CalcAmtInResult{
 		TokenAmountIn:           tokenAmtFromBigV4(res.TokenAmountIn),
 		RemainingTokenAmountOut: tokenAmtFromBigV4(res.RemainingTokenAmountOut),
-		Fee:                     tokenAmtFromBigV4(res.Fee),
 		Gas:                     res.Gas,
 		SwapInfo:                res.SwapInfo,
 	}, nil

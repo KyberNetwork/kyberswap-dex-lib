@@ -57,8 +57,6 @@ func TestCalcAmtOutMatchesCalcAmountOut(t *testing.T) {
 					}
 					assert.Equal(t, bigRes.TokenAmountOut.Token, u256Res.TokenAmountOut.Token)
 					assert.Equal(t, bigRes.TokenAmountOut.Amount.String(), u256Res.TokenAmountOut.Amount.Dec())
-					assert.Equal(t, bigRes.Fee.Token, u256Res.Fee.Token)
-					assert.Equal(t, bigRes.Fee.Amount.String(), u256Res.Fee.Amount.Dec())
 					assert.Equal(t, bigRes.Gas, u256Res.Gas)
 					assert.Equal(t, bigRes.SwapInfo, u256Res.SwapInfo)
 					assert.Nil(t, u256Res.RemainingTokenAmountIn)

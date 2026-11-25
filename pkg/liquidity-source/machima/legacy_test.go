@@ -32,7 +32,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		RemainingTokenAmountIn: &pool.TokenAmount{
 			Token: res.RemainingTokenAmountIn.Token, Amount: res.RemainingTokenAmountIn.Amount.ToBig(),
 		},
-		Fee: &pool.TokenAmount{Token: res.Fee.Token, Amount: res.Fee.Amount.ToBig()},
 		Gas: res.Gas,
 		// SwapInfo is the uint256 form that UpdateState reads.
 		SwapInfo: res.SwapInfo,

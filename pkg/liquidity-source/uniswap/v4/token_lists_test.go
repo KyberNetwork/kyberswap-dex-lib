@@ -77,7 +77,6 @@ func TestTokenListsSurviveCloneAndSwap(t *testing.T) {
 	clone.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  amountIn,
 		TokenAmountOut: *res.TokenAmountOut,
-		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
 	})
 	require.Equal(t, sim.GetTokens(), clone.GetTokens())

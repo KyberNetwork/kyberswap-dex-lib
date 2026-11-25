@@ -140,14 +140,13 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 		if err != nil {
 			return nil, err
 		}
-		amountOut, fee, err := t.GetDy(idxIn, idxOut, &tokenAmountIn.Amount, D)
+		amountOut, _, err := t.GetDy(idxIn, idxOut, &tokenAmountIn.Amount, D)
 		if err != nil {
 			return nil, err
 		}
 		if amountOut.Sign() > 0 {
 			return &pool.CalcAmtOutResult{
 				TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
-				Fee:            &pool.TokenAmt{Token: tokenOut, Amount: *fee},
 				Gas:            t.gas.Exchange,
 			}, nil
 		}
@@ -160,7 +159,7 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 	if idxIn < 0 || idxOut < 0 {
 		return nil, ErrTokenNotFound
 	}
-	amountOut, fee, err := GetDyUnderlying(
+	amountOut, _, err := GetDyUnderlying(
 		t.Info.Reserves,
 		t.Multipliers,
 		t.FutureATime,
@@ -179,7 +178,6 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 	if amountOut.Sign() > 0 {
 		return &pool.CalcAmtOutResult{
 			TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
-			Fee:            &pool.TokenAmt{Token: tokenOut, Amount: *fee},
 			Gas:            t.gas.Exchange,
 		}, nil
 	}

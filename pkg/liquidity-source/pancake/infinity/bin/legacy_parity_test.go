@@ -91,8 +91,6 @@ func sequentialBinParity(t *testing.T, base *PoolSimulator, tokenIn, tokenOut, a
 		require.Equal(t, lRes.TokenAmountOut.Token, nRes.TokenAmountOut.Token, name+" out token")
 		require.Equal(t, lRes.RemainingTokenAmountIn.Amount.String(), nRes.RemainingTokenAmountIn.Amount.Dec(), name+" remaining")
 		require.Equal(t, lRes.RemainingTokenAmountIn.Token, nRes.RemainingTokenAmountIn.Token, name+" remaining token")
-		require.Equal(t, lRes.Fee.Token, nRes.Fee.Token, name+" fee token")
-		require.Equal(t, lRes.Fee.Amount.String(), nRes.Fee.Amount.Dec(), name+" fee")
 		require.Equal(t, lRes.Gas, nRes.Gas, name+" gas")
 		require.Equal(t, lRes.SwapInfo, nRes.SwapInfo, name+" swapinfo")
 

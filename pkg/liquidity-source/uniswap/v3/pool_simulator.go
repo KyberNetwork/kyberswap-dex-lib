@@ -282,7 +282,7 @@ func (p *PoolSimulator) CalcAmtOutWithPriceLimit(params pool.CalcAmtOutParams,
 	b.fee = pool.TokenAmt{Token: tokenIn}
 	b.res = pool.CalcAmtOutResult{
 		TokenAmountOut:         &b.out,
-		RemainingTokenAmountIn: &b.remaining, Fee: &b.fee,
+		RemainingTokenAmountIn: &b.remaining,
 		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops) +
 			p.Gas.CrossEmptyWordGas*int64(result.CrossEmptyWordLoops),
 		SwapInfo: SwapInfo{

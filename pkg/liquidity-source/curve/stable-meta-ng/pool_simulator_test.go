@@ -589,7 +589,6 @@ func TestUpdateState(t *testing.T) {
 			p.UpdateState(pool.UpdateStateParams{
 				TokenAmountIn:  pool.TokenAmt{Token: tc.in, Amount: mustU256(t, tc.inAmount)},
 				TokenAmountOut: *out.TokenAmountOut,
-				Fee:            *out.Fee,
 				SwapInfo:       out.SwapInfo,
 				SwapLimit:      nil,
 			})

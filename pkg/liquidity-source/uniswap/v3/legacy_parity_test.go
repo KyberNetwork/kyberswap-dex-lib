@@ -93,9 +93,7 @@ func sequentialV3Parity(t *testing.T, base *PoolSimulator, tokenIn, tokenOut, am
 		require.Equal(t, lRes.TokenAmountOut.Token, nRes.TokenAmountOut.Token, name+" out token")
 		require.Equal(t, lRes.RemainingTokenAmountIn.Amount.String(), nRes.RemainingTokenAmountIn.Amount.Dec(), name+" remaining")
 		require.Equal(t, lRes.RemainingTokenAmountIn.Token, nRes.RemainingTokenAmountIn.Token, name+" remaining token")
-		require.Equal(t, lRes.Fee.Token, nRes.Fee.Token, name+" fee token")
 		require.Nil(t, lRes.Fee.Amount, name+" legacy leaves fee amount unset")
-		require.True(t, nRes.Fee.Amount.IsZero(), name+" native fee amount is zero")
 		require.Equal(t, lRes.Gas, nRes.Gas, name+" gas")
 		require.Equal(t, lRes.SwapInfo, nRes.SwapInfo, name+" swapinfo")
 

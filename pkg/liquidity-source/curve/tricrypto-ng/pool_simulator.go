@@ -119,7 +119,6 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: param.TokenOut, Amount: amountOut},
-		Fee:            &pool.TokenAmt{Token: param.TokenOut, Amount: fee},
 		Gas:            t.gas,
 		SwapInfo:       swapInfo,
 	}, nil

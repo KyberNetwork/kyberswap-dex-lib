@@ -68,7 +68,6 @@ func TestPoolSimulator_UpdateBalanceThenQuoteAgain(t *testing.T) {
 	sim.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  params.TokenAmountIn,
 		TokenAmountOut: *res.TokenAmountOut,
-		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
 		SwapLimit:      params.Limit,
 	})

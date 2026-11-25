@@ -78,7 +78,6 @@ func TestLegacyParity(t *testing.T) {
 			}
 			require.NoError(t, err, "pool %d quote %s->%s %s", pi, c.In, c.Out, c.Amount)
 			require.Equal(t, c.Dy, res.TokenAmountOut.Amount.String(), "pool %d dy %s->%s %s", pi, c.In, c.Out, c.Amount)
-			require.Equal(t, c.Fee, res.Fee.Amount.String(), "pool %d fee %s->%s %s", pi, c.In, c.Out, c.Amount)
 		}
 		for _, c := range g.Dys {
 			i, j := mustIdx(t, c.In), mustIdx(t, c.Out)
@@ -164,7 +163,6 @@ func TestLegacyParityState(t *testing.T) {
 			p.UpdateState(pool.UpdateStateParams{
 				TokenAmountIn:  pool.TokenAmt{Token: in, Amount: *amt},
 				TokenAmountOut: *res.TokenAmountOut,
-				Fee:            *res.Fee,
 			})
 			for _, r := range p.Info.Reserves {
 				upd = append(upd, r.String())

@@ -189,7 +189,6 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 					require.NoError(t, err)
 					assert.Equal(t, result.TokenAmountOut.Amount.String(), native.TokenAmountOut.Amount.Dec(),
 						"native CalcAmtOut must match CalcAmountOut")
-					assert.Equal(t, result.Fee.Amount.String(), native.Fee.Amount.Dec(), "native fee must match")
 					assert.Equal(t, result.Gas, native.Gas, "native gas must match")
 				}
 			}

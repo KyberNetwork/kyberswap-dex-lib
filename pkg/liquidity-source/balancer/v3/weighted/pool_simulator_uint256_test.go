@@ -45,8 +45,6 @@ func TestCalcAmtOutParity(t *testing.T) {
 			require.NoError(t, gotErr, "in=%s %s->%s", amt, pair[0], pair[1])
 			assert.Equal(t, want.TokenAmountOut.Token, got.TokenAmountOut.Token)
 			assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.Dec(), "amountOut in=%s", amt)
-			assert.Equal(t, want.Fee.Token, got.Fee.Token)
-			assert.Equal(t, want.Fee.Amount.String(), got.Fee.Amount.Dec(), "fee in=%s", amt)
 			assert.Equal(t, want.Gas, got.Gas)
 			assert.Nil(t, want.RemainingTokenAmountIn)
 			assert.Nil(t, got.RemainingTokenAmountIn)

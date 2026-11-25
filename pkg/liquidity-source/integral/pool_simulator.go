@@ -106,14 +106,13 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	tokenOut := params.TokenOut
 	maxAmountOut := p.maxAmountOut(tokenOut, params.Limit.GetLimit(tokenOut))
 
-	amountOut, fee, err := p.quote(params.TokenAmountIn.Token, tokenOut, &params.TokenAmountIn.Amount, maxAmountOut)
+	amountOut, _, err := p.quote(params.TokenAmountIn.Token, tokenOut, &params.TokenAmountIn.Amount, maxAmountOut)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
-		Fee:            &pool.TokenAmt{Token: tokenOut, Amount: *fee},
 		Gas:            p.gas.Swap,
 		SwapInfo:       SwapInfo{RelayerAddress: p.relayerAddress},
 	}, nil

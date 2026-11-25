@@ -59,7 +59,6 @@ func Test_CloneState_UpdateState(t *testing.T) {
 	cloned.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  tokenAmountIn,
 		TokenAmountOut: *result.TokenAmountOut,
-		Fee:            *result.Fee,
 		SwapInfo:       result.SwapInfo,
 	})
 

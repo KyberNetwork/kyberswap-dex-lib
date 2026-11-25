@@ -64,7 +64,6 @@ func TestCalcAmtOut(t *testing.T) {
 			require.Nil(t, err)
 			assert.Equal(t, uint256.NewInt(uint64(tc.expectedOutAmount)).String(), out.TokenAmountOut.Amount.String())
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
-			assert.Equal(t, uint256.NewInt(uint64(tc.expectedFeeAmount)).String(), out.Fee.Amount.String())
 		})
 	}
 }
@@ -101,7 +100,6 @@ func TestCalcAmtOut_interpolate_from_initialA_and_futureA(t *testing.T) {
 	})
 	require.Nil(t, err)
 	assert.Equal(t, "509863", out.TokenAmountOut.Amount.String())
-	assert.Equal(t, "153", out.Fee.Amount.String())
 }
 
 // TestCalcAmtOutGetDOverflow verifies that a pool state where D_P*D would overflow uint256 during getD returns an
@@ -174,7 +172,6 @@ func TestCalcAmtOutLegacyGolden(t *testing.T) {
 		res, err := p.CalcAmtOut(pool.CalcAmtOutParams{TokenAmountIn: pool.TokenAmt{Token: row[0], Amount: in}, TokenOut: row[2]})
 		require.NoError(t, err, "%v", row)
 		require.Equal(t, row[3], res.TokenAmountOut.Amount.Dec(), "%v", row)
-		require.Equal(t, row[4], res.Fee.Amount.Dec(), "%v", row)
 	}
 }
 

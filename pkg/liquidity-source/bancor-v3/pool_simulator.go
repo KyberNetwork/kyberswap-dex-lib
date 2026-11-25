@@ -84,7 +84,7 @@ func (s *PoolSimulator) CalcAmtOut(params poolpkg.CalcAmtOutParams) (*poolpkg.Ca
 		return nil, err
 	}
 
-	amountOut, feeAmount, tradeInfo, err := s.tradeBySourceAmount(
+	amountOut, _, tradeInfo, err := s.tradeBySourceAmount(
 		sourceToken,
 		targetToken,
 		&tokenAmountIn.Amount,
@@ -96,11 +96,7 @@ func (s *PoolSimulator) CalcAmtOut(params poolpkg.CalcAmtOutParams) (*poolpkg.Ca
 
 	return &poolpkg.CalcAmtOutResult{
 		TokenAmountOut: &poolpkg.TokenAmt{Token: tokenOut, Amount: *amountOut},
-		Fee: &poolpkg.TokenAmt{
-			Token:  tokenOut, // fee is applied on the target token https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/pools/PoolCollection.sol#L1534
-			Amount: *feeAmount,
-		},
-		Gas: defaultGas.Swap,
+		Gas:            defaultGas.Swap,
 		SwapInfo: SwapInfo{
 			IsSourceNative: isSourceNative,
 			IsTargetNative: isTargetNative,

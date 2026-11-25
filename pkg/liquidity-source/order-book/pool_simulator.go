@@ -173,7 +173,6 @@ func (p *PoolSimulator) calcOutAmt(amountIn *uint256.Int, tokenIn, tokenOut *ent
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: tokenOut.Address, Amount: amountOutU},
-		Fee:            &pool.TokenAmt{Token: tokenIn.Address, Amount: uint256.Int{}},
 		Gas:            p.Gas.Base + levels*p.Gas.Level,
 	}, nil
 }

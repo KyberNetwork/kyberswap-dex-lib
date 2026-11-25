@@ -111,7 +111,7 @@ func regressSimOutputs(t *testing.T) map[string]string {
 			cl.UpdateState(pool.UpdateStateParams{
 				TokenAmountIn:  pool.TokenAmt{Token: tk[0].Address, Amount: amt},
 				TokenAmountOut: *res.TokenAmountOut,
-				Fee:            *res.Fee, SwapInfo: res.SwapInfo})
+				SwapInfo:       res.SwapInfo})
 		}
 	}
 	return out

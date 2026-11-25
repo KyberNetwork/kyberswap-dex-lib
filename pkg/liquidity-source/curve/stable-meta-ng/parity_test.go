@@ -228,7 +228,7 @@ func TestLegacyParityState(t *testing.T) {
 				continue
 			}
 			s.UpdateState(pool.UpdateStateParams{TokenAmountIn: pool.TokenAmt{Token: toks[0], Amount: amt},
-				TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee, SwapInfo: res.SwapInfo})
+				TokenAmountOut: *res.TokenAmountOut, SwapInfo: res.SwapInfo})
 			for _, r := range s.GetReserves() {
 				upd = append(upd, r.Dec())
 			}
@@ -269,9 +269,7 @@ func checkRow(t *testing.T, key string, c goldenRow, gotErr string, out *pool.Ca
 	require.Empty(t, gotErr, key)
 	if out != nil {
 		require.Equal(t, c.Dy, out.TokenAmountOut.Amount.Dec(), key)
-		require.Equal(t, c.Fee, out.Fee.Amount.Dec(), key)
 	} else {
 		require.Equal(t, c.Dy, in.TokenAmountIn.Amount.Dec(), key)
-		require.Equal(t, c.Fee, in.Fee.Amount.Dec(), key)
 	}
 }

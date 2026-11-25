@@ -186,7 +186,6 @@ func (p *PoolSimulator) calcAmtOutHooked(tokenIn, tokenOut string, amountIn uint
 		// tick math, which errors on a zero input. The all-nil PoolSwapInfo tells UpdateState v3 was skipped.
 		swapResult = &pool.CalcAmtOutResult{
 			TokenAmountOut: &pool.TokenAmt{Token: tokenOut},
-			Fee:            &pool.TokenAmt{Token: tokenOut},
 			SwapInfo:       PoolSwapInfo{},
 		}
 	} else if swapResult, err = poolSim.CalcAmtOut(pool.CalcAmtOutParams{
@@ -227,10 +226,6 @@ func (p *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInR
 	if err != nil {
 		return nil, err
 	}
-	fee, err := tokenAmtFromBigCL(res.Fee)
-	if err != nil {
-		return nil, err
-	}
 	remaining, err := tokenAmtFromBigCL(res.RemainingTokenAmountOut)
 	if err != nil {
 		return nil, err
@@ -238,7 +233,6 @@ func (p *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInR
 	return &pool.CalcAmtInResult{
 		TokenAmountIn:           in,
 		RemainingTokenAmountOut: remaining,
-		Fee:                     fee,
 		Gas:                     res.Gas,
 		SwapInfo:                res.SwapInfo,
 	}, nil

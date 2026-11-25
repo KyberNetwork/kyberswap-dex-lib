@@ -92,7 +92,6 @@ func checkAaveQuote(t *testing.T, file string, pi int, kind string, c goldenQuot
 	}
 	require.NoError(t, err, "%s pool %d %s %s->%s %s", file, pi, kind, c.In, c.Out, c.Amount)
 	require.Equal(t, c.Dy, res.TokenAmountOut.Amount.String(), "%s pool %d %s dy %s->%s %s", file, pi, kind, c.In, c.Out, c.Amount)
-	require.Equal(t, c.Fee, res.Fee.Amount.String(), "%s pool %d %s fee %s->%s %s", file, pi, kind, c.In, c.Out, c.Amount)
 }
 
 // TestLegacyParityState replays the GetDy, virtual price, liquidity math, and state sequence of each golden.
@@ -163,7 +162,6 @@ func TestLegacyParityState(t *testing.T) {
 				p.UpdateState(pool.UpdateStateParams{
 					TokenAmountIn:  pool.TokenAmt{Token: in, Amount: *amt},
 					TokenAmountOut: *res.TokenAmountOut,
-					Fee:            *res.Fee,
 				})
 				for _, r := range p.Info.Reserves {
 					upd = append(upd, r.String())

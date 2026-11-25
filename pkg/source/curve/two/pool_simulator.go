@@ -235,14 +235,13 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 	tokenIndexFrom := t.Info.GetTokenIndex(param.TokenAmountIn.Token)
 	tokenIndexTo := t.Info.GetTokenIndex(param.TokenOut)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		amountOut, fee, err := t.getDy(tokenIndexFrom, tokenIndexTo, param.TokenAmountIn.Amount, nowUnix())
+		amountOut, _, err := t.getDy(tokenIndexFrom, tokenIndexTo, param.TokenAmountIn.Amount, nowUnix())
 		if err != nil {
 			return nil, err
 		}
 		if !amountOut.IsZero() {
 			return &pool.CalcAmtOutResult{
 				TokenAmountOut: &pool.TokenAmt{Token: param.TokenOut, Amount: amountOut},
-				Fee:            &pool.TokenAmt{Token: param.TokenOut, Amount: fee},
 				Gas:            t.gas.Exchange,
 			}, nil
 		}

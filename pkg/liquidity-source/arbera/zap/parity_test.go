@@ -48,7 +48,6 @@ func TestGoldenParity(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, c.AmountOut, res.TokenAmountOut.Amount.Dec())
-			require.Equal(t, c.Fee, res.Fee.Amount.Dec())
 			require.Equal(t, c.IsBuy, res.SwapInfo.(SwapInfo).IsBuy)
 		})
 	}

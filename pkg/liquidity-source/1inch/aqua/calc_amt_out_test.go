@@ -29,7 +29,6 @@ func TestCalcAmtOutMatchesLegacy(t *testing.T) {
 				continue
 			}
 			require.Equal(t, legacy.TokenAmountOut.Amount.String(), native.TokenAmountOut.Amount.Dec(), "amountOut in=%d amount=%s", in, amount.Dec())
-			require.Equal(t, legacy.Fee.Amount.String(), native.Fee.Amount.Dec(), "fee in=%d amount=%s", in, amount.Dec())
 			require.Equal(t, legacy.Gas, native.Gas, "gas in=%d amount=%s", in, amount.Dec())
 		}
 	}
@@ -50,7 +49,6 @@ func TestCalcAmtOutFeeSkippedMatchesLegacy(t *testing.T) {
 		TokenOut:      s.Info.Tokens[1],
 	})
 	require.NoError(t, nerr)
-	require.Equal(t, legacy.Fee.Amount.String(), native.Fee.Amount.Dec())
 	require.Equal(t, legacy.Gas, native.Gas)
 }
 

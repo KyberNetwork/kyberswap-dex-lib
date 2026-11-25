@@ -93,7 +93,7 @@ func testSequentialDispatch(t *testing.T, addr common.Address, vs []vector, init
 		require.LessOrEqual(t, resIn.TokenAmountIn.Amount.Cmp(v.Input.ToBig()), 0)
 		require.Empty(t, sim.GetMetaInfo(in, out).(uniswapv4.PoolMetaInfo).HookData)
 		require.Equal(t, s.BlockNumber, sim.GetMetaInfo(in, out).(uniswapv4.PoolMetaInfo).BlockNumber)
-		sim.UpdateState(pool.UpdateStateParams{TokenAmountIn: pool.TokenAmt{Token: in, Amount: v.Input}, TokenAmountOut: pool.TokenAmt{Token: out, Amount: *big256.FromBig(result.TokenAmountOut.Amount)}, Fee: pool.TokenAmt{Token: result.Fee.Token, Amount: *big256.FromBig(result.Fee.Amount)}, SwapInfo: result.SwapInfo})
+		sim.UpdateState(pool.UpdateStateParams{TokenAmountIn: pool.TokenAmt{Token: in, Amount: v.Input}, TokenAmountOut: pool.TokenAmt{Token: out, Amount: *big256.FromBig(result.TokenAmountOut.Amount)}, SwapInfo: result.SwapInfo})
 		s = v.After
 		expected := newHook(s).PoolState()
 		require.Equal(t, expected.SqrtPriceX96, sim.V3Pool.SqrtRatioX96)

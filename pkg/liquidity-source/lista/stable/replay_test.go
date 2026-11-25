@@ -84,7 +84,7 @@ func replayQuote(t *testing.T, sim poolpkg.IPoolSim, c goldenCase) goldenCase {
 	if err != nil {
 		return goldenCase{Err: err.Error()}
 	}
-	return goldenCase{AmountOut: res.TokenAmountOut.Amount.Dec(), Fee: res.Fee.Amount.Dec(), Gas: res.Gas}
+	return goldenCase{AmountOut: res.TokenAmountOut.Amount.Dec(), Gas: res.Gas}
 }
 
 // TestReplayLegacyQuotes: the production simulator, built through FactoryPoolSim, quotes every recorded case the
@@ -96,6 +96,9 @@ func TestReplayLegacyQuotes(t *testing.T) {
 	var cases []goldenCase
 	require.NoError(t, json.Unmarshal(raw, &cases))
 	require.NotEmpty(t, cases)
+	for i := range cases { // the fee is no longer on the native result
+		cases[i].Fee = ""
+	}
 
 	pools := replayPools(t)
 	factory := poolpkg.FactoryPoolSim(DexType)
@@ -131,7 +134,6 @@ func TestReplayLegacyQuotes(t *testing.T) {
 			sim.UpdateState(poolpkg.UpdateStateParams{
 				TokenAmountIn:  poolpkg.TokenAmt{Token: c.TokenIn, Amount: *uint256.MustFromBig(parseAmount(t, c.Amount))},
 				TokenAmountOut: poolpkg.TokenAmt{Token: c.TokenOut, Amount: *uint256.MustFromBig(parseAmount(t, c.AmountOut))},
-				Fee:            poolpkg.TokenAmt{Token: c.TokenOut, Amount: *uint256.MustFromBig(parseAmount(t, c.Fee))},
 			})
 			swaps++
 		default:

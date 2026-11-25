@@ -88,7 +88,6 @@ func TestCalcAmountOut(t *testing.T) {
 				cloned.UpdateBalance(pool.UpdateBalanceParams{
 					TokenAmountIn:  tokenAmountIn,
 					TokenAmountOut: *result.TokenAmountOut,
-					Fee:            *result.Fee,
 					SwapInfo:       result.SwapInfo,
 				})
 			}
@@ -113,7 +112,6 @@ func TestGhoUsedRoundTrip(t *testing.T) {
 	cloned.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: tokens[0].Address, Amount: big.NewInt(1000000000000000000)},
 		TokenAmountOut: *buyResult.TokenAmountOut,
-		Fee:            *buyResult.Fee,
 		SwapInfo:       buyResult.SwapInfo,
 	})
 	assert.True(t, cloned.GhoUsed.IsZero())

@@ -82,7 +82,6 @@ func TestLegacyParity(t *testing.T) {
 		}
 		require.NoError(t, err, "row %d %s", idx, key)
 		require.Equal(t, c.Dy, res.TokenAmountOut.Amount.String(), "row %d %s: amount out", idx, key)
-		require.Equal(t, c.Fee, res.Fee.Amount.String(), "row %d %s: fee", idx, key)
 	}
 	require.Equal(t, 15, checkedNegative, "every negative-result row must be checked")
 }

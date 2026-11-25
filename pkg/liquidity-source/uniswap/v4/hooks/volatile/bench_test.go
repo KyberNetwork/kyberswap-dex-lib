@@ -54,7 +54,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 		}
 		cloned := sim.CloneState().(*uniswapv4.PoolSimulator)
 		cloned.UpdateState(pool.UpdateStateParams{TokenAmountIn: params.TokenAmountIn,
-			TokenAmountOut: *leg1.TokenAmountOut, Fee: *leg1.Fee, SwapInfo: leg1.SwapInfo})
+			TokenAmountOut: *leg1.TokenAmountOut, SwapInfo: leg1.SwapInfo})
 		for _, c := range []struct {
 			leg string
 			sim *uniswapv4.PoolSimulator

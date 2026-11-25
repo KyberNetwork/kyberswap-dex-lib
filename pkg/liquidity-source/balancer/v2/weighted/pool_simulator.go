@@ -538,7 +538,6 @@ func (s *PoolSimulator) buildSwapResult(tokenOut string, amountOut *uint256.Int,
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
-		Fee:            &pool.TokenAmt{Token: tokenOut},
 		Gas:            estimatedGas,
 		SwapInfo:       swapInfo,
 	}
@@ -831,11 +830,7 @@ func (s *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInR
 	if err != nil {
 		return nil, err
 	}
-	fee, err := tokenAmtFromBigWeighted(res.Fee)
-	if err != nil {
-		return nil, err
-	}
-	return &pool.CalcAmtInResult{TokenAmountIn: in, Fee: fee, Gas: res.Gas}, nil
+	return &pool.CalcAmtInResult{TokenAmountIn: in, Gas: res.Gas}, nil
 }
 
 // tokenAmtFromBigWeighted converts a legacy big.Int amount to uint256. A nil amount stays zero.

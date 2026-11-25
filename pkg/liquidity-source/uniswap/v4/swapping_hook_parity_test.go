@@ -111,7 +111,6 @@ func TestCalcAmtOutSwappingHookParity(t *testing.T) {
 			assert.Equal(t, want.TokenAmountOut.Amount.String(), got.TokenAmountOut.Amount.Dec(), "amountOut")
 			assert.Equal(t, tc.wantGas, got.Gas, "golden gas")
 			assert.Equal(t, want.Gas, got.Gas, "gas")
-			assert.Equal(t, want.Fee.Token, got.Fee.Token, "fee token")
 		})
 	}
 }

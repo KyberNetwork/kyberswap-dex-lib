@@ -82,7 +82,6 @@ func TestCalcAmtOutMatchesLegacy(t *testing.T) {
 				return
 			}
 			require.Equal(t, legacy.TokenAmountOut.Amount.String(), native.TokenAmountOut.Amount.Dec())
-			require.Equal(t, legacy.Fee.Amount.String(), native.Fee.Amount.Dec())
 			require.Equal(t, legacy.Gas, native.Gas)
 		})
 	}
@@ -104,6 +103,5 @@ func TestCalcAmtOutPinnedEthereum(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, "69741277135521199", native.TokenAmountOut.Amount.Dec())
-	require.Equal(t, "244951801278800", native.Fee.Amount.Dec())
 	require.Equal(t, int64(600000), native.Gas)
 }

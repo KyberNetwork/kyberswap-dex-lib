@@ -115,7 +115,6 @@ func TestBuyTaxDeductedFromInput(t *testing.T) {
 	want := calcOut(t, untaxed, wethAddr, tokenAddr, amountIn/10000*9500)
 
 	assert.Equal(t, want.TokenAmountOut.Amount.Dec(), got.TokenAmountOut.Amount.Dec())
-	assert.Equal(t, big.NewInt(amountIn/10000*500).String(), got.Fee.Amount.Dec())
 }
 
 // TestSellTaxDeductedFromOutput pins the sell semantics: the full input is swapped and the tax is
@@ -135,7 +134,6 @@ func TestSellTaxDeductedFromOutput(t *testing.T) {
 	require.NoError(t, deductBps(&rawOut, 300))
 	assert.Equal(t, rawOut.Dec(), got.TokenAmountOut.Amount.Dec())
 	// Sell tax is charged on the output, so nothing is withheld from the input.
-	assert.Equal(t, "0", got.Fee.Amount.Dec())
 }
 
 // TestNoTaxWhenHasTaxFalse guards against reading stale bps when the launchpad has cleared the tax.
@@ -417,7 +415,6 @@ func TestXmaSellFloorPartialFill(t *testing.T) {
 	si := res.SwapInfo.(SwapInfo)
 
 	// A sell is not taxed on the input, so everything not consumed is refunded raw.
-	assert.Equal(t, "0", res.Fee.Amount.Dec())
 	var consumed uint256.Int
 	consumed.Add(&si.PoolAmountIn, &res.RemainingTokenAmountIn.Amount)
 	assert.Equal(t, big.NewInt(amountIn).String(), consumed.Dec(),

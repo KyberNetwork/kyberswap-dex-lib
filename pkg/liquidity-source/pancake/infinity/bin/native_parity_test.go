@@ -28,6 +28,10 @@ func TestNativeParityGolden(t *testing.T) {
 	var want map[string]string
 	require.NoError(t, json.Unmarshal(b, &want))
 	require.NotEmpty(t, want)
+	// The golden values are "amount|fee"; the fee is no longer on the native result.
+	for k, w := range want {
+		want[k], _, _ = strings.Cut(w, "|")
+	}
 
 	got := nativeParityOutputs(t)
 	require.Len(t, got, len(want))
@@ -87,7 +91,7 @@ func nativeParityOutputs(t *testing.T) map[string]string {
 				if err != nil {
 					out[key] = "err:" + err.Error()
 				} else {
-					out[key] = fmt.Sprintf("%s|%s", res.TokenAmountOut.Amount.String(), res.Fee.Amount.String())
+					out[key] = res.TokenAmountOut.Amount.ToBig().String()
 				}
 				key = fmt.Sprintf("%s/%d/in/%s", v.name, dir, a)
 				resIn, err := sim.CalcAmtIn(pool.CalcAmtInParams{
@@ -95,7 +99,7 @@ func nativeParityOutputs(t *testing.T) map[string]string {
 				if err != nil {
 					out[key] = "err:" + err.Error()
 				} else {
-					out[key] = fmt.Sprintf("%s|%s", resIn.TokenAmountIn.Amount.String(), resIn.Fee.Amount.String())
+					out[key] = resIn.TokenAmountIn.Amount.ToBig().String()
 				}
 			}
 		}

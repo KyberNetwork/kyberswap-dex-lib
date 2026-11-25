@@ -31,7 +31,6 @@ func TestCalcAmtOutMatchesLegacy(t *testing.T) {
 				continue
 			}
 			require.Equal(t, legacy.TokenAmountOut.Amount.String(), native.TokenAmountOut.Amount.Dec(), "amountOut dir=%d in=%d", dir, a)
-			require.Equal(t, legacy.Fee.Token, native.Fee.Token, "fee token dir=%d in=%d", dir, a)
 			require.Equal(t, legacy.Gas, native.Gas, "gas dir=%d in=%d", dir, a)
 		}
 	}
@@ -88,12 +87,6 @@ func TestCalcAmtOutSequentialParity(t *testing.T) {
 			quoted++
 			require.Equal(t, lRes.TokenAmountOut.Amount.String(), nRes.TokenAmountOut.Amount.Dec(), msg+" out")
 			require.Equal(t, lRes.TokenAmountOut.Token, nRes.TokenAmountOut.Token, msg+" out token")
-			require.Equal(t, lRes.Fee.Token, nRes.Fee.Token, msg+" fee token")
-			lFee := "0" // legacy leaves a zero fee amount nil; native converts it to 0
-			if lRes.Fee.Amount != nil {
-				lFee = lRes.Fee.Amount.String()
-			}
-			require.Equal(t, lFee, nRes.Fee.Amount.Dec(), msg+" fee")
 			require.Equal(t, lRes.RemainingTokenAmountIn == nil, nRes.RemainingTokenAmountIn == nil, msg+" remaining nil")
 			require.Equal(t, lRes.Gas, nRes.Gas, msg+" gas")
 			lSim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: lIn, TokenAmountOut: *lRes.TokenAmountOut, SwapInfo: lRes.SwapInfo, SwapLimitBig: pool.AsSwapLimitBig(lLimit)})

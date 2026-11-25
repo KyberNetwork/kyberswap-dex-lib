@@ -97,7 +97,7 @@ func (p *PoolSimulator) calcAmtOut(param pool.CalcAmtOutParams,
 	}
 
 	tokenAmountOut := &pool.TokenAmt{Token: tokenOut, Amount: *uint256.MustFromBig(amountOutAfterFees)}
-	tokenAmountFee := &pool.TokenAmt{Token: tokenOut, Amount: *uint256.MustFromBig(feeAmount)}
+	_ = &pool.TokenAmt{Token: tokenOut, Amount: *uint256.MustFromBig(feeAmount)}
 
 	var estimatedGas int64
 	if p.poolStateVersion == PoolStateVersionAtomic {
@@ -110,7 +110,6 @@ func (p *PoolSimulator) calcAmtOut(param pool.CalcAmtOutParams,
 	if err != nil {
 		return &pool.CalcAmtOutResult{
 			TokenAmountOut: tokenAmountOut,
-			Fee:            tokenAmountFee,
 			Gas:            estimatedGas,
 		}, err
 	}
@@ -124,7 +123,6 @@ func (p *PoolSimulator) calcAmtOut(param pool.CalcAmtOutParams,
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: tokenAmountOut,
-		Fee:            tokenAmountFee,
 		Gas:            estimatedGas,
 	}, nil
 }

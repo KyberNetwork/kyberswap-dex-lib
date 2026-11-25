@@ -51,5 +51,4 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	got, err := q.CalcAmtOut(params)
 	require.NoError(t, err)
 	require.Equal(t, want.TokenAmountOut.Amount, got.TokenAmountOut.Amount)
-	require.Equal(t, want.Fee.Amount, got.Fee.Amount)
 }

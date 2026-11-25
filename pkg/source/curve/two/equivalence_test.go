@@ -229,7 +229,6 @@ func legacyCalcAmountOut(p *PoolSimulator, params pool.CalcAmountOutParams) (*po
 	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: res.TokenAmountOut.Token, Amount: res.TokenAmountOut.Amount.ToBig()},
-		Fee:            &pool.TokenAmount{Token: res.Fee.Token, Amount: res.Fee.Amount.ToBig()},
 		Gas:            res.Gas,
 	}, nil
 }
@@ -273,7 +272,6 @@ func requireSameQuote(t *testing.T, msg string, old *legacyPoolSimulator, nw *Po
 	}
 	require.Equal(t, oldRes.TokenAmountOut.Amount.String(), newRes.TokenAmountOut.Amount.String(), "%s: amount out", msg)
 	require.Equal(t, oldRes.TokenAmountOut.Token, newRes.TokenAmountOut.Token, "%s: token out", msg)
-	require.Equal(t, oldRes.Fee.Amount.String(), newRes.Fee.Amount.String(), "%s: fee", msg)
 	require.Equal(t, oldRes.Gas, newRes.Gas, "%s: gas", msg)
 	return newRes, true
 }
@@ -382,8 +380,7 @@ func TestEquivalence_SwapSequences(t *testing.T) {
 					continue
 				}
 				before := nw.PriceScale
-				update := pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut,
-					Fee: *res.Fee}
+				update := pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut}
 				old.UpdateBalance(update)
 				nw.UpdateBalance(update)
 				requireSameState(t, msg, old, nw)
@@ -441,8 +438,7 @@ func TestEquivalence_AGammaRamp(t *testing.T) {
 			if !success {
 				continue
 			}
-			update := pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut,
-				Fee: *res.Fee}
+			update := pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut}
 			old.UpdateBalance(update)
 			nw.UpdateBalance(update)
 			requireSameState(t, msg, old, nw)

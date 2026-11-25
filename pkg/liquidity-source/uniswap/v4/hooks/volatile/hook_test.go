@@ -247,7 +247,7 @@ func TestPoolSimulator_TwoLegsAdvanceOnce(t *testing.T) {
 
 	clone := sim.CloneState().(*uniswapv4.PoolSimulator)
 	clone.UpdateState(pool.UpdateStateParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *leg1.TokenAmountOut,
-		Fee: *leg1.Fee, SwapInfo: leg1.SwapInfo})
+		SwapInfo: leg1.SwapInfo})
 
 	leg2, err := clone.CalcAmtOut(params)
 	require.NoError(t, err)

@@ -90,7 +90,6 @@ func TestCalcAmtInParity(t *testing.T) {
 			assert.Equal(t, want.TokenAmountIn.Amount.String(), got.TokenAmountIn.Amount.Dec(), "amountIn")
 			assert.Equal(t, tc.wantGas, got.Gas, "golden gas")
 			assert.Equal(t, want.Gas, got.Gas, "gas")
-			assert.Equal(t, want.Fee.Token, got.Fee.Token, "fee token")
 		})
 	}
 }

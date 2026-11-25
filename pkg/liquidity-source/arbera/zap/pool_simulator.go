@@ -115,7 +115,6 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: tokenOut, Amount: amountOut},
-		Fee:            &pool.TokenAmt{Token: tokenAmountIn.Token, Amount: uint256.Int{}},
 		SwapInfo: SwapInfo{
 			IsBuy: isBuy,
 		},

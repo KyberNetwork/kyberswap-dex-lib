@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -117,11 +116,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 				TokenAmountOut: &pool.TokenAmount{
 					Token:     "0xdac17f958d2ee523a2206206994597c13d831ec7",
 					Amount:    uint256.NewInt(10000).ToBig(),
-					AmountUsd: 0,
-				},
-				Fee: &pool.TokenAmount{
-					Token:     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-					Amount:    integer.Zero(),
 					AmountUsd: 0,
 				},
 				Gas: 300000,
@@ -236,11 +230,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 				TokenAmountOut: &pool.TokenAmount{
 					Token:     "0xdac17f958d2ee523a2206206994597c13d831ec7",
 					Amount:    uint256.NewInt(10000).ToBig(),
-					AmountUsd: 0,
-				},
-				Fee: &pool.TokenAmount{
-					Token:     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-					Amount:    integer.Zero(),
 					AmountUsd: 0,
 				},
 				Gas: 300000,
@@ -676,7 +665,6 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 						Amount: uint256.MustFromDecimal(swap.amountIn).ToBig(),
 					},
 					TokenAmountOut: *res.TokenAmountOut,
-					Fee:            *res.Fee,
 					SwapInfo:       res.SwapInfo,
 				})
 			})

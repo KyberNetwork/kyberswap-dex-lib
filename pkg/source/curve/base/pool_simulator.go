@@ -183,7 +183,7 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 	if indexIn < 0 || indexOut < 0 {
 		return nil, errors.New("token index is not correct")
 	}
-	amountOut, fee, err := t.GetDy(indexIn, indexOut, &param.TokenAmountIn.Amount, nil)
+	amountOut, _, err := t.GetDy(indexIn, indexOut, &param.TokenAmountIn.Amount, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,6 @@ func (t *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 	}
 	return &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: param.TokenOut, Amount: *amountOut},
-		Fee:            &pool.TokenAmt{Token: param.TokenOut, Amount: *fee},
 		Gas:            t.gas.Exchange,
 	}, nil
 }

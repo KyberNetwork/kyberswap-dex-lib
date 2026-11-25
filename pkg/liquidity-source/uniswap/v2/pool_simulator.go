@@ -112,7 +112,6 @@ func (s *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 
 	result := &pool.CalcAmtOutResult{
 		TokenAmountOut: &pool.TokenAmt{Token: s.Info.Tokens[indexOut], Amount: *amountOut},
-		Fee:            &pool.TokenAmt{Token: s.Info.Tokens[indexIn], Amount: uint256.Int{}},
 		Gas:            lo.CoalesceOrEmpty(s.Gas, defaultGas+extraGasByExchange[s.GetExchange()]),
 	}
 	if s.taxHandler.HasSellTax(s.Info.Tokens[indexIn]) ||

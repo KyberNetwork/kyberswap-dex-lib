@@ -77,8 +77,6 @@ func TestCalcAmtOutMatchesLegacy(t *testing.T) {
 			}
 			require.Equal(t, legacy.TokenAmountOut.Token, native.TokenAmountOut.Token, "%s/%d token out", name, amt)
 			require.Equal(t, 0, legacy.TokenAmountOut.Amount.Cmp(native.TokenAmountOut.Amount.ToBig()), "%s/%d amount out", name, amt)
-			require.Equal(t, legacy.Fee.Token, native.Fee.Token, "%s/%d fee token", name, amt)
-			require.Equal(t, 0, legacy.Fee.Amount.Cmp(native.Fee.Amount.ToBig()), "%s/%d fee", name, amt)
 			require.Equal(t, legacy.Gas, native.Gas, "%s/%d gas", name, amt)
 		}
 	}
