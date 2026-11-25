@@ -72,7 +72,7 @@ func compareQuote(t *testing.T, f fixture, q quoteCase) {
 			require.NoError(t, err)
 			require.Equal(t, q.Expected, result.TokenAmountOut.Amount.String(), q.Name)
 		} else {
-			result, err := sim.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: output, Amount: amount}, TokenIn: input})
+			result, err := testutil.CalcAmountInNative(sim, pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: output, Amount: amount}, TokenIn: input})
 			require.NoError(t, err)
 			require.Equal(t, q.Expected, result.TokenAmountIn.Amount.String(), q.Name)
 		}

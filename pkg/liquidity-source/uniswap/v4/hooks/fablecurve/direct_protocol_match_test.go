@@ -127,7 +127,7 @@ func runExactIn(t *testing.T, sim *uniswapv4.PoolSimulator, cases []quoteCase) {
 func runExactOut(t *testing.T, sim *uniswapv4.PoolSimulator, cases []quoteCase) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			res, err := sim.CalcAmountIn(poolpkg.CalcAmountInParams{
+			res, err := testutil.CalcAmountInNative(sim, poolpkg.CalcAmountInParams{
 				TokenAmountOut: poolpkg.TokenAmount{Token: c.tokenOut, Amount: bi(t, c.amount)},
 				TokenIn:        c.tokenIn,
 			})
@@ -282,9 +282,9 @@ func TestSameAsStaticFeePool(t *testing.T) {
 			}
 			// out: exactly that much of the coin bought with the asset
 			for _, amount := range c.out {
-				a, err := c.hooked.CalcAmountIn(poolpkg.CalcAmountInParams{TokenAmountOut: poolpkg.TokenAmount{Token: fableToken, Amount: bi(t, amount)}, TokenIn: c.asset})
+				a, err := testutil.CalcAmountInNative(c.hooked, poolpkg.CalcAmountInParams{TokenAmountOut: poolpkg.TokenAmount{Token: fableToken, Amount: bi(t, amount)}, TokenIn: c.asset})
 				require.NoError(t, err)
-				b, err := c.plain.CalcAmountIn(poolpkg.CalcAmountInParams{TokenAmountOut: poolpkg.TokenAmount{Token: fableToken, Amount: bi(t, amount)}, TokenIn: c.asset})
+				b, err := testutil.CalcAmountInNative(c.plain, poolpkg.CalcAmountInParams{TokenAmountOut: poolpkg.TokenAmount{Token: fableToken, Amount: bi(t, amount)}, TokenIn: c.asset})
 				require.NoError(t, err)
 				assert.Equal(t, b.TokenAmountIn.Amount.String(), a.TokenAmountIn.Amount.String())
 			}

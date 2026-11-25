@@ -303,7 +303,7 @@ func TestPoolSimulator_UsesThePlugin(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "991370", res.TokenAmountOut.Amount.String())
 
-	inRes, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+	inRes, err := testutil.CalcAmountInNative(sim, pool.CalcAmountInParams{
 		TokenAmountOut: pool.TokenAmount{Token: lot, Amount: big.NewInt(1e18)}, TokenIn: usdg})
 	require.NoError(t, err)
 	// raw = ceil(1e18 * 1e6 / 999850) = 1000150022503375507; in = ceil(raw * 1e6 / 991667573448564743)

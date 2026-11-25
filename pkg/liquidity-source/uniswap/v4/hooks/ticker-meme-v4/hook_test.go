@@ -85,7 +85,7 @@ func TestExactOutIsSmallestInputSurvivingOutputFee(t *testing.T) {
 	tokens := p.Info.Tokens
 	want := big.NewInt(1000000)
 	in := func(sim *uniswapv4.PoolSimulator) *big.Int {
-		res, err := sim.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: tokens[1], Amount: want}, TokenIn: tokens[0]})
+		res, err := testutil.CalcAmountInNative(sim, pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: tokens[1], Amount: want}, TokenIn: tokens[0]})
 		require.NoError(t, err)
 		return res.TokenAmountIn.Amount
 	}

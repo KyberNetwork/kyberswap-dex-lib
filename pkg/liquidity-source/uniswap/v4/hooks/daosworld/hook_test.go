@@ -121,7 +121,7 @@ func TestHistoricalSwaps(t *testing.T) {
 			assert.Equal(t, wantOut, res2.TokenAmountOut.Amount, "clone amountOut")
 
 			// CalcAmountIn inverts exact-in: the min input that still yields wantOut
-			in, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+			in, err := testutil.CalcAmountInNative(sim, pool.CalcAmountInParams{
 				TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: wantOut}, TokenIn: tokenIn})
 			require.NoError(t, err)
 			assert.LessOrEqual(t, in.TokenAmountIn.Amount.Cmp(amountIn), 0, "CalcAmountIn above the real input")

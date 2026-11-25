@@ -12,7 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-// Legacy big.Int CalcAmountOut, kept for parity tests until the golden data is removed.
+// Legacy big.Int CalcAmountOut and CalcAmountIn, kept for parity tests until the golden data is removed.
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult,
 	err error) {
@@ -166,5 +166,155 @@ func v3CalcAmountOut(sim *uniswapv3.PoolSimulator, param pool.CalcAmountOutParam
 		RemainingTokenAmountIn: &pool.TokenAmount{Token: res.RemainingTokenAmountIn.Token, Amount: res.RemainingTokenAmountIn.Amount.ToBig()},
 		Gas:                    res.Gas,
 		SwapInfo:               res.SwapInfo,
+	}, nil
+}
+
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult *pool.CalcAmountInResult, err error) {
+	originalTokenOut, originalTokenIn := param.TokenAmountOut.Token, param.TokenIn
+	var wrapAdditionalGas int64
+	var beforeSwapResult *BeforeSwapResult
+	var afterSwapResult *AfterSwapResult
+
+	// A native-flagged side trades at native's own decimals on-chain, not the wrapped-native
+	// address's used in p.Tokens; only Arc's differ (18 vs 6). Rescale around the v3 math below.
+	if idx := p.GetTokenIndex(originalTokenOut); idx >= 0 && p.staticExtra.IsNative[idx] {
+		param.TokenAmountOut.Amount = valueobject.UnwrapNativeAmount(p.chainID, param.TokenAmountOut.Amount)
+	}
+
+	defer func() { // modify result before return
+		if swapResult == nil {
+			return
+		}
+		v4SwapInfo := SwapInfo{
+			PoolSwapInfo: swapResult.SwapInfo.(PoolSwapInfo),
+		}
+
+		if swapResult.TokenAmountIn != nil {
+			swapResult.TokenAmountIn.Token = originalTokenIn
+
+			if beforeSwapResult != nil {
+				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount,
+					big256.ToBig(beforeSwapResult.DeltaUnspecified))
+				swapResult.Gas += beforeSwapResult.Gas
+				v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
+			}
+
+			if afterSwapResult != nil {
+				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount,
+					big256.ToBig(afterSwapResult.HookFee))
+				swapResult.Gas += afterSwapResult.Gas
+			}
+
+			if idx := p.GetTokenIndex(originalTokenIn); idx >= 0 && p.staticExtra.IsNative[idx] {
+				swapResult.TokenAmountIn.Amount = valueobject.WrapNativeAmount(p.chainID, swapResult.TokenAmountIn.Amount)
+			}
+		}
+		swapResult.SwapInfo = v4SwapInfo
+
+		if swapResult.RemainingTokenAmountOut != nil {
+			swapResult.RemainingTokenAmountOut.Token = originalTokenOut
+		}
+
+		swapResult.Gas += wrapAdditionalGas
+
+		if swapResult.TokenAmountIn.Amount.Sign() < 0 {
+			swapResult = nil
+			err = ErrInvalidAmountIn
+		}
+	}()
+
+	poolSim := p.PoolSimulator
+	if p.hook == nil {
+		swapResult, err = v3CalcAmountIn(poolSim, param)
+		return
+	}
+
+	tokenOut := param.TokenAmountOut.Token
+	zeroForOne := p.GetTokenIndex(tokenOut) == 1
+	amountOut := new(big.Int).Set(param.TokenAmountOut.Amount)
+
+	if beforeSwapResult, err = p.hook.BeforeSwap(&BeforeSwapParams{
+		CalcOut:         false,
+		ZeroForOne:      zeroForOne,
+		AmountSpecified: big256.FromBig(amountOut),
+	}); err != nil {
+		return nil, fmt.Errorf("[BeforeSwap] %w", err)
+	} else if err = ValidateBeforeSwapResult(beforeSwapResult); err != nil {
+		return nil, fmt.Errorf("[BeforeSwap] validation failed: %w", err)
+	}
+
+	if amountOut.Add(amountOut, big256.ToBig(beforeSwapResult.DeltaSpecified)).Sign() < 0 {
+		return nil, ErrInvalidAmountOut
+	}
+
+	if beforeSwapResult.SwapFee >= FeeMax {
+		return nil, ErrInvalidFee
+	} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
+		cloned := *poolSim
+		clonedV3Pool := *poolSim.V3Pool
+		cloned.V3Pool = &clonedV3Pool
+		cloned.V3Pool.Fee = beforeSwapResult.SwapFee
+		poolSim = &cloned
+	}
+
+	if amountOut.Sign() == 0 {
+		// Hook fully provides the output (full math override). See the matching
+		// short-circuit in CalcAmountOut above for the rationale. The deferred
+		// handler adds DeltaUnspecified (positive for full overrides) to the
+		// zero input to produce the hook-provided amountIn.
+		swapResult = &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{Token: param.TokenIn, Amount: new(big.Int)},
+			Fee:           &pool.TokenAmount{Token: param.TokenIn, Amount: new(big.Int)},
+			Gas:           0,
+			SwapInfo:      PoolSwapInfo{},
+		}
+	} else if swapResult, err = v3CalcAmountIn(poolSim, pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: amountOut,
+		},
+		TokenIn: param.TokenIn,
+	}); err != nil {
+		return nil, err
+	}
+
+	if afterSwapResult, err = p.hook.AfterSwap(&AfterSwapParams{
+		BeforeSwapParams: &BeforeSwapParams{
+			CalcOut:         false,
+			ZeroForOne:      zeroForOne,
+			AmountSpecified: big256.FromBig(amountOut),
+		},
+		AmountIn:  big256.FromBig(swapResult.TokenAmountIn.Amount),
+		AmountOut: big256.FromBig(amountOut),
+	}); err != nil {
+		return nil, fmt.Errorf("[AfterSwap] %w", err)
+	} else if err = ValidateAfterSwapResult(afterSwapResult); err != nil {
+		return nil, fmt.Errorf("[AfterSwap] validation failed: %w", err)
+	}
+
+	return
+}
+
+// v3CalcAmountIn quotes with the v3 pool's native CalcAmtIn and returns big.Int amounts, since the v3 legacy
+// CalcAmountIn is itself a test-only method. An amount above 256 bits is clamped to 2^256-1, which v3 rejects
+// as above the reserves, as the big.Int body did.
+func v3CalcAmountIn(sim *uniswapv3.PoolSimulator, param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	var amountOut uint256.Int
+	if overflow := amountOut.SetFromBig(param.TokenAmountOut.Amount); overflow {
+		amountOut.SetAllOne()
+	}
+	res, err := sim.CalcAmtIn(pool.CalcAmtInParams{
+		TokenAmountOut: pool.TokenAmt{Token: param.TokenAmountOut.Token, Amount: amountOut},
+		TokenIn:        param.TokenIn,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmountInResult{
+		TokenAmountIn:           &pool.TokenAmount{Token: res.TokenAmountIn.Token, Amount: res.TokenAmountIn.Amount.ToBig()},
+		RemainingTokenAmountOut: &pool.TokenAmount{Token: res.RemainingTokenAmountOut.Token, Amount: res.RemainingTokenAmountOut.Amount.ToBig()},
+		Fee:                     &pool.TokenAmount{Token: res.TokenAmountIn.Token, Amount: new(big.Int)},
+		Gas:                     res.Gas,
+		SwapInfo:                res.SwapInfo,
 	}, nil
 }

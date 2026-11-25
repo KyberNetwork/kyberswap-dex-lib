@@ -12,7 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -169,69 +168,48 @@ func (p *PoolSimulator) GetSqrtPriceLimit(zeroForOne bool) *uint256.Int {
 	}
 }
 
-func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	return p.CalcAmountInWithPriceLimit(param, uint256.Int{})
+// CalcAmtIn is CalcAmtInWithPriceLimit with no price limit.
+func (p *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
+	return p.CalcAmtInWithPriceLimit(params, uint256.Int{})
 }
 
-// CalcAmountInWithPriceLimit is CalcAmountIn with an explicit sqrtPriceLimitX96. A zero limit means
-// "no limit" and reproduces plain CalcAmountIn. Forks that pin a price floor/ceiling (e.g. machima's
-// XMA sell floor) call this so they do not have to rebuild the result and SwapInfo by hand.
-func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams,
-	sqrtPriceLimitX96 uint256.Int) (*pool.CalcAmountInResult, error) {
-	tokenIn, tokenAmountOut := param.TokenIn, param.TokenAmountOut
+// CalcAmtInWithPriceLimit is CalcAmtIn with an explicit sqrtPriceLimitX96. A zero limit means "no limit".
+// It runs the same checks in the same order as CalcAmountInWithPriceLimit.
+func (p *PoolSimulator) CalcAmtInWithPriceLimit(params pool.CalcAmtInParams,
+	sqrtPriceLimitX96 uint256.Int) (*pool.CalcAmtInResult, error) {
+	tokenIn, tokenAmountOut := params.TokenIn, params.TokenAmountOut
 	tokenOut := tokenAmountOut.Token
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
 		return nil, ErrInvalidToken
 	} else if p.isBuyRestricted(tokenOut) {
 		return nil, ErrBuyRestricted
-	} else if tokenAmountOut.Amount.Cmp(p.Info.Reserves[tokenOutIndex]) > 0 {
+	} else if cmpU256Big(&tokenAmountOut.Amount, p.Info.Reserves[tokenOutIndex]) > 0 {
 		return nil, ErrInsufficientBalance
-	} else if p.exceedsMaxTx(tokenOut, tokenAmountOut.Amount) {
-		// tokenAmountOut is the launched token here (a buy): it moves pool -> user, the same
-		// leg OdysToken._move caps by maxTx.
+	} else if p.exceedsMaxTxU256(tokenOut, &tokenAmountOut.Amount) {
 		return nil, ErrMaxTxExceeded
 	}
 
-	zeroForOne := tokenInIndex == 0
-
-	var amountOut uint256.Int
-	if overflow := amountOut.SetFromBig(tokenAmountOut.Amount); overflow {
-		return nil, ErrOverflow
-	}
-
-	// A swap is executed exact in, so the pool ends where the exact-in swap of this input leaves it,
-	// which the exact-out walk's rounding does not reach: UpdateBalance takes that state.
-	result, next, err := p.V3Pool.GetInputAmountExactInEnd(zeroForOne, amountOut, sqrtPriceLimitX96)
+	// A swap is executed exact in, so the pool ends where the exact-in swap of this input leaves it:
+	// UpdateState takes that state, see GetInputAmountExactInEnd.
+	result, next, err := p.V3Pool.GetInputAmountExactInEnd(tokenInIndex == 0, tokenAmountOut.Amount,
+		sqrtPriceLimitX96)
 	if err != nil {
 		return nil, err
-	}
-
-	if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {
+	} else if !p.allowEmptyTicks && result.AmountCalculated.Sign() <= 0 {
 		return nil, ErrZeroAmount
-	}
-	b := &calcAmountInBacking{sqrtPrice: next.SqrtRatioX96}
-	// The walk can reach the price limit with output still owed, as the pool's own swap stops there
-	// and pays less, though the pool may hold that much of the token outside the range: the quote
-	// fills partly and reports what it does not pay, as CalcAmountOut reports its unspent input.
-	b.remaining = pool.TokenAmount{Token: tokenOut, Amount: bignumber.ZeroBI}
-	if !result.RemainingAmountIn.IsZero() {
-		var owed uint256.Int
-		owed.Neg(&result.RemainingAmountIn)
-		b.remaining.Amount = big256.ToBigBacked(&b.remainingBI, &b.remainingWords, &owed)
-	}
-	amountInBI := big256.ToBigBacked(&b.inBI, &b.inWords, &result.AmountCalculated)
-	if p.exceedsMaxTx(tokenIn, amountInBI) {
-		// tokenIn is the launched token here (a sell): it moves user -> pool, the same leg
-		// OdysToken._move caps by maxTx.
+	} else if p.exceedsMaxTxU256(tokenIn, &result.AmountCalculated) {
 		return nil, ErrMaxTxExceeded
 	}
 
-	b.in, b.fee = pool.TokenAmount{Token: tokenIn, Amount: amountInBI}, pool.TokenAmount{Token: tokenIn}
-	b.res = pool.CalcAmountInResult{
+	b := &calcAmtInBacking{sqrtPrice: next.SqrtRatioX96}
+	b.in = pool.TokenAmt{Token: tokenIn, Amount: result.AmountCalculated}
+	// The walk can stop at the price limit with output still owed: the quote fills partly and reports it.
+	b.remaining = pool.TokenAmt{Token: tokenOut}
+	b.remaining.Amount.Neg(&result.RemainingAmountIn)
+	b.res = pool.CalcAmtInResult{
 		TokenAmountIn:           &b.in,
 		RemainingTokenAmountOut: &b.remaining,
-		Fee:                     &b.fee,
 		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(result.CrossInitTickLoops) +
 			p.Gas.CrossEmptyWordGas*int64(result.CrossEmptyWordLoops),
 		SwapInfo: SwapInfo{
@@ -241,6 +219,13 @@ func (p *PoolSimulator) CalcAmountInWithPriceLimit(param pool.CalcAmountInParams
 		},
 	}
 	return &b.res, nil
+}
+
+// calcAmtInBacking holds everything a CalcAmtIn result points to, with uint256 amounts held by value.
+type calcAmtInBacking struct {
+	res           pool.CalcAmtInResult
+	in, remaining pool.TokenAmt
+	sqrtPrice     uint256.Int // SwapInfo points here
 }
 
 // CalcAmtOut is CalcAmtOutWithPriceLimit with no price limit.
@@ -300,15 +285,6 @@ type calcAmtOutBacking struct {
 	res                    pool.CalcAmtOutResult
 	out, remaining, fee    pool.TokenAmt
 	remainingIn, sqrtPrice uint256.Int // SwapInfo points here
-}
-
-// calcAmountInBacking holds everything a CalcAmountIn result points to.
-type calcAmountInBacking struct {
-	res                     pool.CalcAmountInResult
-	in, remaining, fee      pool.TokenAmount
-	sqrtPrice               uint256.Int // SwapInfo points here
-	inBI, remainingBI       big.Int
-	inWords, remainingWords [4]big.Word
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSim {

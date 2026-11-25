@@ -82,7 +82,7 @@ func TestCalcAmountIn_DeliversRequestedOutput(t *testing.T) {
 		return res.TokenAmountOut.Amount
 	}
 
-	res, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+	res, err := testutil.CalcAmountInNative(sim, pool.CalcAmountInParams{
 		TokenAmountOut: pool.TokenAmount{Token: tokens[1], Amount: want}, TokenIn: tokens[0]})
 	require.NoError(t, err)
 	in := res.TokenAmountIn.Amount

@@ -130,7 +130,7 @@ func TestCalcAmountIn_RoundTrip(t *testing.T) {
 	sim := hooktest.NewPoolSimulatorAt(t, HookAddresses[0], h, int64(f.Steps[0].Now))
 	for _, out := range []string{"1000000", "123456789", "2000000000"} {
 		want, _ := new(big.Int).SetString(out, 10)
-		in, err := sim.CalcAmountIn(pool.CalcAmountInParams{TokenIn: tokenBase,
+		in, err := testutil.CalcAmountInNative(sim, pool.CalcAmountInParams{TokenIn: tokenBase,
 			TokenAmountOut: pool.TokenAmount{Token: tokenQuote, Amount: want}})
 		require.NoError(t, err)
 		got, err := testutil.CalcAmountOutNative(sim,

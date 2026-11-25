@@ -380,7 +380,7 @@ func TestDirectProtocolMatch_GraduatedPumpV2(t *testing.T) {
 			exactOut := func(cases []swapCase, tokenIn, tokenOut string) {
 				for _, c := range cases {
 					amt, _ := new(big.Int).SetString(c.specified, 10)
-					res, err := sim.CalcAmountIn(poolpkg.CalcAmountInParams{
+					res, err := testutil.CalcAmountInNative(sim, poolpkg.CalcAmountInParams{
 						TokenAmountOut: poolpkg.TokenAmount{Token: tokenOut, Amount: amt},
 						TokenIn:        tokenIn,
 					})

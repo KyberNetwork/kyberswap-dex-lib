@@ -370,13 +370,10 @@ func (h *DynamicFeeHook) simulateSwap(amountSpecified *uint256.Int, zeroForOne, 
 
 	if !calcOut {
 		// CalcIn reverses exact-in: estimate the tick where the pool ends up after giving amountSpecified out
-		var result *pool.CalcAmountInResult
-		if result, err = h.poolSim.CalcAmountIn(pool.CalcAmountInParams{
-			TokenAmountOut: pool.TokenAmount{
-				Token:  tokenOut,
-				Amount: u256.ToBig(amountSpecified),
-			},
-			TokenIn: tokenIn,
+		var result *pool.CalcAmtInResult
+		if result, err = h.poolSim.CalcAmtIn(pool.CalcAmtInParams{
+			TokenAmountOut: pool.TokenAmt{Token: tokenOut, Amount: *amountSpecified},
+			TokenIn:        tokenIn,
 		}); err != nil {
 			return uniswapv3.SwapInfo{}, err
 		}

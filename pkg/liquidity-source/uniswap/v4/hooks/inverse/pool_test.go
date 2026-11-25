@@ -88,7 +88,7 @@ func testSequentialDispatch(t *testing.T, addr common.Address, vs []vector, init
 		}
 		require.Equal(t, v.Output.Dec(), result.TokenAmountOut.Amount.String())
 		// CalcAmountIn reverses exact-in, so the vector's output needs at most its input
-		resIn, e := sim.CalcAmountIn(pool.CalcAmountInParams{TokenIn: in, TokenAmountOut: pool.TokenAmount{Token: out, Amount: v.Output.ToBig()}})
+		resIn, e := testutil.CalcAmountInNative(sim, pool.CalcAmountInParams{TokenIn: in, TokenAmountOut: pool.TokenAmount{Token: out, Amount: v.Output.ToBig()}})
 		require.NoError(t, e)
 		require.LessOrEqual(t, resIn.TokenAmountIn.Amount.Cmp(v.Input.ToBig()), 0)
 		require.Empty(t, sim.GetMetaInfo(in, out).(uniswapv4.PoolMetaInfo).HookData)

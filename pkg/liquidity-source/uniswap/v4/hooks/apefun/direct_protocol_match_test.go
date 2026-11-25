@@ -343,7 +343,7 @@ func TestCalcAmountIn_ReversesExactIn(t *testing.T) {
 				out string
 			}{{true, "1000000000000000000"}, {true, "300841077237029842754191"}, {false, "319"}, {false, "3188222"}} {
 				tokenIn, tokenOut := arc2reward.tokens(c.buy)
-				res, err := sim.CalcAmountIn(poolpkg.CalcAmountInParams{
+				res, err := testutil.CalcAmountInNative(sim, poolpkg.CalcAmountInParams{
 					TokenAmountOut: poolpkg.TokenAmount{Token: tokenOut, Amount: bi(t, c.out)}, TokenIn: tokenIn})
 				require.NoError(t, err)
 				got, err := quoteOut(t, sim, tokenIn, tokenOut, res.TokenAmountIn.Amount)

@@ -47,7 +47,7 @@ func TestQuotesMatchPonsV2(t *testing.T) {
 		return res.TokenAmountOut.Amount
 	}
 	swapIn := func(sim *uniswapv4.PoolSimulator, in, out int, amount *big.Int) *big.Int {
-		res, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+		res, err := testutil.CalcAmountInNative(sim, pool.CalcAmountInParams{
 			TokenAmountOut: pool.TokenAmount{Token: tokens[out], Amount: amount}, TokenIn: tokens[in]})
 		require.NoError(t, err)
 		return res.TokenAmountIn.Amount

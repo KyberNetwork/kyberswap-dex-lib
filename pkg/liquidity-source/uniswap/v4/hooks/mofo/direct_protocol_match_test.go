@@ -136,7 +136,7 @@ func runExactIn(t *testing.T, sim *uniswapv4.PoolSimulator, cases []quoteCase) {
 func runExactOut(t *testing.T, sim *uniswapv4.PoolSimulator, cases []quoteCase) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			res, err := sim.CalcAmountIn(poolpkg.CalcAmountInParams{
+			res, err := testutil.CalcAmountInNative(sim, poolpkg.CalcAmountInParams{
 				TokenAmountOut: poolpkg.TokenAmount{Token: c.tokenOut, Amount: bi(t, c.amount)},
 				TokenIn:        c.tokenIn,
 			})
@@ -234,7 +234,7 @@ func TestBirthFloor_SellsStopAtBirthPrice(t *testing.T) {
 // is relative.
 func TestDirectProtocolMatch_MultiWord(t *testing.T) {
 	pinClock(t, fixtureTime)
-	res, err := mofoStonkSim(t).CalcAmountIn(poolpkg.CalcAmountInParams{
+	res, err := testutil.CalcAmountInNative(mofoStonkSim(t), poolpkg.CalcAmountInParams{
 		TokenAmountOut: poolpkg.TokenAmount{Token: stonkbroker, Amount: bi(t, "45168190962507613995785")},
 		TokenIn:        mofoToken,
 	})
@@ -280,9 +280,9 @@ func TestSameAsStaticFeePool(t *testing.T) {
 		assert.Equal(t, b.TokenAmountOut.Amount.String(), a.TokenAmountOut.Amount.String(), "%s -> %s %s", c.tokenIn, c.tokenOut, c.amount)
 	}
 	for _, out := range []string{"10000000000000000000000", "1000000000000000000000000"} {
-		a, err := hooked.CalcAmountIn(poolpkg.CalcAmountInParams{TokenAmountOut: poolpkg.TokenAmount{Token: mofoToken, Amount: bi(t, out)}, TokenIn: native})
+		a, err := testutil.CalcAmountInNative(hooked, poolpkg.CalcAmountInParams{TokenAmountOut: poolpkg.TokenAmount{Token: mofoToken, Amount: bi(t, out)}, TokenIn: native})
 		require.NoError(t, err)
-		b, err := plain.CalcAmountIn(poolpkg.CalcAmountInParams{TokenAmountOut: poolpkg.TokenAmount{Token: mofoToken, Amount: bi(t, out)}, TokenIn: native})
+		b, err := testutil.CalcAmountInNative(plain, poolpkg.CalcAmountInParams{TokenAmountOut: poolpkg.TokenAmount{Token: mofoToken, Amount: bi(t, out)}, TokenIn: native})
 		require.NoError(t, err)
 		assert.Equal(t, b.TokenAmountIn.Amount.String(), a.TokenAmountIn.Amount.String())
 	}

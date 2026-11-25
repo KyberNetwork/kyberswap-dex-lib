@@ -63,8 +63,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, ErrZeroAmount
 	}
 
-	//nolint:staticcheck // QF1008: explicit embedded selector is intentional, see CalcAmountOut
-	res, err := p.PoolSimulator.CalcAmountInWithPriceLimit(pool.CalcAmountInParams{
+	res, err := v3CalcAmountInWithPriceLimit(p.PoolSimulator, pool.CalcAmountInParams{
 		TokenIn:        tokenIn,
 		TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: poolAmountOut},
 	}, p.sqrtPriceLimit(tokenIn, isBuy))
@@ -111,4 +110,28 @@ func legacyGrossUpBps(amount *big.Int, bps uint16) *big.Int {
 	den := big.NewInt(int64(bpsDenominator - bps))
 	gross.Add(gross, new(big.Int).Sub(den, bignumber.One))
 	return gross.Div(gross, den)
+}
+
+// v3CalcAmountInWithPriceLimit quotes with the v3 pool's native CalcAmtInWithPriceLimit and returns big.Int
+// amounts, since the v3 legacy CalcAmountIn is a test-only method in its own package. An amount above 256 bits
+// is clamped to 2^256-1, which v3 rejects as above the reserves, as the big.Int body did.
+func v3CalcAmountInWithPriceLimit(sim *uniswapv3.PoolSimulator, param pool.CalcAmountInParams,
+	limit uint256.Int) (*pool.CalcAmountInResult, error) {
+	var amountOut uint256.Int
+	if overflow := amountOut.SetFromBig(param.TokenAmountOut.Amount); overflow {
+		amountOut.SetAllOne()
+	}
+	res, err := sim.CalcAmtInWithPriceLimit(pool.CalcAmtInParams{
+		TokenAmountOut: pool.TokenAmt{Token: param.TokenAmountOut.Token, Amount: amountOut},
+		TokenIn:        param.TokenIn,
+	}, limit)
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmountInResult{
+		TokenAmountIn:           &pool.TokenAmount{Token: res.TokenAmountIn.Token, Amount: res.TokenAmountIn.Amount.ToBig()},
+		RemainingTokenAmountOut: &pool.TokenAmount{Token: res.RemainingTokenAmountOut.Token, Amount: res.RemainingTokenAmountOut.Amount.ToBig()},
+		Gas:                     res.Gas,
+		SwapInfo:                res.SwapInfo,
+	}, nil
 }
