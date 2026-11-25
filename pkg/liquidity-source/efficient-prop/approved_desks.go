@@ -22,6 +22,8 @@ const (
 	// most; deskListTimeout bounds one fetch.
 	deskListEvery   = 15 * time.Second
 	deskListTimeout = 3 * time.Second
+	// deskListWarnEvery is how often a failed fetch is logged at most, a gate each.
+	deskListWarnEvery = time.Minute
 	// maxDeskListBytes and maxDeskListDesks bound a list: a longer answer is refused whole.
 	maxDeskListBytes = 64 << 10
 	maxDeskListDesks = 1024
@@ -39,7 +41,8 @@ type deskListAnswer struct {
 // desk, and anyone may open a desk and a listing on the front, so no listing is quoted for being there: only where
 // its desk's contract is approved.
 //
-// The static set is Config.ApprovedDesks. Where Config.ApprovedDesksURL is set, its list is fetched every
+// The static set is Config.ApprovedDesks. Where Config.ApprovedDesksURL is set, its list is fetched in the background
+// (never on the caller's path, which goes on with the list held, or the static set where none was accepted yet) every
 // deskListEvery at most, and the last list accepted rules while its fetch is at most maxAge old; once it is older (the
 // url failing, or answering a list that is refused) the static set rules, less every desk that list left out. So a
 // failing url never brings a desk in: not one of the list's that the static set does not name, and not one of the
@@ -54,8 +57,13 @@ type approvedDesks struct {
 	client  *http.Client
 	now     func() time.Time
 	warn    func(err error)
+	// spawn runs a fetch; go where nil. A test sets it to run the fetch in line.
+	spawn func(func())
 
 	mu        sync.Mutex
+	fetching  bool
+	warnedAt  time.Time
+	warned    bool
 	listed    map[common.Address]struct{} // the last list accepted; nil where none was
 	fetchedAt time.Time
 	updatedAt uint64
@@ -89,11 +97,11 @@ func newApprovedDesks(cfg *Config) *approvedDesks {
 }
 
 // approved is whether desk, a desk contract, is approved now.
-func (d *approvedDesks) approved(ctx context.Context, desk common.Address) bool {
+func (d *approvedDesks) approved(_ context.Context, desk common.Address) bool {
 	if desk == (common.Address{}) {
 		return false
 	}
-	d.refresh(ctx)
+	d.refresh()
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	_, static := d.static[desk]
@@ -107,29 +115,48 @@ func (d *approvedDesks) approved(ctx context.Context, desk common.Address) bool 
 	return static && listed
 }
 
-// refresh fetches the list where one is due. One caller fetches at a time, and the others go on with the list held.
-func (d *approvedDesks) refresh(ctx context.Context) {
+// refresh starts a fetch of the list where one is due and none is running, and returns at once: the fetch runs on its
+// own goroutine under its own timeout, never on the caller's context or time.
+func (d *approvedDesks) refresh() {
 	if d.url == "" {
 		return
 	}
 	d.mu.Lock()
 	now := d.now()
-	if now.Before(d.nextAt) {
+	if d.fetching || now.Before(d.nextAt) {
 		d.mu.Unlock()
 		return
 	}
 	d.nextAt = now.Add(deskListEvery)
+	d.fetching = true
+	d.mu.Unlock()
+	run := func() {
+		defer func() {
+			d.mu.Lock()
+			d.fetching = false
+			d.mu.Unlock()
+		}()
+		d.fetchAndHold()
+	}
+	if d.spawn != nil {
+		d.spawn(run)
+		return
+	}
+	go run()
+}
+
+// fetchAndHold fetches the list and holds it where it is accepted; a refused or failed one is logged (failed) and
+// leaves the held list as it was.
+func (d *approvedDesks) fetchAndHold() {
+	d.mu.Lock()
 	held := d.updatedAt
 	d.mu.Unlock()
-
-	a, err := d.fetch(ctx)
+	a, err := d.fetch(context.Background())
 	if err == nil && a.UpdatedAt < held {
 		err = fmt.Errorf("its updatedAt %d is before the held list's %d", a.UpdatedAt, held)
 	}
 	if err != nil {
-		if d.warn != nil {
-			d.warn(shownError(err))
-		}
+		d.failed(err)
 		return
 	}
 	listed := make(map[common.Address]struct{}, len(a.Desks))
@@ -141,6 +168,20 @@ func (d *approvedDesks) refresh(ctx context.Context) {
 		d.listed, d.updatedAt, d.fetchedAt = listed, a.UpdatedAt, d.now()
 	}
 	d.mu.Unlock()
+}
+
+// failed logs a failed fetch, once every deskListWarnEvery at most.
+func (d *approvedDesks) failed(err error) {
+	d.mu.Lock()
+	now := d.now()
+	due := !d.warned || now.Sub(d.warnedAt) >= deskListWarnEvery
+	if due {
+		d.warned, d.warnedAt = true, now
+	}
+	d.mu.Unlock()
+	if due && d.warn != nil {
+		d.warn(shownError(err))
+	}
 }
 
 // fetch is the url's list, checked.

@@ -47,7 +47,10 @@ func newStateServer(t *testing.T) *stateServer {
 			return
 		}
 		s.hits.Add(1)
-		time.Sleep(s.delay)
+		s.mu.Lock()
+		delay := s.delay
+		s.mu.Unlock()
+		time.Sleep(delay)
 		s.mu.Lock()
 		reply := map[string]any{"jsonrpc": "2.0", "id": msg.ID, "result": s.m}
 		_ = json.NewEncoder(w).Encode(reply)

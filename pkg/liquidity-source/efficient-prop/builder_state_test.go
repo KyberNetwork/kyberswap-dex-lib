@@ -316,12 +316,13 @@ func TestBuilderSlowFullerAnswerIsReadOnTheNextFetch(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, extraOf(t, first).Ladders[0], "the first tick: the slow answer is past the window")
 
+	slow.mu.Lock()
 	slow.delay = 0
+	slow.mu.Unlock()
 	tr = ethTracker(t, n, cfg, time.Now())
 	next, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
 	assert.NotEmpty(t, extraOf(t, next).Ladders[0], "the next tick reads the fuller answer")
-	time.Sleep(300 * time.Millisecond)
 }
 
 // A /state url that fails is logged, at most once a minute per url, its key-bearing parts (userinfo and query) left

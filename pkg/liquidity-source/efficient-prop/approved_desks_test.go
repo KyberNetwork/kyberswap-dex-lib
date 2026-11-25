@@ -81,6 +81,7 @@ func gateOf(srv *deskListServer, clock *time.Time, static ...common.Address) *ap
 	d := newApprovedDesks(cfg)
 	d.now = func() time.Time { return *clock }
 	d.warn = func(error) {}
+	d.spawn = func(f func()) { f() }
 	if srv != nil {
 		d.client = srv.Client()
 	}
@@ -351,6 +352,7 @@ func TestTrackerDropsARevokedDeskWithinOneRefresh(t *testing.T) {
 	require.NoError(t, err)
 	now := time.Now()
 	tr.desks.client, tr.desks.now = srv.Client(), func() time.Time { return now }
+	tr.desks.spawn = func(f func()) { f() }
 	ladders := func() int {
 		got, err := tr.GetNewPoolState(ctx, p, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
@@ -361,4 +363,60 @@ func TestTrackerDropsARevokedDeskWithinOneRefresh(t *testing.T) {
 	srv.set(func(s *deskListServer) { s.desks, s.updatedAt = nil, 2 })
 	now = now.Add(deskListEvery)
 	assert.Zero(t, ladders(), "revoked: the next refresh quotes nothing")
+}
+
+// A config that names a list url the api does not serve yet (a 404, or a host that hangs) is ruled by its own
+// approvedDesks set, and the refresh path never waits for the fetch: approved returns at once, the fetch runs in the
+// background, and a hanging host is not asked again while that fetch runs.
+func TestApprovedDesksUnservedURLNeverHoldsTheCaller(t *testing.T) {
+	ctx := context.Background()
+	release := make(chan struct{})
+	var hits sync.WaitGroup
+	hits.Add(1)
+	var once sync.Once
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		once.Do(hits.Done)
+		<-release
+	}))
+	defer srv.Close()
+	defer close(release)
+
+	now := time.Unix(1_800_000_000, 0)
+	cfg := &Config{ChainID: valueobject.ChainIDEthereum, ApprovedDesks: []string{hexutil.Encode(deskA[:])},
+		ApprovedDesksURL: srv.URL}
+	d := newApprovedDesks(cfg)
+	d.client, d.now, d.warn = srv.Client(), func() time.Time { return now }, func(error) {}
+
+	start := time.Now()
+	assert.True(t, d.approved(ctx, deskA), "the config's set rules until a list is accepted")
+	assert.False(t, d.approved(ctx, deskB))
+	assert.Less(t, time.Since(start), deskListTimeout/2, "the hanging host does not hold the caller")
+	hits.Wait()
+	now = now.Add(deskListEvery)
+	assert.True(t, d.approved(ctx, deskA), "still the config's set, with the first fetch in flight")
+	assert.False(t, d.approved(ctx, deskB))
+	d.mu.Lock()
+	assert.Nil(t, d.listed, "no list accepted")
+	d.mu.Unlock()
+}
+
+// A failed fetch is logged once a minute at most, however often the list is due.
+func TestApprovedDesksLogsAFailedFetchOnceAMinute(t *testing.T) {
+	ctx := context.Background()
+	now := time.Unix(1_800_000_000, 0)
+	srv := newDeskListServer(t, 1)
+	srv.set(func(s *deskListServer) { s.status = http.StatusNotFound })
+	d := gateOf(srv, &now, deskA)
+	var warned int
+	d.warn = func(error) { warned++ }
+	for k := 0; k < 9; k++ {
+		require.True(t, d.approved(ctx, deskA), "the config's set rules")
+		now = now.Add(deskListEvery)
+	}
+	// 9 fetches, at 0, 15, ... 120 s: logged at 0, 60 and 120
+	assert.Equal(t, 9, srv.hits)
+	assert.Equal(t, 3, warned, "at 0, 60 and 120 s")
+	now = now.Add(deskListWarnEvery)
+	d.approved(ctx, deskA)
+	assert.Equal(t, 4, warned, "a minute after the last")
 }
