@@ -108,7 +108,6 @@ func TestCloneStateIPoolSim(t testing.TB, sim pool.IPoolSim, params pool.CalcAmt
 	clone.UpdateState(pool.UpdateStateParams{
 		TokenAmountIn:  params.TokenAmountIn,
 		TokenAmountOut: *result1.TokenAmountOut,
-		Fee:            *result1.Fee,
 		SwapInfo:       result1.SwapInfo,
 		SwapLimit:      params.Limit,
 	})

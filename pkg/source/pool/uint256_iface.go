@@ -21,7 +21,6 @@ type CalcAmtOutParams struct {
 // CalcAmtOutResult is CalcAmountOutResult with uint256 amounts.
 type CalcAmtOutResult struct {
 	TokenAmountOut         *TokenAmt
-	Fee                    *TokenAmt
 	RemainingTokenAmountIn *TokenAmt
 	Gas                    int64
 	SwapInfo               any
@@ -38,7 +37,6 @@ type CalcAmtInParams struct {
 type CalcAmtInResult struct {
 	TokenAmountIn           *TokenAmt
 	RemainingTokenAmountOut *TokenAmt
-	Fee                     *TokenAmt
 	Gas                     int64
 	SwapInfo                any
 }
@@ -61,11 +59,11 @@ func (r *CalcAmtOutResult) IsValid() bool {
 	return r.TokenAmountOut != nil && !r.TokenAmountOut.Amount.IsZero()
 }
 
-// UpdateStateParams is UpdateBalanceParams with uint256 amounts. Fee is a value, so a zero fee needs no nil check.
+// UpdateStateParams is UpdateBalanceParams with uint256 amounts and no Fee: a pool that needs the fee in UpdateState
+// carries it in its own SwapInfo.
 type UpdateStateParams struct {
 	TokenAmountIn  TokenAmt
 	TokenAmountOut TokenAmt
-	Fee            TokenAmt
 	SwapInfo       any
 	SwapLimit      SwapLimit
 }

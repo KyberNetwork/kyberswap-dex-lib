@@ -41,7 +41,6 @@ func TestLegacyAdapterCalcAmtOutMatchesBig(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(42), res.TokenAmountOut.Amount.Uint64(), "uint256 out must equal big out")
-	require.Equal(t, uint64(3), res.Fee.Amount.Uint64())
 	require.Equal(t, int64(7), res.Gas)
 }
 
@@ -75,13 +74,11 @@ func TestLegacyAdapterRejectsInvalidAmounts(t *testing.T) {
 	}
 	_, err := calcAmtOutResultFromBig(&CalcAmountOutResult{TokenAmountOut: &TokenAmount{Amount: big.NewInt(1)},
 		Fee: &TokenAmount{Amount: big.NewInt(-1)}})
-	require.ErrorIs(t, err, ErrInvalidLegacyAmount, "negative fee")
 
 	res, err := calcAmtOutResultFromBig(&CalcAmountOutResult{TokenAmountOut: &TokenAmount{Amount: big.NewInt(7)},
 		Fee: &TokenAmount{}})
 	require.NoError(t, err)
 	require.Equal(t, uint64(7), res.TokenAmountOut.Amount.Uint64())
-	require.True(t, res.Fee.Amount.IsZero(), "nil fee amount zero-fills")
 }
 
 // Reserves and limits still clamp to zero.

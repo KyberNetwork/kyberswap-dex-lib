@@ -22,11 +22,16 @@ func FactoryPoolSim(poolType string) PoolSimFactoryFn {
 		if err != nil {
 			return nil, err
 		}
-		if u, ok := sim.(IPoolSim); ok {
-			return u, nil
-		}
-		return legacyAdapter{IPoolSimulator: sim.(IPoolSimulator)}, nil
+		return AsIPoolSim(sim), nil
 	}
+}
+
+// AsIPoolSim returns sim as an IPoolSim: as-is when it already implements IPoolSim, else wrapped by legacyAdapter.
+func AsIPoolSim(sim any) IPoolSim {
+	if u, ok := sim.(IPoolSim); ok {
+		return u
+	}
+	return legacyAdapter{IPoolSimulator: sim.(IPoolSimulator)}
 }
 
 // legacyAdapter exposes a legacy big.Int IPoolSimulator as IPoolSim. Each uint256 call converts to big.Int, calls
@@ -71,7 +76,6 @@ func (a legacyAdapter) UpdateState(params UpdateStateParams) {
 	a.IPoolSimulator.UpdateBalance(UpdateBalanceParams{
 		TokenAmountIn:  tokenAmountFromAmt(&params.TokenAmountIn),
 		TokenAmountOut: tokenAmountFromAmt(&params.TokenAmountOut),
-		Fee:            tokenAmountFromAmt(&params.Fee),
 		SwapInfo:       params.SwapInfo,
 		SwapLimitBig:   AsSwapLimitBig(params.SwapLimit),
 	})
@@ -100,10 +104,17 @@ func tokenAmtFromBig(t *TokenAmount) (TokenAmt, error) {
 	return TokenAmt{Token: t.Token, Amount: amt, AmountUsd: t.AmountUsd}, err
 }
 
+// calcAmountOutResultFromAmt converts a native result to the legacy shape. The native result has no fee, so Fee is a
+// zero amount (not nil) for legacy callers that read Fee.Amount.
 func calcAmountOutResultFromAmt(r *CalcAmtOutResult) *CalcAmountOutResult {
+	out := tokenAmountFromAmtPtr(r.TokenAmountOut)
+	fee := &TokenAmount{Amount: new(big.Int)}
+	if out != nil {
+		fee.Token = out.Token
+	}
 	return &CalcAmountOutResult{
-		TokenAmountOut:         tokenAmountFromAmtPtr(r.TokenAmountOut),
-		Fee:                    tokenAmountFromAmtPtr(r.Fee),
+		TokenAmountOut:         out,
+		Fee:                    fee,
 		RemainingTokenAmountIn: tokenAmountFromAmtPtr(r.RemainingTokenAmountIn),
 		Gas:                    r.Gas,
 		SwapInfo:               r.SwapInfo,
@@ -119,36 +130,29 @@ func tokenAmountFromAmtPtr(t *TokenAmt) *TokenAmount {
 }
 
 // tokenAmountPtrToAmt converts an optional legacy amount. A nil pointer stays nil; a nil, negative or oversized
-// Amount is an error, except a nil Amount when zeroNil is set (a legacy pool that leaves a fee empty).
-func tokenAmountPtrToAmt(t *TokenAmount, zeroNil bool) (*TokenAmt, error) {
+// Amount is an error.
+func tokenAmountPtrToAmt(t *TokenAmount) (*TokenAmt, error) {
 	if t == nil {
 		return nil, nil
 	}
 	out := &TokenAmt{Token: t.Token, AmountUsd: t.AmountUsd}
-	if t.Amount == nil && zeroNil {
-		return out, nil
-	}
 	amt, err := bigToU256(t.Amount)
 	out.Amount = amt
 	return out, err
 }
 
 // calcAmtOutResultFromBig converts a legacy result. The amount out and the remaining amount must be valid
-// uint256 values; a nil Fee amount becomes zero.
+// uint256 values. The legacy Fee is dropped: a pool whose UpdateBalance needs it carries it in its SwapInfo.
 func calcAmtOutResultFromBig(r *CalcAmountOutResult) (*CalcAmtOutResult, error) {
-	out, err := tokenAmountPtrToAmt(r.TokenAmountOut, false)
+	out, err := tokenAmountPtrToAmt(r.TokenAmountOut)
 	if err != nil {
 		return nil, errors.Wrap(err, "token amount out")
 	}
-	fee, err := tokenAmountPtrToAmt(r.Fee, true)
-	if err != nil {
-		return nil, errors.Wrap(err, "fee")
-	}
-	remaining, err := tokenAmountPtrToAmt(r.RemainingTokenAmountIn, false)
+	remaining, err := tokenAmountPtrToAmt(r.RemainingTokenAmountIn)
 	if err != nil {
 		return nil, errors.Wrap(err, "remaining token amount in")
 	}
-	return &CalcAmtOutResult{TokenAmountOut: out, Fee: fee, RemainingTokenAmountIn: remaining, Gas: r.Gas,
+	return &CalcAmtOutResult{TokenAmountOut: out, RemainingTokenAmountIn: remaining, Gas: r.Gas,
 		SwapInfo: r.SwapInfo}, nil
 }
 
@@ -175,4 +179,19 @@ func bigToU256OrZero(b *big.Int) *uint256.Int {
 		return new(uint256.Int)
 	}
 	return uint256.MustFromBig(b)
+}
+
+// FeeSwapInfo is the SwapInfo of a legacy pool whose UpdateBalance needs the fee of its CalcAmountOut. The adapter
+// passes SwapInfo through untouched, so the fee must travel in it.
+type FeeSwapInfo struct {
+	Fee *TokenAmount `json:"-"`
+}
+
+// SwapInfoFee returns the fee a legacy pool carried in FeeSwapInfo for its UpdateBalance, or a zero fee when
+// swapInfo is not a FeeSwapInfo.
+func SwapInfoFee(swapInfo any) TokenAmount {
+	if info, ok := swapInfo.(FeeSwapInfo); ok && info.Fee != nil && info.Fee.Amount != nil {
+		return *info.Fee
+	}
+	return TokenAmount{Amount: new(big.Int)}
 }
