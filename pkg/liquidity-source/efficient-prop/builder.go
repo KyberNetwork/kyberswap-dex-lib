@@ -692,10 +692,26 @@ func carryLife(scopes uint8) bool {
 	return (scopes>>3)&1 == 1 && (scopes>>1)&3 != fenceNone
 }
 
+// lastSecond is the whole second a state valid to unix millisecond ms is valid to (Extra.ValidUntil), as a reader of
+// the state that predates ValidUntilMs takes it: valid while the second it reads the time in is at most it. On
+// Ethereum ms falls on a whole second (a block's beacon second less a whole-second allowance), and it is that second,
+// as before ValidUntilMs. On a chain whose blocks fall within seconds (BNB Chain) it is the last second wholly at or
+// before ms, so no moment of it is past ms: a state valid to the middle of a second is valid in whole seconds to the
+// second before.
+func (clk builderClock) lastSecond(ms uint64) uint64 {
+	if clk.beacon {
+		return ms / 1000
+	}
+	if ms < 999 {
+		return 0
+	}
+	return (ms+1)/1000 - 1
+}
+
 // builderWindow is the window of a listing read through /state, whose state is good for the answer's target block
 // alone (the pinned sample s, which ran there, at targetMs): each direction is valid to that block's time, ms, and in
 // whole seconds to that time less the inclusion allowance (allowanceMs), the last second a route finding quotes it may
-// be built and still reach the block's builder. On a chain with no beacon slot (BNB Chain) the target block's time is
+// be built and still reach the block's builder (lastSecond). On a chain with no beacon slot (BNB Chain) the target block's time is
 // the head's plus one block, and a block may come late: the same block is sampled a second later too (o's second plus
 // one), each size keeping its lower output, so a word whose life ends there is not quoted. Where the listing and the
 // word both carry (carries), a fill may still read the word in the next block under the same slots: that block is
@@ -709,7 +725,7 @@ func builderWindow(v DoorView, s pinned, o override, clk builderClock, allowance
 	carried bool) (w window) {
 	end := uint64(0)
 	if targetMs > allowanceMs {
-		end = (targetMs - allowanceMs) / 1000
+		end = clk.lastSecond(targetMs - allowanceMs)
 	}
 	var at, keep []override
 	if end != 0 && !clk.beacon {
@@ -731,7 +747,7 @@ func builderWindow(v DoorView, s pinned, o override, clk builderClock, allowance
 			w.cap[dir], w.capMs[dir] = end, targetMs
 		}
 		if carry {
-			w.end[dir], w.endMs[dir] = (nextMs-allowanceMs)/1000, nextMs
+			w.end[dir], w.endMs[dir] = clk.lastSecond(nextMs-allowanceMs), nextMs
 		}
 	}
 	w.guarded = s.guarded

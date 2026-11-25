@@ -54,7 +54,8 @@ type Config struct {
 	// InclusionAllowanceMs is the same on a builder chain in milliseconds, which it takes in place of
 	// InclusionAllowance: how long before a state's target block a route quoted from it must reach the block's
 	// builder. Zero: InclusionAllowance where that is set, else the chain's (1,000 on Ethereum, 100 on BNB Chain). It
-	// must be under the chain's block time, or no state is ever quoted; set on any other chain, it is refused.
+	// must be under the chain's block time, or no state is ever quoted, and at least the chain's least (1,000 on
+	// Ethereum, 50 on BNB Chain); set on any other chain, it is refused.
 	InclusionAllowanceMs uint64 `json:"inclusionAllowanceMs,omitempty"`
 }
 
@@ -101,6 +102,11 @@ type Front struct {
 	// refresh samples the door under the overrides and the target block of that answer. Required on a builder chain,
 	// refused on any other.
 	Titan *titan.Config `json:"titan,omitempty"`
+	// BundleOnly states that every route through this front's listings goes to the chain's builder as a bundle. On BNB
+	// Chain the builder (48 Club) places a desk's update ahead of the bundles sent to it alone, so a fill sent to the
+	// public mempool lands with no update and reverts (NoWord) at the taker's gas: a front there is listed but quoted
+	// only where this is set. Off by default; refused on a chain whose fills need no bundle.
+	BundleOnly bool `json:"bundleOnly,omitempty"`
 	// CreditListings are the listings with a credit mode this front's listings quote, each with its fills' gas. A
 	// listing with a credit mode fills inside its pool's custody where that fills it whole, and through its pool's own
 	// swap past it (its credit route, which may borrow), so its fill's output and gas depend on the size. Its ladder
@@ -265,6 +271,9 @@ func (c *Config) validate() error {
 		if a := c.builderAllowanceMs(); a >= clk.blockMs {
 			return fmt.Errorf("%w: an inclusion allowance of %d ms is not under chain %d's %d ms block: no state "+
 				"would ever be quoted", ErrInvalidConfig, a, c.ChainID, clk.blockMs)
+		} else if a < clk.minAllowanceMs {
+			return fmt.Errorf("%w: an inclusion allowance of %d ms is under chain %d's least, %d ms",
+				ErrInvalidConfig, a, c.ChainID, clk.minAllowanceMs)
 		}
 	} else if c.InclusionAllowanceMs != 0 {
 		return fmt.Errorf("%w: inclusionAllowanceMs on chain %d, which is read at the head: inclusionAllowance "+
@@ -407,6 +416,11 @@ func (c *Config) validateBuilder(i int) error {
 			}
 		}
 	}
+	clk := c.clock()
+	if f.BundleOnly && !clk.bundleOnly {
+		return fmt.Errorf("%w: fronts[%d].bundleOnly on chain %d, whose fills need no bundle", ErrInvalidConfig, i,
+			c.ChainID)
+	}
 	if !builderChains[c.ChainID] {
 		if f.Titan != nil {
 			return fmt.Errorf("%w: fronts[%d].titan on chain %d, which no builder orders", ErrInvalidConfig, i,
@@ -417,9 +431,9 @@ func (c *Config) validateBuilder(i int) error {
 	if f.Titan == nil || len(f.Titan.URLs) == 0 {
 		return fmt.Errorf("%w: fronts[%d].titan.urls is empty on chain %d", ErrInvalidConfig, i, c.ChainID)
 	}
-	if f.Titan.Timeout < 0 || f.Titan.Timeout > maxStateTimeout {
-		return fmt.Errorf("%w: fronts[%d].titan.timeout=%s, want 0 (%s) or at most %s", ErrInvalidConfig, i,
-			f.Titan.Timeout, defaultStateTimeout, maxStateTimeout)
+	if f.Titan.Timeout < 0 || f.Titan.Timeout > clk.maxTimeout {
+		return fmt.Errorf("%w: fronts[%d].titan.timeout=%s, want 0 (%s) or at most %s on chain %d", ErrInvalidConfig,
+			i, f.Titan.Timeout, clk.timeout, clk.maxTimeout, c.ChainID)
 	}
 	for k, u := range f.Titan.URLs {
 		if strings.TrimSpace(u) == "" {

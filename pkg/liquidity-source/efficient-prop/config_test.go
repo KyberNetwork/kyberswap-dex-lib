@@ -222,8 +222,9 @@ func TestConfigStateTimeout(t *testing.T) {
 
 // On the /state read a quote is good for its target block, and route finding stops the inclusion allowance before the
 // block's time: 1,000 ms by default on Ethereum and 100 ms on BNB Chain, a configured allowance standing (in seconds
-// or in milliseconds, not both). An allowance of a whole block or more would quote no state, and is refused; the
-// millisecond allowance is refused on a chain read at the head.
+// or in milliseconds, not both). An allowance of a whole block or more would quote no state, and is refused, as is
+// one under the chain's least (Ethereum's whole second, as before the allowance took milliseconds; 50 ms on BNB
+// Chain); the millisecond allowance is refused on a chain read at the head.
 func TestConfigBuilderInclusionAllowance(t *testing.T) {
 	for _, c := range []struct {
 		chain     valueobject.ChainID
@@ -236,17 +237,24 @@ func TestConfigBuilderInclusionAllowance(t *testing.T) {
 		{chain: valueobject.ChainIDEthereum, want: 1_000, titleNote: "Ethereum's default"},
 		{chain: valueobject.ChainIDEthereum, seconds: 2, want: 2_000, titleNote: "seconds on Ethereum"},
 		{chain: valueobject.ChainIDEthereum, ms: 1_500, want: 1_500, titleNote: "ms on Ethereum"},
+		{chain: valueobject.ChainIDEthereum, ms: 1_000, want: 1_000, titleNote: "Ethereum's least"},
+		{chain: valueobject.ChainIDEthereum, ms: 999, refused: true, titleNote: "under Ethereum's second"},
 		{chain: valueobject.ChainIDEthereum, seconds: 12, refused: true, titleNote: "a whole slot"},
 		{chain: valueobject.ChainIDEthereum, seconds: 1, ms: 1_000, refused: true, titleNote: "both set"},
 		{chain: valueobject.ChainIDBSC, want: 100, titleNote: "BNB Chain's default"},
 		{chain: valueobject.ChainIDBSC, ms: 200, want: 200, titleNote: "ms on BNB Chain"},
+		{chain: valueobject.ChainIDBSC, ms: 50, want: 50, titleNote: "BNB Chain's least"},
+		{chain: valueobject.ChainIDBSC, ms: 49, refused: true, titleNote: "under BNB Chain's least"},
 		{chain: valueobject.ChainIDBSC, ms: 450, refused: true, titleNote: "a whole BNB block"},
 		{chain: valueobject.ChainIDBSC, seconds: 1, refused: true, titleNote: "a second on BNB Chain"},
 		{chain: valueobject.ChainIDBase, ms: 100, refused: true, titleNote: "ms on Base"},
 	} {
 		f := ethFront("https://state.example/v1/1/state")
-		if c.chain == valueobject.ChainIDBase {
+		switch c.chain {
+		case valueobject.ChainIDBase:
 			f = testConfig().Fronts[0]
+		case valueobject.ChainIDBSC:
+			f = bnbFront("https://state.example/v1/56/state")
 		}
 		cfg := Config{ChainID: c.chain, InclusionAllowance: c.seconds, InclusionAllowanceMs: c.ms, Fronts: []Front{f}}
 		if c.refused {
@@ -306,13 +314,42 @@ func TestConfigLayoutAndCellCodehashByChain(t *testing.T) {
 	}
 }
 
+// bnbFront is ethFront on BNB Chain: its /state read's timeout its chain's default, and bundleOnly set.
+func bnbFront(urls ...string) Front {
+	f := ethFront(urls...)
+	f.Titan.Timeout, f.BundleOnly = 0, true
+	return f
+}
+
 // BNB Chain's front is a builder build, read through /state as Ethereum's is: a front there names its layout, its desk
 // code hash and its /state urls, and one read at the head (none of them) is refused. Its chain's tip floor is 0.1
 // gwei, and its /state read runs on its 450 ms blocks: one fetch shared for 100 ms, a 100 ms merge window and a
-// 400 ms timeout where the config sets none.
+// 400 ms timeout where the config sets none, and no configured timeout past one block. bundleOnly is BNB Chain's
+// alone: off, the config loads and its listings are idle (TestBNBQuotesOnlyAFrontWhoseRoutesAreBundles); set on any
+// other chain, it is refused.
 func TestConfigOnBNBChain(t *testing.T) {
-	cfg := Config{ChainID: valueobject.ChainIDBSC, Fronts: []Front{ethFront("https://state.example/v1/56/state")}}
+	cfg := Config{ChainID: valueobject.ChainIDBSC, Fronts: []Front{bnbFront("https://state.example/v1/56/state")}}
 	require.NoError(t, cfg.validate())
+	assert.True(t, cfg.clock().bundleOnly)
+	for timeout, ok := range map[time.Duration]bool{450 * time.Millisecond: true, 451 * time.Millisecond: false,
+		2 * time.Second: false} {
+		c := Config{ChainID: valueobject.ChainIDBSC, Fronts: []Front{bnbFront("https://state.example/v1/56/state")}}
+		c.Fronts[0].Titan.Timeout = timeout
+		if ok {
+			assert.NoError(t, c.validate(), "%s", timeout)
+		} else {
+			assert.ErrorIs(t, c.validate(), ErrInvalidConfig, "%s", timeout)
+		}
+	}
+	off := Config{ChainID: valueobject.ChainIDBSC, Fronts: []Front{bnbFront("https://state.example/v1/56/state")}}
+	off.Fronts[0].BundleOnly = false
+	assert.NoError(t, off.validate(), "bundleOnly off loads")
+	ethBundle := Config{ChainID: valueobject.ChainIDEthereum, Fronts: []Front{ethFront("https://s.example/v1/1/state")}}
+	ethBundle.Fronts[0].BundleOnly = true
+	assert.ErrorIs(t, ethBundle.validate(), ErrInvalidConfig, "bundleOnly on Ethereum")
+	baseBundle := testConfig()
+	baseBundle.Fronts[0].BundleOnly = true
+	assert.ErrorIs(t, baseBundle.validate(), ErrInvalidConfig, "bundleOnly on Base")
 	assert.True(t, cfg.builder())
 	assert.True(t, cfg.Fronts[0].builder())
 	assert.False(t, cfg.clock().beacon)

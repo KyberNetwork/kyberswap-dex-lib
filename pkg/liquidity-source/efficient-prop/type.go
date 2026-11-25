@@ -39,7 +39,8 @@ type Extra struct {
 	// sampled over, never after the last second in which a fill certainly finds the sampled word standing and the
 	// sampled sides' depth unexpired (validUntil); zero where the listing had no ladder. On a front read through /state
 	// (Builder) it is the last second a route quoted from the state may be built: its target block's time, or the next
-	// block's where it carries, less the inclusion allowance, in whole seconds rounded down.
+	// block's where it carries, less the inclusion allowance, in whole seconds (lastSecond): on Ethereum that time's
+	// second, on BNB Chain the last second wholly before it.
 	ValidUntil uint64 `json:"validUntil,omitempty"`
 	// Allowance is the time a routed fill takes to land, s (Config.InclusionAllowance): route finding quotes a fill
 	// only where it lands by ValidUntil.
@@ -47,8 +48,8 @@ type Extra struct {
 	// ValidUntilMs and AllowanceMs are, on a front read through /state (Builder), the end of the state's validity and
 	// the inclusion allowance in milliseconds: the state is good until ValidUntilMs, its target block's time (or the
 	// next block's where it carries), and route finding quotes a fill only where now plus AllowanceMs is not past it.
-	// ValidUntil stays beside them in whole seconds, rounded down (ValidUntilMs less AllowanceMs, in seconds), for a
-	// reader of the state that predates them; on a front read at the head both are zero.
+	// ValidUntil stays beside them in whole seconds (ValidUntilMs less AllowanceMs, lastSecond), for a reader of the
+	// state that predates them; on a front read at the head both are zero.
 	ValidUntilMs uint64 `json:"validUntilMs,omitempty"`
 	AllowanceMs  uint64 `json:"allowanceMs,omitempty"`
 	// Idle is whether the listing is not quoted for a reason no new block lifts (its desk not approved, its fill mode,

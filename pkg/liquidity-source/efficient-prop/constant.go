@@ -190,14 +190,14 @@ type builderClock struct {
 	// of the head's second) plus one block, and the block may be late, so the second after it is sampled too
 	beacon bool
 	// allowanceMs is the default inclusion allowance (Config.InclusionAllowanceMs): how long before its target block
-	// a route quoted from a state must reach the block's builder
-	allowanceMs uint64
+	// a route quoted from a state must reach the block's builder; minAllowanceMs the least one configured
+	allowanceMs, minAllowanceMs uint64
 	// shareWindow is how long one /state fetch and one head probe serve the refreshes of a front's listings
 	// (stateShareWindow on Ethereum), mergeWindow how long a fetch waits for the other urls after the first answer that
 	// holds an account (titan.DefaultMergeWindow on Ethereum), and timeout the fetch's default timeout
-	// (defaultStateTimeout on Ethereum): on BNB Chain each is a fraction of its 450 ms block, past which a state is
-	// for a block already built
-	shareWindow, mergeWindow, timeout time.Duration
+	// (defaultStateTimeout on Ethereum), maxTimeout the longest one configured: on BNB Chain each is a fraction of its
+	// 450 ms block, past which a state is for a block already built
+	shareWindow, mergeWindow, timeout, maxTimeout time.Duration
 	// classGas: the chain's builder build was measured, so a listing of a measured class is charged its class's
 	// figure (gasOfBuilder). Elsewhere a listing is quoted only with figures of its own (Front.ListingGas,
 	// Front.CreditListings)
@@ -207,20 +207,30 @@ type builderClock struct {
 	// second (its seal time); once it answers, the clock reads the block's own milliseconds, which no block override
 	// sets, so nothing is quoted
 	msPrecompile bool
+	// bundleOnly: the chain's builder places a desk's update ahead of the bundles sent to it alone, so a fill sent any
+	// other way lands with no update and reverts (NoWord) at the taker's gas. A front there is quoted only where its
+	// config states that every route through it goes to the builder as a bundle (Front.BundleOnly)
+	bundleOnly bool
 }
 
 // msPrecompile is BNB Chain's millisecond timestamp precompile (BEP-706), which a mode-3 front clock reads.
 var msPrecompile = common.HexToAddress("0x0000000000000000000000000000000000000070")
 
 // builderClocks are the builder chains' clocks. Ethereum: 12 s slots, each block at its beacon slot's second, a 1 s
-// allowance. BNB Chain: 450 ms blocks (450.4 ms on average over the 30,000 blocks to 135,693,393, 25 Nov 2026), each
-// header's milliseconds in its milliTimestamp, and an allowance of 100 ms, the time before a block's end by which its
-// builder (48 Club) takes the bundles it places a desk's update ahead of.
+// allowance and no shorter one (a whole second, as before the allowance took milliseconds). BNB Chain: 450 ms blocks
+// (450.4 ms on average over the 30,000 blocks to 135,693,393, 25 Nov 2026), each header's milliseconds in its
+// milliTimestamp, fills only through its builder's bundles (48 Club), an allowance of 100 ms and none under 50, and a
+// /state timeout of at most one block. The 100 ms is not measured: how long before a block the builder must hold a
+// route's bundle to place the desk's update ahead of it is unknown; the builder's stated 100 ms is its cut-off for a
+// desk's update, not for a bundle. Where the /state answer comes later than that, the window is empty and nothing is
+// quoted (the tracker logs it, warnEmptyWindow).
 var builderClocks = map[valueobject.ChainID]builderClock{
-	valueobject.ChainIDEthereum: {blockMs: 12_000, beacon: true, allowanceMs: 1_000, shareWindow: stateShareWindow,
-		mergeWindow: titan.DefaultMergeWindow, timeout: defaultStateTimeout, classGas: true},
-	valueobject.ChainIDBSC: {blockMs: 450, allowanceMs: 100, shareWindow: 100 * time.Millisecond,
-		mergeWindow: 100 * time.Millisecond, timeout: 400 * time.Millisecond, msPrecompile: true},
+	valueobject.ChainIDEthereum: {blockMs: 12_000, beacon: true, allowanceMs: 1_000, minAllowanceMs: 1_000,
+		shareWindow: stateShareWindow, mergeWindow: titan.DefaultMergeWindow, timeout: defaultStateTimeout,
+		maxTimeout: maxStateTimeout, classGas: true},
+	valueobject.ChainIDBSC: {blockMs: 450, allowanceMs: 100, minAllowanceMs: 50, shareWindow: 100 * time.Millisecond,
+		mergeWindow: 100 * time.Millisecond, timeout: 400 * time.Millisecond, maxTimeout: 450 * time.Millisecond,
+		msPrecompile: true, bundleOnly: true},
 }
 
 var (

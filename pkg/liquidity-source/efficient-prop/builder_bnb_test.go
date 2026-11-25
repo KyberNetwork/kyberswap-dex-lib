@@ -1,6 +1,7 @@
 package efficientprop
 
 import (
+	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -50,11 +51,17 @@ func bnbNode(t *testing.T, chain *fakeChain, block, headMs uint64, ms bool, answ
 }
 
 // bnbConfig is the test front on BNB Chain, read through the /state server at url, its test listings 1 and 4 with gas
-// of their own.
+// of their own, its routes stated to go to the builder as bundles (bundleOnly) and its /state timeout the chain's.
 func bnbConfig(url string) *Config {
 	cfg := ethConfig(url)
 	cfg.ChainID = valueobject.ChainIDBSC
+	cfg.Fronts[0].BundleOnly, cfg.Fronts[0].Titan.Timeout = true, 0
 	return cfg
+}
+
+// bnbSecond is BNB Chain's lastSecond: the last whole second wholly at or before unix millisecond ms.
+func bnbSecond(ms uint64) uint64 {
+	return builderClocks[valueobject.ChainIDBSC].lastSecond(ms)
 }
 
 // msCalls is how many calls the node answered to the millisecond precompile.
@@ -91,7 +98,8 @@ func TestBNBSamplesTheTargetBlockAtTheHeadsMillisecondsPlusOneBlock(t *testing.T
 	assert.Equal(t, int64(now+1), got.Timestamp, "the target block's second")
 	assert.Equal(t, targetMs, e.ValidUntilMs, "the target block's time, ms")
 	assert.Equal(t, uint64(100), e.AllowanceMs, "BNB Chain's allowance")
-	assert.Equal(t, (targetMs-100)/1000, e.ValidUntil)
+	assert.Equal(t, now, e.ValidUntil, "the last second wholly before the end, now+1.050")
+	assert.Equal(t, bnbSecond(targetMs-100), e.ValidUntil)
 	assert.Equal(t, uint64(100_000_000), e.TipCapWei)
 	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: got, Opts: pool.FactoryOpts{StaleCheck: true}})
 	require.NoError(t, err)
@@ -133,7 +141,7 @@ func TestBNBHeadWithoutMillisecondsStartsAtItsSecond(t *testing.T) {
 	e := extraOf(t, ethTrack(t, n, cfg, ethListed(t, n, cfg)))
 	require.NotEmpty(t, e.Ladders[0])
 	assert.Equal(t, now*1000+450, e.ValidUntilMs)
-	assert.Equal(t, now, e.ValidUntil)
+	assert.Equal(t, now-1, e.ValidUntil, "the end, now.350, is inside second now")
 }
 
 // An answer is for the head's next block alone, and its slot, where it names one, is that block's number: an answer
@@ -202,8 +210,12 @@ func TestBNBQuotesThePrecompileModeOnlyWhileItAnswersNothing(t *testing.T) {
 	st := newStateServer(t)
 	st.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
 	cfg := ethConfig(st.URL)
-	require.NotEmpty(t, extraOf(t, ethTrack(t, n, cfg, ethListed(t, n, cfg))).Ladders[0])
+	p := ethListed(t, n, cfg)
+	require.NotEmpty(t, extraOf(t, ethTrack(t, n, cfg, p)).Ladders[0])
 	assert.Zero(t, msCalls(n), "Ethereum's reads never call the precompile")
+	// a front in the precompile's mode on a chain that has none is not quoted: nothing reads what its clock reads
+	chain.clockMode = clockPrecompile
+	unserved(t, ethTrack(t, n, cfg, p), "the precompile's mode on Ethereum")
 }
 
 // Where the listing and the word both carry, a fill may still read the word in the block after the target, one block
@@ -224,7 +236,8 @@ func TestBNBSamplesTheCarriedBlockOneBlockLater(t *testing.T) {
 	e := extraOf(t, ethTrack(t, n, cfg, p))
 	require.NotEmpty(t, e.Ladders[0])
 	assert.Equal(t, nextMs, e.ValidUntilMs, "valid to the carried block's time")
-	assert.Equal(t, (nextMs-100)/1000, e.ValidUntil)
+	assert.Equal(t, bnbSecond(nextMs-100), e.ValidUntil)
+	assert.Equal(t, now, e.ValidUntil, "the end, now+1.100, is inside second now+1")
 	var carried int
 	for _, q := range quotesAfter(n, before) {
 		if q.number == 1236 {
@@ -240,7 +253,7 @@ func TestBNBSamplesTheCarriedBlockOneBlockLater(t *testing.T) {
 	e = extraOf(t, ethTrack(t, n, cfg, p))
 	require.NotEmpty(t, e.Ladders[0])
 	assert.Equal(t, targetMs, e.ValidUntilMs, "the target block alone")
-	assert.Equal(t, (targetMs-100)/1000, e.ValidUntil)
+	assert.Equal(t, bnbSecond(targetMs-100), e.ValidUntil)
 }
 
 // BNB Chain's builder build was not measured for a class figure: a listing is quoted there only with gas of its own
@@ -308,4 +321,193 @@ func TestBNBAsksForAStateThatIsNotIdleAtOnce(t *testing.T) {
 	require.True(t, extraOf(t, idle).Idle)
 	assert.Equal(t, int64(now)+int64(idleRefreshEvery/time.Second), ethTracker(t, n, cfg, at).NextUpdateAt(idle),
 		"an idle state")
+}
+
+// A BNB Chain front's routes go to its builder as bundles or not at all: its listings are quoted only where the
+// front's config says so (bundleOnly), and are idle where it does not.
+func TestBNBQuotesOnlyAFrontWhoseRoutesAreBundles(t *testing.T) {
+	chain := bnbChain()
+	now := uint64(time.Now().Unix())
+	n := bnbNode(t, chain, 1234, now*1000+100, true, nil)
+	st := newStateServer(t)
+	st.set(1235, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := bnbConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	require.NotEmpty(t, extraOf(t, ethTrack(t, n, cfg, p)).Ladders[0], "bundleOnly set")
+	cfg.Fronts[0].BundleOnly = false
+	got := ethTrack(t, n, cfg, p)
+	unserved(t, got, "bundleOnly off")
+	assert.True(t, extraOf(t, got).Idle)
+}
+
+// bnbPrintChain is printChain on BNB Chain: listing 1 PRINT on its pool's hook pair, bound to two price contracts, a
+// class Ethereum's build has a figure for in either fill mode.
+func bnbPrintChain() *fakeChain {
+	chain := printChain(false, false)
+	chain.clockMode, chain.ageSlackMs = clockPrecompile, 999
+	for _, l := range chain.listings {
+		l.view.TipCap = 0x8001
+	}
+	return chain
+}
+
+// No class figure stands on BNB Chain, not even one Ethereum's build has: a PRINT listing on its pool's hook pair,
+// quoted on Ethereum at its class's figure, is idle on BNB Chain until listingGas names it.
+func TestBNBChargesNoEthereumClassFigure(t *testing.T) {
+	entry := func(number uint64) map[string]stateEntry {
+		return map[string]stateEntry{"a": {testCellA: cellSlots(number, false, 0),
+			create3Child(testFront, printIDs[0]): printSlots}}
+	}
+	eth := printChain(false, false)
+	en := builderNode(t, eth, 1234)
+	est := newStateServer(t)
+	est.setEntries(slotAfter(en.time), 1235, entry(1235))
+	ecfg := printConfig(est.URL)
+	ecfg.Fronts[0].ListingGas = nil
+	ee := extraOf(t, ethTrack(t, en, ecfg, ethListed(t, en, ecfg)))
+	require.NotEmpty(t, ee.Ladders[0], "Ethereum quotes the class at its figure")
+	assert.Nil(t, ee.Gas)
+
+	chain := bnbPrintChain()
+	now := uint64(time.Now().Unix())
+	n := bnbNode(t, chain, 1234, now*1000+100, true, nil)
+	st := newStateServer(t)
+	st.setEntries(1235, 1235, entry(1235))
+	cfg := printConfig(st.URL)
+	cfg.ChainID, cfg.Fronts[0].BundleOnly, cfg.Fronts[0].Titan.Timeout = valueobject.ChainIDBSC, true, 0
+	p := ethListed(t, n, cfg)
+	require.NotEmpty(t, extraOf(t, ethTrack(t, n, cfg, p)).Ladders[0], "BNB Chain with the listing's own gas")
+	cfg.Fronts[0].ListingGas = nil
+	got := ethTrack(t, n, cfg, p)
+	unserved(t, got, "BNB Chain with no gas of its own")
+	assert.True(t, extraOf(t, got).Idle)
+}
+
+// A tip cap of 0 is no cap on a builder build, so a BNB Chain listing with none is quoted, and while it waits for its
+// next block's update it is not idle: it is asked for again at once (the rule that idles a cap of 0 is the storage
+// build's, where such a listing fills nothing).
+func TestBNBCapZeroIsNoCap(t *testing.T) {
+	chain := bnbChain()
+	chain.listings[1].view.TipCap = 0
+	now := uint64(time.Now().Unix())
+	n := bnbNode(t, chain, 1234, now*1000+100, true, nil)
+	st := newStateServer(t)
+	st.set(1235, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := bnbConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	e := extraOf(t, ethTrack(t, n, cfg, p))
+	require.NotEmpty(t, e.Ladders[0], "a cap of 0 quoted")
+	assert.Zero(t, e.TipCapWei)
+
+	st.set(1235, 1235, nil)
+	waiting := ethTrack(t, n, cfg, p)
+	e = extraOf(t, waiting)
+	require.Empty(t, e.Ladders[0], "no update for the head's next block")
+	assert.False(t, e.Idle, "waiting for its update, not idle")
+	assert.Equal(t, int64(now), ethTracker(t, n, cfg, time.Unix(int64(now), 0)).NextUpdateAt(waiting))
+}
+
+// BNB Chain's /state fetch waits 100 ms for the other urls once one answer holds an account, where Ethereum's waits
+// titan's 300 ms: a url answering 250 ms in is left out on BNB Chain and kept on Ethereum.
+func TestBNBStateFetchMergeWindow(t *testing.T) {
+	fast, slow := newStateServer(t), newStateServer(t)
+	fast.set(1235, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	slow.set(1235, 1235, map[common.Address]*big.Int{testCellB: deskSlot0(1235, false)})
+	slow.delay = 250 * time.Millisecond
+	chain := bnbChain()
+	n := bnbNode(t, chain, 1234, uint64(time.Now().UnixMilli()), true, nil)
+	for _, c := range []struct {
+		name string
+		cfg  *Config
+		held int
+	}{{"BNB Chain: 100 ms", bnbConfig(fast.URL), 1}, {"Ethereum: 300 ms", ethConfig(fast.URL), 2}} {
+		c.cfg.Fronts[0].Titan.URLs = []string{fast.URL, slow.URL}
+		answers := ethTracker(t, n, c.cfg, time.Now()).stateAnswers(context.Background(), &c.cfg.Fronts[0])
+		assert.Len(t, answers, c.held, c.name)
+	}
+}
+
+// BNB Chain's /state fetch times out at 400 ms where the config sets none, Ethereum's at 1 s: a url answering 600 ms
+// in is not waited for on BNB Chain.
+func TestBNBStateFetchTimeout(t *testing.T) {
+	slow := newStateServer(t)
+	slow.set(1235, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	slow.delay = 600 * time.Millisecond
+	chain := bnbChain()
+	n := bnbNode(t, chain, 1234, uint64(time.Now().UnixMilli()), true, nil)
+	eth := ethConfig(slow.URL)
+	eth.Fronts[0].Titan.Timeout = 0
+	for _, c := range []struct {
+		name string
+		cfg  *Config
+		held int
+	}{{"BNB Chain: 400 ms", bnbConfig(slow.URL), 0}, {"Ethereum: 1 s", eth, 1}} {
+		answers := ethTracker(t, n, c.cfg, time.Now()).stateAnswers(context.Background(), &c.cfg.Fronts[0])
+		assert.Len(t, answers, c.held, c.name)
+	}
+}
+
+// The second after the target block's is sampled for a block that comes late, and unlike the carried block it keeps
+// nothing standing: where that second refuses every size, the state quotes nothing, though the target block and the
+// carried one (both in the target's second) fill.
+func TestBNBLateSecondRefusingEverySizeQuotesNothing(t *testing.T) {
+	chain := bnbChain()
+	l := chain.listings[1]
+	l.view.Scopes = 2 | 8
+	now := uint64(time.Now().Unix())
+	headMs := now*1000 + 50 // the target block at now.500, the carried one at now.950
+	n := bnbNode(t, chain, 1234, headMs, true, nil)
+	st := newStateServer(t)
+	st.set(1235, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, true)})
+	cfg := bnbConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	e := extraOf(t, ethTrack(t, n, cfg, p))
+	require.NotEmpty(t, e.Ladders[0])
+	assert.Equal(t, headMs+900, e.ValidUntilMs, "valid to the carried block")
+
+	l.gapFromMs, l.gapToMs = (now+1)*1000, (now+3)*1000
+	unserved(t, ethTrack(t, n, cfg, p), "the late second refuses every size")
+}
+
+// The head's milliseconds are read only where they fall in the head's own second: a node that answers others has its
+// head taken at the start of its second.
+func TestBNBHeadMillisecondsOutsideItsSecondAreNotRead(t *testing.T) {
+	chain := bnbChain()
+	now := uint64(time.Now().Unix())
+	n := bnbNode(t, chain, 1234, now*1000, false, nil)
+	n.ms = (now+1)*1000 + 200
+	st := newStateServer(t)
+	st.set(1235, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := bnbConfig(st.URL)
+	e := extraOf(t, ethTrack(t, n, cfg, ethListed(t, n, cfg)))
+	require.NotEmpty(t, e.Ladders[0])
+	assert.Equal(t, now*1000+450, e.ValidUntilMs)
+}
+
+// A state read after its window is over (the /state answer came too late for the allowance) is logged, once a minute
+// at most a front; one read in time is not.
+func TestBNBLogsAStateWhoseWindowIsOver(t *testing.T) {
+	chain := bnbChain()
+	now := uint64(time.Now().Unix())
+	n := bnbNode(t, chain, 1234, now*1000+100, true, nil) // the target block at now.550
+	st := newStateServer(t)
+	st.set(1235, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := bnbConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	for _, c := range []struct {
+		name   string
+		atMs   uint64
+		overMs []uint64
+	}{{"in time", now*1000 + 300, nil}, {"over by 150 ms", now*1000 + 600, []uint64{150}}} {
+		tr := ethTracker(t, n, cfg, time.UnixMilli(int64(c.atMs)))
+		var got []uint64
+		tr.windowWarn = func(_ string, overMs uint64) { got = append(got, overMs) }
+		_, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		assert.Equal(t, c.overMs, got, c.name)
+		tr.warnEmptyWindow(cfg.Fronts[0].Address, 1)
+		if c.overMs != nil {
+			assert.Len(t, got, 1, "%s: once a minute at most", c.name)
+		}
+	}
 }

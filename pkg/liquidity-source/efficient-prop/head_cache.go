@@ -68,12 +68,12 @@ func (t *PoolTracker) headProbe(ctx context.Context, f *Front) (id headID, ok bo
 }
 
 // readHead0 reads the chain's latest block's number and hash from the node, and its milliseconds where it gives them
-// in its second (milliTimestamp, beside timestamp).
+// (milliTimestamp). They are taken only where they fall in the head's own second, which readBuilderHead checks
+// against the second the head read answers.
 func (t *PoolTracker) readHead0(ctx context.Context) (id headID, ok bool) {
 	var res struct {
 		Number *hexutil.Big    `json:"number"`
 		Hash   common.Hash     `json:"hash"`
-		Time   *hexutil.Uint64 `json:"timestamp"`
 		Ms     *hexutil.Uint64 `json:"milliTimestamp"`
 	}
 	if err := t.ethrpcClient.GetETHClient().Client().CallContext(ctx, &res, "eth_getBlockByNumber", "latest",
@@ -81,7 +81,7 @@ func (t *PoolTracker) readHead0(ctx context.Context) (id headID, ok bool) {
 		return id, false
 	}
 	id = headID{number: res.Number.ToInt(), hash: res.Hash}
-	if res.Ms != nil && res.Time != nil && uint64(*res.Ms)/1000 == uint64(*res.Time) {
+	if res.Ms != nil {
 		id.ms = uint64(*res.Ms)
 	}
 	return id, true

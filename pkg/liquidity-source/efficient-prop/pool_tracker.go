@@ -35,10 +35,12 @@ type PoolTracker struct {
 	titan map[string][]stateClient
 	// now is the wall clock the schedule of a front read through /state runs on, and its failed urls' log
 	now func() time.Time
-	// warn logs a /state url's failure (stateFailed), warned when each url's was last logged
-	warn   func(url string, err error)
-	warnMu sync.Mutex
-	warned map[string]time.Time
+	// warn logs a /state url's failure (stateFailed), warned when each url's was last logged; windowWarn logs a
+	// front's state whose window was already over when read (warnEmptyWindow), under the same lock
+	warn       func(url string, err error)
+	windowWarn func(front string, overMs uint64)
+	warnMu     sync.Mutex
+	warned     map[string]time.Time
 	// hashes are the code hashes the fronts and their door factories answer, read once
 	hashes *codeHashes
 	// desks is the maker gate: the desk contracts whose listings are quoted
@@ -85,6 +87,10 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 			logger.WithFields(logger.Fields{"dexId": cfg.dexID(), "url": url, "error": err.Error()}).
 				Warn("efficient-prop: /state url failed")
 		}
+	}
+	t.windowWarn = func(front string, overMs uint64) {
+		logger.WithFields(logger.Fields{"dexId": cfg.dexID(), "front": front, "overMs": overMs}).
+			Warn("efficient-prop: a /state answer came after its quotable window: nothing quoted from it")
 	}
 	for _, f := range cfg.Fronts {
 		if !f.builder() {
@@ -153,6 +159,29 @@ func (t *PoolTracker) stateFailed(url string, err error) {
 	t.warnMu.Unlock()
 	if due && t.warn != nil {
 		t.warn(url, shownError(err))
+	}
+}
+
+// warnEmptyWindow logs, once every stateWarnEvery at most per front, a state of front read through /state whose
+// window was over when it was read, by overMs: its target block was too close for a route to reach the builder the
+// allowance ahead of it, so route finding quotes nothing from it. On a chain whose blocks are under a second apart,
+// a window that is always over means the /state answers come too late for the allowance, and the chain is never
+// quoted.
+func (t *PoolTracker) warnEmptyWindow(front string, overMs uint64) {
+	now := t.now()
+	key := "window " + front
+	t.warnMu.Lock()
+	last, seen := t.warned[key]
+	due := !seen || now.Sub(last) >= stateWarnEvery
+	if due {
+		if t.warned == nil {
+			t.warned = map[string]time.Time{}
+		}
+		t.warned[key] = now
+	}
+	t.warnMu.Unlock()
+	if due && t.windowWarn != nil {
+		t.windowWarn(front, overMs)
 	}
 }
 
@@ -368,6 +397,11 @@ func (t *PoolTracker) GetNewPoolState(
 				quoted, extra.Idle = false, true
 			}
 		}
+		// a chain whose builder places a desk's update ahead of its bundles alone: quoted only where the front's
+		// config states every route goes to it as a bundle
+		if clk.bundleOnly && (f == nil || !f.BundleOnly) {
+			quoted, extra.Idle = false, true
+		}
 	}
 	door := common.HexToAddress(p.Address)
 	front := common.HexToAddress(staticExtra.Front)
@@ -515,6 +549,13 @@ func (t *PoolTracker) GetNewPoolState(
 					extra.ValidUntilMs = untilMs
 				}
 			}
+		}
+	}
+
+	// on a chain whose blocks are under a second apart, a state whose window is over as it is read is logged
+	if builder && extra.ValidUntilMs != 0 && t.cfg.clock().blockMs < 1000 {
+		if nowMs := uint64(t.now().UnixMilli()); nowMs+extra.AllowanceMs > extra.ValidUntilMs {
+			t.warnEmptyWindow(staticExtra.Front, nowMs+extra.AllowanceMs-extra.ValidUntilMs)
 		}
 	}
 
