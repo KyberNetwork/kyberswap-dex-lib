@@ -80,7 +80,28 @@ type Extra struct {
 	// and zero): a fill with that token in writes the pool's balance of it from zero, and is charged gasFirstOfInput
 	// more. Reserves does not say it: a side with no ladder zeroes its output's reserve.
 	NoneHeld uint8 `json:"noneHeld,omitempty"`
+	// Repeat, where set, lets a direction take more than one fill a route (Repeat). Nil on a listing with a credit
+	// mode, on a front whose implementation its config does not list, and where no direction's ladder allows it.
+	Repeat *Repeat `json:"repeat,omitempty"`
 }
+
+// Repeat is what a later fill of a direction in one route is priced by. A fill moves the side's fill memory by its
+// input rounded up to the side's board unit, and the next fill walks the rungs from there, so it is priced from the
+// ladder shifted by the input the route's fills took, never above what the front pays the fills in sequence (curve).
+type Repeat struct {
+	// Unit is, per direction, the board exponent of its input token: the fill memory counts units of 10^Unit base
+	// units, and a fill's input is rounded up to one (the pair word's board exponents).
+	Unit [2]uint8 `json:"unit"`
+	// Kind is, per direction, what its ladder proves of a later fill: 0 nothing, the direction takes one fill a route;
+	// repeatSteady, every block sampled pays at least the ladder's rise between any two of its sizes, to a unit;
+	// repeatOwn, every block sampled answered the ladder itself.
+	Kind [2]uint8 `json:"kind"`
+}
+
+const (
+	repeatSteady = 1
+	repeatOwn    = 2
+)
 
 // Credit is a credit-mode listing's ladders, their classes and gas. A ladder's points from From[dir] on are sizes the
 // front fills through the pool's own swap (its credit route), those before it sizes it fills inside the pool's

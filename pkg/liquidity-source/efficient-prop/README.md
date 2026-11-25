@@ -57,8 +57,9 @@ block:
 - The grid also holds every rung boundary. A side fills from at most ten rungs, each at one price, and the output
   bends only where the fill moves to the next rung. The tracker reads the rung sizes from `doorView` and the side's
   fill memory from the front's storage (`extSloads`, one more call in the head read's multicall, no request of its
-  own). The boundaries are sizes to ask the door at. They are never prices. They are read only while the front runs
-  an implementation the config lists. Under any other the grid is the shared one alone.
+  own). The grid holds the middle of each rung too. The boundaries are sizes to ask the door at. They are never
+  prices. They are read only while the front runs an implementation the config lists. Under any other the grid is
+  the shared one alone.
 - The ladder holds for its whole window. A listing's levels may widen with its quote's age, so every size is sampled
   again at the window's last block (and around a premium's end, and at each block of a guarded source's hold) by an
   `eth_call` with a block override, and the least output of each size is kept. Each sample reads its block's time and
@@ -68,7 +69,14 @@ block:
   the smallest or past the largest nothing. With a point on every rung boundary the chord is the door's answer or one
   base unit of the output token less, on a ladder one block sampled. A credit route's sizes are quoted as before.
 - It pays no more than the listing's pool holds of the output token. Listings of one pool share a swap limit keyed by
-  pool and token, and a direction takes one fill a route, since a fill moves the levels the ladder was sampled from.
+  pool and token.
+- A direction takes more than one fill a route. A fill moves the side's fill memory by its input, rounded up to the
+  side's board unit. The next fill is priced from the ladder shifted by that much: the ladder's answer at the end of
+  the new fill, less the most the rungs before its start can have paid. It is never above what the front pays the
+  fills in sequence, and each fill must still reach the ladder's first point. The state says per direction whether
+  the ladder proves this (`repeat`). Where it does not, the direction takes one fill a route as before: a ladder whose
+  sampled blocks disagree unevenly, a front whose implementation is not listed. A listing with a credit mode always
+  takes one fill a route in all, since a fill moves the custody and the debt its route reads.
 - `StaleCheck`: route finding refuses a ladder older than 10 s and stops `inclusionAllowance` seconds before the
   ladder's `validUntil`. With `StaleCheck` off, no age gate applies.
 

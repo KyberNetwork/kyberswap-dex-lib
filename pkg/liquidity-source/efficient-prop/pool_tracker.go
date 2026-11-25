@@ -429,7 +429,7 @@ func (t *PoolTracker) GetNewPoolState(
 			}
 			w = t.window(v, s, clock, ends, life)
 		}
-		outputs, caps, err := t.sampleWindow(ctx, multicall, door, tokens, points, block, s, w, plan)
+		outputs, caps, samples, err := t.sampleWindow(ctx, multicall, door, tokens, points, block, s, w, plan)
 		if err != nil {
 			return p, err
 		}
@@ -451,6 +451,10 @@ func (t *PoolTracker) GetNewPoolState(
 			}
 			// a credit listing's ladders ride in Credit alone: a simulator that predates it quotes none
 			extra.Ladders = [2][]Point{}
+		} else if layout {
+			// a direction takes a further fill a route where its ladder proves what one pays; its board unit is read
+			// by the layout
+			extra.Repeat = repeatOf(v, points, extra.Ladders, samples)
 		}
 		// valid to the end of the window sampled, never later: route finding checks no other bound once the
 		// simulator is built
@@ -1131,7 +1135,8 @@ func (t *PoolTracker) window(v DoorView, s pinned, c frontClock, ends [2]uint64,
 }
 
 // sampleWindow asks the door's quote at every size again in each of the window's blocks, on the pinned block's
-// state, in one batch, and keeps per size the least output of every sample (nil where any refused). Each sample reads
+// state, in one batch, and keeps per size the least output of every sample (nil where any refused); samples[dir] is
+// each sample kept of the direction, size by size, the pinned block's first. Each sample reads
 // the block's time and number first, beside its quotes: a sample in which they are not the override's, from a node
 // that took the override and ignored it, is no sample. caps[dir] is the direction's quoting bound where a sample it
 // needed was not read, or where a direction the window keeps (w.keep) was refused every size there (0: none); on a
@@ -1140,8 +1145,11 @@ func (t *PoolTracker) window(v DoorView, s pinned, c frontClock, ends [2]uint64,
 // block's (s.routed), is no point.
 func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.Address, tokens [2]common.Address,
 	points [2][]*big.Int, block *big.Int, s pinned, w window, plan *planRead) (outputs [2][]*big.Int, caps [2]uint64,
-	err error) {
+	samples [2][][]*big.Int, err error) {
 	outputs = s.outputs
+	for dir := range 2 {
+		samples[dir] = [][]*big.Int{slices.Clone(s.outputs[dir])}
+	}
 	var drop [2]bool
 	for dir := range 2 {
 		if w.blind[dir] {
@@ -1166,7 +1174,7 @@ func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.A
 		}
 	}
 	if len(blocks) == 0 {
-		return outputs, caps, nil
+		return outputs, caps, samples, nil
 	}
 	raws := make([]hexutil.Bytes, len(blocks))
 	masks := make([][2]bool, len(blocks))
@@ -1181,12 +1189,12 @@ func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.A
 		calls := append(blockCalls(multicall, o), quoteCalls(door, tokens, sized)...)
 		calls = append(calls, plan.calls(door, tokens, sized)...)
 		if batch[k], err = multicallElem(multicall, calls, block, o, &raws[k]); err != nil {
-			return outputs, caps, err
+			return outputs, caps, samples, err
 		}
 	}
 	if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), batch,
 		eth.DefaultBatchRetry); err != nil {
-		return outputs, caps, err
+		return outputs, caps, samples, err
 	}
 	perSize := 1
 	if plan != nil {
@@ -1203,7 +1211,7 @@ func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.A
 		if batch[k].Error == nil {
 			head := len(blockCalls(multicall, blocks[k]))
 			if rets, err = unpackTry(raws[k], head+perSize*(len(sized[0])+len(sized[1]))); err != nil {
-				return outputs, caps, err
+				return outputs, caps, samples, err
 			}
 		}
 		number := blocks[k].number
@@ -1234,6 +1242,9 @@ func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.A
 				caps[dir] = w.cap[dir]
 				continue
 			}
+			if masks[k][dir] {
+				samples[dir] = append(samples[dir], classed[dir])
+			}
 			for i, out := range classed[dir] {
 				if plan != nil && out != nil && routed[dir][i] != s.routed[dir][i] {
 					out = nil // a size the front routes in one block and fills inside custody in the other
@@ -1244,7 +1255,7 @@ func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.A
 			}
 		}
 	}
-	return outputs, caps, nil
+	return outputs, caps, samples, nil
 }
 
 // blockCalls read the block's time and number, the block a sample in o ran in, and where o sets BaseTime, BaseTime.

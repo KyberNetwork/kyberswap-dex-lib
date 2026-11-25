@@ -2,6 +2,7 @@ package efficientprop
 
 import (
 	"math/big"
+	"slices"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -174,12 +175,91 @@ func rungEdges(v DoorView, dir int, r rungRead) []*big.Int {
 	return edges
 }
 
-// withEdges is sizes (ascending, distinct) with each rung boundary the front takes as an input in its place.
+// withEdges is sizes (ascending, distinct) with each rung boundary the front takes as an input in its place, and the
+// middle of each rung: a rung then holds two spans of its one price, so a fill that starts inside it has a span of
+// that price on one side, which is what prices the fill after it to a few units (curve.quoteAfter).
 func withEdges(sizes, edges []*big.Int) []*big.Int {
+	prev := new(big.Int)
 	for _, e := range edges {
-		if e.Sign() > 0 && e.Cmp(maxPointInput) < 0 {
-			sizes = withSize(sizes, e)
+		if e.Sign() <= 0 || e.Cmp(maxPointInput) >= 0 {
+			continue
 		}
+		sizes = withSize(sizes, e)
+		if mid := new(big.Int).Add(prev, e); mid.Rsh(mid, 1).Cmp(prev) > 0 {
+			sizes = withSize(sizes, mid)
+		}
+		prev = e
 	}
 	return sizes
+}
+
+// repeatOf is a listing's Repeat: for each direction with a ladder, its input's board unit and what its ladder proves
+// of a later fill in one route (repeatKind). Nil where no direction's proves anything.
+func repeatOf(v DoorView, sizes [2][]*big.Int, ladders [2][]Point, samples [2][][]*big.Int) *Repeat {
+	var r Repeat
+	for dir := range 2 {
+		// the side's unit, and its depth post of the version whose fill memory this reads (rungEdges)
+		bid := sideIsBid(v.PairWord, dir)
+		d0 := v.Depth[2]
+		if bid {
+			d0 = v.Depth[0]
+		}
+		exp, ok := boardExp(v.PairWord, bid)
+		if !ok || bits(d0, 0, 4) != 1 {
+			continue
+		}
+		r.Unit[dir], r.Kind[dir] = exp, repeatKind(sizes[dir], ladders[dir], samples[dir])
+	}
+	if r.Kind == [2]uint8{} {
+		return nil
+	}
+	return &r
+}
+
+// repeatKind is what a direction's ladder proves of a later fill, from the samples it was kept from (each the door's
+// answers at sizes, nil where it refused; the ladder a run of sizes with the least of them).
+//
+// Where every sample answered the ladder itself at each of its points, the ladder is each block's own, the floors
+// of that block's one concave walk (repeatOwn): one block sampled, or several over which no level moved. Else the
+// ladder is steady (repeatSteady) where in every sample the excess over the ladder never falls by more than a unit as
+// the size grows, so between any two points that block pays at least the ladder's rise less a unit, which is what the
+// simulator's bound from the right needs of each block (curve.quoteAfter). The front adds one discount to every
+// rung's offset, so the block that pays least pays least on every rung and the excess of any other only grows.
+// Anything else is 0: the direction takes one fill a route.
+func repeatKind(sizes []*big.Int, run []Point, samples [][]*big.Int) uint8 {
+	if len(run) == 0 || len(samples) == 0 {
+		return 0
+	}
+	first := run[0][0].ToBig()
+	start := slices.IndexFunc(sizes, func(s *big.Int) bool { return s.Cmp(first) == 0 })
+	if start < 0 || start+len(run) > len(sizes) {
+		return 0
+	}
+	own := true
+	for _, sample := range samples {
+		if len(sample) != len(sizes) {
+			return 0
+		}
+		var most *big.Int
+		for k, pt := range run {
+			out := sample[start+k]
+			if sizes[start+k].Cmp(pt[0].ToBig()) != 0 || out == nil {
+				return 0
+			}
+			excess := new(big.Int).Sub(out, pt[1].ToBig())
+			if excess.Sign() < 0 {
+				return 0
+			}
+			own = own && excess.Sign() == 0
+			if most == nil || excess.Cmp(most) > 0 {
+				most = excess
+			} else if new(big.Int).Sub(most, excess).Cmp(big.NewInt(1)) > 0 {
+				return 0
+			}
+		}
+	}
+	if own {
+		return repeatOwn
+	}
+	return repeatSteady
 }

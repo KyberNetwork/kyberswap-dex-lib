@@ -43,8 +43,43 @@ type fakeBook struct {
 	// nonce is the depth post's; tag and filled the board word's depth tag and fill memory (board units), seq its
 	// fill sequence
 	nonce, tag, filled, seq uint64
-	// minOut is the least output the side fills, outBound, where set, the most (its pool's room, its desk's bucket)
-	minOut, outBound *big.Int
+	// minFill is the least the side fills, on its quote leg as the front counts it: the output of a bid, the input of
+	// an ask; outBound, where set, the most it pays out (its pool's room, its desk's bucket), which a fill takes from
+	minFill, outBound *big.Int
+	// discount is the front's discount at the block, ppm, added to every rung's offset alike (PropAMMFront._discount)
+	discount uint64
+}
+
+// at is the side in a block where the front's discount is ppm more.
+func (b *fakeBook) at(ppm uint64) *fakeBook {
+	c := *b
+	c.discount += ppm
+	return &c
+}
+
+// memory is the fill memory the side fills from, board units: none under another post's tag.
+func (b *fakeBook) memory() uint64 {
+	if b.tag != b.nonce {
+		return 0
+	}
+	return b.filled
+}
+
+// fill is a fill of amountIn, all or nothing as quote, which moves the side as the front's does: the fill memory by
+// the input rounded up to the board unit, under the post's tag, the sequence by one, and the output bound by what it
+// paid (PropAMMFront._evaluate, the side's new board state).
+func (b *fakeBook) fill(amountIn *big.Int) (*big.Int, error) {
+	out, err := b.quote(amountIn)
+	if err != nil {
+		return nil, err
+	}
+	units := new(big.Int).Add(amountIn, b.unit())
+	units.Sub(units, big.NewInt(1)).Quo(units, b.unit())
+	b.filled, b.tag, b.seq = b.memory()+units.Uint64(), b.nonce, b.seq+1
+	if b.outBound != nil {
+		b.outBound = new(big.Int).Sub(b.outBound, out)
+	}
+	return out, nil
 }
 
 func shl(v uint64, n uint) *big.Int { return new(big.Int).Lsh(new(big.Int).SetUint64(v), n) }
@@ -149,7 +184,7 @@ func (b *fakeBook) walk(amountIn *big.Int) (x, n *big.Int) {
 			prev = h
 			continue
 		}
-		d := rg >> 16
+		d := rg>>16 + b.discount
 		if d >= bookPPM {
 			break
 		}
@@ -181,15 +216,19 @@ func (b *fakeBook) walk(amountIn *big.Int) (x, n *big.Int) {
 	return x, n
 }
 
-// quote is the door's quote of the side: all of amountIn or nothing, the output floored once, no less than the
-// side's minimum (PropAMMFront._quoteTail).
+// quote is the door's quote of the side: all of amountIn or nothing, the output floored once, its quote leg no less
+// than the side's minimum fill (PropAMMFront._evaluate and _quoteTail).
 func (b *fakeBook) quote(amountIn *big.Int) (*big.Int, error) {
 	x, n := b.walk(amountIn)
 	out := n.Quo(n, b.scale())
 	if amountIn.Sign() <= 0 || x.Cmp(amountIn) != 0 || out.Sign() == 0 {
 		return nil, errNoFill
 	}
-	if b.minOut != nil && out.Cmp(b.minOut) < 0 {
+	leg := x
+	if b.bid {
+		leg = out
+	}
+	if b.minFill != nil && leg.Cmp(b.minFill) < 0 {
 		return nil, errBelowMinimum
 	}
 	return out, nil
@@ -279,7 +318,11 @@ func randomBook(rng *rand.Rand, bid bool) *fakeBook {
 	_, n256 := b.walk(whole)
 	full := n256.Quo(n256, b.scale())
 	if full.Sign() > 0 {
-		b.minOut = new(big.Int).Rand(rng, new(big.Int).Add(new(big.Int).Quo(full, big.NewInt(50)), big.NewInt(1)))
+		leg := whole
+		if bid {
+			leg = full
+		}
+		b.minFill = new(big.Int).Rand(rng, new(big.Int).Add(new(big.Int).Quo(leg, big.NewInt(50)), big.NewInt(1)))
 		if rng.Intn(5) == 0 {
 			// the pool's room ends inside the side
 			b.outBound = new(big.Int).Rand(rng, full)
@@ -345,6 +388,12 @@ func refreshed(b *fakeBook, edges bool) []Point {
 // bookSim is a simulator whose ladder for the book's direction is points.
 func bookSim(t *testing.T, b *fakeBook, points []Point) (sim *PoolSimulator, tokenIn, tokenOut string) {
 	t.Helper()
+	return bookSimOf(t, b, points, 0)
+}
+
+// bookSimOf is bookSim of a state that says what the ladder proves of a later fill (Repeat's kind; 0: nothing).
+func bookSimOf(t *testing.T, b *fakeBook, points []Point, kind uint8) (sim *PoolSimulator, tokenIn, tokenOut string) {
+	t.Helper()
 	ladders, tokenIn, tokenOut := [2][]Point{points, nil}, simWETH, simUSDC
 	if !b.bid {
 		ladders, tokenIn, tokenOut = [2][]Point{nil, points}, simUSDC, simWETH
@@ -352,6 +401,19 @@ func bookSim(t *testing.T, b *fakeBook, points []Point) (sim *PoolSimulator, tok
 	// a custody no side of these outgrows
 	p := simPool(t, ladders, time.Now().Unix())
 	p.Reserves = entity.PoolReserves{"1000000000000000000000000000000", "1000000000000000000000000000000"}
+	if kind != 0 {
+		var e Extra
+		require.NoError(t, json.Unmarshal([]byte(p.Extra), &e))
+		e.Repeat = &Repeat{}
+		dir := 1
+		if b.bid {
+			dir = 0
+		}
+		e.Repeat.Unit[dir], e.Repeat.Kind[dir] = uint8(b.unitExp), kind
+		extra, err := json.Marshal(e)
+		require.NoError(t, err)
+		p.Extra = string(extra)
+	}
 	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: p, Opts: pool.FactoryOpts{StaleCheck: true}})
 	require.NoError(t, err)
 	return sim, tokenIn, tokenOut
@@ -669,13 +731,17 @@ func TestTrackerKeepsTheOldGridUnderAnUnknownImplementation(t *testing.T) {
 		for s := range silent[dir] {
 			want[s] = true
 		}
+		prev := new(big.Int)
 		for k, edge := range edges[dir] {
 			// the last boundary is the side's top, which the grid held already
 			assert.Equal(t, k == len(edges[dir])-1, silent[dir][edge.String()],
 				"direction %d: of the boundaries, the grid as it was holds the top alone (%s)", dir, edge)
-			want[edge.String()] = true
+			mid := new(big.Int).Add(prev, edge)
+			want[edge.String()], want[mid.Rsh(mid, 1).String()] = true, true
+			prev = edge
 		}
-		assert.Equal(t, want, listedImpl[dir], "direction %d: the listed implementation adds the boundaries alone", dir)
+		assert.Equal(t, want, listedImpl[dir],
+			"direction %d: the listed implementation adds the boundaries and each rung's middle alone", dir)
 		assert.Greater(t, len(withEdges.Ladders[dir]), len(old.Ladders[dir]))
 	}
 }

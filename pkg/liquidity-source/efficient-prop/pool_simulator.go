@@ -22,8 +22,14 @@ type PoolSimulator struct {
 	// custody is what the listing's pool holds of each token: it pays every listing of that pool.
 	custody [2]uint256.Int
 	// filled marks a direction that took a fill in this route: the fill moved the side's fill memory, rounded up to
-	// the listing's board unit, so a second fill walks from further up than the ladder can say.
+	// the listing's board unit, so a later fill walks from further up. used is how far, in base units of the
+	// direction's input: each of the route's fills rounded up to unit, the side's board unit. A later fill is priced
+	// from the ladder shifted by used where the state says what the ladder proves of one (repeat, Extra.Repeat's
+	// kind), and not quoted where it says nothing, nor on a listing with a credit mode.
 	filled [2]bool
+	used   [2]uint256.Int
+	unit   [2]uint256.Int
+	repeat [2]uint8
 
 	staticExtra StaticExtra
 	tipCapWei   uint64
@@ -171,6 +177,17 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	} else if extra.CreditMode != 0 && (len(extra.Ladders[0]) > 0 || len(extra.Ladders[1]) > 0) {
 		return nil, ErrInvalidState
 	}
+	if r := extra.Repeat; r != nil {
+		// never on a listing with a credit mode: a fill moves its pool's custody and debt, which its route's output
+		// reads, so it takes one fill a route whatever the state says
+		for i := range 2 {
+			if r.Kind[i] > repeatOwn || r.Unit[i] > maxBoardExp || s.credit {
+				return nil, ErrInvalidState
+			}
+			s.repeat[i] = r.Kind[i]
+			s.unit[i].Exp(uint256.NewInt(10), uint256.NewInt(uint64(r.Unit[i])))
+		}
+	}
 	for i := range 2 {
 		c, err := newCurve(ladders[i], from[i])
 		if err != nil {
@@ -193,7 +210,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if s.staleCheck && !s.validAtMs(uint64(time.Now().UnixMilli())) {
 		return nil, ladder.ErrStale
 	}
-	if s.filled[in] {
+	if s.filled[in] && s.repeat[in] == 0 {
 		return nil, ErrSecondFill
 	}
 	if params.TokenAmountIn.Amount == nil || params.TokenAmountIn.Amount.Sign() <= 0 {
@@ -205,7 +222,12 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	var amountOut uint256.Int
-	if err := s.curves[in].quote(amountIn, &amountOut); err != nil {
+	if s.filled[in] {
+		// the remaining depth: the ladder past what the route's fills took
+		if err := s.curves[in].quoteAfter(&s.used[in], amountIn, s.repeat[in] == repeatOwn, &amountOut); err != nil {
+			return nil, err
+		}
+	} else if err := s.curves[in].quote(amountIn, &amountOut); err != nil {
 		return nil, err
 	}
 	if amountOut.IsZero() {
@@ -265,6 +287,20 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if s.credit {
 		s.filled[out] = true
 	}
+	if s.repeat[in] != 0 {
+		// the front's fill memory rises by the input rounded up to the board unit (PropAMMFront._evaluate)
+		var units, rem uint256.Int
+		units.DivMod(amountIn, &s.unit[in], &rem)
+		if !rem.IsZero() {
+			units.AddUint64(&units, 1)
+		}
+		if _, overflow := units.MulOverflow(&units, &s.unit[in]); overflow {
+			units.SetAllOne()
+		}
+		if _, overflow := s.used[in].AddOverflow(&s.used[in], &units); overflow {
+			s.used[in].SetAllOne()
+		}
+	}
 	if _, overflow := s.custody[in].AddOverflow(&s.custody[in], amountIn); overflow {
 		s.custody[in].SetAllOne()
 	}
@@ -320,7 +356,7 @@ func (s *PoolSimulator) validAtMs(now uint64) bool {
 		AllowanceMs: s.allowanceMs}.validAt(now)
 }
 
-// CloneState copies what UpdateBalance writes: the custody and filled arrays are values, and Info.Reserves is
+// CloneState copies what UpdateBalance writes: the custody, filled and used arrays are values, and Info.Reserves is
 // replaced whole. The curves never change after construction, so clones share them.
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s

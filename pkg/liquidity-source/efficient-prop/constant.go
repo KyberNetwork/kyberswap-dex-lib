@@ -183,5 +183,5 @@ var (
 	ErrDoorCodehash  = errors.New("efficient-prop: door factory does not answer its door code hash")
 	ErrCellCodehash  = errors.New("efficient-prop: front does not answer the desk code hash the config names")
 	ErrNoBlockNumber = errors.New("efficient-prop: multicall returned no block number")
-	ErrSecondFill    = errors.New("efficient-prop: direction already filled in this route")
+	ErrSecondFill    = errors.New("efficient-prop: direction already filled in this route, no further fill is proven")
 )
