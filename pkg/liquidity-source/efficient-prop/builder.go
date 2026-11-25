@@ -361,6 +361,10 @@ type headRead struct {
 	targetMs uint64
 	// msAnswered: the chain's millisecond precompile answered a word in the target block (builderClock.msPrecompile)
 	msAnswered bool
+	// headSec is the head's second as the facts read it (0: not read), and entries the entries of the listing's
+	// source ids read with them (builderFacts.entries)
+	headSec uint64
+	entries map[uint32]*big.Int
 }
 
 // headReads is how many calls a head read makes (headCalls).
@@ -421,7 +425,7 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	bf := ce.getFacts()
 	if bf == nil {
 		var cacheable bool
-		bf, cacheable, err = t.readBuilderFacts(ctx, f, se, front, hd, probed)
+		bf, cacheable, err = t.readBuilderFacts(ctx, f, se, front, hd, probed, ce.getHint())
 		if err != nil {
 			return h, o, false, err
 		}
@@ -437,6 +441,7 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	multicall := bf.multicall
 	h.multicall = &multicall
 	h.ce = ce
+	h.entries = bf.entries
 	at := bf.at
 	desk := uint32(0)
 	if bf.atOK {
@@ -448,6 +453,9 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	}
 	b := binding{listing: se.Listing, desk: desk, wordIndex: at.View.WordIndex}
 	headTime, slots, slotted := bf.headTime, bf.slots, bf.slotted
+	if headTime != nil && headTime.IsUint64() {
+		h.headSec = headTime.Uint64()
+	}
 	keep := []common.Address{slots.account}
 	if bf.ids != nil {
 		h.sourceIds = bf.ids
@@ -510,6 +518,14 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	h.key = overrideKey(o)
 	if held := ce.getPriced(h.key); held != nil && !skipHeld {
 		h.held = held
+		return h, o, false, nil
+	}
+	// no answer covers the listing's update for the head's next block: nothing of it is quoted this refresh, and its
+	// state is what the head's facts say (its doorView and the front's clock at the head), with no read of its own
+	if !ahead && h.headSec != 0 && bf.clockOK {
+		h.view, h.clock = at, bf.clock
+		h.result = make([]bool, headReads)
+		h.result[0], h.result[3] = bf.atOK, true
 		return h, o, false, nil
 	}
 	calls := headCalls(front, door, se.Listing, tokens, common.HexToAddress(se.Custody), maxIn)
@@ -577,31 +593,46 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 }
 
 // readBuilderFacts reads a listing's head-fixed facts: its doorView at the head (a multicall that names the head's
-// block), then, pinned to that block, the head's second, the listing's slots and its price contracts. cacheable is
-// whether the head the doorView named is the one probed (hd, where probed): its facts are then the cache's at hd's
-// hash.
+// block), then, pinned to that block, the head's second, the front's clock, the listing's slots and its price
+// contracts. Where the probe named the head (hd) and an earlier head named the listing's binding (hint), all of it is
+// asked in one batch pinned to the probed head, the hinted desk's words and the hinted source ids' entries with it
+// (readFactsAhead), and only what moved is read again. cacheable is whether the head the doorView named is the one
+// probed: its facts are then the cache's at hd's hash.
 func (t *PoolTracker) readBuilderFacts(ctx context.Context, f *Front, se StaticExtra, front common.Address, hd headID,
-	probed bool) (bf *builderFacts, cacheable bool, err error) {
+	probed bool, hint *factsHint) (bf *builderFacts, cacheable bool, err error) {
 	bf = &builderFacts{}
-	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
-		AddCall(&ethrpc.Call{ABI: frontABI, Target: se.Front, Method: "doorView",
-			Params: []any{big.NewInt(int64(se.Listing))}}, []any{&bf.at}).
-		TryBlockAndAggregate()
-	if err != nil {
-		return nil, false, err
-	}
-	if resp.BlockNumber == nil {
-		return nil, false, ErrNoBlockNumber
-	}
-	if resp.Request == nil || resp.Request.RawCallMsg.To == nil || len(resp.Result) != 1 {
-		return nil, false, ErrInvalidState
-	}
-	bf.block = resp.BlockNumber
-	bf.multicall = *resp.Request.RawCallMsg.To
-	bf.atOK = resp.Result[0]
-	cacheable = probed && hd.number != nil && hd.number.Cmp(bf.block) == 0
-	if cacheable {
+	if multicall, known := t.multicallOf(); known && probed && hd.number != nil && hint != nil {
+		done, err := t.readFactsAhead(ctx, f, se, front, hd.number, multicall, hint, bf)
+		if err != nil {
+			return nil, false, err
+		}
 		bf.headMs = hd.ms
+		if done {
+			return bf, true, nil
+		}
+		cacheable = true
+	} else {
+		resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+			AddCall(&ethrpc.Call{ABI: frontABI, Target: se.Front, Method: "doorView",
+				Params: []any{big.NewInt(int64(se.Listing))}}, []any{&bf.at}).
+			TryBlockAndAggregate()
+		if err != nil {
+			return nil, false, err
+		}
+		if resp.BlockNumber == nil {
+			return nil, false, ErrNoBlockNumber
+		}
+		if resp.Request == nil || resp.Request.RawCallMsg.To == nil || len(resp.Result) != 1 {
+			return nil, false, ErrInvalidState
+		}
+		bf.block = resp.BlockNumber
+		bf.multicall = *resp.Request.RawCallMsg.To
+		t.setMulticall(bf.multicall)
+		bf.atOK = resp.Result[0]
+		cacheable = probed && hd.number != nil && hd.number.Cmp(bf.block) == 0
+		if cacheable {
+			bf.headMs = hd.ms
+		}
 	}
 	desk := uint32(0)
 	if bf.atOK {
@@ -616,11 +647,11 @@ func (t *PoolTracker) readBuilderFacts(ctx context.Context, f *Front, se StaticE
 	named, holder := rule.read(front, b)
 	block := bf.block
 
-	// the head's second, the listing's slots and its price contracts, at the head
+	// the head's second, the front's clock, the listing's slots and its price contracts, at the head
 	var factsRaw, ids, live, deskWord, headQuote, headFirm hexutil.Bytes
 	factsElem, err := multicallElem(multicall, []call{
-		{abi: &abi.Multicall3ABI, target: multicall, method: "getCurrentBlockTimestamp"}, named}, block, override{},
-		&factsRaw)
+		{abi: &abi.Multicall3ABI, target: multicall, method: "getCurrentBlockTimestamp"}, named,
+		{abi: &frontABI, target: front, method: "clock"}}, block, override{}, &factsRaw)
 	if err != nil {
 		return nil, false, err
 	}
@@ -648,20 +679,14 @@ func (t *PoolTracker) readBuilderFacts(ctx context.Context, f *Front, se StaticE
 		return nil, false, err
 	}
 	if facts[0].Error == nil {
-		if r, err := unpackTry(factsRaw, 2); err == nil {
+		if r, err := unpackTry(factsRaw, 3); err == nil {
 			bf.headTime = unpackUint(&abi.Multicall3ABI, "getCurrentBlockTimestamp", r[0])
 			bf.slots, bf.slotted = slotsOf(rule, front, b, named, holder, r[1])
+			bf.clock, bf.clockOK = clockOf(r[2])
 		}
 	}
-	slots := &bf.slots
-	if bf.slotted && guarded && facts[3].Error == nil && len(deskWord) == common.HashLength {
-		slots.deskWord, slots.deskKnown = common.BytesToHash(deskWord), true
-	}
-	if bf.slotted && guarded && facts[4].Error == nil && len(headQuote) == common.HashLength {
-		slots.headQuote, slots.headKnown = common.BytesToHash(headQuote), true
-	}
-	if bf.slotted && guarded && facts[5].Error == nil && len(headFirm) == common.HashLength {
-		slots.headFirm, slots.headFirmKnown = common.BytesToHash(headFirm), true
+	if bf.slotted && guarded {
+		bf.slots.setDeskWords(facts[3:], deskWord, headQuote, headFirm)
 	}
 	if facts[1].Error == nil && len(ids) == common.HashLength {
 		bf.ids = new(big.Int).SetBytes(ids)
@@ -670,6 +695,149 @@ func (t *PoolTracker) readBuilderFacts(ctx context.Context, f *Front, se StaticE
 		bf.live = new(big.Int).SetBytes(live)
 	}
 	return bf, cacheable, nil
+}
+
+// readFactsAhead is readBuilderFacts in one batch pinned to block, the head the probe named: one multicall of the
+// listing's doorView, the head's second, the front's clock, the slot rule's read of the hinted desk and the front's
+// words of the listing's source ids, its live source and each hinted id's entry (extSloads), beside the desk word and
+// the listing's quote and firm words of the hinted desk and pair slot. done is whether the doorView names the hinted
+// desk and pair slot and the front answered its words: else the caller reads the slots, the desk's words and the
+// front's words again, with bf's doorView, block and multicall set.
+func (t *PoolTracker) readFactsAhead(ctx context.Context, f *Front, se StaticExtra, front common.Address,
+	block *big.Int, multicall common.Address, hint *factsHint, bf *builderFacts) (done bool, err error) {
+	rule, err := t.slotRule(ctx, f)
+	if err != nil {
+		return false, err
+	}
+	b := binding{listing: se.Listing, desk: hint.desk, wordIndex: hint.wordIndex}
+	named, holder := rule.read(front, b)
+	words := [][32]byte{sourceIdsSlot(se.Listing), liveSourceSlot(se.Listing)}
+	hinted := sourceIDs(hint.ids)
+	for _, id := range hinted {
+		words = append(words, sourceSlot(id))
+	}
+	calls := []call{
+		{abi: &frontABI, target: front, method: "doorView", params: []any{big.NewInt(int64(se.Listing))}},
+		{abi: &abi.Multicall3ABI, target: multicall, method: "getCurrentBlockTimestamp"},
+		{abi: &frontABI, target: front, method: "clock"},
+		{abi: &slotsABI, target: front, method: "extSloads", params: []any{words}},
+	}
+	if hint.desk != 0 {
+		calls = append(calls, named)
+	}
+	var raw, deskWord, headQuote, headFirm hexutil.Bytes
+	elem, err := multicallElem(multicall, calls, block, override{}, &raw)
+	if err != nil {
+		return false, err
+	}
+	batch := []rpc.BatchElem{elem}
+	deskAccount, deskSlot, guarded := rule.deskWord(front, hint.desk)
+	if guarded {
+		at := hexutil.EncodeBig(block)
+		batch = append(batch,
+			rpc.BatchElem{Method: "eth_getStorageAt", Args: []any{deskAccount, deskSlot, at}, Result: &deskWord},
+			rpc.BatchElem{Method: "eth_getStorageAt", Args: []any{deskAccount, pairSlot(quoteWordBase, b.wordIndex), at},
+				Result: &headQuote},
+			rpc.BatchElem{Method: "eth_getStorageAt", Args: []any{deskAccount, pairSlot(firmWordBase, b.wordIndex), at},
+				Result: &headFirm})
+	}
+	if err := eth.BatchCallWithRetry(ctx, t.ethrpcClient.GetETHClient().Client(), batch,
+		eth.DefaultBatchRetry); err != nil {
+		return false, err
+	}
+	if batch[0].Error != nil {
+		return false, batch[0].Error
+	}
+	rets, err := unpackTry(raw, len(calls))
+	if err != nil {
+		return false, err
+	}
+	bf.block, bf.multicall = block, multicall
+	bf.atOK = rets[0] != nil && frontABI.UnpackIntoInterface(&bf.at, "doorView", rets[0]) == nil
+	if !bf.atOK {
+		bf.at = doorViewOut{}
+	}
+	got, _ := unpackWords(rets[3])
+	if !bf.atOK || bf.at.View.Desk != hint.desk || bf.at.View.WordIndex != hint.wordIndex || len(got) != len(words) {
+		return false, nil
+	}
+	bf.headTime = unpackUint(&abi.Multicall3ABI, "getCurrentBlockTimestamp", rets[1])
+	bf.clock, bf.clockOK = clockOf(rets[2])
+	if hint.desk != 0 {
+		bf.slots, bf.slotted = slotsOf(rule, front, b, named, holder, rets[4])
+	}
+	if bf.slotted && guarded {
+		bf.slots.setDeskWords(batch[1:], deskWord, headQuote, headFirm)
+	}
+	bf.ids, bf.live = new(big.Int).SetBytes(got[0][:]), new(big.Int).SetBytes(got[1][:])
+	bf.entries = map[uint32]*big.Int{}
+	for k, id := range hinted {
+		bf.entries[id] = new(big.Int).SetBytes(got[2+k][:])
+	}
+	return true, nil
+}
+
+// setDeskWords sets the slots' desk word, the head's quote word and its firm word, each where its read (reads, in
+// that order) answered a word.
+func (l *listingSlots) setDeskWords(reads []rpc.BatchElem, deskWord, headQuote, headFirm hexutil.Bytes) {
+	if reads[0].Error == nil && len(deskWord) == common.HashLength {
+		l.deskWord, l.deskKnown = common.BytesToHash(deskWord), true
+	}
+	if reads[1].Error == nil && len(headQuote) == common.HashLength {
+		l.headQuote, l.headKnown = common.BytesToHash(headQuote), true
+	}
+	if reads[2].Error == nil && len(headFirm) == common.HashLength {
+		l.headFirm, l.headFirmKnown = common.BytesToHash(headFirm), true
+	}
+}
+
+// sourceIDs are the source ids a listing's source ids word names: the primary (bits 0-31) and the backup (32-63),
+// each where not 0.
+func sourceIDs(ids *big.Int) []uint32 {
+	var out []uint32
+	if ids == nil {
+		return nil
+	}
+	for _, id := range []uint64{bits(ids, 0, 32), bits(ids, 32, 32)} {
+		if id != 0 {
+			out = append(out, uint32(id))
+		}
+	}
+	return out
+}
+
+// unpackWords is extSloads' answer: the words asked, in order; false where the call reverted or answered otherwise.
+func unpackWords(ret []byte) ([][32]byte, bool) {
+	if ret == nil {
+		return nil, false
+	}
+	vals, err := slotsABI.Methods["extSloads"].Outputs.Unpack(ret)
+	if err != nil || len(vals) != 1 {
+		return nil, false
+	}
+	words, ok := vals[0].([][32]byte)
+	return words, ok
+}
+
+// clockOf is the front's clock() answer; false where it reverted or answered otherwise.
+func clockOf(ret []byte) (c frontClock, ok bool) {
+	if ret == nil || frontABI.UnpackIntoInterface(&c, "clock", ret) != nil {
+		return frontClock{}, false
+	}
+	return c, true
+}
+
+// multicallOf is the multicall contract the tracker's node requests name, once one has named it.
+func (t *PoolTracker) multicallOf() (common.Address, bool) {
+	t.mcMu.Lock()
+	defer t.mcMu.Unlock()
+	return t.mc, t.mcKnown
+}
+
+func (t *PoolTracker) setMulticall(a common.Address) {
+	t.mcMu.Lock()
+	t.mc, t.mcKnown = a, true
+	t.mcMu.Unlock()
 }
 
 // slotRule is front f's slot rule: the per-desk rule under the front's CELL_CODEHASH, read from the front once and held

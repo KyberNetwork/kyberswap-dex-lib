@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1070,6 +1071,27 @@ func storageReads(chain *fakeChain, n *node, slot common.Hash) (tags []string) {
 	return tags
 }
 
+// sloadReads are the block tags of the front's extSloads calls the node answered that asked for slot.
+func sloadReads(chain *fakeChain, n *node, slot common.Hash) (tags []string) {
+	for _, c := range n.calls() {
+		if c.to != chain.front || len(c.data) < 4 {
+			continue
+		}
+		m, err := slotsABI.MethodById(c.data[:4])
+		if err != nil || m.Name != "extSloads" {
+			continue
+		}
+		args, err := m.Inputs.Unpack(c.data[4:])
+		if err != nil {
+			continue
+		}
+		if slices.Contains(args[0].([][32]byte), [32]byte(slot)) {
+			tags = append(tags, c.tag)
+		}
+	}
+	return tags
+}
+
 // unserved checks that a state quotes nothing: no ladder, no valid-until, no reserves.
 func unserved(t *testing.T, p entity.Pool, msg string) {
 	t.Helper()
@@ -1644,9 +1666,10 @@ func TestTrackerOnBaseTimeLadderHoldsThroughAPremiumWindow(t *testing.T) {
 }
 
 // A front is quoted only while its proxy runs an implementation its config lists, read from the proxy's ERC-1967 slot
-// at the state's block: the source reads the front's storage by its layout and mirrors its clock and pricing rules, and
-// an upgrade may change any of them. An implementation not listed, or a slot the node does not answer, quotes nothing:
-// a WORD listing, a PRINT listing and a SESSION listing with no closed phase, each on an approved source.
+// at the state's block (in the head read's extSloads, else by a storage read): the source reads the front's storage by
+// its layout and mirrors its clock and pricing rules, and an upgrade may change any of them. An implementation not
+// listed, or a slot the node and the front do not answer, quotes nothing: a WORD listing, a PRINT listing and a
+// SESSION listing with no closed phase, each on an approved source.
 func TestTrackerQuotesOnlyAListedImplementation(t *testing.T) {
 	type kase struct {
 		name   string
@@ -1673,7 +1696,7 @@ func TestTrackerQuotesOnlyAListedImplementation(t *testing.T) {
 		}
 		chain.impl = c.impl
 		if c.refuse {
-			n.refuseSlot = testImplSlot
+			n.refuseSlot, chain.noSloads = testImplSlot, true
 		}
 		p := track(t, n, track(t, n, listed(t, n)))
 		if c.served {
@@ -1682,10 +1705,16 @@ func TestTrackerQuotesOnlyAListedImplementation(t *testing.T) {
 		} else {
 			unserved(t, p, c.name)
 		}
-		reads := storageReads(chain, n, testImplSlot)
-		assert.NotEmpty(t, reads, "%s: the implementation is read", c.name)
-		for _, tag := range reads {
+		// a storage read pinned to the state's block, or the head read's extSloads, in the multicall that names that
+		// block (at the head, "latest" there)
+		stored, sloaded := storageReads(chain, n, testImplSlot), sloadReads(chain, n, testImplSlot)
+		assert.NotEmpty(t, append(stored, sloaded...), "%s: the implementation is read", c.name)
+		for _, tag := range stored {
 			assert.Equal(t, hexutil.EncodeUint64(p.BlockNumber), tag, "%s: at the state's block", c.name)
+		}
+		for _, tag := range sloaded {
+			assert.Contains(t, []string{"latest", hexutil.EncodeUint64(p.BlockNumber)}, tag, "%s: at the state's block",
+				c.name)
 		}
 	}
 }

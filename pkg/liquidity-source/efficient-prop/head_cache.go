@@ -88,18 +88,40 @@ func (t *PoolTracker) readHead0(ctx context.Context) (id headID, ok bool) {
 }
 
 // builderFacts are the head-fixed reads of readBuilderHead: the listing's doorView (and whether it answered), the
-// multicall contract, the head's second, the listing's slots, and its source ids and live source words where read.
+// multicall contract, the head's second, the front's clock (and whether it answered), the listing's slots, and its
+// source ids and live source words where read, and the entries of its source ids where read with them (entries, by
+// id: readFactsAhead).
 type builderFacts struct {
 	at        doorViewOut
 	atOK      bool
 	block     *big.Int
 	multicall common.Address
 	headTime  *big.Int
+	clock     frontClock
+	clockOK   bool
 	// headMs is the head's milliseconds where the probe that named this head read them (headID.ms; 0: not read)
 	headMs    uint64
 	slots     listingSlots
 	slotted   bool
 	ids, live *big.Int
+	entries   map[uint32]*big.Int
+}
+
+// factsHint is what a listing's facts named at an earlier head: its desk, its pair slot and its source ids. The next
+// head's facts are read with them asked ahead, in one batch with the doorView (readFactsAhead); where the doorView
+// names another desk or pair slot they are read again, and where the ids moved their entries are.
+type factsHint struct {
+	desk      uint32
+	wordIndex uint8
+	ids       *big.Int
+}
+
+// hint is the factsHint of f.
+func (f *builderFacts) hint() *factsHint {
+	if f == nil || !f.atOK {
+		return nil
+	}
+	return &factsHint{desk: f.at.View.Desk, wordIndex: f.at.View.WordIndex, ids: f.ids}
 }
 
 // probeFixed are the words probe reads beside its multicall that the head fixes: the listing's controls, the front's
@@ -120,9 +142,11 @@ type pricedOut struct {
 	approved    bool
 }
 
-// headEntry is one listing's cache at one head.
+// headEntry is one listing's cache at one head. hint is the listing's binding as an earlier head's facts named it,
+// carried to the entry of the next head (listingCache.at).
 type headEntry struct {
-	id headID
+	id   headID
+	hint *factsHint
 
 	mu       sync.Mutex
 	facts    *builderFacts
@@ -142,16 +166,34 @@ type listingCache struct {
 
 func newListingCache() *listingCache { return &listingCache{m: map[common.Address]*headEntry{}} }
 
-// at is door's entry at head id, a new one (replacing any of another head) where it holds none.
+// at is door's entry at head id, a new one (replacing any of another head) where it holds none. A new entry keeps the
+// binding the entry it replaces named (headEntry.hint).
 func (c *listingCache) at(door common.Address, id headID) *headEntry {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if e := c.m[door]; e != nil && e.id.hash == id.hash {
-		return e
+	old := c.m[door]
+	if old != nil && old.id.hash == id.hash {
+		return old
 	}
 	e := &headEntry{id: id}
+	if old != nil {
+		e.hint = old.getHint()
+	}
 	c.m[door] = e
 	return e
+}
+
+// getHint is the listing's binding as this entry's facts name it, else as the entry it replaced named it.
+func (e *headEntry) getHint() *factsHint {
+	if e == nil {
+		return nil
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if h := e.facts.hint(); h != nil {
+		return h
+	}
+	return e.hint
 }
 
 func (e *headEntry) getFacts() *builderFacts {

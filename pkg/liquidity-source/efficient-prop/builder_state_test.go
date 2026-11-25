@@ -731,7 +731,7 @@ func TestBuilderRefreshNodeLoad(t *testing.T) {
 		carry     bool
 		ethCall   int
 		storageAt int
-	}{{"the word does not carry", false, 5, 9}, {"the word carries", true, 6, 9}} {
+	}{{"the word does not carry", false, 5, 7}, {"the word carries", true, 6, 7}} {
 		chain := printChain(false, false)
 		if c.carry {
 			chain.listings[1].view.Scopes |= 8 // a carry life, which the word's carry bit then makes one
@@ -828,7 +828,7 @@ func TestBuilderHeadCacheSavesTheNodeCalls(t *testing.T) {
 	}
 	first, d := refresh()
 	require.NotEmpty(t, extraOf(t, first).Ladders[0])
-	assert.Equal(t, map[string]int{"eth_call": 5, "eth_getStorageAt": 9, "eth_getBlockByNumber": 1}, d,
+	assert.Equal(t, map[string]int{"eth_call": 5, "eth_getStorageAt": 7, "eth_getBlockByNumber": 1}, d,
 		"a new head (its first refresh also reads the code hashes)")
 
 	again, d := refresh()
@@ -862,8 +862,8 @@ func TestBuilderHeadCacheSavesTheNodeCalls(t *testing.T) {
 		"the replaced head not yet seen: the shared probe's")
 	tick()
 	_, d = refresh()
-	assert.Equal(t, map[string]int{"eth_call": 4, "eth_getStorageAt": 9, "eth_getBlockByNumber": 1}, d,
-		"a head replaced at the same height, seen by the next probe")
+	assert.Equal(t, map[string]int{"eth_call": 3, "eth_getStorageAt": 3, "eth_getBlockByNumber": 1}, d,
+		"a head replaced at the same height, seen by the next probe: its facts in one batch, the binding known")
 
 	// the held result is served only while its desk's approval is what it was
 	tick()
@@ -873,4 +873,111 @@ func TestBuilderHeadCacheSavesTheNodeCalls(t *testing.T) {
 	tr.desks.static = map[common.Address]struct{}{}
 	revoked, _ := refresh()
 	unserved(t, revoked, "the desk is no longer approved")
+}
+
+// headRig is one tracker refreshing printChain's listing 1 on a /state server, its clock a share window on at each
+// refresh, so each refresh probes the head and fetches the answers again.
+type headRig struct {
+	t     *testing.T
+	chain *fakeChain
+	n     *node
+	st    *stateServer
+	tr    *PoolTracker
+	p     entity.Pool
+	now   time.Time
+}
+
+func newHeadRig(t *testing.T) *headRig {
+	chain := printChain(false, false)
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	cfg := printConfig(st.URL)
+	r := &headRig{t: t, chain: chain, n: n, st: st, p: ethListed(t, n, cfg), now: time.Now()}
+	r.tr = ethTracker(t, n, cfg, r.now)
+	r.tr.now = func() time.Time { return r.now }
+	return r
+}
+
+// answer makes the /state server's answer for block 1235 write the listing's quote word at pair slot i, with version
+// in its unused bits.
+func (r *headRig) answer(i uint8, version uint) {
+	w := quoteWordAt(1235, 0, false, false)
+	w.SetBit(w, int(100+version), 1)
+	r.st.setEntries(slotAfter(r.n.time), 1235, map[string]stateEntry{"a": {
+		cellOf(7): {quoteKey(i): common.BigToHash(w)}, create3Child(testFront, printIDs[0]): printSlots}})
+}
+
+// refresh refreshes the listing from its last state and counts the node's requests it made.
+func (r *headRig) refresh() map[string]int {
+	r.t.Helper()
+	r.now = r.now.Add(stateShareWindow)
+	before := r.n.requestCounts()
+	got, err := r.tr.GetNewPoolState(context.Background(), r.p, pool.GetNewPoolStateParams{})
+	require.NoError(r.t, err)
+	r.p = got
+	after := r.n.requestCounts()
+	d := map[string]int{}
+	for _, m := range []string{"eth_call", "eth_getStorageAt", "eth_getBlockByNumber"} {
+		d[m] = after[m] - before[m]
+	}
+	return d
+}
+
+func (r *headRig) newHead() {
+	r.n.mu.Lock()
+	r.n.reorg++
+	r.n.mu.Unlock()
+}
+
+// Where no answer covers the listing's update for the head's next block, a refresh reads the head's facts alone: no
+// read under an override and no sample, and its state quotes nothing. Its standing reasons are read from the facts as
+// from the head read: a desk not approved is idle, an approved one is not (its next answer is a block away).
+func TestBuilderListingNoAnswerCoversReadsTheFactsAlone(t *testing.T) {
+	r := newHeadRig(t)
+	r.answer(0, 1)
+	r.refresh()
+	require.NotEmpty(t, extraOf(t, r.p).Ladders[0], "quoted where the answer covers it")
+
+	r.newHead()
+	r.st.setEntries(0, 1234, nil)
+	assert.Equal(t, map[string]int{"eth_call": 1, "eth_getStorageAt": 3, "eth_getBlockByNumber": 1}, r.refresh(),
+		"a new head, no answer: the facts in one batch, its binding known")
+	unserved(t, r.p, "no answer")
+	e := extraOf(t, r.p)
+	assert.False(t, e.Idle, "its desk approved: not idle")
+	assert.True(t, e.Builder)
+	assert.Equal(t, int64(r.n.time), r.p.Timestamp, "the head's second")
+	assert.Equal(t, uint64(1234), r.p.BlockNumber)
+	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, r.refresh(),
+		"the same head, still no answer: held")
+
+	r.tr.desks.static = map[common.Address]struct{}{}
+	r.newHead()
+	r.refresh()
+	assert.True(t, extraOf(t, r.p).Idle, "its desk not approved: idle")
+}
+
+// A listing whose pair slot moved between two heads is read again at the new one: the facts asked ahead under the
+// earlier binding are not taken, and the listing is quoted from its new slot.
+func TestBuilderFactsReadAgainWhereTheBindingMoved(t *testing.T) {
+	r := newHeadRig(t)
+	r.answer(0, 1)
+	r.refresh()
+	require.NotEmpty(t, extraOf(t, r.p).Ladders[0])
+
+	r.chain.listings[1].view.WordIndex = 3
+	r.newHead()
+	r.answer(3, 2)
+	d := r.refresh()
+	assert.Equal(t, 1, d["eth_call"]-3, "one more facts read than a head whose binding stood")
+	served(t, r.chain, 1, r.p, slotTime(slotAfter(r.n.time)), "quoted from its new pair slot")
+
+	// and a listing bound since to a source not approved is not quoted: its new id's entry is read
+	r.chain.listings[1].sourceIds = big.NewInt(3)
+	r.chain.sources[3] = new(big.Int).SetBytes(testThird[:])
+	r.newHead()
+	r.answer(3, 3)
+	r.refresh()
+	unserved(t, r.p, "a source not approved")
+	assert.NotEmpty(t, storageReads(r.chain, r.n, sourceEntrySlot(3)), "the new id's entry is read")
 }

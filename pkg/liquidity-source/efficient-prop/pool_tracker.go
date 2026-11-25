@@ -52,6 +52,10 @@ type PoolTracker struct {
 	cache *listingCache
 	// heads is each front's last head probe, by its address (headProbe)
 	heads map[string]*sharedHead
+	// mc is the multicall contract the node's answers name, once one has (mcKnown)
+	mcMu    sync.Mutex
+	mc      common.Address
+	mcKnown bool
 }
 
 // sharedAnswers is one front's /state answers as last fetched. Its lock is held through a fetch, so the refreshes of
@@ -409,7 +413,8 @@ func (t *PoolTracker) GetNewPoolState(
 	if quoted && printed(v.Scopes) {
 		if ok, held, set := h.ce.getSources(); set {
 			quoted, lanes = ok, held
-		} else if quoted, lanes, err = t.sourcesApproved(ctx, front, staticExtra.Listing, block, h.sourceIds); err != nil {
+		} else if quoted, lanes, err = t.sourcesApproved(ctx, front, staticExtra.Listing, block, h.sourceIds,
+			h.entries); err != nil {
 			return p, err
 		} else {
 			h.ce.setSources(quoted, lanes)
@@ -460,10 +465,19 @@ func (t *PoolTracker) GetNewPoolState(
 		}
 	}
 	session := quoted && (v.Scopes>>1)&3 == fenceSession
-	s, err := t.probe(ctx, multicall, door, front, staticExtra.Listing, tokens, points, block, quoted, session, clock,
-		lanes, o0, plan, h.ce)
-	if err != nil {
-		return p, err
+	var s pinned
+	switch {
+	case builder && !quoted && (o0.time != 0 || h.headSec != 0):
+		// nothing to sample: the state's block is the target block the head read ran in, else the head's
+		s = pinned{time: h.headSec, number: block.Uint64()}
+		if o0.time != 0 {
+			s.time, s.number = o0.time, o0.number
+		}
+	default:
+		if s, err = t.probe(ctx, multicall, door, front, staticExtra.Listing, tokens, points, block, quoted, session,
+			clock, lanes, o0, plan, h.ce, h.rungs); err != nil {
+			return p, err
+		}
 	}
 	// a node that ran the pinned read outside the target block gave no sample of it
 	if s.unplaced {
@@ -780,7 +794,7 @@ type pinned struct {
 // same multicall, and each size classed by it (classify).
 func (t *PoolTracker) probe(ctx context.Context, multicall, door, front common.Address, listing uint32,
 	tokens [2]common.Address, points [2][]*big.Int, block *big.Int, quoted, session bool,
-	c frontClock, lanes []common.Address, o override, plan *planRead, ce *headEntry) (s pinned, err error) {
+	c frontClock, lanes []common.Address, o override, plan *planRead, ce *headEntry, r rungRead) (s pinned, err error) {
 	calls := []call{{abi: &abi.Multicall3ABI, target: multicall, method: "getCurrentBlockTimestamp"},
 		{abi: &baseTimeABI, target: c.baseTime, method: "timestampMs"}}
 	if c.ClockMode.Uint64() != clockBlocks || c.baseTime == (common.Address{}) {
@@ -812,12 +826,18 @@ func (t *PoolTracker) probe(ctx context.Context, multicall, door, front common.A
 	if fixed != nil {
 		ctl, impl, live, ses = fixed.ctl, fixed.impl, fixed.live, fixed.ses
 	} else {
-		if quoted {
+		// the controls word and the implementation the head read took from the front's storage at block (r), where
+		// the front answered them: the same words
+		words := quoted && r.ok
+		if words {
+			ctl, impl = common.BigToHash(r.controls).Bytes(), common.BytesToHash(r.implementation[:]).Bytes()
+		}
+		if quoted && !words {
 			batch = append(batch, rpc.BatchElem{Method: "eth_getStorageAt",
 				Args: []any{front, controlsSlot(listing), hexutil.EncodeBig(block)}, Result: &ctl})
 		}
 		reads = len(batch)
-		if quoted {
+		if quoted && !words {
 			implAt = len(batch)
 			batch = append(batch, rpc.BatchElem{Method: "eth_getStorageAt",
 				Args: []any{front, implementationSlot, hexutil.EncodeBig(block)}, Result: &impl})
@@ -946,9 +966,10 @@ func (t *PoolTracker) ends(v DoorView, s pinned, c frontClock) (ends [2]uint64) 
 // likes, so the door's quote, sampled by an eth_call, is what a fill pays only on a source trusted to answer every call
 // alike. With no source approved nothing is read. A listing bound to none, one whose ids or entries the node does not
 // answer, or one bound to a source not approved, is not quoted; a transport failure fails the refresh. ids is the
-// listing's source ids word where the refresh has read it at block already (nil: it is read here).
+// listing's source ids word where the refresh has read it at block already (nil: it is read here), and entries the
+// entries of source ids it has read at block already, by id (an id not in it is read here).
 func (t *PoolTracker) sourcesApproved(ctx context.Context, front common.Address, listing uint32,
-	block *big.Int, ids *big.Int) (approved bool, lanes []common.Address, err error) {
+	block *big.Int, ids *big.Int, entries map[uint32]*big.Int) (approved bool, lanes []common.Address, err error) {
 	f := t.cfg.front(hexutil.Encode(front[:]))
 	if f == nil || len(f.ApprovedSources) == 0 {
 		return false, nil, nil
@@ -983,15 +1004,30 @@ func (t *PoolTracker) sourcesApproved(ctx context.Context, front common.Address,
 	if primary == 0 {
 		return false, nil, nil
 	}
-	slots := []common.Hash{sourceSlot(primary)}
+	bound := []uint32{primary}
 	if backup != 0 {
-		slots = append(slots, sourceSlot(backup))
+		bound = append(bound, backup)
 	}
-	entries, err := read(slots)
-	if err != nil {
-		return false, nil, err
+	got := make([]*big.Int, len(bound))
+	var slots []common.Hash
+	var at []int
+	for k, id := range bound {
+		if e, ok := entries[id]; ok {
+			got[k] = e
+			continue
+		}
+		slots, at = append(slots, sourceSlot(id)), append(at, k)
 	}
-	for _, e := range entries {
+	if len(slots) > 0 {
+		read, err := read(slots)
+		if err != nil {
+			return false, nil, err
+		}
+		for k, e := range read {
+			got[at[k]] = e
+		}
+	}
+	for _, e := range got {
 		if e == nil || !f.approves(common.BigToAddress(e)) {
 			return false, nil, nil
 		}
