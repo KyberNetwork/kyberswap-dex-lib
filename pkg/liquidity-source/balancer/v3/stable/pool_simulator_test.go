@@ -390,3 +390,12 @@ func TestCalcAmountOutPanic(t *testing.T) {
 		SwapInfo:       res.SwapInfo,
 	})
 }
+
+// TestCalcAmtOutParity pins base.PoolSimulator's native CalcAmtOut to the legacy CalcAmountOut.
+func TestCalcAmtOutParity(t *testing.T) {
+	t.Parallel()
+	testutil.TestCalcAmtOutParity(t, poolSim, []string{
+		"1", "799999", "842557", "1000000", "1000000000", "123456789012", "2000000000000000000",
+		"500000000000000000000", "10000000000000000000000",
+	}, nil)
+}
