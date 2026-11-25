@@ -277,52 +277,57 @@ func TestBuilderDeskContractServedWhereItsBalanceOrNonceSplits(t *testing.T) {
 	}
 }
 
-// The merge window starts at the first answer of any kind, an empty one included: a url that hangs cannot hold the
-// fetch (and the front's lock) past the window once another has answered, and one that answers empty then.
-func TestBuilderStateFetchReturnsWithinTheWindowPastAHangingHost(t *testing.T) {
-	chain := ethChain()
-	n := builderNode(t, chain, 1234)
-	empty, hang := newStateServer(t), newStateServer(t)
-	empty.set(slotAfter(n.time), 1235, nil)
-	hang.delay = defaultStateTimeout + 500*time.Millisecond
-	hang.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
-	cfg := ethConfig(empty.URL)
-	cfg.Fronts[0].Titan.URLs = []string{hang.URL, empty.URL}
-	cfg.Fronts[0].Titan.Timeout = 0
-	tr := ethTracker(t, n, cfg, time.Now())
-	start := time.Now()
-	answers := tr.stateAnswers(context.Background(), &cfg.Fronts[0])
-	elapsed := time.Since(start)
-	assert.Less(t, elapsed, titan.DefaultMergeWindow+200*time.Millisecond, "the window, not the timeout")
-	require.Len(t, answers, 1)
-	assert.Equal(t, 1, answers[0].rank, "the host that answered empty")
-	assert.Empty(t, answers[0].accounts)
-}
-
-// An answer past the window is not kept, and the next fetch reads it: a slower, fuller answer waits one tick.
-func TestBuilderSlowFullerAnswerIsReadOnTheNextFetch(t *testing.T) {
+// The merge window starts at the first answer that holds an account, as Kyber's titan client's does, not at the first
+// answer: an empty answer from a fast url does not cut off a slower url's answer with the entries, which is kept.
+func TestBuilderWaitsPastAnEmptyAnswer(t *testing.T) {
 	chain := ethChain()
 	n := builderNode(t, chain, 1234)
 	empty, slow := newStateServer(t), newStateServer(t)
 	empty.set(slotAfter(n.time), 1235, nil)
-	slow.delay = titan.DefaultMergeWindow + 300*time.Millisecond
+	slow.delay = titan.DefaultMergeWindow + 150*time.Millisecond
 	slow.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
 	cfg := ethConfig(empty.URL)
 	cfg.Fronts[0].Titan.URLs = []string{empty.URL, slow.URL}
-	p := ethListed(t, n, cfg)
+	got := ethTrack(t, n, cfg, ethListed(t, n, cfg))
+	assert.NotEmpty(t, extraOf(t, got).Ladders[0], "the slower url's answer, after the empty one")
+	assert.Equal(t, int64(1), slow.hits.Load())
+}
 
-	tr := ethTracker(t, n, cfg, time.Now())
-	first, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
-	require.NoError(t, err)
-	assert.Empty(t, extraOf(t, first).Ladders[0], "the first tick: the slow answer is past the window")
-
-	slow.mu.Lock()
-	slow.delay = 0
-	slow.mu.Unlock()
-	tr = ethTracker(t, n, cfg, time.Now())
-	next, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
-	require.NoError(t, err)
-	assert.NotEmpty(t, extraOf(t, next).Ladders[0], "the next tick reads the fuller answer")
+// A url that hangs holds the fetch for the merge window at most once another url has answered with an account, and
+// for the timeout at most where none has (the one that answered is empty).
+func TestBuilderStateFetchBoundsAHangingHost(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	hang := newStateServer(t)
+	hang.delay = 3 * time.Second
+	hang.set(slotAfter(n.time), 1235, nil)
+	for _, c := range []struct {
+		name  string
+		cells map[common.Address]*big.Int
+		limit time.Duration
+		held  int
+	}{
+		{"an answer with an account: the window", map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)},
+			titan.DefaultMergeWindow + 200*time.Millisecond, 1},
+		{"an empty answer: the timeout", nil, 600*time.Millisecond + 200*time.Millisecond, 1},
+	} {
+		fast := newStateServer(t)
+		fast.set(slotAfter(n.time), 1235, c.cells)
+		cfg := ethConfig(fast.URL)
+		cfg.Fronts[0].Titan.URLs = []string{hang.URL, fast.URL}
+		cfg.Fronts[0].Titan.Timeout = 600 * time.Millisecond
+		tr := ethTracker(t, n, cfg, time.Now())
+		start := time.Now()
+		answers := tr.stateAnswers(context.Background(), &cfg.Fronts[0])
+		elapsed := time.Since(start)
+		assert.Less(t, elapsed, c.limit, c.name)
+		require.Len(t, answers, c.held, c.name)
+		assert.Equal(t, 1, answers[0].rank, c.name)
+		if c.cells == nil {
+			assert.GreaterOrEqual(t, elapsed, 600*time.Millisecond, "%s: waits the timeout", c.name)
+			assert.Empty(t, answers[0].accounts)
+		}
+	}
 }
 
 // A /state url that fails is logged, at most once a minute per url, its key-bearing parts (userinfo and query) left
