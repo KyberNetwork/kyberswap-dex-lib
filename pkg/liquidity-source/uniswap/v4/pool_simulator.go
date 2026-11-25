@@ -251,7 +251,7 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 		}
 
 		var neg bool
-		if neg, amountInOverflow = subSigned(&amountIn, false, beforeSwapResult.DeltaSpecified); neg {
+		if neg, amountInOverflow = big256.SubSigned(&amountIn, false, beforeSwapResult.DeltaSpecified); neg {
 			return nil, ErrInvalidAmountIn
 		}
 	}
@@ -301,14 +301,14 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	v4SwapInfo := SwapInfo{PoolSwapInfo: swapResult.SwapInfo.(PoolSwapInfo)}
 	if beforeSwapResult != nil {
 		var overflow bool
-		outNeg, overflow = subSigned(amountOut, outNeg, beforeSwapResult.DeltaUnspecified)
+		outNeg, overflow = big256.SubSigned(amountOut, outNeg, beforeSwapResult.DeltaUnspecified)
 		outOverflow = outOverflow || overflow
 		swapResult.Gas += beforeSwapResult.Gas
 		v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
 	}
 	if afterSwapResult != nil {
 		var overflow bool
-		outNeg, overflow = subSigned(amountOut, outNeg, afterSwapResult.HookFee)
+		outNeg, overflow = big256.SubSigned(amountOut, outNeg, afterSwapResult.HookFee)
 		outOverflow = outOverflow || overflow
 		swapResult.Gas += afterSwapResult.Gas
 	}
@@ -331,28 +331,6 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	}
 	swapResult.SwapInfo = v4SwapInfo
 	return swapResult, nil
-}
-
-// subSigned sets (mag, neg) -= d, where (mag, neg) is a sign-magnitude value and d a two's-complement int256,
-// matching the big.Int subtraction of big256.ToBig(d). overflow reports a magnitude past 256 bits.
-func subSigned(mag *uint256.Int, neg bool, d *uint256.Int) (newNeg, overflow bool) {
-	dNeg := d.Sign() < 0
-	var dMag uint256.Int
-	dMag.Set(d)
-	if dNeg {
-		dMag.Neg(&dMag)
-	}
-	// mag - d == mag + (-d): -d has sign !dNeg.
-	if neg == !dNeg {
-		_, overflow = mag.AddOverflow(mag, &dMag)
-		return neg, overflow
-	}
-	if mag.Lt(&dMag) {
-		mag.Sub(&dMag, mag)
-		return !neg, false
-	}
-	mag.Sub(mag, &dMag)
-	return neg && !mag.IsZero(), false
 }
 
 // zeroNilFeeAmount sets the big.Int fee amount to zero. v3 leaves it nil on the big.Int path,
