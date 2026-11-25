@@ -49,9 +49,11 @@ type forkCheck struct {
 // EFFICIENT_PROP_CHAIN sets the chain id (default Base), EFFICIENT_PROP_MULTICALL the Multicall3 address,
 // EFFICIENT_PROP_FILL_MODE the front's fill mode (default front), EFFICIENT_PROP_SOURCES the front's approved price
 // sources (a comma list; default none, so a listing that reads a source quotes nothing), EFFICIENT_PROP_IMPLEMENTATIONS
-// the front's listed implementations (a comma list; default the one its proxy runs at the head), and EFFICIENT_PROP_OUT
-// a file the checks are written to. Each pool's meta must name its door's front and listing, and in the front's mode
-// the front must name the listing's pool (payPoolOf), so the adapter takes the paid entry whose gas is declared.
+// the front's listed implementations (a comma list; default the one its proxy runs at the head),
+// EFFICIENT_PROP_CREDIT_LISTINGS the front's credit listings (the config's JSON list; default none, so a listing that
+// borrows on fill quotes nothing), and EFFICIENT_PROP_OUT a file the checks are written to. Each pool's meta must name
+// its door's front and listing, and in the front's mode the front must name the listing's pool (payPoolOf), so the
+// adapter takes the paid entry whose gas is declared.
 //
 // EFFICIENT_PROP_STATE names a file of refreshed pools. Where it holds an earlier run's, their simulators are first
 // priced against the door now (gapToNow): with no refresh trigger logged since, never over it; after a post or a
@@ -182,8 +184,9 @@ func forkDesks() []string {
 
 // forkFront is the fork's front config: its fill mode, EFFICIENT_PROP_FILL_MODE (default front), its approved
 // sources, EFFICIENT_PROP_SOURCES (a comma list, default none), its implementations, EFFICIENT_PROP_IMPLEMENTATIONS
-// (a comma list, default the one the front's proxy runs at the head of EFFICIENT_PROP_RPC), and the chain's
-// millisecond-time contract, EFFICIENT_PROP_BASE_TIME (forkBaseTime).
+// (a comma list, default the one the front's proxy runs at the head of EFFICIENT_PROP_RPC), its credit listings,
+// EFFICIENT_PROP_CREDIT_LISTINGS (the config's JSON list, default none), and the chain's millisecond-time contract,
+// EFFICIENT_PROP_BASE_TIME (forkBaseTime).
 func forkFront(front, factory string) Front {
 	bt := forkBaseTime()
 	f := Front{Address: front, DoorFactory: factory, FillMode: FillModeFront,
@@ -198,6 +201,11 @@ func forkFront(front, factory string) Front {
 		f.Implementations = strings.Split(s, ",")
 	} else if impl := forkImplementation(front); impl != (common.Address{}) {
 		f.Implementations = []string{hexutil.Encode(impl[:])}
+	}
+	if s := os.Getenv("EFFICIENT_PROP_CREDIT_LISTINGS"); s != "" {
+		if err := json.Unmarshal([]byte(s), &f.CreditListings); err != nil {
+			panic("EFFICIENT_PROP_CREDIT_LISTINGS: " + err.Error())
+		}
 	}
 	return f
 }
