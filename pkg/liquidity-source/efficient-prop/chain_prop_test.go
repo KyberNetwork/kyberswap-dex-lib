@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -503,7 +504,7 @@ func chRefresh(t *PoolTracker, l *chListing, p entity.Pool, blocks []chBlock, la
 	}
 	// a listing whose pool takes a fee in the token it pays out is named in its front's config (OneFillListings): it
 	// takes one fill a route
-	if layout {
+	if layout && l.class != "fee" {
 		extra.Repeat = repeatOf(v, r, points, extra.Ladders, samples)
 	}
 	b, _ := json.Marshal(extra)
@@ -949,13 +950,10 @@ func TestChainProperty(t *testing.T) {
 		t.Errorf("the simulator quoted above the chain")
 	}
 	for k, n := range total.reverts {
-		if strings.Contains(k, "|front|") {
-			t.Errorf("the front refused a fill the simulator quoted: %s x%d", k, n)
-		}
+		t.Errorf("a fill the simulator quoted was refused on chain: %s x%d", k, n)
 	}
-	if total.sidesLater < 100 {
-		t.Errorf("the run quotes %d later fills", total.sidesLater)
-	}
+	assert.Empty(t, total.reverts, "no quoted fill is refused, by the front or by the pool")
+	assert.Greater(t, total.sidesLater, 100, "the run quotes later fills")
 	if total.kind0Wrong != 0 || total.cloneWrong != 0 {
 		t.Errorf("state errors")
 	}

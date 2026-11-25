@@ -1,6 +1,7 @@
 package efficientprop
 
 import (
+	"math"
 	"math/big"
 	"strings"
 	"time"
@@ -30,6 +31,12 @@ type PoolSimulator struct {
 	used   [2]uint256.Int
 	unit   [2]uint256.Int
 	repeat [2]uint8
+	// fills is how many fills of the route each direction has taken, and outUnit the unit its pool debits the output
+	// token in (10^max(0, decimals - 6), FLAMMLane.unitOf): the pool books each fill's payout rounded up to it, so
+	// n + 1 fills that end at the ladder's top are debited up to n units more than the one fill the refresh sampled
+	// (curve.quoteAfter)
+	fills   [2]uint8
+	outUnit [2]uint256.Int
 
 	staticExtra StaticExtra
 	tipCapWei   uint64
@@ -189,6 +196,10 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 		}
 	}
 	for i := range 2 {
+		// the unit the pool books the token paid out of this direction in
+		s.outUnit[i].Exp(uint256.NewInt(10), uint256.NewInt(uint64(max(int(ep.Tokens[1-i].Decimals)-6, 0))))
+	}
+	for i := range 2 {
 		c, err := newCurve(ladders[i], from[i])
 		if err != nil {
 			return nil, err
@@ -224,7 +235,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	var amountOut uint256.Int
 	if s.filled[in] {
 		// the remaining depth: the ladder past what the route's fills took
-		if err := s.curves[in].quoteAfter(&s.used[in], amountIn, s.repeat[in] == repeatOwn, &amountOut); err != nil {
+		own := s.repeat[in] == repeatOwn
+		if err := s.curves[in].quoteAfter(&s.used[in], amountIn, own, s.poolSlack(in), &amountOut); err != nil {
 			return nil, err
 		}
 	} else if err := s.curves[in].quote(amountIn, &amountOut); err != nil {
@@ -287,6 +299,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if s.credit {
 		s.filled[out] = true
 	}
+	s.fills[in] = min(s.fills[in]+1, math.MaxUint8)
 	if s.repeat[in] != 0 {
 		// the front's fill memory rises by the input rounded up to the board unit (PropAMMFront._evaluate)
 		var units, rem uint256.Int
@@ -328,6 +341,18 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			_, _, _ = limit.UpdateLimit(s.poolKey(), s.poolKey(), taken, new(big.Int))
 		}
 	}
+}
+
+// poolSlack is how far under its last output the ladder must answer at the end of direction in's next fill: n units of
+// the output token for the n fills before it, and 2 more for a steady ladder's slack. The pool debits each fill's
+// payout rounded up to its bucket unit, and the top fill the refresh sampled passed, so the level is at least the top
+// over the unit, rounded up: n + 1 fills that end under the top by that much round up at most n units more than the
+// one, and the bucket holds them.
+func (s *PoolSimulator) poolSlack(in int) *uint256.Int {
+	var slack uint256.Int
+	slack.SetUint64(uint64(s.fills[in]))
+	slack.Mul(&slack, &s.outUnit[in])
+	return slack.AddUint64(&slack, 2)
 }
 
 // routedFill is whether a fill of amountIn in direction in, which UpdateBalance applies, was a route: its SwapInfo's

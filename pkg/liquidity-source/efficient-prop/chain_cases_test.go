@@ -73,6 +73,54 @@ func chCaseSim(t *testing.T, l *chListing, blk chBlock) (*PoolSimulator, Extra) 
 	return sim, extra
 }
 
+// A pool at its outflow bucket. The pool debits each fill's payout rounded up to the bucket's unit (FLAMMLane.book,
+// _debitAt), so two fills that end at the ladder's top are debited one unit more than the one fill the refresh
+// sampled, and the second reverts OutflowCap. The simulator quotes a later fill only where its end is a bucket unit
+// or more under the ladder's top (curve.quoteAfter).
+func TestChainTwoFillsToTheTopPassThePoolsBucket(t *testing.T) {
+	l := chCase()
+	l.pool.ideal = false
+	// the pool's wstETH bucket holds 0.1 wstETH, 100,000 units of 1e12 wei: under the ask's depth of about 0.277
+	l.pool.level[0] = big.NewInt(100_000)
+	blk := chBlock{nowMs: chNow0}
+	sim, extra := chCaseSim(t, l, blk)
+	require.NotNil(t, extra.Repeat)
+	require.Equal(t, uint8(repeatOwn), extra.Repeat.Kind[1])
+	pts := extra.Ladders[1]
+	top := pts[len(pts)-1]
+
+	// one fill of the top: the chain takes it
+	out, cause := l.chain().ask.swap(top[0].ToBig(), blk)
+	require.Empty(t, cause)
+	require.Equal(t, top[1].ToBig(), out)
+
+	// 100 USDC, then the rest to the top: the chain refuses the second
+	first := big.NewInt(100e6)
+	rest := new(big.Int).Sub(top[0].ToBig(), first)
+	chain := l.chain()
+	q1, err := chCalc(sim, 1, first, nil)
+	require.NoError(t, err)
+	o1, cause := chain.ask.swap(first, blk)
+	require.Empty(t, cause)
+	require.LessOrEqual(t, q1.TokenAmountOut.Amount.Cmp(o1), 0)
+	chApply(sim, 1, first, q1, nil)
+	_, cause = chain.ask.swap(rest, blk)
+	require.Equal(t, "OutflowCap", cause, "the chain refuses the second fill to the top")
+	_, err = chCalc(sim, 1, rest, nil)
+	assert.Error(t, err, "so the simulator does not quote it")
+
+	// a second fill a bucket unit and more under the top is quoted, and the chain pays it
+	short := new(big.Int).Sub(rest, big.NewInt(1e6))
+	chain = l.chain()
+	_, cause = chain.ask.swap(first, blk)
+	require.Empty(t, cause)
+	q2, err := chCalc(sim, 1, short, nil)
+	require.NoError(t, err)
+	o2, cause := chain.ask.swap(short, blk)
+	require.Empty(t, cause)
+	assert.LessOrEqual(t, q2.TokenAmountOut.Amount.Cmp(o2), 0)
+}
+
 // A word that refills the side at the route's second fill. The front refills a side where its word asks it,
 // acknowledges the side's sequence and was stamped after the side's last fill (PropAMMWords.refills). A word that
 // acknowledges the sequence after the next fill, stamped ahead of the block's clock, does not refill at the refresh

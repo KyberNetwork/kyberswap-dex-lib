@@ -467,7 +467,7 @@ func (t *PoolTracker) GetNewPoolState(
 			}
 			// a credit listing's ladders ride in Credit alone: a simulator that predates it quotes none
 			extra.Ladders = [2][]Point{}
-		} else if layout {
+		} else if layout && !f.oneFill(staticExtra.Listing) {
 			// a direction takes a further fill a route where its ladder proves what one pays; its board unit is read
 			// by the layout
 			extra.Repeat = repeatOf(v, h.rungs, points, extra.Ladders, samples)

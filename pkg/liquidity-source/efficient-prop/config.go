@@ -3,6 +3,7 @@ package efficientprop
 import (
 	"fmt"
 	neturl "net/url"
+	"slices"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -109,6 +110,17 @@ type Front struct {
 	// figure, a listing of a class with none is quoted only where it is named here. A listing with a credit mode takes
 	// its figures from CreditListings, never from here. None by default.
 	ListingGas []ListingGas `json:"listingGas,omitempty"`
+	// OneFillListings are the listings whose pool takes a fee in the token it pays out: a spread rate, a notional rate
+	// or an operator's share. Each fill there leaves the pool less room for the next (it takes the fee owed off it),
+	// which the door's samples cannot say, so such a listing takes one fill a route in each direction and its later
+	// fills are not quoted. Name a listing here before its pool sets any of the three; the launch pool sets none.
+	// None by default.
+	OneFillListings []uint32 `json:"oneFillListings,omitempty"`
+}
+
+// oneFill is whether listing takes one fill a route in each direction (OneFillListings).
+func (f Front) oneFill(listing uint32) bool {
+	return slices.Contains(f.OneFillListings, listing)
 }
 
 // ListingGas is one listing's own gas, with its base token in and with its quote token in: each the least first fill

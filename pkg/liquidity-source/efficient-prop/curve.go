@@ -145,8 +145,9 @@ func (c *curve) quote(amount, out *uint256.Int) error {
 // answered differently (own false) only the first holds, and only where the tracker found the ladder steady (Repeat):
 // every block pays at least the ladder's rise between any two points, less a unit, which the bound gives up as well.
 // A fill is quoted only at or above the ladder's first point on both legs, since the listing's minimum fill binds
-// each fill, and only where used + amount is inside the ladder: a size the door filled whole at the refresh.
-func (c *curve) quoteAfter(used, amount *uint256.Int, own bool, out *uint256.Int) error {
+// each fill, and only where used + amount is inside the ladder, a size the door filled whole at the refresh, and its
+// answer there is slack under the ladder's last output (the pool books each fill's payout apart, to its bucket unit).
+func (c *curve) quoteAfter(used, amount *uint256.Int, own bool, slack, out *uint256.Int) error {
 	m := len(c.x)
 	if m == 0 || c.from != m {
 		return ErrSecondFill
@@ -160,6 +161,11 @@ func (c *curve) quoteAfter(used, amount *uint256.Int, own bool, out *uint256.Int
 	}
 	if err := c.quote(&z, &yz); err != nil {
 		return err
+	}
+	// the pool books each fill's payout apart, rounded up to its unit: a fill that ends within slack of the ladder's
+	// top may pass the pool's room, which the top fill alone was sampled against (PoolSimulator.poolSlack)
+	if bound := slack.Add(slack, &yz); bound.Lt(&yz) || bound.Gt(&c.y[m-1]) {
+		return ladder.ErrAmountInTooLarge
 	}
 	// one is: used < used + amount <= x[m-1]
 	i := sort.Search(m, func(k int) bool { return !c.x[k].Lt(used) })

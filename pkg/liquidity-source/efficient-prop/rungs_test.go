@@ -935,3 +935,41 @@ func TestCreditListingKeepsTheOldGrid(t *testing.T) {
 		assert.Equal(t, routedOld[dir], routed[dir], "direction %d: a credit listing asks the sizes it asked before", dir)
 	}
 }
+
+// A listing whose pool takes a fee in the token it pays out (a spread rate, a notional rate or an operator's share)
+// leaves the next fill less room than the door's samples show, which the source does not model: the front's config
+// names such a listing in OneFillListings, and it takes one fill a route in each direction.
+func TestOneFillListingTakesOneFillARoute(t *testing.T) {
+	repeat := func(oneFill bool) (*Repeat, error) {
+		chain := rungEthChain(false)
+		n := builderNode(t, chain, 1234)
+		st := newStateServer(t)
+		st.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+		cfg := ethConfig(st.URL)
+		if oneFill {
+			cfg.Fronts[0].OneFillListings = []uint32{1}
+		}
+		p := ethListed(t, n, cfg)
+		got := ethTrack(t, n, cfg, p)
+		sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: got})
+		require.NoError(t, err)
+		e := extraOf(t, got)
+		tokens := [2]string{hexutil.Encode(testWETH[:]), hexutil.Encode(testUSDC[:])}
+		for dir := range 2 {
+			first := e.Ladders[dir][0][0].ToBig()
+			res, err := calc(sim, tokens[dir], tokens[1-dir], first, nil)
+			require.NoError(t, err)
+			sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: pool.TokenAmount{Token: tokens[dir], Amount: first},
+				TokenAmountOut: *res.TokenAmountOut, SwapInfo: res.SwapInfo})
+			_, err = calc(sim, tokens[dir], tokens[1-dir], first, nil)
+			if oneFill {
+				assert.ErrorIs(t, err, ErrSecondFill, "direction %d", dir)
+			}
+		}
+		return e.Repeat, nil
+	}
+	named, _ := repeat(true)
+	assert.Nil(t, named, "a listing named in OneFillListings carries no later-fill state")
+	unnamed, _ := repeat(false)
+	assert.NotNil(t, unnamed, "and one that is not does")
+}
