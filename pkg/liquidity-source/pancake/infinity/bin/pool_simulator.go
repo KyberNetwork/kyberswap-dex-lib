@@ -99,17 +99,21 @@ func (p *PoolSimulator) GetExchange() string {
 }
 
 func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapResult, error) {
+	amountsLeft, overflow := uint256.FromBig(amountIn)
+	if overflow {
+		return nil, shared.ErrInvalidAmountIn
+	}
+	return p.swapU(exactIn, swapForY, amountsLeft)
+}
+
+// swapU is swap on a uint256 amount. It consumes amountsLeft.
+func (p *PoolSimulator) swapU(exactIn, swapForY bool, amountsLeft *uint256.Int) (*swapResult, error) {
 	protocolFee := getZeroForOneFee(p.protocolFee)
 	if !swapForY {
 		protocolFee = getOneForZeroFee(p.protocolFee)
 	}
 
 	swapFee := p.swapFee
-
-	amountsLeft, overflow := uint256.FromBig(amountIn)
-	if overflow {
-		return nil, shared.ErrInvalidAmountIn
-	}
 
 	if p.hookSwapFee > 0 {
 		// beforeSwap: fee = floor(amount * hookSwapFee / 1e6) of the specified amount, taken
@@ -120,7 +124,7 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 		hookFee.Mul(&hookFee, amountsLeft).Div(&hookFee, _PIPS)
 		if exactIn {
 			amountsLeft.Sub(amountsLeft, &hookFee)
-		} else if _, overflow = amountsLeft.AddOverflow(amountsLeft, &hookFee); overflow {
+		} else if _, overflow := amountsLeft.AddOverflow(amountsLeft, &hookFee); overflow {
 			return nil, shared.ErrInvalidAmountIn
 		}
 		if amountsLeft.IsZero() {
@@ -220,54 +224,6 @@ func (p *PoolSimulator) gas() int64 {
 	return defaultGas
 }
 
-func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenIn, tokenOut := params.TokenAmountIn, params.TokenOut
-	indexIn, indexOut := p.GetTokenIndex(tokenIn.Token), p.GetTokenIndex(tokenOut)
-	if indexIn < 0 || indexOut < 0 {
-		return nil, shared.ErrInvalidToken
-	}
-
-	if p.activeId == 0 {
-		return nil, shared.ErrUninitializedPool
-	}
-
-	amountIn := tokenIn.Amount
-	// A native-flagged side trades at native's own decimals on-chain; only Arc's differ (18 vs 6).
-	if p.isNative[indexIn] {
-		amountIn = valueobject.UnwrapNativeAmount(p.chainID, amountIn)
-	}
-
-	res, err := p.swap(true, indexIn == 0, amountIn)
-	if err != nil {
-		return nil, err
-	}
-
-	amountOut := res.Amount.ToBig()
-	if p.isNative[indexOut] {
-		amountOut = valueobject.WrapNativeAmount(p.chainID, amountOut)
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut,
-		},
-		RemainingTokenAmountIn: &pool.TokenAmount{
-			Token:  tokenIn.Token,
-			Amount: bignumber.ZeroBI,
-		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenIn.Token,
-			Amount: res.Fee.ToBig(),
-		},
-		Gas: p.gas(),
-		SwapInfo: SwapInfo{
-			NewActiveID:        res.NewActiveID,
-			BinsReserveChanges: res.BinsReserveChanges,
-		},
-	}, nil
-}
-
 func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	tokenIn, tokenOut := params.TokenIn, params.TokenAmountOut
 	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut.Token)
@@ -316,25 +272,54 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}, nil
 }
 
-// CalcAmtOut is CalcAmountOut with uint256 amounts. It runs the shared big.Int CalcAmountOut body and converts at
-// the boundary, so the swap math keeps one copy.
+// CalcAmtOut is CalcAmountOut with uint256 amounts.
 func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
-	res, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: params.TokenAmountIn.Amount.ToBig()},
-		TokenOut:      params.TokenOut,
-		Limit:         pool.AsSwapLimitBig(params.Limit),
-	})
+	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenOut
+	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, shared.ErrInvalidToken
+	}
+
+	if p.activeId == 0 {
+		return nil, shared.ErrUninitializedPool
+	}
+
+	amountIn := params.TokenAmountIn.Amount
+	// A native-flagged side trades at native's own decimals on-chain; only Arc's differ (18 vs 6).
+	if p.isNative[indexIn] && p.chainID == valueobject.ChainIDArc {
+		if _, overflow := amountIn.MulOverflow(&amountIn, arcNativeScale); overflow {
+			return nil, shared.ErrInvalidAmountIn
+		}
+	}
+
+	res, err := p.swapU(true, indexIn == 0, &amountIn)
 	if err != nil {
 		return nil, err
 	}
-	return &pool.CalcAmtOutResult{
-		TokenAmountOut:         tokenAmtFromBigBin(res.TokenAmountOut),
-		Fee:                    tokenAmtFromBigBin(res.Fee),
-		RemainingTokenAmountIn: tokenAmtFromBigBin(res.RemainingTokenAmountIn),
-		Gas:                    res.Gas,
-		SwapInfo:               res.SwapInfo,
-	}, nil
+
+	amountOut := res.Amount
+	if p.isNative[indexOut] && p.chainID == valueobject.ChainIDArc {
+		amountOut.Div(amountOut, arcNativeScale)
+	}
+
+	out := &pool.CalcAmtOutResult{
+		TokenAmountOut:         &pool.TokenAmt{Token: tokenOut, Amount: *amountOut},
+		RemainingTokenAmountIn: &pool.TokenAmt{Token: tokenIn},
+		Fee:                    &pool.TokenAmt{Token: tokenIn},
+		Gas:                    p.gas(),
+		SwapInfo: SwapInfo{
+			NewActiveID:        res.NewActiveID,
+			BinsReserveChanges: res.BinsReserveChanges,
+		},
+	}
+	if res.Fee != nil {
+		out.Fee.Amount = *res.Fee
+	}
+	return out, nil
 }
+
+// arcNativeScale is the 1e12 decimals gap between Arc's native currency and its wrapped native token.
+var arcNativeScale = uint256.NewInt(1e12)
 
 // CalcAmtIn is CalcAmountIn with uint256 amounts. It runs the shared big.Int CalcAmountIn body and converts at the
 // boundary, so the swap math keeps one copy.
