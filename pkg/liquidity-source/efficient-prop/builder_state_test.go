@@ -687,3 +687,36 @@ func TestIdleListingIsRefreshedLessOften(t *testing.T) {
 	assert.False(t, extraOf(t, quoted).Idle)
 	assert.Equal(t, quoted.Timestamp+int64(refreshEvery/time.Second), tr.NextUpdateAt(quoted))
 }
+
+// A refresh of one quoted listing that reads a price source, on Ethereum, costs the node a fixed number of requests:
+// this pins what the README states, for a listing bound to a primary and a backup price contract. The /state answer
+// is read apart (an HTTP POST of its own, not the node's).
+func TestBuilderRefreshNodeLoad(t *testing.T) {
+	for _, c := range []struct {
+		name      string
+		carry     bool
+		ethCall   int
+		storageAt int
+	}{{"the word does not carry", false, 5, 10}, {"the word carries", true, 6, 10}} {
+		chain := printChain(false, false)
+		if c.carry {
+			chain.listings[1].view.Scopes |= 8 // a carry life, which the word's carry bit then makes one
+		}
+		n := builderNode(t, chain, 1234)
+		st := newStateServer(t)
+		st.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"a": {
+			testCellA: cellSlots(1235, c.carry, 0), create3Child(testFront, printIDs[0]): printSlots}})
+		cfg := printConfig(st.URL)
+		p := ethListed(t, n, cfg)
+		tr := ethTracker(t, n, cfg, time.Now())
+		before := n.requestCounts()
+		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.NotEmpty(t, extraOf(t, got).Ladders[0], c.name)
+		after := n.requestCounts()
+		assert.Equal(t, c.ethCall, after["eth_call"]-before["eth_call"], "%s: eth_call", c.name)
+		assert.Equal(t, c.storageAt, after["eth_getStorageAt"]-before["eth_getStorageAt"], "%s: eth_getStorageAt",
+			c.name)
+		assert.Equal(t, before["eth_getCode"], after["eth_getCode"], "%s: eth_getCode", c.name)
+	}
+}

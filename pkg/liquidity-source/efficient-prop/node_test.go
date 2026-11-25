@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"maps"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -107,6 +108,15 @@ type node struct {
 	sent []sent
 	// multis is how many calls each multicall the node answered held
 	multis []int
+	// requests is how many JSON-RPC requests of each method the node answered, a batch's each counted
+	requests map[string]int
+}
+
+// requestCounts is a copy of how many requests of each method the node has answered.
+func (n *node) requestCounts() map[string]int {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return maps.Clone(n.requests)
 }
 
 type rpcMessage struct {
@@ -176,6 +186,12 @@ func (n *node) keep(s sent) {
 
 func (n *node) answer(m rpcMessage) map[string]any {
 	reply := map[string]any{"jsonrpc": "2.0", "id": m.ID}
+	n.mu.Lock()
+	if n.requests == nil {
+		n.requests = map[string]int{}
+	}
+	n.requests[m.Method]++
+	n.mu.Unlock()
 	fail := func(err error) map[string]any {
 		n.t.Errorf("%s: %v", m.Method, err)
 		reply["error"] = map[string]any{"code": -32602, "message": err.Error()}

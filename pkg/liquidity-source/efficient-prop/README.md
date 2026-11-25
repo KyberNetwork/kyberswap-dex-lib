@@ -75,9 +75,10 @@ block:
   logs naming a listing, a desk or a pair; a desk contract's `DeskPush` and `LaneFill`; an approved price lane's
   `Posted`; and a fill's `Swapped`, which on Ethereum the listing's quote contract logs. A `Swapped` from an address
   the parser does not know maps to nothing.
-- **Node load.** One refresh of a quoted listing on Ethereum makes 4 `eth_call` (each one multicall) and 7
-  `eth_getStorageAt`, and the listings of a front refreshed within 250 ms share one `/state` read of each url. At the
-  head a refresh makes 3 to 16 `eth_call` by the listing's kind.
+- **Node load.** One refresh of a quoted listing that reads a price source (a primary and a backup), on Ethereum, makes
+  5 `eth_call` (6 where the listing and its word carry into the next block) and 10
+  `eth_getStorageAt` (`TestBuilderRefreshNodeLoad`), and the listings of a front refreshed within 250 ms share one
+  `/state` read of each url. At the head a refresh makes 3 to 16 `eth_call` by the listing's kind.
 
 ## Execution and gas
 
