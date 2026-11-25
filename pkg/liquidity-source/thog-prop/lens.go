@@ -93,15 +93,16 @@ func decodeSnapshotLens(data []byte, proxy common.Address) (State, uint64, error
 	if page.BlockNumber == nil || page.BlockNumber.Cmp(block) != 0 {
 		return State{}, 0, refreshFailure("validation", "lens block", ErrInvalidState)
 	}
-	issuers, amounts, multipliers := values[4].([]common.Address), values[5].([]*big.Int), values[6].([]*big.Int)
-	if len(issuers) != len(amounts) || len(issuers) != len(multipliers) || len(issuers) > maxTokens {
-		return State{}, 0, refreshFailure("validation", "lens issuers", ErrInvalidState)
+	tokens, amounts, multipliers := values[4].([]common.Address), values[5].([]*big.Int), values[6].([]*big.Int)
+	if len(tokens) != len(amounts) || len(tokens) != len(multipliers) || len(tokens) > maxTokens {
+		return State{}, 0, refreshFailure("validation", "lens share tokens", ErrInvalidState)
 	}
-	shares := make(map[string]ShareBalance, len(issuers))
-	for i, issuer := range issuers {
-		key := hexutil.Encode(issuer[:])
-		if _, exists := shares[key]; exists || !isXStock(key) {
-			return State{}, 0, refreshFailure("validation", "lens issuer identity", ErrInvalidState)
+	// The lens lists only tokens with a nonzero stored multiplier.
+	shares := make(map[string]ShareBalance, len(tokens))
+	for i, token := range tokens {
+		key := hexutil.Encode(token[:])
+		if _, exists := shares[key]; exists || multipliers[i].Sign() == 0 {
+			return State{}, 0, refreshFailure("validation", "lens share tokens", ErrInvalidState)
 		}
 		var holding ShareBalance
 		holding.Shares.SetBytes(amounts[i].Bytes())

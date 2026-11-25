@@ -111,6 +111,10 @@ func (ts *PoolFactoryTrackerTestSuite) TestGetNewPoolState() {
 	ts.Require().NoError(json.Unmarshal([]byte(updated.Extra), &extra))
 	ts.Require().True(extra.QuoteReserve.Sign() > 0)
 	ts.Require().True(extra.TokenReserve.Sign() > 0)
+	// trackedQuote is the real quote the curve can pay a seller; it can never
+	// exceed the quote reserve (which adds the virtual phantomQuote).
+	ts.Require().NotNil(extra.TrackedQuote)
+	ts.Require().True(extra.TrackedQuote.Cmp(extra.QuoteReserve) <= 0)
 
 	var staticExtra StaticExtra
 	ts.Require().NoError(json.Unmarshal([]byte(updated.StaticExtra), &staticExtra))

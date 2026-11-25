@@ -7,6 +7,7 @@ import (
 	"github.com/holiman/uint256"
 
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -96,8 +97,12 @@ type TaxConfig struct {
 // PoolMeta is consumed by aggregator-encoding's generic
 // PackPoolAddressFromApprovalInfo: the router address doubles as both the
 // executor calldata (single word, decoded via data.decodeAddress()) and the
-// approval target, since the Machima router pulls tokenIn itself.
-type PoolMeta = pool.MetaInfo
+// approval target, since the Machima router pulls tokenIn itself. The StateBlock (key sB) is the
+// block of the tracker's read of the pool state, see tickspkg.TicksBasedStateBlock.
+type PoolMeta struct {
+	pool.MetaInfo
+	tickspkg.TicksBasedStateBlock
+}
 
 // Metadata is the pool-list checkpoint. The field name is not free: the ticks-based bootstrap
 // persists its own poolMetadata over whatever the lister returns, and feeds that same shape back

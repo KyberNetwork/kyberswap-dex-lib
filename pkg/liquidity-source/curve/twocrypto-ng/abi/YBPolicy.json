@@ -56,10 +56,6 @@
    {
     "name": "report_lifetime",
     "type": "uint256"
-   },
-   {
-    "name": "ratio_tolerance",
-    "type": "uint256"
    }
   ]
  },

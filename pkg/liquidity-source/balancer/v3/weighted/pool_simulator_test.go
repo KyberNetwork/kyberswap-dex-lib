@@ -5,13 +5,18 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/base"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/vault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -313,5 +318,136 @@ func TestCalcAmountIn(t *testing.T) {
 		// assert
 		assert.Equal(t, expectedAmountIn, result.TokenAmountIn.Amount.String())
 		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
+	})
+}
+
+func TestWeightedPoolV2(t *testing.T) {
+	t.Parallel()
+
+	const (
+		token0 = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+		token1 = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+	)
+
+	mustU256 := func(s string) *uint256.Int { return lo.Must(uint256.FromDecimal(s)) }
+	buildSim := func(bal0, bal1 string, w [2]string, minBals []string) *base.PoolSimulator {
+		extra := Extra{
+			Extra: &shared.Extra{
+				StaticSwapFeePercentage:    mustU256("3000000000000000"),
+				AggregateSwapFeePercentage: mustU256("500000000000000000"),
+				BalancesLiveScaled18:       []*uint256.Int{mustU256(bal0), mustU256(bal1)},
+				DecimalScalingFactors:      []*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
+				TokenRates:                 []*uint256.Int{mustU256("1000000000000000000"), mustU256("1000000000000000000")},
+			},
+			NormalizedWeights: []*uint256.Int{mustU256(w[0]), mustU256(w[1])},
+		}
+		if len(minBals) > 0 {
+			extra.MinTokenBalances = []*uint256.Int{mustU256(minBals[0]), mustU256(minBals[1])}
+		}
+		return lo.Must(NewPoolSimulator(pool.FactoryParams{
+			ChainID: valueobject.ChainIDBase,
+			EntityPool: entity.Pool{
+				Address: "0x2222222222222222222222222222222222222222", Exchange: valueobject.ExchangeFrontierWeighted, Type: DexType,
+				Reserves: entity.PoolReserves{bal0, bal1}, BlockNumber: 42000000,
+				Tokens: []*entity.PoolToken{{Address: token0, Decimals: 18, Swappable: true}, {Address: token1, Decimals: 18, Swappable: true}},
+				Extra:  string(lo.Must(json.Marshal(extra))), StaticExtra: `{"buffs":["",""]}`,
+			},
+		}))
+	}
+
+	eq50 := [2]string{"500000000000000000", "500000000000000000"}
+	for _, tc := range []struct {
+		name           string
+		bal0, bal1     string
+		weights        [2]string
+		minBals        []string
+		exactOut       bool
+		amount         int64
+		wantV1, wantV2 string
+		wantV2Err      error
+	}{
+		{"ExactIn +1 rounding", "10000000", "10000000000000000000", [2]string{"800000000000000000", "200000000000000000"}, []string{"1000000", "1000000"}, false, 2_000_000, "5167812005680028660", "5167811684339948710", nil},
+		{"ExactOut +1 rounding", "50000000000000", "1100000000000", eq50, []string{"1000000", "1000000000000"}, true, 100_000_000_000, "5015045135407", "5015045135408", nil},
+		{"indexIn below min (min-2)", "999999999998", "50000000000000000000", eq50, []string{"1000000000000", "1000000"}, false, 10_000_000, "498495030005500", "", ErrTokenBalanceBelowMin},
+		{"indexIn boundary (min-1 + 1 == min)", "999999999999", "50000000000000000000", eq50, []string{"1000000000000", "1000000"}, false, 10_000_000, "498495030005000", "498495030004550", nil},
+		{"indexOut below min ExactIn", "50000000000000", "1100000000000", eq50, []string{"1000000", "1000000000000"}, false, 10_000_000_000_000, "182874770718", "", ErrTokenBalanceBelowMin},
+		{"indexOut below min ExactOut", "50000000000000", "1100000000000", eq50, []string{"1000000", "1000000000000"}, true, 100_000_000_001, "5015045135463", "", ErrTokenBalanceBelowMin},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			v1Sim, v2Sim := buildSim(tc.bal0, tc.bal1, tc.weights, nil), buildSim(tc.bal0, tc.bal1, tc.weights, tc.minBals)
+			quote := func(s *base.PoolSimulator) (*big.Int, error) {
+				if tc.exactOut {
+					r, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
+						return s.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: token1, Amount: big.NewInt(tc.amount)}, TokenIn: token0})
+					})
+					if err != nil {
+						return nil, err
+					}
+					return r.TokenAmountIn.Amount, nil
+				}
+				r, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+					return testutil.CalcAmountOutNative(s, pool.TokenAmount{Token: token0, Amount: big.NewInt(tc.amount)}, token1, nil)
+				})
+				if err != nil {
+					return nil, err
+				}
+				return r.TokenAmountOut.Amount, nil
+			}
+			v1Got, err := quote(v1Sim)
+			require.NoError(t, err)
+			require.Equal(t, tc.wantV1, v1Got.String())
+
+			v2Got, err := quote(v2Sim)
+			if tc.wantV2Err != nil {
+				require.ErrorIs(t, err, tc.wantV2Err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.wantV2, v2Got.String())
+			}
+		})
+	}
+
+	t.Run("CloneState and UpdateBalance preserve v2 minimum balance enforcement", func(t *testing.T) {
+		sim := buildSim("50000000000000", "1100000000000", eq50, []string{"1000000", "1000000000000"})
+		cloned := sim.CloneState()
+		params := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: token0, Amount: big.NewInt(3_000_000_000_000)}, TokenOut: token1}
+		first, err := testutil.CalcAmountOutNative(cloned, params.TokenAmountIn, params.TokenOut, nil)
+		require.NoError(t, err)
+		cloned.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: params.TokenAmountIn, TokenAmountOut: *first.TokenAmountOut, SwapInfo: first.SwapInfo})
+		_, err = testutil.CalcAmountOutNative(cloned, params.TokenAmountIn, params.TokenOut, nil)
+		require.ErrorIs(t, err, ErrTokenBalanceBelowMin)
+		orig, err := testutil.CalcAmountOutNative(sim, params.TokenAmountIn, params.TokenOut, nil)
+		require.NoError(t, err)
+		require.Equal(t, first.TokenAmountOut.Amount, orig.TokenAmountOut.Amount)
+	})
+
+	// Live snapshot of Frontier Ethereum 50WBTC-50WETH (WeightedPool v2) at block 26455234:
+	// https://etherscan.io/address/0xbe4f51b275f3d4d6a0130988be79b25523549c7a
+	// Verified against BatchRouter (0x7D08bc34e444848983227E266F61146A7e935A94) querySwapExactIn/querySwapExactOut.
+	t.Run("Live Ethereum Frontier 50WBTC-50WETH snapshot at block 26455234", func(t *testing.T) {
+		const (
+			wbtc = "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
+			weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+		)
+		var p entity.Pool
+		require.NoError(t, json.Unmarshal([]byte(`{"address":"0xbe4f51b275f3d4d6a0130988be79b25523549c7a","exchange":"frontier-weighted","type":"balancer-v3-weighted","timestamp":1795164767,"reserves":["112341","39497665194129220"],"tokens":[{"address":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","swappable":true}],"extra":"{\"hook\":{},\"fee\":\"1000000000000000\",\"aggrFee\":\"0\",\"balsE18\":[\"1123410000000000\",\"39497665194129220\"],\"decs\":[\"10000000000\",\"1\"],\"rates\":[\"1000000000000000000\",\"1000000000000000000\"],\"buffs\":[null,null],\"normalizedWeights\":[\"500000000000000000\",\"500000000000000000\"],\"minTokenBalances\":[\"10000000000\",\"1000000\"]}","staticExtra":"{\"buffs\":[\"\",\"\"]}","blockNumber":26455234}`), &p))
+
+		sim := lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: p, ChainID: valueobject.ChainIDEthereum}))
+		// 20000 sat WBTC -> WETH: on-chain BatchRouter.querySwapExactIn returns 5964006851359203 (v1 over-quotes +5 wei).
+		out20k, err := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: wbtc, Amount: big.NewInt(20000)}, weth, nil)
+		require.NoError(t, err)
+		require.Equal(t, "5964006851359203", out20k.TokenAmountOut.Amount.String())
+
+		out2246, err := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: wbtc, Amount: big.NewInt(2246)}, weth, nil)
+		require.NoError(t, err)
+		require.Equal(t, "773427887884527", out2246.TokenAmountOut.Amount.String())
+
+		inRes, err := sim.CalcAmountIn(pool.CalcAmountInParams{TokenAmountOut: pool.TokenAmount{Token: weth, Amount: out2246.TokenAmountOut.Amount}, TokenIn: wbtc})
+		require.NoError(t, err)
+		require.Equal(t, "2246", inRes.TokenAmountIn.Amount.String())
+
+		meta := sim.GetMetaInfo(wbtc, weth).(shared.PoolMetaInfo)
+		require.Equal(t, "0x7d08bc34e444848983227e266f61146a7e935a94", meta.ApprovalAddress)
+		require.Equal(t, uint64(26455234), meta.BlockNumber)
 	})
 }

@@ -33,11 +33,10 @@ var (
 // Extra is a block-consistent fee snapshot. Timestamp is chain time, never the
 // quoting machine's clock. Pool service must refresh on fee updates and expiry.
 type Extra struct {
-	Fee0For1    uint32 `json:"f01"`
-	Fee1For0    uint32 `json:"f10"`
-	ExpiresAt   uint64 `json:"expiry"`
-	Timestamp   uint64 `json:"ts"`
-	ProtocolFee uint32 `json:"pf"`
+	Fee0For1  uint32 `json:"f01"`
+	Fee1For0  uint32 `json:"f10"`
+	ExpiresAt uint64 `json:"expiry"`
+	Timestamp uint64 `json:"ts"`
 }
 
 type Hook struct {
@@ -81,20 +80,18 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	target := hexutil.Encode(param.HookAddress[:])
 	var registered bool
 	var result struct{ State feeState }
-	var slot slot0
 	var timestamp *big.Int
 	_, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).
 		SetOverrides(param.Overrides).
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: target, Method: "registered", Params: []any{id}}, []any{&registered}).
 		AddCall(&ethrpc.Call{ABI: hookABI, Target: target, Method: "feeStateOf", Params: []any{id}}, []any{&result}).
-		AddCall(&ethrpc.Call{ABI: stateViewABI, Target: param.Cfg.StateViewAddress, Method: "getSlot0", Params: []any{id}}, []any{&slot}).
 		AddCall(&ethrpc.Call{ABI: clockABI, Target: "0xca11bde05977b3631167028862be2a173976ca11", Method: "getCurrentBlockTimestamp"}, []any{&timestamp}).
 		Aggregate()
 	if err != nil {
 		return nil, err
 	}
 	state := result.State
-	if !registered || slot.ProtocolFee == nil || !slot.ProtocolFee.IsUint64() || slot.ProtocolFee.Uint64() > 0xffffff || timestamp == nil || !timestamp.IsUint64() ||
+	if !registered || timestamp == nil || !timestamp.IsUint64() ||
 		state.ZeroForOneFee == nil || state.OneForZeroFee == nil ||
 		!state.ZeroForOneFee.IsUint64() || !state.OneForZeroFee.IsUint64() ||
 		state.ZeroForOneFee.Uint64() > 0xffffff || state.OneForZeroFee.Uint64() > 0xffffff {
@@ -102,7 +99,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 	}
 	extra := Extra{
 		Fee0For1: uint32(state.ZeroForOneFee.Uint64()), Fee1For0: uint32(state.OneForZeroFee.Uint64()),
-		ExpiresAt: state.ExpiresAt, Timestamp: timestamp.Uint64(), ProtocolFee: uint32(slot.ProtocolFee.Uint64()),
+		ExpiresAt: state.ExpiresAt, Timestamp: timestamp.Uint64(),
 	}
 	if _, err = extra.budget(true); err != nil {
 		return nil, err
@@ -114,7 +111,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (json.RawM
 }
 
 func (e Extra) budget(zeroForOne bool) (uint64, error) {
-	if e.Timestamp == 0 || e.ProtocolFee > 0xffffff || e.ProtocolFee&0xfff > 1000 || e.ProtocolFee>>12 > 1000 {
+	if e.Timestamp == 0 {
 		return 0, errInvalidState
 	}
 	if e.Timestamp >= e.ExpiresAt {
@@ -147,15 +144,13 @@ func (h *Hook) BeforeSwap(p *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapR
 		return nil, err
 	}
 	lp, _ := split(fee, p.CalcOut)
-	protocol := uint64(h.ProtocolFee >> 12)
-	if p.ZeroForOne {
-		protocol = uint64(h.ProtocolFee & 0xfff)
+	// The parent simulator adds the pool's directional protocol fee on top of this LP fee override,
+	// as PoolManager does. OverrideFeeFlag keeps a zero LP fee an override rather than "none".
+	if lp == 0 {
+		lp = uint64(uniswapv4.OverrideFeeFlag)
 	}
-	// The parent simulator replaces its total core swap fee with this override,
-	// so compose the directional protocol fee here (not in the platform fraction).
-	total := protocol + lp - protocol*lp/1000000
 	return &uniswapv4.BeforeSwapResult{
-		SwapFee: uniswapv4.FeeAmount(total), DeltaSpecified: new(uint256.Int),
+		SwapFee: uniswapv4.FeeAmount(lp), DeltaSpecified: new(uint256.Int),
 		DeltaUnspecified: new(uint256.Int), Gas: gasBeforeSwap,
 	}, nil
 }

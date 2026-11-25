@@ -501,6 +501,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		HookData:    []byte{},
 		PriceLimit:  p.GetSqrtPriceLimit(tokenIn == p.GetTokens()[0]),
 		SwapFee:     p.Info.SwapFee.Uint64(),
+
+		TicksBasedStateBlock: p.StateBlockMeta(),
 	}
 }
 

@@ -7,9 +7,10 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// Integer operations and their order follow deployed MakerRoutingMath. In
-// particular, the volume charge is outside the positive Kelly-risk clamp,
-// and the output refund is part of the output solve, before token conversion.
+// Integer operations and their order follow the contract's MakerRoutingMath
+// library. Two details matter: the volume charge applies even when the risk
+// charge is clamped to zero, and a credit for the output token is solved
+// together with the output value, before conversion to token units.
 type curve struct {
 	balances                                                                           [maxTokens]uint256.Int
 	inputDust, outputDust                                                              uint256.Int

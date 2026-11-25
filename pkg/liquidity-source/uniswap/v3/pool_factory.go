@@ -67,11 +67,6 @@ func (f *PoolFactory) newPool(token0, token1, poolAddress common.Address, blockN
 		return nil, err
 	}
 
-	staticExtraBytes, err := json.Marshal(StaticExtra{PoolId: poolAddressHex})
-	if err != nil {
-		return nil, err
-	}
-
 	return &entity.Pool{
 		Address:     poolAddressHex,
 		Exchange:    f.config.DexID,
@@ -79,7 +74,6 @@ func (f *PoolFactory) newPool(token0, token1, poolAddress common.Address, blockN
 		Timestamp:   time.Now().Unix(),
 		Reserves:    entity.PoolReserves{"0", "0"},
 		Tokens:      []*entity.PoolToken{&t0, &t1},
-		StaticExtra: string(staticExtraBytes),
 		Extra:       string(extraBytes),
 		BlockNumber: blockNumber,
 	}, nil

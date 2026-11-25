@@ -356,3 +356,37 @@ func TestCalcAmountOut_NFTGated(t *testing.T) {
 		TokenAmountOut: pool.TokenAmount{Token: testBaseToken, Amount: big.NewInt(1e15)}, TokenIn: testQuoteToken})
 	assert.ErrorIs(t, err, ErrNFTGated)
 }
+
+func TestGasByDirection(t *testing.T) {
+	sim := buildTestPool(t)
+
+	buy, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testQuoteToken, Amount: big.NewInt(1e18)},
+		TokenOut:      testBaseToken,
+	})
+	require.NoError(t, err)
+	assert.EqualValues(t, buyGas, buy.Gas)
+
+	sellIn, _ := new(big.Int).SetString("1000000000000000000000", 10)
+	sell, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: testBaseToken, Amount: sellIn},
+		TokenOut:      testQuoteToken,
+	})
+	require.NoError(t, err)
+	assert.EqualValues(t, sellGas, sell.Gas)
+
+	desiredBase, _ := new(big.Int).SetString("1000000000000000000000", 10)
+	buyIn, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: testBaseToken, Amount: desiredBase},
+		TokenIn:        testQuoteToken,
+	})
+	require.NoError(t, err)
+	assert.EqualValues(t, buyGas, buyIn.Gas)
+
+	sellOut, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: testQuoteToken, Amount: big.NewInt(1e15)},
+		TokenIn:        testBaseToken,
+	})
+	require.NoError(t, err)
+	assert.EqualValues(t, sellGas, sellOut.Gas)
+}

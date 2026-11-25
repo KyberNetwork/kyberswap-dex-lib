@@ -131,6 +131,9 @@ type RehypeDHook struct {
 	EndFee          int64 `json:"e,omitempty"`
 	StartingTime    int64 `json:"t,omitempty"`
 	DurationSeconds int64 `json:"d,omitempty"`
+	// FeeLegs[i] = the extra afterSwap work (feeLegLp, feeLegBuybackSwap bits) when the fee is taken in currency i,
+	// from getFeeDistributionInfo.
+	FeeLegs [2]uint8 `json:"l,omitempty"`
 
 	// feeDenominator is the MAX_SWAP_FEE constant of the deployed hook generation this
 	// instance models. Derived from DHooks at construction; never persisted.
@@ -150,6 +153,39 @@ func newRehypeDHook(dExtra json.RawMessage, feeDenominator int64) IDHook {
 	_ = json.Unmarshal(dExtra, &hook)
 	hook.feeDenominator = feeDenominator
 	return &hook
+}
+
+// feeDistributionRPC is the ABI decode target for getFeeDistributionInfo.
+type feeDistributionRPC struct {
+	AssetFeesToAssetBuybackWad         *big.Int
+	AssetFeesToNumeraireBuybackWad     *big.Int
+	AssetFeesToBeneficiaryWad          *big.Int
+	AssetFeesToLpWad                   *big.Int
+	NumeraireFeesToAssetBuybackWad     *big.Int
+	NumeraireFeesToNumeraireBuybackWad *big.Int
+	NumeraireFeesToBeneficiaryWad      *big.Int
+	NumeraireFeesToLpWad               *big.Int
+}
+
+// feeLegsByCurrency returns the extra afterSwap work when the swap fee is taken in currency0 and in currency1: a share
+// for LP runs the rebalance search, a swap and a full-range liquidity add; a buyback into the other token runs a swap.
+// Direct buybacks and beneficiary shares are plain transfers.
+func (d *feeDistributionRPC) feeLegsByCurrency(assetIsToken0 bool) [2]uint8 {
+	legs := func(lp, buybackSwap *big.Int) (l uint8) {
+		if lp != nil && lp.Sign() > 0 {
+			l |= feeLegLp
+		}
+		if buybackSwap != nil && buybackSwap.Sign() > 0 {
+			l |= feeLegBuybackSwap
+		}
+		return l
+	}
+	asset := legs(d.AssetFeesToLpWad, d.AssetFeesToNumeraireBuybackWad)
+	numeraire := legs(d.NumeraireFeesToLpWad, d.NumeraireFeesToAssetBuybackWad)
+	if assetIsToken0 {
+		return [2]uint8{asset, numeraire}
+	}
+	return [2]uint8{numeraire, asset}
 }
 
 // feeScheduleRPC is the ABI decode target for getFeeSchedule.
@@ -174,6 +210,7 @@ type HookFees struct {
 func (h *RehypeDHook) Track(ctx context.Context, param *uniswapv4.HookParam, dHook *DHook) (json.RawMessage, error) {
 	var rpc feeScheduleRPC
 	var legacy HookFees
+	var distribution feeDistributionRPC
 	poolID := common.HexToHash(param.Pool.Address)
 	target := hexutil.Encode(dHook.DHook[:])
 
@@ -189,7 +226,16 @@ func (h *RehypeDHook) Track(ctx context.Context, param *uniswapv4.HookParam, dHo
 			Target: target,
 			Method: "getHookFees",
 			Params: []any{poolID},
-		}, []any{&legacy}).TryAggregate()
+		}, []any{&legacy}).
+		AddCall(&ethrpc.Call{
+			ABI:    rehypeDopplerHookABI,
+			Target: target,
+			Method: "getFeeDistributionInfo",
+			Params: []any{poolID},
+		}, []any{&distribution}).TryAggregate()
+
+	h.FeeLegs = distribution.feeLegsByCurrency(
+		len(param.Pool.Tokens) == 2 && common.HexToAddress(param.Pool.Tokens[0].Address) == dHook.Asset)
 
 	if rpc.StartFee == 0 {
 		// Older contracts without getFeeSchedule: fall back to static customFee.
@@ -243,7 +289,15 @@ func (h *RehypeDHook) getCurrentFee() int64 {
 func (h *RehypeDHook) AfterSwap(params *uniswapv4.AfterSwapParams, _ *DHook) (*uniswapv4.AfterSwapResult, error) {
 	currentFee := h.getCurrentFee()
 	if currentFee == 0 {
-		return &uniswapv4.AfterSwapResult{HookFee: new(uint256.Int), Gas: 198835}, nil
+		return &uniswapv4.AfterSwapResult{HookFee: new(uint256.Int), Gas: rehypeGas}, nil
+	}
+	// The executed swap is exact-in, so the fee is taken in the output token: currency1 when zeroForOne.
+	gas, legs := rehypeGas, h.FeeLegs[lo.Ternary(params.ZeroForOne, 1, 0)]
+	if legs&feeLegLp != 0 {
+		gas += rehypeLpGas
+	}
+	if legs&feeLegBuybackSwap != 0 {
+		gas += rehypeBuybackSwapGas
 	}
 	feeBase := lo.Ternary(params.CalcOut, params.AmountOut, params.AmountIn)
 	denominator := h.feeDenominator
@@ -252,6 +306,6 @@ func (h *RehypeDHook) AfterSwap(params *uniswapv4.AfterSwapParams, _ *DHook) (*u
 	}
 	return &uniswapv4.AfterSwapResult{
 		HookFee: big256.MulDivDown(new(uint256.Int), uint256.NewInt(uint64(currentFee)), feeBase, uint256.NewInt(uint64(denominator))),
-		Gas:     198835,
+		Gas:     gas,
 	}, nil
 }

@@ -8,33 +8,18 @@ import (
 	"github.com/holiman/uint256"
 )
 
-func (s *State) field(slot, offset, width int) uint256.Int {
-	return bits(&s.Words[slot], uint(offset), uint(width))
-}
-func (s *State) small(slot, offset, width int) uint64 {
-	n := s.field(slot, offset, width)
-	return n.Uint64()
-}
-func (s *State) packed(slot, index, width, perWord int) uint256.Int {
-	return s.field(slot+index/perWord, index%perWord*width, width)
-}
-func (s *State) tokenField(index, offset, width int) uint256.Int {
-	return s.field(9+index/3, index%3*75+offset, width)
-}
 func (s *State) covariance(a, b int) int64 {
-	if a > b {
-		a, b = b, a
-	}
-	i := b*(b+1)/2 + a
-	n := s.packed(37, i, 16, 16)
-	return int64(int16(n.Uint64()))
+	return int64(int16(s.small(covarianceField(covarianceIndex(a, b)))))
 }
+
+// price decodes a token's USD price, scaled by 1e18. A stored price stands for
+// the interval [mantissa, mantissa+1) at its exponent: the pool values what it
+// receives at the lower end and what it pays at the upper end.
 func (s *State) price(index int, upper bool) uint256.Int {
-	n := s.packed(20, index, 64, 4)
-	packed := n.Uint64()
+	packed := s.small(priceField(index))
 	exponent := packed >> 56
 	mantissa := packed & ((1 << 56) - 1)
-	if mantissa < 2000000 || exponent > 18 {
+	if mantissa < minPriceMantissa || exponent > 18 {
 		return uint256.Int{}
 	}
 	if upper {
@@ -48,25 +33,24 @@ func (s *State) price(index int, upper bool) uint256.Int {
 func (s *State) validate() error {
 	n := len(s.Tokens)
 	c := s.CategoryCount
-	if n < 1 || n > maxTokens || c < 1 || c > n || s.small(2, 0, 8) != 8 || s.small(2, 8, 6) != uint64(n) || s.small(2, 14, 6) != uint64(c) || s.small(8, 160, 24) != (8|8<<8|3<<16) || s.small(8, 184, 32) == 0 {
+	if n < 1 || n > maxTokens || c < 1 || c > n || s.small(controlLayoutVersion) != supportedLayout || s.small(controlTokenCount) != uint64(n) || s.small(controlCategoryCount) != uint64(c) || s.small(metadataVersions) != supportedVersions || s.small(metadataGeneration) == 0 {
 		return ErrInvalidState
 	}
 	for i, t := range s.Tokens {
-		holding := s.Shares[i]
-		if isXStock(t.Address) {
+		if s.shareBased(i) {
+			// The page reports a share-based token at the pool's stored multiplier.
 			m := arithmetic{}
-			balance := s.amountForUnits(&m, i, holding.Shares)
-			if holding.Multiplier.IsZero() || m.err != nil || balance != s.Balances[i] {
+			if balance := s.amountForUnits(&m, i, s.Shares[i].Shares); m.err != nil || balance != s.Balances[i] {
 				return ErrInvalidState
 			}
-		} else if holding != (ShareBalance{}) {
+		} else if !s.Shares[i].Shares.IsZero() {
 			return ErrInvalidState
 		}
-		catalogID := int(s.small(9+i/3, i%3*75, 5))
-		if s.small(19, catalogID*6, 6) != uint64(i+1) {
+		catalogID := int(s.small(tokenField(i, tokenCatalogID)))
+		if s.small(registryIndex(catalogID)) != uint64(i+1) {
 			return ErrInvalidState
 		}
-		if t.Decimals > 18 || int(t.Category) >= c || !common.IsHexAddress(t.Address) || t.Address != strings.ToLower(t.Address) || t.Address == "0x0000000000000000000000000000000000000000" || s.small(9+i/3, i%3*75+5, 5) != uint64(t.Decimals) || s.small(9+i/3, i%3*75+10, 5) != uint64(t.Category) {
+		if t.Decimals > 18 || int(t.Category) >= c || !common.IsHexAddress(t.Address) || t.Address != strings.ToLower(t.Address) || t.Address == "0x0000000000000000000000000000000000000000" || s.small(tokenField(i, tokenDecimals)) != uint64(t.Decimals) || s.small(tokenField(i, tokenCategory)) != uint64(t.Category) {
 			return ErrInvalidState
 		}
 		for j := 0; j < i; j++ {
@@ -76,7 +60,7 @@ func (s *State) validate() error {
 		}
 	}
 	for i := 0; i < c; i++ {
-		anchor := s.small(27+i/3, i%3*85+80, 5)
+		anchor := s.small(categoryField(i, categoryAnchor))
 		if anchor >= uint64(n) || int(s.Tokens[anchor].Category) != i {
 			return ErrInvalidState
 		}
@@ -95,16 +79,16 @@ func (s *State) inventory(m *arithmetic, balances *[maxTokens]uint256.Int, index
 	return value
 }
 func (s *State) wrapper(m *arithmetic, balances *[maxTokens]uint256.Int, index int, receiving bool) (fixed, slope, inventory uint256.Int) {
-	kind := s.tokenField(index, 31, 2)
-	if kind.IsZero() {
+	kind := s.small(tokenField(index, tokenWrapperKind))
+	if kind == wrapperNone {
 		return
 	}
-	coefficient := s.packed(87, index, 64, 4)
-	if kind.Uint64() == 1 {
+	coefficient := s.field(wrapperCoefficient(index))
+	if kind == wrapperFixed {
 		fixed = coefficient
 		return
 	}
-	target := m.mul(s.packed(94, int(s.Tokens[index].Category), 64, 4), powers[12])
+	target := m.mul(s.field(categoryTarget(int(s.Tokens[index].Category))), powers[12])
 	if target.IsZero() {
 		m.err = ErrUnavailable
 		return
@@ -113,7 +97,7 @@ func (s *State) wrapper(m *arithmetic, balances *[maxTokens]uint256.Int, index i
 	if receiving {
 		slope = m.md(coefficient, powers[36], target, true)
 	} else {
-		slope = m.md(m.mul(coefficient, s.tokenField(index, 33, 10)), powers[36], m.mul(target, u(1000)), false)
+		slope = m.md(m.mul(coefficient, s.field(tokenField(index, tokenWrapperRefund))), powers[36], m.mul(target, u(1000)), false)
 		if !slope.IsZero() {
 			maximum := m.div(m.sub(powers[54], u(1)), slope)
 			if inventory.Gt(&maximum) {
@@ -131,17 +115,17 @@ func (s *State) prepareWithAgeCheck(i, o int, block uint64, checkAge bool) (c cu
 	if i < 0 || o < 0 || i >= len(s.Tokens) || o >= len(s.Tokens) || i == o {
 		return c, ErrInvalidToken
 	}
-	if block < s.BlockNumber || s.small(2, 132, 1) != 0 || s.small(2, 133, 3) != 7 || s.small(2, 68+2*i, 1) == 0 || s.small(2, 69+2*o, 1) == 0 {
+	if block < s.BlockNumber || s.small(controlPaused) != 0 || s.small(controlReady) != controlAllReady || s.small(controlSellSide(i)) == 0 || s.small(controlBuySide(o)) == 0 {
 		return c, ErrUnavailable
 	}
-	posted := s.small(2, 36, 32)
-	age := s.small(2, 138, 8)
+	posted := s.small(controlBlock)
+	age := s.small(controlMaxAge)
 	if posted == 0 || posted > block || (checkAge && (age == 0 || block-posted > age)) {
 		return c, ErrUnavailable
 	}
 	m := arithmetic{}
 	c.balances = s.pairBalances(&m, i, o)
-	c.inputDust, c.outputDust = s.transferDust(&m, i), s.transferDust(&m, o)
+	c.inputDust, c.outputDust = s.transferDust(i), s.transferDust(o)
 	if m.err != nil {
 		return c, m.err
 	}
@@ -155,16 +139,13 @@ func (s *State) prepareWithAgeCheck(i, o int, block uint64, checkAge bool) (c cu
 	}
 	c.inputScale = powers[s.Tokens[i].Decimals]
 	c.outputScale = powers[s.Tokens[o].Decimals]
-	c.lambda = s.field(2, 162, 32)
-	c.volumeRate = s.tokenField(i, 59, 16)
+	c.lambda = s.field(controlLambda)
+	c.volumeRate = s.field(tokenField(i, tokenVolumeRate))
 	a, b := int(s.Tokens[i].Category), int(s.Tokens[o].Category)
-	low, high := i, o
-	if low > high {
-		low, high = high, low
-	}
-	pair := high*(high-1)/2 + low
-	c.spread = m.add(m.add(s.tokenField(i, 15, 16), s.tokenField(o, 43, 16)), m.add(s.field(27+a/3, a%3*85+64, 16), s.field(27+b/3, b%3*85+64, 16)))
-	c.spread = m.add(c.spread, m.add(s.packed(63, pair, 16, 16), m.mul(u(block-posted), s.field(2, 146, 16))))
+	// Spread: the input token's bid, the output token's ask, both categories, the
+	// pair, and the widening for each block since the price update.
+	c.spread = m.add(m.add(s.field(tokenField(i, tokenBidSpread)), s.field(tokenField(o, tokenAskSpread))), m.add(s.field(categoryField(a, categorySpread)), s.field(categoryField(b, categorySpread))))
+	c.spread = m.add(c.spread, m.add(s.field(pairSpreadField(pairIndex(i, o))), m.mul(u(block-posted), s.field(controlWiden))))
 	if c.spread.CmpUint64(1000000) >= 0 {
 		return c, ErrUnavailable
 	}
@@ -177,8 +158,8 @@ func (s *State) prepareWithAgeCheck(i, o int, block uint64, checkAge bool) (c cu
 			if diff[category] == 0 {
 				continue
 			}
-			offset := int64(s.small(27+category/3, category%3*85, 64))
-			anchor := int(s.small(27+category/3, category%3*85+80, 5))
+			offset := int64(s.small(categoryField(category, categoryOffset)))
+			anchor := int(s.small(categoryField(category, categoryAnchor)))
 			exposure[category] = m.id(m.im(si(offset), m.signed(s.price(anchor, false))), si(1000000))
 		}
 		for index, t := range s.Tokens {
@@ -188,6 +169,9 @@ func (s *State) prepareWithAgeCheck(i, o int, block uint64, checkAge bool) (c cu
 			}
 		}
 		for category := 0; category < s.CategoryCount; category++ {
+			if diff[category] == 0 {
+				continue // This category's exposure was not evaluated and contributes zero.
+			}
 			c.gradient = m.ia(c.gradient, m.id(m.im(exposure[category], si(diff[category])), si(1000000000)))
 		}
 	}
@@ -229,7 +213,7 @@ func (s *State) checkInventory(c *curve, input, output uint256.Int, quote bool) 
 	} else if !output.IsZero() {
 		output = m.add(output, c.outputDust)
 	}
-	limit := min(max(capLimit(&m, s.packed(101, c.input, 24, 10), quote), c.balances[c.input]), s.amountForUnits(&m, c.input, maxInventory))
+	limit := min(max(capLimit(&m, s.field(tokenCap(c.input)), quote), c.balances[c.input]), s.amountForUnits(&m, c.input, maxInventory))
 	if m.err != nil {
 		return m.err
 	}
@@ -250,16 +234,21 @@ func (s *State) checkInventory(c *curve, input, output uint256.Int, quote bool) 
 		if t.Address == wmon {
 			balance = m.add(balance, s.NativeBalance)
 		}
-		beforeValue = m.add(beforeValue, m.md(balance, s.price(i, false), powers[t.Decimals], false))
+		price := s.price(i, false)
+		tokenValue := m.md(balance, price, powers[t.Decimals], false)
+		beforeValue = m.add(beforeValue, tokenValue)
 		if i == c.input {
 			balance = m.add(balance, input)
 		}
 		if i == c.output {
 			balance = m.sub(balance, output)
 		}
-		value = m.add(value, m.md(balance, s.price(i, false), powers[t.Decimals], false))
+		if i == c.input || i == c.output {
+			tokenValue = m.md(balance, price, powers[t.Decimals], false)
+		}
+		value = m.add(value, tokenValue)
 	}
-	categoryLimit := max(capLimit(&m, s.packed(104, int(category), 24, 10), quote), beforeValue)
+	categoryLimit := max(capLimit(&m, s.field(categoryCap(int(category))), quote), beforeValue)
 	if m.err != nil {
 		return m.err
 	}
@@ -357,7 +346,7 @@ func (s *State) Limits(i, o int) (sell, buy uint256.Int, err error) {
 	}
 	m := arithmetic{}
 	buy = saturatingSub(s.Balances[o], c.outputDust)
-	limit := min(capLimit(&m, s.packed(101, i, 24, 10), true), s.amountForUnits(&m, i, maxInventory))
+	limit := min(capLimit(&m, s.field(tokenCap(i)), true), s.amountForUnits(&m, i, maxInventory))
 	if !s.Balances[o].IsZero() && s.Balances[i].Lt(&limit) {
 		sell = min(c.inputLimit, m.sub(limit, s.Balances[i]))
 	}

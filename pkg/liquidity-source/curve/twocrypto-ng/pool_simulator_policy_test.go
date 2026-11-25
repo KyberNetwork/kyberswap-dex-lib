@@ -3,8 +3,12 @@ package twocryptong
 import (
 	"context"
 	"encoding/json"
-	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 	"testing"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
@@ -326,14 +330,59 @@ func TestYieldBasisPolicyUpdateBalanceMovesSnapshot(t *testing.T) {
 	require.True(t, sim.Extra.Policy.SnapD.Eq(sim.Extra.D))
 }
 
-func TestPolicyFetchRejectsUnknown(t *testing.T) {
-	// A policy with unverified logic is rejected before any RPC call.
-	_, err := FetchPolicy(context.Background(), nil, nil, common.HexToAddress("0x57336cE442165ccDF19a820355a823238137170b"), nil)
-	require.ErrorIs(t, err, ErrUnsupportedPolicy)
-	// A verified native-fee policy (get_fee returns 0) keeps the pool's own fee.
-	st, err := FetchPolicy(context.Background(), nil, nil, common.HexToAddress("0x0436c0648AfD66de23f86f23cB42884304743EfA"), nil)
+// An unknown or unfetchable policy never errors (so the pool state still refreshes) and quotes
+// with the policy's highest fee. A native-fee policy keeps the pool's own fee.
+func TestPolicyFetchFallback(t *testing.T) {
+	unknown := common.HexToAddress("0x57336cE442165ccDF19a820355a823238137170b")
+	st, err := FetchPolicy(context.Background(), nil, nil, unknown, nil)
+	require.NoError(t, err)
+	require.Equal(t, policyFeeCap.String(), st.FallbackFee.String())
+	require.True(t, st.ReportPrice.IsZero())
+
+	// A failing RPC (transient error) falls back the same way instead of failing the refresh.
+	client := ethrpc.New("http://127.0.0.1:1")
+	st, err = FetchPolicy(context.Background(), client, nil, unknown, nil)
+	require.NoError(t, err)
+	require.Equal(t, policyFeeCap.String(), st.FallbackFee.String())
+
+	st, err = FetchPolicy(context.Background(), nil, nil, common.HexToAddress("0x0436c0648AfD66de23f86f23cB42884304743EfA"), nil)
 	require.NoError(t, err)
 	require.Nil(t, st)
+}
+
+// The fallback fee must never exceed the verified policy cap, and a garbage config must be refused.
+func TestPolicyConfigSane(t *testing.T) {
+	ok := policyConfig{BaseFee: big.NewInt(3e7), Capture: big.NewInt(1e18), FallbackFee: big.NewInt(2e8), RelaxTime: big.NewInt(90)}
+	require.True(t, configSane(&ok))
+	bad := ok
+	bad.FallbackFee = big.NewInt(1e9 + 1)
+	require.False(t, configSane(&bad))
+	bad = ok
+	bad.BaseFee = big.NewInt(3e8)
+	require.False(t, configSane(&bad))
+	bad = ok
+	bad.RelaxTime = big.NewInt(0)
+	require.False(t, configSane(&bad))
+}
+
+// A fallback policy state quotes (the pool is not disabled) and never beats the real policy quote
+// in either direction, including a corrective swap with a fresh report that earns a discount.
+func TestPolicyFallbackQuoteNeverAboveReal(t *testing.T) {
+	fb, _ := FetchPolicy(context.Background(), nil, nil, common.HexToAddress("0x57336cE442165ccDF19a820355a823238137170b"), nil)
+	real := ybPolicySim(t, func(*Extra) {})
+	fallback := ybPolicySim(t, func(e *Extra) { e.Policy = fb })
+	for _, tc := range []struct {
+		dir int
+		amt string
+	}{{0, "7234489014963216359320"}, {1, "3245910597495098043"}, {0, "1000000000000000000"}, {1, "100000000000000"}} {
+		r := bigFrom(ybPolicyQuote(t, real, tc.dir, tc.amt))
+		f := bigFrom(ybPolicyQuote(t, fallback, tc.dir, tc.amt))
+		require.Positive(t, f.Sign())
+		require.LessOrEqual(t, f.Cmp(r), 0, "dir=%d amt=%s fallback %s real %s", tc.dir, tc.amt, f, r)
+	}
+	// The discounted real case is strictly better, so the test fails if the fallback ignored the cap.
+	require.Equal(t, -1, bigFrom(ybPolicyQuote(t, fallback, 0, "7234489014963216359320")).
+		Cmp(bigFrom(ybPolicyQuote(t, real, 0, "7234489014963216359320"))))
 }
 
 // No report stored (price 0, as after a kill or before the first report): fallback fee.
@@ -343,4 +392,91 @@ func TestYieldBasisPolicyNoReport(t *testing.T) {
 		e.Policy.ReportObsUs = ybPolicyBlockTs * 1_000_000
 	})
 	require.Equal(t, "3191960012245233840", ybPolicyQuote(t, sim, 0, "7234489014963216359320"))
+}
+
+// The crvUSD/cbBTC pool's policy 0xe28A23C5...c044 (bank policy): eth_call returndata at ethereum
+// block 26468586. The bank ABI must decode it, and ReportPrice must be get_report()'s coin0 price
+// (2nd word, at the crvUSD rate), not the USD price in the 1st.
+func TestYieldBasisBankPolicyDecode(t *testing.T) {
+	const (
+		cfgHex = "0000000000000000000000000000000000000000000000000000000001c9c380" +
+			"0000000000000000000000000000000000000000000000000c249fdd32778000" +
+			"000000000000000000000000000000000000000000000000000000000bebc200" +
+			"000000000000000000000000000000000000000000000000000000000000005a" +
+			"0000000000000000000000000000000000000000000000000000000000001c20" +
+			"0000000000000000000000000000000000000000000000000000000000004650" +
+			"000000000000000000000000000000000000000000000000000eebe0b40e8000" +
+			"000000000000000000000000000000000000000000000000000aa87bee538000" +
+			"0000000000000000000000000000000000000000000000000000000000001518"
+		repHex = "000000000000000000000000000000000000000000000c75667f5ccadb18f000" +
+			"000000000000000000000000000000000000000000000c7e4baa8db3056c4ad0" +
+			"000000000000000000000000000000000000000000000000000660d6a69f75c0"
+		snapHex = "000000000000000000000000000000000000000000000000000000006b027bc7" +
+			"000000000000000000000000000000000000000000000c9aba2e9bc09460e579" +
+			"000000000000000000000000000000000000000000000caee0a0195293f11c0c" +
+			"00000000000000000000000000000000000000000000103e92bee22a1abd6b13" +
+			"0000000000000000000000000000000000000000000ea7225d2aecd686bda695" +
+			"0000000000000000000000000000000000000000002d5cc4f5010c8fd4be6e1c" +
+			"0000000000000000000000000000000000000000003a5f34b1bdf835f1b0eb03" +
+			"000000000000000000000000000000000000000000000c8714402679f31c1e1e"
+	)
+	raw := func(h string) []byte {
+		b, err := hexutil.Decode("0x" + h)
+		require.NoError(t, err)
+		return b
+	}
+	var (
+		cfg  policyConfig
+		bank policyBankReport
+		snap policySnapshot
+	)
+	require.NoError(t, YBBankPolicyABI.UnpackIntoInterface(&cfg, "config", raw(cfgHex)))
+	require.NoError(t, YBBankPolicyABI.UnpackIntoInterface(&bank, "get_report", raw(repHex)))
+	require.NoError(t, YBBankPolicyABI.UnpackIntoInterface(&snap, "state", raw(snapHex)))
+
+	rep := policyReport{AssetPrice: bank.Coin0Price, ObservationUs: bank.ObservationUs}
+	st, err := buildPolicyState(&cfg, &rep, &snap, big.NewInt(50000), false)
+	require.NoError(t, err)
+	require.Equal(t, "200000000", st.FallbackFee.String())
+	require.Equal(t, uint64(90), st.RelaxTime)
+	require.Equal(t, "58998139873822061120208", st.ReportPrice.String())
+	require.Equal(t, uint64(1795324895000000), st.ReportObsUs)
+	require.Equal(t, "17714230579981145998206613", st.SnapXp[0].String())
+	require.Equal(t, "70567294391878767208360707", st.SnapD.String())
+
+	require.True(t, configSane(&cfg))
+}
+
+// The WETH pool's policy 0xC4561F25...763a runs the same bytecode as the crvUSD/cbBTC bank policy
+// (only pool immutables differ): returndata at ethereum block 26468613 decodes with the same ABI.
+func TestYieldBasisBankPolicyWETHDecode(t *testing.T) {
+	const (
+		cfgHex = "0000000000000000000000000000000000000000000000000000000003938700" +
+			"000000000000000000000000000000000000000000000000000b1a2bc2ec5000" +
+			"000000000000000000000000000000000000000000000000000000000bebc200" +
+			"000000000000000000000000000000000000000000000000000000000000005a" +
+			"0000000000000000000000000000000000000000000000000000000000001518" +
+			"0000000000000000000000000000000000000000000000000000000000002a30" +
+			"000000000000000000000000000000000000000000000000001aa535d3d0c000" +
+			"0000000000000000000000000000000000000000000000000011c37937e08000" +
+			"0000000000000000000000000000000000000000000000000000000000001518"
+		repHex = "000000000000000000000000000000000000000000000059583c83fb6e3e5400" +
+			"0000000000000000000000000000000000000000000000599806d6e4149e08b1" +
+			"000000000000000000000000000000000000000000000000000660d6dad628c0"
+	)
+	raw := func(h string) []byte {
+		b, err := hexutil.Decode("0x" + h)
+		require.NoError(t, err)
+		return b
+	}
+	var (
+		cfg  policyConfig
+		bank policyBankReport
+	)
+	require.NoError(t, YBBankPolicyABI.UnpackIntoInterface(&cfg, "config", raw(cfgHex)))
+	require.NoError(t, YBBankPolicyABI.UnpackIntoInterface(&bank, "get_report", raw(repHex)))
+	require.Equal(t, uint64(90), cfg.RelaxTime.Uint64())
+	require.Equal(t, "1652714901978862192817", bank.Coin0Price.String())
+	require.Equal(t, uint64(1795325771000000), bank.ObservationUs.Uint64())
+	require.True(t, configSane(&cfg))
 }

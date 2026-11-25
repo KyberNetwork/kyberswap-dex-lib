@@ -7,6 +7,7 @@ type Exchange string
 const (
 	Exchange1010Prop                    = "1010-prop"
 	ExchangeAeonV2                      = "aeon-v2"
+	ExchangeAeroCL                      = "aero-cl"
 	ExchangeAeroV2Stable                = "aero-v2-stable"
 	ExchangeAeroV2Volatile              = "aero-v2-volatile"
 	ExchangeAlienBaseStableSwap         = "alien-base-stableswap"
@@ -52,6 +53,8 @@ const (
 	ExchangeBeethovenXWeighted          = "beethovenx-weighted"
 	ExchangeBiconomyProp                = "biconomy-prop"
 	ExchangeDaikonProp                  = "daikon-prop"
+	ExchangeDopplerAMM                  = "doppler-amm"
+	ExchangeDopplerFun                  = "doppler-fun"
 	ExchangeBeetsSS                     = "beets-ss"
 	ExchangeBeracaine                   = "beracaine"
 	ExchangeBeraSwapComposableStable    = "beraswap-composable-stable"
@@ -118,6 +121,7 @@ const (
 	ExchangeEtherFieBTC                 = "etherfi-ebtc"
 	ExchangeEtherfiEETH                 = "etherfi-eeth"
 	ExchangeEtherfiLiquid               = "etherfi-liquid"
+	ExchangeEfraProp                    = "efra-prop"
 	ExchangeEtherfiVampire              = "etherfi-vampire"
 	ExchangeEtherfiWEETH                = "etherfi-weeth"
 	ExchangeEtherVista                  = "ether-vista"
@@ -136,6 +140,9 @@ const (
 	ExchangeFluidVaultT1                = "fluid-vault-t1"
 	ExchangeFluidATokenSwap             = "fluid-atoken-swap"
 	ExchangeFluxProp                    = "flux-prop"
+	ExchangeFrontierECLP                = "frontier-eclp"
+	ExchangeFrontierStable              = "frontier-stable"
+	ExchangeFrontierWeighted            = "frontier-weighted"
 	ExchangeFrxETH                      = "frxeth"
 	ExchangeFrxUSD                      = "frxusd"
 	ExchangeGblin                       = "gblin"
@@ -222,6 +229,7 @@ const (
 	ExchangeNativeV2                    = "native-v2"
 	ExchangeNativeV3                    = "native-v3"
 	ExchangeNetStaking                  = "net-staking"
+	ExchangeNightlyProp                 = "nightly-prop"
 	ExchangeNomiswap                    = "nomiswap"
 	ExchangeObric                       = "obric"
 	ExchangeOETH                        = "oeth"
@@ -367,6 +375,7 @@ const (
 	ExchangeUniswapV4O1                 = "uniswap-v4-o1"
 	ExchangeUniswapV4OdysFun            = "uniswap-v4-odysfun"
 	ExchangeUniswapV4OneToken           = "uniswap-v4-onetoken"
+	ExchangeUniswapV4OzLimitOrder       = "uniswap-v4-lo"
 	ExchangeUniswapV4PonsV2             = "uniswap-v4-pons-v2"
 	ExchangeUniswapV4Prm                = "uniswap-v4-prm"
 	ExchangeUniswapV4Reafund            = "uniswap-v4-reafund"
@@ -513,6 +522,8 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeBiconomyProp:       {},
 	ExchangeDaikonProp:         {},
 	ExchangeStelaxisProp:       {},
+	ExchangeEfraProp:           {},
+	ExchangeNightlyProp:        {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {

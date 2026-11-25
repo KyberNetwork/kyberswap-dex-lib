@@ -1,0 +1,327 @@
+[
+ {
+  "type": "function",
+  "name": "ladder",
+  "stateMutability": "view",
+  "inputs": [
+   {
+    "name": "poolId",
+    "type": "bytes32"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "header",
+    "type": "uint256"
+   },
+   {
+    "name": "levels",
+    "type": "uint256"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "cursor",
+  "stateMutability": "view",
+  "inputs": [
+   {
+    "name": "poolId",
+    "type": "bytes32"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "bidConsumed",
+    "type": "uint128"
+   },
+   {
+    "name": "askConsumed",
+    "type": "uint128"
+   },
+   {
+    "name": "bidEpoch",
+    "type": "uint64"
+   },
+   {
+    "name": "askEpoch",
+    "type": "uint64"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "inventory",
+  "stateMutability": "view",
+  "inputs": [
+   {
+    "name": "mmId",
+    "type": "uint16"
+   },
+   {
+    "name": "currency",
+    "type": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "poolPaused",
+  "stateMutability": "view",
+  "inputs": [
+   {
+    "name": "poolId",
+    "type": "bytes32"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "mmPaused",
+  "stateMutability": "view",
+  "inputs": [
+   {
+    "name": "mmId",
+    "type": "uint16"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "emergencyPaused",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "sequencerUptimeFeed",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "poolConfig",
+  "stateMutability": "view",
+  "inputs": [
+   {
+    "name": "poolId",
+    "type": "bytes32"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "mmId",
+    "type": "uint16"
+   },
+   {
+    "name": "token0Decimals",
+    "type": "uint8"
+   },
+   {
+    "name": "token1Decimals",
+    "type": "uint8"
+   },
+   {
+    "name": "slackBps",
+    "type": "uint16"
+   },
+   {
+    "name": "takerFeePips",
+    "type": "uint24"
+   },
+   {
+    "name": "haircutBpsAtStaleThreshold",
+    "type": "uint16"
+   },
+   {
+    "name": "freshThresholdSec",
+    "type": "uint32"
+   },
+   {
+    "name": "staleThresholdSec",
+    "type": "uint32"
+   },
+   {
+    "name": "freshThresholdSecB",
+    "type": "uint32"
+   },
+   {
+    "name": "staleThresholdSecB",
+    "type": "uint32"
+   },
+   {
+    "name": "multiplierFlags",
+    "type": "uint8"
+   },
+   {
+    "name": "blackoutSec",
+    "type": "uint32"
+   },
+   {
+    "name": "isVault",
+    "type": "bool"
+   },
+   {
+    "name": "publishMode",
+    "type": "uint8"
+   },
+   {
+    "name": "feedA",
+    "type": "address"
+   },
+   {
+    "name": "feedADecimals",
+    "type": "uint8"
+   },
+   {
+    "name": "sourceA",
+    "type": "uint8"
+   },
+   {
+    "name": "rateGasCapA",
+    "type": "uint32"
+   },
+   {
+    "name": "isCrossRate",
+    "type": "bool"
+   },
+   {
+    "name": "invertDirect",
+    "type": "bool"
+   },
+   {
+    "name": "requiresSequencerFeed",
+    "type": "bool"
+   },
+   {
+    "name": "feedB",
+    "type": "address"
+   },
+   {
+    "name": "feedBDecimals",
+    "type": "uint8"
+   },
+   {
+    "name": "sourceB",
+    "type": "uint8"
+   },
+   {
+    "name": "rateGasCapB",
+    "type": "uint32"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "latestRoundData",
+  "stateMutability": "view",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "roundId",
+    "type": "uint80"
+   },
+   {
+    "name": "answer",
+    "type": "int256"
+   },
+   {
+    "name": "startedAt",
+    "type": "uint256"
+   },
+   {
+    "name": "updatedAt",
+    "type": "uint256"
+   },
+   {
+    "name": "answeredInRound",
+    "type": "uint80"
+   }
+  ]
+ },
+ {
+  "type": "function",
+  "name": "quote",
+  "stateMutability": "view",
+  "inputs": [
+   {
+    "name": "zeroForOne",
+    "type": "bool"
+   },
+   {
+    "name": "amountSpecified",
+    "type": "int256"
+   },
+   {
+    "name": "key",
+    "type": "tuple",
+    "components": [
+     {
+      "name": "currency0",
+      "type": "address"
+     },
+     {
+      "name": "currency1",
+      "type": "address"
+     },
+     {
+      "name": "fee",
+      "type": "uint24"
+     },
+     {
+      "name": "tickSpacing",
+      "type": "int24"
+     },
+     {
+      "name": "hooks",
+      "type": "address"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "name": "amount",
+    "type": "uint256"
+   },
+   {
+    "name": "reason",
+    "type": "uint8"
+   },
+   {
+    "name": "expiration",
+    "type": "uint256"
+   }
+  ]
+ }
+]

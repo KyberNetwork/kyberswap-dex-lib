@@ -76,6 +76,14 @@ Suffixes:
 - Lowercase all pool addresses and token addresses.
 - Always wrap native tokens when the protocol supports native swaps (some protocols use the zero address or 0xeeee...eeee).
 - Persist immutable metadata the tracker and simulator need in `StaticExtra` of `entity.Pool`
+- Listers must not scan blocks themselves: no block cursor or `FilterLogs` loop in an `IPoolsListUpdater`. Discover pools from
+  creation logs with a `poolfactory` `IPoolFactoryDecoder` (`DecodePoolCreated`, `IsEventSupported`, plus `SupportedEventTopics`
+  to narrow the scan). Historical scans run through `poolfactory.FilterLogsBackfiller`
+  (`pkg/source/pool/poolfactory/backfill.go`), driven by the consumer's per-dex `backfill` config (sources, start block, range).
+  Example: `pkg/liquidity-source/pons-v2/pool_factory.go`.
+- Never hardcode contract addresses (factory, singleton, modules, quoter, extensions) or per-chain address tables in a source.
+  Every address is a `Config` field filled from the consumer's per-dex `properties`, validated at construction (error when missing
+  or malformed, no chain defaults). Example: `pkg/liquidity-source/doppler-amm/config.go`.
 
 ### Pool Tracker - IPoolTracker
 
@@ -177,6 +185,25 @@ go generate ./pkg/msgpack/...
 ```
 
 This repo has `pkg/msgpack`; run the second command here. Other downstream repos don't have it — skip the second command there.
+
+If a change touches the Solidity in `pkg/util/ephemeral/contracts/`, rebuild the contract files the
+packages embed and commit them with it:
+
+```sh
+go generate -run ephemeral/contracts ./pkg/...
+```
+
+It needs `forge` (Foundry); without it the files are left as they are. Never edit a contract file
+(`abis/lens.json` and the like) by hand. A package that embeds a new contract puts the line that
+writes it right above its `//go:embed`. Commit `pkg/util/ephemeral/contracts/sources.json` with
+them: `TestContractFilesMatchTheirSources` checks each file against the hashes in it, and
+`TestEveryContractFileIsGenerated` checks the line:
+
+```go
+//go:generate go run github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ephemeral/contracts V3Lens abis/lens.json
+//go:embed abis/lens.json
+var lensJSON []byte
+```
 
 ## Pull Request
 

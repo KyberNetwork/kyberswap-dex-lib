@@ -70,6 +70,8 @@ import (
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	dodogsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/gsp"
+	doppleramm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/doppler-amm"
+	efraprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/efra-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
@@ -154,6 +156,7 @@ import (
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	nemoprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nemo-prop"
 	netstaking "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/net-staking"
+	nightlyprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nightly-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -522,8 +525,10 @@ type Types struct {
 	FlywheelFun                string
 	Prop1010                   string
 	OneInchAqua                string
+	DopplerAMM                 string
 	BiconomyProp               string
 	DaikonProp                 string
+	EfraProp                   string
 	FermiProp                  string
 	Machima                    string
 	MetronomeSwap              string
@@ -539,6 +544,7 @@ type Types struct {
 	BTRProp                    string
 	KuruOB                     string
 	KuruOBV2                   string
+	NightlyProp                string
 }
 
 var (
@@ -795,8 +801,10 @@ var (
 		FlywheelFun:                flywheelfun.DexType,
 		Prop1010:                   prop1010.DexType,
 		OneInchAqua:                oneinchaqua.DexType,
+		DopplerAMM:                 doppleramm.DexType,
 		BiconomyProp:               biconomyprop.DexType,
 		DaikonProp:                 daikonprop.DexType,
+		EfraProp:                   efraprop.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
 		MetronomeSwap:              metronomeswap.DexType,
@@ -813,5 +821,6 @@ var (
 		BTRProp:                    btrprop.DexType,
 		KuruOB:                     kuruob.DexType,
 		KuruOBV2:                   kuruobv2.DexType,
+		NightlyProp:                nightlyprop.DexType,
 	}
 )

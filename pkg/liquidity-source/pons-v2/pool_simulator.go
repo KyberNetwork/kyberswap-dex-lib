@@ -32,6 +32,9 @@ type PoolSimulator struct {
 
 	quoteReserve *uint256.Int
 	tokenReserve *uint256.Int
+	// trackedQuote is the real quote the curve can pay out (see
+	// Extra.TrackedQuote); nil when the pool state has no such field.
+	trackedQuote *uint256.Int
 	graduated    bool
 }
 
@@ -65,6 +68,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 
 		quoteReserve: extra.QuoteReserve,
 		tokenReserve: extra.TokenReserve,
+		trackedQuote: extra.TrackedQuote,
 		graduated:    extra.Graduated,
 	}, nil
 }
@@ -222,6 +226,15 @@ func (s *PoolSimulator) buy(
 
 	newTokenReserve := new(uint256.Int).Sub(tokenReserveBefore, tokensOut)
 
+	// The whole spent quote (fee and tax included) is added to trackedQuote.
+	var newTrackedQuote *uint256.Int
+	if s.trackedQuote != nil {
+		newTrackedQuote, overflow = new(uint256.Int).AddOverflow(s.trackedQuote, spent)
+		if overflow {
+			return nil, nil, nil, nil, 0, ErrOverflow
+		}
+	}
+
 	refund = new(uint256.Int).Sub(received, spent)
 	totalFee = new(uint256.Int).Add(fee, tax)
 
@@ -229,6 +242,7 @@ func (s *PoolSimulator) buy(
 		IsBuy:           true,
 		IsNativeQuote:   s.isNativeQuote,
 		NewQuoteReserve: newQuoteReserve,
+		NewTrackedQuote: newTrackedQuote,
 		NewTokenReserve: newTokenReserve,
 	}, buyGas, nil
 }
@@ -261,6 +275,14 @@ func (s *PoolSimulator) sell(
 		return nil, nil, nil, 0, ErrInsufficientOutputAmount
 	}
 
+	// The curve pays quoteOut from the real quote it holds (trackedQuote), not
+	// from the virtual part of quoteReserve: it reverts with an arithmetic
+	// underflow when quoteOut > trackedQuote (verified on chain: grossQuoteOut
+	// above trackedQuote still succeeds while quoteOut <= trackedQuote).
+	if s.trackedQuote != nil && quoteOut.Cmp(s.trackedQuote) > 0 {
+		return nil, nil, nil, 0, ErrInsufficientLiquidity
+	}
+
 	if quoteReserveBefore.Cmp(grossQuoteOut) < 0 {
 		return nil, nil, nil, 0, ErrInvalidReserve
 	}
@@ -271,12 +293,20 @@ func (s *PoolSimulator) sell(
 		return nil, nil, nil, 0, ErrOverflow
 	}
 
+	// Only quoteOut leaves trackedQuote; the fee and tax stay in it as
+	// pending balances.
+	var newTrackedQuote *uint256.Int
+	if s.trackedQuote != nil {
+		newTrackedQuote = new(uint256.Int).Sub(s.trackedQuote, quoteOut)
+	}
+
 	totalFee = new(uint256.Int).Add(fee, tax)
 
 	return quoteOut, totalFee, &SwapInfo{
 		IsBuy:           false,
 		IsNativeQuote:   s.isNativeQuote,
 		NewQuoteReserve: newQuoteReserve,
+		NewTrackedQuote: newTrackedQuote,
 		NewTokenReserve: newTokenReserve,
 	}, sellGas, nil
 }
@@ -326,6 +356,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	s.quoteReserve = swapInfo.NewQuoteReserve
 	s.tokenReserve = swapInfo.NewTokenReserve
+	s.trackedQuote = swapInfo.NewTrackedQuote
 }
 
 func (s *PoolSimulator) SwapReceiveNativeIn(tokenIn, _ string, _ valueobject.ChainID) bool {

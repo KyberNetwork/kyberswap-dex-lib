@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -28,7 +29,11 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	}
 	if pool := param.Pool; pool != nil {
 		hook.Reserves = [2]*uint256.Int{big256.New(pool.Reserves[0]), big256.New(pool.Reserves[1])}
-		hook.FeeTier = uint256.NewInt(uint64(pool.SwapFee))
+		// The hook prices with key.fee (static); Pool.SwapFee also carries the protocol fee.
+		var staticExtra uniswapv4.StaticExtra
+		if json.Unmarshal([]byte(pool.StaticExtra), &staticExtra) == nil {
+			hook.FeeTier = uint256.NewInt(uint64(staticExtra.Fee))
+		}
 	}
 	return hook
 }, ConstantProductAddresses...)

@@ -21,9 +21,9 @@ import (
 
 func TestLiveAgingMatchesCurveAtEveryModeledBlock(t *testing.T) {
 	s := stateFrom(t, fixture(t, "deployed-model3.json.gz").Snapshots[0])
-	posted := s.small(2, 36, 32)
+	posted := s.small(controlBlock)
 	s.BlockNumber = posted
-	s.Words[2] = setField(s.Words[2], 138, 8, u(15))
+	setField(&s, controlMaxAge, u(15))
 	ep := entityFrom(t, s)
 	sim, err := NewPoolSimulatorFromParams(pool.FactoryParams{EntityPool: ep, Opts: pool.FactoryOpts{StaleCheck: true}})
 	require.NoError(t, err)
@@ -56,7 +56,7 @@ func TestLiveAgingMatchesCurveAtEveryModeledBlock(t *testing.T) {
 func TestFactoryRoutingExpiresSameInstanceAndIndexerSkipsAge(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		s := stateFrom(t, fixture(t, "deployed-model3.json.gz").Snapshots[0])
-		s.Words[2] = setField(s.Words[2], 138, 8, u(15))
+		setField(&s, controlMaxAge, u(15))
 		ep := entityFrom(t, s)
 		var extra Extra
 		require.NoError(t, json.Unmarshal([]byte(ep.Extra), &extra))
@@ -85,7 +85,7 @@ func TestFactoryRoutingExpiresSameInstanceAndIndexerSkipsAge(t *testing.T) {
 
 func TestCaptureTimeFallbackBackstopAndClockErrors(t *testing.T) {
 	s := stateFrom(t, fixture(t, "deployed-model3.json.gz").Snapshots[0])
-	s.Words[2] = setField(s.Words[2], 138, 8, u(255))
+	setField(&s, controlMaxAge, u(255))
 	for _, tc := range []struct {
 		name                             string
 		captured, timestamp, now, maxAge int64
@@ -120,7 +120,7 @@ func TestCaptureTimeFallbackBackstopAndClockErrors(t *testing.T) {
 
 func TestClockSkewAllowanceDoesNotDiscountPositiveAgeOrPriceExpiry(t *testing.T) {
 	s := stateFrom(t, fixture(t, "deployed-model3.json.gz").Snapshots[0])
-	s.Words[2] = setField(s.Words[2], 138, 8, u(15))
+	setField(&s, controlMaxAge, u(15))
 	sim, err := NewPoolSimulator(entityFrom(t, s))
 	require.NoError(t, err)
 	sim.capturedAtMs = 100_000
@@ -141,7 +141,7 @@ func TestClockSkewAllowanceDoesNotDiscountPositiveAgeOrPriceExpiry(t *testing.T)
 	_, _, err = sim.quoteContext(-1)
 	require.ErrorIs(t, err, ErrStaleSnapshot)
 	// A permitted future capture cannot revive prices at the on-chain cutoff.
-	sim.state.BlockNumber = sim.state.small(2, 36, 32) + 15
+	sim.state.BlockNumber = sim.state.small(controlBlock) + 15
 	_, age, err := sim.quoteContext(99_800)
 	require.Zero(t, age)
 	require.ErrorIs(t, err, ErrStaleSnapshot)
@@ -149,7 +149,7 @@ func TestClockSkewAllowanceDoesNotDiscountPositiveAgeOrPriceExpiry(t *testing.T)
 
 func TestIndexerSkipsExpiredOnChainAgeWithoutChangingState(t *testing.T) {
 	s := stateFrom(t, fixture(t, "deployed-model3.json.gz").Snapshots[0])
-	s.BlockNumber = s.small(2, 36, 32) + s.small(2, 138, 8) + 1
+	s.BlockNumber = s.small(controlBlock) + s.small(controlMaxAge) + 1
 	ep := entityFrom(t, s)
 	sim, err := NewPoolSimulatorFromParams(pool.FactoryParams{EntityPool: ep})
 	require.NoError(t, err)
@@ -227,14 +227,14 @@ func TestAgingMatchesDeployedBytecodeThroughMaxAge15(t *testing.T) {
 }
 
 // setField is limited to fixture policy controls; production snapshots are never rewritten.
-func setField(word uint256.Int, shift, width uint, value uint256.Int) uint256.Int {
+func setField(s *State, f bitField, value uint256.Int) {
 	var mask, bits uint256.Int
 	mask.SetAllOne()
-	mask.Rsh(&mask, 256-width)
-	mask.Lsh(&mask, shift)
+	mask.Rsh(&mask, uint(256-f.width))
+	mask.Lsh(&mask, uint(f.offset))
 	mask.Not(&mask)
-	word.And(&word, &mask)
-	bits.Lsh(&value, shift)
-	word.Or(&word, &bits)
-	return word
+	word := &s.Words[f.slot]
+	word.And(word, &mask)
+	bits.Lsh(&value, uint(f.offset))
+	word.Or(word, &bits)
 }

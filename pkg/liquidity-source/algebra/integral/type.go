@@ -10,6 +10,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/nami"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 )
 
 type Metadata struct {
@@ -179,6 +180,9 @@ type Extra struct {
 	DynamicFee       *DynamicFeeConfig       `json:"dF,omitempty"`
 	SlidingFee       *SlidingFeeConfig       `json:"sF,omitempty"`
 	NamiFee          *nami.Config            `json:"namiFee,omitempty"`
+
+	// sB: the block of the tracker's read of the pool state, see tickspkg.TicksBasedStateBlock.
+	tickspkg.TicksBasedStateBlock
 }
 
 type ExtraTimepoint struct {
@@ -233,11 +237,15 @@ type StateUpdate struct {
 	Price         *uint256.Int
 	Tick          int32
 	NamiTimepoint *NamiTimepointUpdate
+	write         *pendingWrite // the timepoint and oracle the swap priced with (applyWrite)
+	writeFee      uint16        // and the last fee it took
 }
 
 type PoolMeta struct {
 	BlockNumber uint64       `json:"blockNumber"`
 	PriceLimit  *uint256.Int `json:"priceLimit"`
+
+	tickspkg.TicksBasedStateBlock
 }
 
 type PriceMovementCache struct {

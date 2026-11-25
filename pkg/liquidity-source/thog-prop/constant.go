@@ -11,12 +11,13 @@ const (
 	DexType           = valueobject.ExchangeThogProp
 	methodGetPoolData = "getPoolData"
 	maxTokens         = 28
-	// Multicall3 at its canonical address (deployed on Monad); the lens fallback reads through it.
+	// Multicall3 at its canonical address (deployed on Monad), for providers that refuse the lens.
 	multicall3                       = "0xcA11bde05977b3631167028862bE2a173976CA11"
 	selectorGetCurrentBlockTimestamp = "0x0f28c97d"
-	// Quote one block after the snapshot: 0.50 bp extra spread at the live policy.
+	// A swap executes at least one block after the state it was quoted on.
 	executionAgeLookahead uint64 = 1
-	wmon                         = "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"
+	// The pool's native MON balance is valued together with its WMON.
+	wmon = "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"
 	// Integer averages of Tenderly swapWithExtraFees frame gas through the
 	// router on Monad (3 same-category, 14 cross-category swaps); see README.md.
 	sameCategoryGas               = 273846

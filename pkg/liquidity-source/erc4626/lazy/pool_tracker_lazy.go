@@ -53,6 +53,7 @@ func (t *PoolTracker) lazyNewPoolState(
 		vaultCfg.Gas = erc4626.GasCfg(extra.Gas)
 	}
 	// standard ERC4626: vault == share, so tokenAddr is empty and totalSupply targets the vault
+	vaultCfg.Balance = erc4626.LoadBalanceSlot(&p)
 	req, applyResult := Lazycall(ctx, &p, t.ethrpcClient, vaultAddr, "", vaultCfg, false, overrides)
 
 	return req, applyResult, nil
@@ -75,16 +76,26 @@ func Lazycall(
 		DepositRates: make([]*big.Int, len(erc4626.PrefetchAmounts)),
 		RedeemRates:  make([]*big.Int, len(erc4626.PrefetchAmounts)),
 	}
-	r := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
+	vaultCfg = decoupledShareCfg(vaultCfg, tokenAddr)
+	// The probe overrides ride on the request; the batch consumer applies them (ILazyRequestWithOverrides).
+	r := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(vaultCfg.WithBalanceProbe(vaultAddr, overrides))
 	req := poolpkg.LazyRequest{Request: r}
-	addStateCalls(func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }, vaultAddr, tokenAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
+	add := func(c *ethrpc.Call, output []any) { req.AddCall(c, output) }
+	addStateCalls(add, vaultAddr, tokenAddr, vaultCfg, fetchAsset, &assetToken, &poolState)
+	erc4626.AddBalanceProbeCalls(add, vaultAddr, vaultCfg, &poolState)
 
 	return &req, func(blockNumber *big.Int) (entity.Pool, error) {
 		if err := poolState.ResolveLimits(vaultCfg); err != nil {
 			return *pool, err
 		}
-		normalizePoolState(vaultCfg, &poolState)
-		if blockNumber != nil {
+		normalizePoolState(vaultCfg, &poolState) // resolves the probe read-back too
+		if poolState.NeedsCleanRead() {          // markers may alias storage: read again without them, once per vault
+			_, state, err := cleanReread(ctx, ethrpcClient, vaultAddr, tokenAddr, vaultCfg, fetchAsset, overrides, poolState.Slot)
+			if err != nil {
+				return *pool, err
+			}
+			poolState = *state // keeps the re-read block
+		} else if blockNumber != nil {
 			poolState.BlockNumber = blockNumber.Uint64()
 		} else {
 			poolState.BlockNumber = pool.BlockNumber

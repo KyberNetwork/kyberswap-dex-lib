@@ -67,6 +67,8 @@ import (
 	pkg_liquiditysource_dodo_dpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	pkg_liquiditysource_dodo_dsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	pkg_liquiditysource_dodo_dvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
+	pkg_liquiditysource_doppleramm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/doppler-amm"
+	pkg_liquiditysource_efraprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/efra-prop"
 	pkg_liquiditysource_ekubo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	pkg_liquiditysource_ekubo_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
 	pkg_liquiditysource_elfomofi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/elfomofi"
@@ -147,6 +149,7 @@ import (
 	pkg_liquiditysource_native_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	pkg_liquiditysource_nemoprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nemo-prop"
 	pkg_liquiditysource_netstaking "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/net-staking"
+	pkg_liquiditysource_nightlyprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nightly-prop"
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	pkg_liquiditysource_obric "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/obric"
 	pkg_liquiditysource_ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -241,6 +244,7 @@ import (
 	pkg_liquiditysource_uniswap_v4_hooks_o1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/o1"
 	pkg_liquiditysource_uniswap_v4_hooks_odysfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/odysfun"
 	pkg_liquiditysource_uniswap_v4_hooks_onetoken "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/onetoken"
+	pkg_liquiditysource_uniswap_v4_hooks_ozlimitorder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/oz-limit-order"
 	pkg_liquiditysource_uniswap_v4_hooks_ponsv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/pons-v2"
 	pkg_liquiditysource_uniswap_v4_hooks_premium "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/premium"
 	pkg_liquiditysource_uniswap_v4_hooks_reafund "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/reafund"
@@ -377,6 +381,8 @@ var registeredTypes = []any{
 	&pkg_liquiditysource_dodo_dpp.PoolSimulator{},
 	&pkg_liquiditysource_dodo_dsp.PoolSimulator{},
 	&pkg_liquiditysource_dodo_dvm.PoolSimulator{},
+	&pkg_liquiditysource_doppleramm.PoolSimulator{},
+	&pkg_liquiditysource_efraprop.PoolSimulator{},
 	&pkg_liquiditysource_ekubo.PoolSimulator{},
 	&pkg_liquiditysource_ekubo_v3.PoolSimulator{},
 	&pkg_liquiditysource_elfomofi.PoolSimulator{},
@@ -457,6 +463,7 @@ var registeredTypes = []any{
 	&pkg_liquiditysource_native_v3.PoolSimulator{},
 	&pkg_liquiditysource_nemoprop.PoolSimulator{},
 	&pkg_liquiditysource_netstaking.PoolSimulator{},
+	&pkg_liquiditysource_nightlyprop.PoolSimulator{},
 	&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{},
 	&pkg_liquiditysource_obric.PoolSimulator{},
 	&pkg_liquiditysource_ondousdy.PoolSimulator{},
@@ -551,6 +558,7 @@ var registeredTypes = []any{
 	&pkg_liquiditysource_uniswap_v4_hooks_o1.Hook{},
 	&pkg_liquiditysource_uniswap_v4_hooks_odysfun.Hook{},
 	&pkg_liquiditysource_uniswap_v4_hooks_onetoken.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_ozlimitorder.Hook{},
 	&pkg_liquiditysource_uniswap_v4_hooks_ponsv2.Hook{},
 	&pkg_liquiditysource_uniswap_v4_hooks_premium.Hook{},
 	&pkg_liquiditysource_uniswap_v4_hooks_reafund.Hook{},

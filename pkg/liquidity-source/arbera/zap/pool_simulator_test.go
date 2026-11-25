@@ -7,6 +7,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
@@ -281,4 +282,28 @@ func TestCloneStateIsolatesBasePools(t *testing.T) {
 	if !slices.Equal(zapSim.basePools, origBefore) {
 		t.Fatal("original base pools changed after clone SetBasePool")
 	}
+}
+
+// A bundled route overrides a base pool on a clone of the meta pool (CloneState, then SetBasePool) and may write into
+// the slice GetBasePools returns. Neither may change the simulator that other requests share.
+func TestPoolSimulator_BasePoolsNotShared(t *testing.T) {
+	t.Parallel()
+	basePools := map[string]pool.IPoolSim{
+		"0xface73a169e2ca2934036c8af9f464b5de9ef0ca": erc4626Sim,
+		"0x883899d0111d69f85fdfd19e4b89e613f231b781": den1Sim,
+		"0xdc06ec361cf28a610b2f0fc3d25854cf68141610": denAmmSim,
+		"0x0c1f965eb5221b8daca960dac1ccfda5a97b7dd7": den2Sim,
+		"0x3fd02eaddb07080b8e2640afb6d52f10d6396926": stakeSim,
+	}
+	shared := lo.Must(NewPoolSimulator(entityPool, basePools))
+	override := erc4626Sim.CloneState()
+
+	returned := shared.GetBasePools()
+	returned[1] = nil
+	clone := shared.CloneState().(*PoolSimulator)
+	clone.SetBasePool(override)
+
+	assert.True(t, erc4626Sim == shared.GetBasePools()[0])
+	assert.True(t, den1Sim == shared.GetBasePools()[1])
+	assert.True(t, override == clone.GetBasePools()[0])
 }

@@ -24,6 +24,7 @@ type PoolSimulator struct {
 	quote   string
 	poolIdx uint64
 	state   *TrackerExtra
+	levels  map[int32]BookLevel // buildLevels(state), shared by clones; nil falls back to a per-call build
 }
 
 type SwapInfo struct {
@@ -57,6 +58,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		quote:   staticExtra.Quote,
 		poolIdx: staticExtra.PoolIdx,
 		state:   extra.State,
+		levels:  buildLevels(extra.State),
 	}, nil
 }
 
@@ -117,7 +119,11 @@ func (p *PoolSimulator) quoteSwap(tokenIn, tokenOut string, amountIn *uint256.In
 	swap.Qty = *amountIn
 	swap.LimitPrice = defaultLimitPrice(isBuy)
 
-	bmpView := NewSnapshotBitmapView(p.state)
+	levels := p.levels
+	if levels == nil {
+		levels = buildLevels(p.state)
+	}
+	bmpView := newSnapshotBitmapView(p.state, levels)
 	accum, err := SweepSwap(&curve, &swap, &p.state.PoolParams, bmpView)
 	if err != nil {
 		return nil, err

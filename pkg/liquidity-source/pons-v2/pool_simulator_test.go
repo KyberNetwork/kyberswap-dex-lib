@@ -247,3 +247,175 @@ func bigFromString(s string) *big.Int {
 	}
 	return v
 }
+
+// trackedQuotePoolJSON mirrors the live state of curve
+// 0xce942131d2ed8a1e6c73f41f5f29fba154041916 (robinhood chain 4663, block
+// 118814263): getReserves() = (10657669321075322920, 999806095666329503613463375),
+// trackedQuote() = 2066568268183609, feeBps 100, creatorTaxBps 100. Of the
+// quote reserve only trackedQuote is real quote; the rest is phantomQuote.
+// Every expected number in the tests below is the result of the same sell/buy
+// sequence sent to the curve on a Tenderly fork at that block (eth_call
+// bisection of the sell limit and state reads after each transaction).
+const trackedQuotePoolJSON = `{
+	"address": "0xce942131d2ed8a1e6c73f41f5f29fba154041916",
+	"exchange": "pons-v2",
+	"type": "pons-v2",
+	"timestamp": 0,
+	"reserves": ["10657669321075322920", "999806095666329503613463375"],
+	"tokens": [
+		{"address": "0x5e81213613b6b86eab4c6c50d718d34359459786", "symbol": "Q", "decimals": 18, "swappable": true},
+		{"address": "0x1c1dd94a0888e5448e50367c246158be2f05375a", "symbol": "T", "decimals": 18, "swappable": true}
+	],
+	"extra": "{\"quoteReserve\":\"10657669321075322920\",\"tokenReserve\":\"999806095666329503613463375\",\"trackedQuote\":\"2066568268183609\",\"graduated\":false}",
+	"staticExtra": "{\"feeBps\":100,\"creatorTaxBps\":100,\"reservedTokens\":\"285714285714285714289544789\",\"isNativeQuote\":false}"
+}`
+
+// trackedQuotePoolWithoutTrackedQuoteJSON is the same pool as tracked before
+// Extra.TrackedQuote existed.
+const trackedQuotePoolWithoutTrackedQuoteJSON = `{
+	"address": "0xce942131d2ed8a1e6c73f41f5f29fba154041916",
+	"exchange": "pons-v2",
+	"type": "pons-v2",
+	"timestamp": 0,
+	"reserves": ["10657669321075322920", "999806095666329503613463375"],
+	"tokens": [
+		{"address": "0x5e81213613b6b86eab4c6c50d718d34359459786", "symbol": "Q", "decimals": 18, "swappable": true},
+		{"address": "0x1c1dd94a0888e5448e50367c246158be2f05375a", "symbol": "T", "decimals": 18, "swappable": true}
+	],
+	"extra": "{\"quoteReserve\":\"10657669321075322920\",\"tokenReserve\":\"999806095666329503613463375\",\"graduated\":false}",
+	"staticExtra": "{\"feeBps\":100,\"creatorTaxBps\":100,\"reservedTokens\":\"285714285714285714289544789\",\"isNativeQuote\":false}"
+}`
+
+const (
+	trackedQuoteQuote = "0x5e81213613b6b86eab4c6c50d718d34359459786"
+	trackedQuoteToken = "0x1c1dd94a0888e5448e50367c246158be2f05375a"
+)
+
+func calcSell(sim *PoolSimulator, amount string) (*pool.CalcAmountOutResult, error) {
+	return sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: trackedQuoteToken, Amount: bigFromString(amount)},
+		TokenOut:      trackedQuoteQuote,
+	})
+}
+
+// TestCalcAmountOut_Sell_RejectedAboveTrackedQuote is the sell faulty-pool-v2
+// blocked: priced on the full quote reserve it pays 24259866948353260, ~12x
+// the 2066568268183609 of real quote in the curve, and the curve reverts with
+// an arithmetic underflow.
+func TestCalcAmountOut_Sell_RejectedAboveTrackedQuote(t *testing.T) {
+	sim := mustNewSimulator(t, trackedQuotePoolJSON)
+
+	_, err := calcSell(sim, "2327693551619090177812385")
+	require.ErrorIs(t, err, ErrInsufficientLiquidity)
+}
+
+// TestCalcAmountOut_Sell_TrackedQuoteBoundary pins the exact on-chain limit
+// found by bisection: quoteOut (grossQuoteOut - fee - tax) <= trackedQuote.
+// grossQuoteOut is above trackedQuote at the last accepted amount, so the
+// check is on quoteOut, not on grossQuoteOut.
+func TestCalcAmountOut_Sell_TrackedQuoteBoundary(t *testing.T) {
+	sim := mustNewSimulator(t, trackedQuotePoolJSON)
+
+	// Last amount the curve accepts: it pays exactly trackedQuote.
+	result, err := calcSell(sim, "197862348108825965639777")
+	require.NoError(t, err)
+	require.Equal(t, "2066568268183609", result.TokenAmountOut.Amount.String())
+	swapInfo, ok := result.SwapInfo.(*SwapInfo)
+	require.True(t, ok)
+	require.True(t, swapInfo.NewTrackedQuote.IsZero())
+
+	// One more wei of input pays 1 wei above trackedQuote: the curve reverts.
+	_, err = calcSell(sim, "197862348108825965639778")
+	require.ErrorIs(t, err, ErrInsufficientLiquidity)
+}
+
+// TestCalcAmountOut_Sell_BelowTrackedQuote_SameQuote: a sell below the limit
+// quotes the same amount with and without the new field.
+func TestCalcAmountOut_Sell_BelowTrackedQuote_SameQuote(t *testing.T) {
+	withField := mustNewSimulator(t, trackedQuotePoolJSON)
+	withoutField := mustNewSimulator(t, trackedQuotePoolWithoutTrackedQuoteJSON)
+
+	for _, amount := range []string{"100000000000000000000000", "1000000000000000000000"} {
+		a, err := calcSell(withField, amount)
+		require.NoError(t, err)
+		b, err := calcSell(withoutField, amount)
+		require.NoError(t, err)
+		require.Equal(t, b.TokenAmountOut.Amount.String(), a.TokenAmountOut.Amount.String())
+		require.Equal(t, b.Fee.Amount.String(), a.Fee.Amount.String())
+	}
+
+	result, err := calcSell(withField, "100000000000000000000000")
+	require.NoError(t, err)
+	require.Equal(t, "1044549681207182", result.TokenAmountOut.Amount.String())
+}
+
+// TestCalcAmountOut_Sell_MissingTrackedQuote_KeepsOldBehaviour: a pool tracked
+// before the field existed quotes the oversized sell as before (no check, no
+// tracked quote carried in SwapInfo).
+func TestCalcAmountOut_Sell_MissingTrackedQuote_KeepsOldBehaviour(t *testing.T) {
+	sim := mustNewSimulator(t, trackedQuotePoolWithoutTrackedQuoteJSON)
+	require.Nil(t, sim.trackedQuote)
+
+	result, err := calcSell(sim, "2327693551619090177812385")
+	require.NoError(t, err)
+	require.Equal(t, "24259866948353260", result.TokenAmountOut.Amount.String())
+	swapInfo, ok := result.SwapInfo.(*SwapInfo)
+	require.True(t, ok)
+	require.Nil(t, swapInfo.NewTrackedQuote)
+
+	sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: swapInfo})
+	require.Nil(t, sim.trackedQuote)
+
+	buy, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: trackedQuoteQuote, Amount: bigFromString("500000000000000")},
+		TokenOut:      trackedQuoteToken,
+	})
+	require.NoError(t, err)
+	buySwapInfo, ok := buy.SwapInfo.(*SwapInfo)
+	require.True(t, ok)
+	require.Nil(t, buySwapInfo.NewTrackedQuote)
+}
+
+// TestUpdateBalance_SellThenBuy_KeepsTrackedQuote replays on the simulator the
+// sequence sent to the curve on the fork: sell 1e23 tokens, then buy with
+// 5e14 quote. A sell lowers trackedQuote by quoteOut only (fee and tax stay
+// in it); a buy raises it by the whole spent quote. The limit of the next sell
+// after the first sell was bisected on the fork too.
+func TestUpdateBalance_SellThenBuy_KeepsTrackedQuote(t *testing.T) {
+	sim := mustNewSimulator(t, trackedQuotePoolJSON)
+
+	sell, err := calcSell(sim, "100000000000000000000000")
+	require.NoError(t, err)
+	require.Equal(t, "1044549681207182", sell.TokenAmountOut.Amount.String())
+	sellInfo, ok := sell.SwapInfo.(*SwapInfo)
+	require.True(t, ok)
+	require.Equal(t, "1022018586976427", sellInfo.NewTrackedQuote.String())
+	require.Equal(t, "10656603454053682940", sellInfo.NewQuoteReserve.String())
+
+	// The next sell is checked against the lowered trackedQuote.
+	sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: sellInfo})
+	require.Equal(t, "1022018586976427", sim.trackedQuote.String())
+
+	result, err := calcSell(sim, "97862348108825848411468")
+	require.NoError(t, err)
+	require.Equal(t, "1022018586976427", result.TokenAmountOut.Amount.String())
+	_, err = calcSell(sim, "97862348108825848411469")
+	require.ErrorIs(t, err, ErrInsufficientLiquidity)
+
+	buy, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: trackedQuoteQuote, Amount: bigFromString("500000000000000")},
+		TokenOut:      trackedQuoteToken,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "45974447816269793710203", buy.TokenAmountOut.Amount.String())
+	buyInfo, ok := buy.SwapInfo.(*SwapInfo)
+	require.True(t, ok)
+	require.Equal(t, "1522018586976427", buyInfo.NewTrackedQuote.String())
+	// QuoteReserve after the buy as read from the fork (0x93e59a086302aefc).
+	require.Equal(t, "10657093454053682940", buyInfo.NewQuoteReserve.String())
+
+	sim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: buyInfo})
+	require.Equal(t, "1522018586976427", sim.trackedQuote.String())
+
+	require.Equal(t, "10657093454053682940", sim.quoteReserve.String())
+}

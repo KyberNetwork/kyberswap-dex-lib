@@ -32,8 +32,6 @@ const (
 
 var (
 	// AmmalgamPair v1.1.0 packs raw reserves and timestamps in these slots.
-	// The configured beacon implementation is checked before the decoded state
-	// is accepted, so an implementation upgrade fails closed.
 	pairReservesSlot   = common.BigToHash(big.NewInt(16))
 	pairReferencesSlot = common.BigToHash(big.NewInt(17))
 	uint112Mask        = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 112), big.NewInt(1))
@@ -65,19 +63,15 @@ type totalAssetsAndSharesRPC struct {
 }
 
 type trackerSnapshot struct {
-	BlockNumber    uint64
-	Beacon         common.Address
-	Implementation common.Address
-	Storage        pairStorage
-	References     referenceReservesRPC
-	RawTotals      totalAssetsAndSharesRPC
-	AccruedTotals  totalAssetsAndSharesRPC
+	BlockNumber   uint64
+	Beacon        common.Address
+	Storage       pairStorage
+	References    referenceReservesRPC
+	RawTotals     totalAssetsAndSharesRPC
+	AccruedTotals totalAssetsAndSharesRPC
 }
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
-	if config == nil || !validPairAddress(config.PairImplementation) {
-		return nil, errors.New("ammalgam pair implementation is required for the v1.1.0 storage layout")
-	}
 	return &PoolTracker{config: config, ethrpcClient: ethrpcClient}, nil
 }
 
@@ -133,14 +127,11 @@ func (t *PoolTracker) GetNewPoolState(
 		AddCall(&ethrpc.Call{
 			ABI: pairABI, Target: p.Address, Method: "totalAssetsAndShares", Params: []any{true},
 		}, []any{&snapshot.AccruedTotals}).
-		AddCall(&ethrpc.Call{
-			ABI: beaconABI, Target: beacon.Hex(), Method: "implementation",
-		}, []any{&snapshot.Implementation}).
 		TryAggregate()
 	if err != nil {
 		return p, fmt.Errorf("read Ammalgam pool state: %w", err)
 	}
-	if err := requireAllCallsSucceeded(stateResponse, 4); err != nil {
+	if err := requireAllCallsSucceeded(stateResponse, 3); err != nil {
 		return p, err
 	}
 
@@ -233,10 +224,9 @@ func reconcileTrackerMetadata(
 	config *Config,
 	staticExtra StaticExtra,
 	beacon common.Address,
-	implementation common.Address,
 ) (StaticExtra, error) {
 	if config == nil || !validPairAddress(config.FactoryAddress) ||
-		!validPairAddress(beacon.Hex()) || !validPairAddress(implementation.Hex()) {
+		!validPairAddress(beacon.Hex()) {
 		return staticExtra, errors.New("invalid Ammalgam tracker metadata")
 	}
 	if staticExtra.FactoryAddress != "" &&
@@ -255,23 +245,10 @@ func reconcileTrackerMetadata(
 		return staticExtra, fmt.Errorf("ammalgam pair beacon mismatch: stored %s, on chain %s",
 			staticExtra.PairBeacon, beacon.Hex())
 	}
-	if config.PairImplementation != "" &&
-		(!validPairAddress(config.PairImplementation) ||
-			!strings.EqualFold(config.PairImplementation, implementation.Hex())) {
-		return staticExtra, fmt.Errorf("ammalgam pair implementation mismatch: configured %s, on chain %s",
-			config.PairImplementation, implementation.Hex())
-	}
-	if staticExtra.PairImplementation != "" &&
-		(!validPairAddress(staticExtra.PairImplementation) ||
-			!strings.EqualFold(staticExtra.PairImplementation, implementation.Hex())) {
-		return staticExtra, fmt.Errorf("ammalgam pair implementation mismatch: stored %s, on chain %s",
-			staticExtra.PairImplementation, implementation.Hex())
-	}
 
 	factory := common.HexToAddress(config.FactoryAddress)
 	staticExtra.FactoryAddress = hexutil.Encode(factory[:])
 	staticExtra.PairBeacon = hexutil.Encode(beacon[:])
-	staticExtra.PairImplementation = hexutil.Encode(implementation[:])
 	return staticExtra, nil
 }
 
@@ -287,7 +264,7 @@ func updatePoolFromSnapshot(
 		return p, nil
 	}
 
-	staticExtra, err := reconcileTrackerMetadata(config, staticExtra, snapshot.Beacon, snapshot.Implementation)
+	staticExtra, err := reconcileTrackerMetadata(config, staticExtra, snapshot.Beacon)
 	if err != nil {
 		return p, err
 	}
