@@ -242,8 +242,19 @@ func parseAnswer(rank int, result map[string]json.RawMessage) answer {
 		if key == "slot" || key == "blockNumber" {
 			continue
 		}
+		// a member that is not an object (the builder's `timestamp`, a string, an array, null) or names no stateOverride
+		// is passed over, as Kyber's titan client passes it; one that names a stateOverride it cannot read whole makes
+		// the answer malformed
+		var member map[string]json.RawMessage
+		if json.Unmarshal(raw, &member) != nil {
+			continue
+		}
+		override, named := member["stateOverride"]
+		if !named {
+			continue
+		}
 		var p statePayload
-		if json.Unmarshal(raw, &p) != nil {
+		if json.Unmarshal(override, &p.StateOverride) != nil {
 			a.malformed = true
 			continue
 		}

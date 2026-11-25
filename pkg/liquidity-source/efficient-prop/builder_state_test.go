@@ -725,3 +725,38 @@ func TestBuilderRefreshNodeLoad(t *testing.T) {
 		assert.Equal(t, before["eth_getCode"], after["eth_getCode"], "%s: eth_getCode", c.name)
 	}
 }
+
+// A top-level member of a /state answer that is not an object (the builder's `timestamp` number, a string, an array,
+// null), or an object naming no stateOverride, is passed over and costs the answer nothing: the listing is still
+// covered. An object whose stateOverride cannot be read whole still makes the answer malformed.
+func TestBuilderPassesOverTopLevelMembersThatAreNoEntry(t *testing.T) {
+	for _, c := range []struct {
+		name    string
+		member  any
+		covered bool
+	}{
+		{"a number timestamp", 1_800_000_000, true},
+		{"a string", "x", true},
+		{"an array", []any{1, 2}, true},
+		{"null", nil, true},
+		{"an object with no stateOverride", map[string]any{"other": 1}, true},
+		{"a stateOverride that is broken", map[string]any{"stateOverride": "x"}, false},
+		{"a stateOverride account that is broken", map[string]any{"stateOverride": map[string]any{
+			testCellA.Hex(): map[string]any{"stateDiff": map[string]string{}, "nonce": 1}}}, false},
+	} {
+		chain := ethChain()
+		n := builderNode(t, chain, 1234)
+		st := newStateServer(t)
+		st.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+		st.mu.Lock()
+		st.m["timestamp"] = c.member
+		st.mu.Unlock()
+		cfg := ethConfig(st.URL)
+		got := ethTrack(t, n, cfg, ethListed(t, n, cfg))
+		if c.covered {
+			assert.NotEmpty(t, extraOf(t, got).Ladders[0], c.name)
+		} else {
+			unserved(t, got, c.name)
+		}
+	}
+}
