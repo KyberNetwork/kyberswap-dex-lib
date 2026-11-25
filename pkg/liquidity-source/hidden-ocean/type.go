@@ -42,4 +42,7 @@ type RangeInfo struct {
 }
 
 // SwapInfo is passed to the router for execution.
-type SwapInfo struct{}
+type SwapInfo struct {
+	// Fee is the fee in tokenIn that CalcAmountOut charged, for UpdateBalance. Internal state.
+	Fee *big.Int `json:"-"`
+}

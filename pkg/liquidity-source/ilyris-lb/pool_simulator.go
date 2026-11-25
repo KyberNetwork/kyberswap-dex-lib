@@ -107,11 +107,12 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if crossed < 0 {
 		crossed = -crossed
 	}
+	feeBig := fee.ToBig()
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: fee.ToBig()},
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: feeBig},
 		Gas:            baseSwapGas + crossed*perExtraBinGas,
-		SwapInfo:       SwapInfo{xForY: xForY, newActiveID: finalID, fills: fills},
+		SwapInfo:       SwapInfo{xForY: xForY, newActiveID: finalID, fills: fills, fee: feeBig},
 	}, nil
 }
 
@@ -224,7 +225,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	// Net of fee: BinPool credits the fee to per-share accumulators, not to bin reserves.
 	reserveIn := new(big.Int).Add(p.Info.Reserves[inIdx], params.TokenAmountIn.Amount)
-	p.Info.Reserves[inIdx] = reserveIn.Sub(reserveIn, params.Fee.Amount)
+	p.Info.Reserves[inIdx] = reserveIn.Sub(reserveIn, si.fee)
 	p.Info.Reserves[outIdx] = new(big.Int).Sub(p.Info.Reserves[outIdx], params.TokenAmountOut.Amount)
 
 	p.bins = slices.Clone(p.bins)

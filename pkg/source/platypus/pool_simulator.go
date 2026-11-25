@@ -110,7 +110,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee: &pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: hairCut,
-		}, Gas: p.gas.Swap}, nil
+		},
+		SwapInfo: pool.FeeSwapInfo{Fee: &pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: hairCut,
+		}}, Gas: p.gas.Swap}, nil
 }
 
 func (p *PoolSimulator) UpdateBalance(
@@ -128,7 +132,7 @@ func (p *PoolSimulator) UpdateBalance(
 
 	fromAsset.addCash(params.TokenAmountIn.Amount)
 	toAsset.removeCash(params.TokenAmountOut.Amount)
-	toAsset.addLiability(_dividend(params.Fee.Amount, p.RetentionRatio))
+	toAsset.addLiability(_dividend(pool.SwapInfoFee(params.SwapInfo).Amount, p.RetentionRatio))
 
 	p.AssetByToken[params.TokenAmountIn.Token] = fromAsset
 	p.AssetByToken[params.TokenAmountOut.Token] = toAsset

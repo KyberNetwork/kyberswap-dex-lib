@@ -87,7 +87,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: tokenAmountOut,
 		Fee:            tokenAmountFee,
 		Gas:            p.gas.Swap,
-		SwapInfo:       newSwapInfo(creditedIn, usdmAmount),
+		SwapInfo:       newSwapInfo(creditedIn, usdmAmount, feeAmount),
 	}, nil
 }
 
@@ -107,15 +107,15 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 // https://github.com/gmx-io/gmx-contracts/blob/787d767e033c411f6d083f2725fb54b7fa956f7e/contracts/core/Vault.sol#L547-L548
 // usdmAmounts and poolAmounts move by the credited amount in (not the sent one) and, when the real balances are
 // known, tokenBalances and the real balances follow the transfers (_transferIn / _transferOut). The credited amount
-// and the USDM amount come from the SwapInfo of CalcAmountOut, computed from the state before this update, as the
+// the USDM amount and the fee come from the SwapInfo of CalcAmountOut, computed from the state before this update, as the
 // quote was; without a usable SwapInfo they are computed from the current state, which is the same state when the
 // pool was not updated in between. feeReserves is not tracked: no swap pricing or validation reads it.
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, params.Fee
-	creditedIn, usdmAmount, ok := p.swapAmountsFrom(params.SwapInfo)
+	input, output := params.TokenAmountIn, params.TokenAmountOut
+	creditedIn, usdmAmount, fee, ok := p.swapAmountsFrom(params.SwapInfo)
 	if !ok {
 		var err error
-		if creditedIn, _, usdmAmount, err = p.swapAmounts(input.Token, input.Amount); err != nil {
+		if _, fee, creditedIn, usdmAmount, err = p.getAmountOut(input.Token, output.Token, input.Amount); err != nil {
 			return
 		}
 	}
@@ -123,18 +123,18 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.vault.IncreaseUSDMAmount(input.Token, usdmAmount)
 	p.vault.DecreaseUSDMAmount(output.Token, usdmAmount)
 	p.vault.IncreasePoolAmount(input.Token, creditedIn)
-	p.vault.DecreasePoolAmount(output.Token, new(big.Int).Add(output.Amount, fee.Amount))
+	p.vault.DecreasePoolAmount(output.Token, new(big.Int).Add(output.Amount, fee))
 	p.vault.SyncBalancesAfterSwap(input.Token, input.Amount, output.Token, output.Amount)
 }
 
 // swapAmountsFrom reads the amounts from the SwapInfo of CalcAmountOut. ok is false when swapInfo is missing or is not
 // the SwapInfo of this pool. The returned values are new, so the state does not share them with the SwapInfo.
-func (p *PoolSimulator) swapAmountsFrom(swapInfo any) (creditedIn, usdmAmount *big.Int, ok bool) {
+func (p *PoolSimulator) swapAmountsFrom(swapInfo any) (creditedIn, usdmAmount, fee *big.Int, ok bool) {
 	info, ok := swapInfo.(SwapInfo)
 	if !ok {
-		return nil, nil, false
+		return nil, nil, nil, false
 	}
-	return info.CreditedAmountIn.ToBig(), info.UsdmAmount.ToBig(), true
+	return info.CreditedAmountIn.ToBig(), info.UsdmAmount.ToBig(), info.Fee.ToBig(), true
 }
 
 // swapAmounts computes what swap does first: the amount credited for the amount sent, the min price of the token in
@@ -154,12 +154,15 @@ func (p *PoolSimulator) swapAmounts(tokenIn string, sent *big.Int) (creditedIn, 
 
 // newSwapInfo returns a nil interface when an amount does not fit 256 bits: UpdateBalance then computes the amounts
 // itself.
-func newSwapInfo(creditedIn, usdmAmount *big.Int) any {
+func newSwapInfo(creditedIn, usdmAmount, fee *big.Int) any {
 	var info SwapInfo
 	if info.CreditedAmountIn.SetFromBig(creditedIn) {
 		return nil
 	}
 	if info.UsdmAmount.SetFromBig(usdmAmount) {
+		return nil
+	}
+	if info.Fee.SetFromBig(fee) {
 		return nil
 	}
 	return info

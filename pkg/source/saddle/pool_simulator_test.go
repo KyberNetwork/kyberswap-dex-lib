@@ -50,6 +50,8 @@ func TestCalcAmountOut_Saddle(t *testing.T) {
 	assert.Equal(t, []string{"A", "B", "C"}, p.CanSwapTo("LP"))
 	assert.Equal(t, []string{"B", "C", "LP"}, p.CanSwapTo("A"))
 	assert.Equal(t, []string{"A", "C", "LP"}, p.CanSwapTo("B"))
+	// The adapter path (CalcAmtOut, UpdateState without a fee) must reach the same state as UpdateBalance with the fee.
+	testutil.TestUpdateStateParity(t, func() any { return p.CloneState() }, []string{"10000", "1000000000000000000"})
 	assert.Equal(t, []string{"A", "B", "LP"}, p.CanSwapTo("C"))
 
 	for idx, tc := range testcases {

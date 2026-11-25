@@ -198,6 +198,7 @@ func TestUpdateBalance(t *testing.T) {
 		TokenAmountIn:  pool.TokenAmount{Token: msETH, Amount: fixtureAmountIn.ToBig()},
 		TokenAmountOut: pool.TokenAmount{Token: msUSD, Amount: fixtureNetOut.ToBig()},
 		Fee:            pool.TokenAmount{Token: msUSD, Amount: fixtureFee.ToBig()},
+		SwapInfo:       pool.FeeSwapInfo{Fee: &pool.TokenAmount{Token: msUSD, Amount: fixtureFee.ToBig()}},
 	})
 
 	assert.Equal(t, fixtureAmountIn.String(), new(big.Int).Sub(sim.Info.Reserves[indexIn], beforeIn).String())

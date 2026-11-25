@@ -95,12 +95,12 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if strings.EqualFold(params.TokenAmountIn.Token, p.Info.Tokens[0]) {
 		newAmtIn := new(big.Int).Add(p.Info.Reserves[0], params.TokenAmountIn.Amount)
-		p.Info.Reserves[0] = newAmtIn.Sub(newAmtIn, params.Fee.Amount)
+		p.Info.Reserves[0] = newAmtIn.Sub(newAmtIn, pool.SwapInfoFee(params.SwapInfo).Amount)
 		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], params.TokenAmountOut.Amount)
 	} else {
 		p.Info.Reserves[0] = new(big.Int).Sub(p.Info.Reserves[0], params.TokenAmountOut.Amount)
 		newAmtIn := new(big.Int).Add(p.Info.Reserves[1], params.TokenAmountIn.Amount)
-		p.Info.Reserves[1] = newAmtIn.Sub(newAmtIn, params.Fee.Amount)
+		p.Info.Reserves[1] = newAmtIn.Sub(newAmtIn, pool.SwapInfoFee(params.SwapInfo).Amount)
 	}
 }
 
@@ -167,6 +167,10 @@ func (p *PoolSimulator) _swap0To1(
 			Token:  tokenAmountIn.Token,
 			Amount: &fee,
 		},
+		SwapInfo: pool.FeeSwapInfo{Fee: &pool.TokenAmount{
+			Token:  tokenAmountIn.Token,
+			Amount: &fee,
+		}},
 		Gas: p.gas.Swap,
 	}, nil
 }
@@ -219,6 +223,10 @@ func (p *PoolSimulator) _swap1To0(
 			Token:  tokenAmountIn.Token,
 			Amount: &fee,
 		},
+		SwapInfo: pool.FeeSwapInfo{Fee: &pool.TokenAmount{
+			Token:  tokenAmountIn.Token,
+			Amount: &fee,
+		}},
 		Gas: p.gas.Swap,
 	}, nil
 }

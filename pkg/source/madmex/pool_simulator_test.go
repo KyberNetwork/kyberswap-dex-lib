@@ -38,6 +38,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	})
 	require.Nil(t, err)
 
+	// The adapter path (CalcAmtOut, UpdateState without a fee) must reach the same state as UpdateBalance with the fee.
+	testutil.TestUpdateStateParity(t, func() any { return p.CloneState() }, []string{"1000"})
+
 	assert.Equal(t, []string{"B", "C", "D"}, p.CanSwapTo("A"))
 	assert.Equal(t, []string{"A", "C", "D"}, p.CanSwapTo("B"))
 

@@ -125,14 +125,15 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientLiquidity
 	}
 
-	swapInfo, err := p.checkSwap(indexIn, indexOut, amountIn, amountOut)
+	fee := &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: feeAmount.ToBig()}
+	swapInfo, err := p.checkSwap(indexIn, indexOut, amountIn, amountOut, fee)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: feeAmount.ToBig()},
+		Fee:            fee,
 		Gas:            p.gas,
 		SwapInfo:       swapInfo,
 	}, nil
@@ -169,17 +170,18 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		}
 	}
 
-	swapInfo, err := p.checkSwap(indexIn, indexOut, amountIn, amountOut)
+	// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
+	fee := &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: bignumber.ZeroBI}
+	swapInfo, err := p.checkSwap(indexIn, indexOut, amountIn, amountOut, fee)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
-		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee:      &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: bignumber.ZeroBI},
-		Gas:      p.gas,
-		SwapInfo: swapInfo,
+		Fee:           fee,
+		Gas:           p.gas,
+		SwapInfo:      swapInfo,
 	}, nil
 }
 
@@ -210,7 +212,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		}
 		p.balances = nil // not a swap the pair accepts: stop trusting the balances and update as without them
 	}
-	p.reserves[indexIn] = amtIn.Add(p.reserves[indexIn], amtIn.Sub(amtIn, uint256.MustFromBig(params.Fee.Amount)))
+	p.reserves[indexIn] = amtIn.Add(p.reserves[indexIn], amtIn.Sub(amtIn, uint256.MustFromBig(pool.SwapInfoFee(params.SwapInfo).Amount)))
 	p.reserves[indexOut] = amtOut.Sub(p.reserves[indexOut], amtOut)
 }
 
@@ -277,11 +279,11 @@ func (p *PoolSimulator) sendFor(amount *uint256.Int, indexIn int) error {
 	return nil
 }
 
-// checkSwap runs swap when the balances are known and returns the SwapInfo UpdateBalance needs, or a nil interface
-// when the balances are unknown.
-func (p *PoolSimulator) checkSwap(indexIn, indexOut int, amountIn, amountOut *uint256.Int) (any, error) {
+// checkSwap runs swap when the balances are known and returns the SwapInfo UpdateBalance needs. When the balances are
+// unknown UpdateBalance needs the fee instead, so it returns a pool.FeeSwapInfo.
+func (p *PoolSimulator) checkSwap(indexIn, indexOut int, amountIn, amountOut *uint256.Int, fee *pool.TokenAmount) (any, error) {
 	if p.balances == nil {
-		return nil, nil
+		return pool.FeeSwapInfo{Fee: fee}, nil
 	}
 	post, err := p.swap(indexIn, indexOut, amountIn, amountOut)
 	if err != nil {

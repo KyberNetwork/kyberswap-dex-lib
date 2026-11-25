@@ -92,6 +92,7 @@ func (p *PoolSimulator) CalcAmountOut(
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: tokenAmountOut,
 		Fee:            tokenAmountFee,
+		SwapInfo:       pool.FeeSwapInfo{Fee: tokenAmountFee},
 		Gas:            p.gas.Swap,
 	}, nil
 }
@@ -106,7 +107,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, params.Fee
+	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, pool.SwapInfoFee(params.SwapInfo)
 	priceIn, err := p.vault.GetMinPrice(input.Token)
 	if err != nil {
 		return

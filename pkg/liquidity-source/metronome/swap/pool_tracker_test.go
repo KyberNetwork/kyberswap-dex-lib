@@ -149,6 +149,7 @@ func TestUpdateBalance_MatchesRealSequentialSwap(t *testing.T) {
 		TokenAmountIn:  pool.TokenAmount{Token: msETH, Amount: fixtureAmountIn.ToBig()},
 		TokenAmountOut: pool.TokenAmount{Token: msUSD, Amount: fixtureNetOut.ToBig()},
 		Fee:            pool.TokenAmount{Token: msUSD, Amount: fixtureFee.ToBig()},
+		SwapInfo:       pool.FeeSwapInfo{Fee: &pool.TokenAmount{Token: msUSD, Amount: fixtureFee.ToBig()}},
 	})
 	simDelta := new(uint256.Int).Sub(sim.Extra.Tokens[msUSD].TotalSupply, before)
 	require.Equal(t, observedDelta.String(), simDelta.String())

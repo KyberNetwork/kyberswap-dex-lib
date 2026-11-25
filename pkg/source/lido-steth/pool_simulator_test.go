@@ -20,13 +20,17 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	t.Parallel()
 
 	tokens := []string{"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0xae7ab96520de3a18e5e111b5eaab095312d7fe84"}
-	p, err := NewPoolSimulator(entity.Pool{
+	ent := entity.Pool{
 		Exchange: "",
 		Type:     "",
 		Reserves: []string{"1", "1"},
 		Tokens:   lo.Map(tokens, func(adr string, _ int) *entity.PoolToken { return &entity.PoolToken{Address: adr} }),
-	}, valueobject.ChainIDEthereum)
+	}
+	p, err := NewPoolSimulator(ent, valueobject.ChainIDEthereum)
 	require.Nil(t, err)
+
+	// The adapter path (CalcAmtOut, UpdateState without a fee) must reach the same state as UpdateBalance with the fee.
+	testutil.TestUpdateStateParity(t, func() any { return lo.Must(NewPoolSimulator(ent, valueobject.ChainIDEthereum)) }, []string{"1000000000000000000"})
 
 	assert.Equal(t, []string{tokens[1]}, p.CanSwapFrom(tokens[0]))
 	assert.Equal(t, 0, len(p.CanSwapFrom(tokens[1])))

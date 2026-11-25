@@ -85,6 +85,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: tokenAmountOut,
 		Fee:            tokenAmountFee,
+		SwapInfo:       pool.FeeSwapInfo{Fee: tokenAmountFee},
 		Gas:            p.gas.Swap,
 	}, nil
 }
@@ -101,7 +102,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 // UpdateBalance update UsdqAmount only
 // https://github.com/gmx-io/gmx-contracts/blob/787d767e033c411f6d083f2725fb54b7fa956f7e/contracts/core/Vault.sol#L547-L548
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, params.Fee
+	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, pool.SwapInfoFee(params.SwapInfo)
 	priceIn, err := p.vault.GetMinPrice(input.Token)
 	if err != nil {
 		return

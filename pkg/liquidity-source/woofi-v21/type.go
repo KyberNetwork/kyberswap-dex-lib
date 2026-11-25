@@ -23,6 +23,7 @@ type (
 		newMaxNotionalSwap *uint256.Int
 		newMaxGamma        *uint256.Int
 		base2              *woofiV2SwapInfo
+		swapFee            *uint256.Int // fee in tokenIn that CalcAmountOut charged, for UpdateBalance
 	}
 
 	Extra struct {

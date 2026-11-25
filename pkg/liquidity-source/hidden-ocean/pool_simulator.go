@@ -179,7 +179,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: feeAmountBig,
 		},
 		Gas:      s.gas,
-		SwapInfo: SwapInfo{},
+		SwapInfo: SwapInfo{Fee: feeAmountBig},
 	}
 
 	if remainingAmount != nil && remainingAmount.Sign() > 0 {
@@ -202,7 +202,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	// Update reserves: fees are transferred to feeReceiver (not kept in pool),
 	// so the pool balance only increases by (amountIn - fee).
-	feeAmount := params.Fee.Amount
+	feeAmount := new(big.Int)
+	if si, ok := params.SwapInfo.(SwapInfo); ok && si.Fee != nil {
+		feeAmount = si.Fee
+	}
 	amountInLessFee := new(big.Int).Sub(amountIn, feeAmount)
 	s.Info.Reserves[tokenInIndex] = new(big.Int).Add(s.Info.Reserves[tokenInIndex], amountInLessFee)
 	tokenOutIndex := 1 - tokenInIndex

@@ -162,6 +162,8 @@ func TestPool_getAmountOut(t *testing.T) {
 			assert.Equal(t, []string{tc.pool.Info.Tokens[1]}, tc.pool.CanSwapTo(tc.pool.Info.Tokens[0]))
 			assert.Equal(t, []string{tc.pool.Info.Tokens[0]}, tc.pool.CanSwapTo(tc.pool.Info.Tokens[1]))
 			assert.Equal(t, 0, len(tc.pool.CanSwapTo("XXX")))
+			// The adapter path (CalcAmtOut, UpdateState without a fee) must reach the same state as UpdateBalance with the fee.
+			testutil.TestUpdateStateParity(t, func() any { return tc.pool.CloneState() }, []string{tc.amountIn.String()})
 			amountOut, _ := testutil.MustConcurrentSafe(t, func() (*big.Int, error) {
 				return tc.pool.getAmountOut(tc.amountIn, tc.tokenIn), nil
 			})

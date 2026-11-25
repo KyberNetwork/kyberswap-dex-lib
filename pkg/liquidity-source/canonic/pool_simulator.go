@@ -164,6 +164,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: feeToken, Amount: fee.ToBig()},
+		SwapInfo:       pool.FeeSwapInfo{Fee: &pool.TokenAmount{Token: feeToken, Amount: fee.ToBig()}},
 		Gas:            defaultGas,
 	}, nil
 }
@@ -185,7 +186,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 
 	amtOut := uint256.MustFromBig(amountOut)
-	fee := uint256.MustFromBig(params.Fee.Amount)
+	fee := uint256.MustFromBig(pool.SwapInfoFee(params.SwapInfo).Amount)
 	grossOut := new(uint256.Int).Add(amtOut, fee)
 
 	isBuyBase := tokenIn == s.quoteToken && tokenOut == s.baseToken

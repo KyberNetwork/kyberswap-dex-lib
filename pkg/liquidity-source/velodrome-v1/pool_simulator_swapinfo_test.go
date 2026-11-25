@@ -148,15 +148,15 @@ func TestPoolSimulator_SwapInfo(t *testing.T) {
 		assert.Equal(t, simState(viaSwap), simState(viaInfo))
 	})
 
-	t.Run("unknown balances: no SwapInfo, and a SwapInfo that comes anyway is ignored", func(t *testing.T) {
+	t.Run("unknown balances: the SwapInfo only carries the fee, and a SwapInfo that comes anyway is ignored", func(t *testing.T) {
 		legacy := newBalanceTestSimulator(t, tp, reserves, nil)
 		res, err := quote(legacy, 0, amountIn)
 		require.NoError(t, err)
-		assert.Nil(t, res.SwapInfo)
+		assert.IsType(t, poolpkg.FeeSwapInfo{}, res.SwapInfo)
 		resIn, err := legacy.CalcAmountIn(poolpkg.CalcAmountInParams{
 			TokenAmountOut: poolpkg.TokenAmount{Token: tokenB, Amount: big.NewInt(500_000_000)}, TokenIn: tokenA})
 		require.NoError(t, err)
-		assert.Nil(t, resIn.SwapInfo)
+		assert.IsType(t, poolpkg.FeeSwapInfo{}, resIn.SwapInfo)
 
 		ref := newBalanceTestSimulator(t, tp, reserves, nil)
 		updateBalanceWithoutSwapInfo(ref, 0, amountIn, res)

@@ -153,6 +153,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		}
 	}
 
+	swapInfo.swapFee = swapFee
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
@@ -581,7 +583,7 @@ func (s *PoolSimulator) updateBalanceSellQuote(params pool.UpdateBalanceParams) 
 	swapInfo := params.SwapInfo.(*woofiV2SwapInfo)
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
-	swapFee, _ := uint256.FromBig(params.Fee.Amount)
+	swapFee := swapInfo.swapFee.Clone()
 	tokenInfoIn, tokenInfoOut := s.tokenInfos[params.TokenAmountIn.Token], s.tokenInfos[params.TokenAmountOut.Token]
 
 	newQuoteReserve := amountIn.Add(
@@ -620,7 +622,7 @@ func (s *PoolSimulator) updateBalanceSellBase(params pool.UpdateBalanceParams) {
 	swapInfo := params.SwapInfo.(*woofiV2SwapInfo)
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
-	swapFee, _ := uint256.FromBig(params.Fee.Amount)
+	swapFee := swapInfo.swapFee.Clone()
 	tokenInfoIn, tokenInfoOut := s.tokenInfos[params.TokenAmountIn.Token], s.tokenInfos[params.TokenAmountOut.Token]
 
 	newBaseReserves := amountIn.Add(
@@ -662,7 +664,7 @@ func (s *PoolSimulator) updateBalanceSwapBaseToBase(params pool.UpdateBalancePar
 	swapInfo := params.SwapInfo.(*woofiV2SwapInfo)
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
-	swapFee, _ := uint256.FromBig(params.Fee.Amount)
+	swapFee := swapInfo.swapFee.Clone()
 	tokenInfoIn, tokenInfoOut := s.tokenInfos[params.TokenAmountIn.Token], s.tokenInfos[params.TokenAmountOut.Token]
 	tokenInfoQuote := s.tokenInfos[s.quoteToken]
 

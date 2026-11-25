@@ -1,6 +1,10 @@
 package ilyrislb
 
-import "github.com/holiman/uint256"
+import (
+	"math/big"
+
+	"github.com/holiman/uint256"
+)
 
 // StaticExtra holds pool immutables.
 type StaticExtra struct {
@@ -54,6 +58,7 @@ type SwapInfo struct {
 	xForY       bool
 	newActiveID int32
 	fills       []binFill
+	fee         *big.Int // fee in tokenIn that CalcAmountOut charged
 }
 
 // binFill is the net (post-fee) movement of one bin: in joins the input side, out leaves.

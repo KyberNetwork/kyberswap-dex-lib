@@ -365,6 +365,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			pool, _ := NewPoolSimulator(tc.entityPool)
+			if tc.expectedErr == nil {
+				testutil.TestUpdateStateParity(t, func() any { return pool.CloneState() }, []string{tc.tokenAmountIn.Amount.String()})
+			}
 
 			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*poolPkg.CalcAmountOutResult, error) {
 				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{

@@ -107,6 +107,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  s.Info.Tokens[indexIn],
 			Amount: fee.ToBig(),
 		},
+		SwapInfo: pool.FeeSwapInfo{Fee: &pool.TokenAmount{
+			Token:  s.Info.Tokens[indexIn],
+			Amount: fee.ToBig(),
+		}},
 		Gas: lo.Ternary(isMint, defaultMintGas, defaultBurnGas),
 	}, nil
 }
@@ -118,7 +122,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
 	amountOutWithFee := uint256.MustFromBig(params.TokenAmountOut.Amount)
-	amountOutWithFee.Add(amountOutWithFee, uint256.MustFromBig(params.Fee.Amount))
+	amountOutWithFee.Add(amountOutWithFee, uint256.MustFromBig(pool.SwapInfoFee(params.SwapInfo).Amount))
 
 	if isMint {
 		s.vaultAssetSupplies[assetIndex] = new(uint256.Int).Add(s.vaultAssetSupplies[assetIndex], amountIn)

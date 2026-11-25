@@ -22,6 +22,7 @@ type (
 		newPrice      *uint256.Int
 		newBase1Price *uint256.Int
 		newBase2Price *uint256.Int
+		swapFee       *uint256.Int // fee in tokenIn that CalcAmountOut charged, for UpdateBalance
 	}
 
 	Extra struct {

@@ -115,6 +115,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: tokenOut, Amount: fee.ToBig()},
+		SwapInfo:       pool.FeeSwapInfo{Fee: &pool.TokenAmount{Token: tokenOut, Amount: fee.ToBig()}},
 		Gas:            defaultGas,
 	}, nil
 }
@@ -132,7 +133,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenAmountOut.Token
 	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
 	netAmountOut := uint256.MustFromBig(params.TokenAmountOut.Amount)
-	fee := uint256.MustFromBig(params.Fee.Amount)
+	fee := uint256.MustFromBig(pool.SwapInfoFee(params.SwapInfo).Amount)
 	grossAmountOut := new(uint256.Int).Add(netAmountOut, fee)
 
 	stateIn := s.Extra.Tokens[tokenIn]

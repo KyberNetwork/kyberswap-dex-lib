@@ -92,6 +92,10 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 
 	require.Nil(t, err)
 	require.Equal(t, "420800752", result.TokenAmountOut.Amount.String())
+
+	// The adapter path (CalcAmtOut, UpdateState without a fee) must reach the same state as UpdateBalance with the fee.
+	testutil.TestUpdateStateParity(t, func() any { return pool.CloneState() },
+		[]string{"10000000000000000", "10000000000000000000"})
 }
 
 func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
@@ -246,6 +250,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				Gas: DefaultGas.Swap,
 				SwapInfo: &woofiV2SwapInfo{
+					swapFee:            number.NewUint256("12174493"),
 					newPrice:           number.NewUint256("159708927161"),
 					newMaxNotionalSwap: number.NewUint256("951288835552"),
 					newMaxGamma:        number.NewUint256("2999244976951054"),
@@ -317,6 +322,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				Gas: DefaultGas.Swap,
 				SwapInfo: &woofiV2SwapInfo{
+					swapFee:            number.NewUint256("934864"),
 					newPrice:           number.NewUint256("159714925501"),
 					newMaxNotionalSwap: number.NewUint256("996261476638"),
 					newMaxGamma:        number.NewUint256("2994205288788900"),
@@ -403,6 +409,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				Gas: DefaultGas.Swap,
 				SwapInfo: &woofiV2SwapInfo{
+					swapFee:            number.NewUint256("13032560"),
 					newPrice:           number.NewUint256("2661411836801"),
 					newMaxNotionalSwap: number.NewUint256("947843883507"),
 					newMaxGamma:        number.NewUint256("2743391906854428"),

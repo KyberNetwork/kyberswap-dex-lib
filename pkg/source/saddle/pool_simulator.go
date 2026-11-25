@@ -165,6 +165,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: tokenOut, Amount: fee.ToBig()},
+		SwapInfo:       pool.FeeSwapInfo{Fee: &pool.TokenAmount{Token: tokenOut, Amount: fee.ToBig()}},
 		Gas:            gas,
 	}, nil
 }
@@ -177,7 +178,7 @@ func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, params.Fee
+	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, pool.SwapInfoFee(params.SwapInfo)
 	var inputAmount, outputAmount, adminShare uint256.Int
 	inputAmount.SetFromBig(input.Amount)
 	outputAmount.SetFromBig(output.Amount)

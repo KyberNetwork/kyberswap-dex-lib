@@ -18,4 +18,6 @@ type SwapInfo struct {
 	CreditedAmountIn uint256.Int `json:"-"`
 	// UsdmAmount is CreditedAmountIn valued in USDM at the min price of the token in.
 	UsdmAmount uint256.Int `json:"-"`
+	// Fee is the swap fee in tokenOut, which UpdateBalance takes from the pool amount of tokenOut with the amount out.
+	Fee uint256.Int `json:"-"`
 }

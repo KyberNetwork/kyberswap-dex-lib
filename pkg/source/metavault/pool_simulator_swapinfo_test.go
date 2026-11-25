@@ -134,10 +134,11 @@ func TestNewSwapInfo(t *testing.T) {
 	t.Parallel()
 
 	tooBig := new(big.Int).Lsh(big.NewInt(1), 256)
-	assert.Nil(t, newSwapInfo(tooBig, big.NewInt(1)))
-	assert.Nil(t, newSwapInfo(big.NewInt(1), tooBig))
-	assert.Equal(t, SwapInfo{CreditedAmountIn: *uint256.NewInt(1), UsdmAmount: *uint256.NewInt(2)},
-		newSwapInfo(big.NewInt(1), big.NewInt(2)))
+	assert.Nil(t, newSwapInfo(tooBig, big.NewInt(1), big.NewInt(1)))
+	assert.Nil(t, newSwapInfo(big.NewInt(1), tooBig, big.NewInt(1)))
+	assert.Nil(t, newSwapInfo(big.NewInt(1), big.NewInt(1), tooBig))
+	assert.Equal(t, SwapInfo{CreditedAmountIn: *uint256.NewInt(1), UsdmAmount: *uint256.NewInt(2), Fee: *uint256.NewInt(3)},
+		newSwapInfo(big.NewInt(1), big.NewInt(2), big.NewInt(3)))
 }
 
 // The swap fee reads the vault through vaultUtils: after CloneState it must read the cloned vault, so that an

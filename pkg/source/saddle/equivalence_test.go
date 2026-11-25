@@ -174,7 +174,7 @@ func TestEquivalence_Sequences(t *testing.T) {
 				res, err := legacy.CalcAmountOut(in)
 				require.NoError(t, err)
 				update := pool.UpdateBalanceParams{TokenAmountIn: in.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut,
-					Fee: *res.Fee, SwapInfo: res.SwapInfo}
+					Fee: *res.Fee, SwapInfo: pool.FeeSwapInfo{Fee: res.Fee}}
 				legacy = legacy.CloneState().(*legacyPoolSimulator)
 				legacy.UpdateBalance(update)
 				port = port.CloneState().(*PoolSimulator)

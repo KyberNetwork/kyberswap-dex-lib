@@ -110,6 +110,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: feeAmount.ToBig()},
+		SwapInfo:       pool.FeeSwapInfo{Fee: &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: feeAmount.ToBig()}},
 		Gas:            s.gas.Swap,
 	}, nil
 }
@@ -135,8 +136,9 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: integer.Zero()},
-		Gas: s.gas.Swap,
+		Fee:      &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: integer.Zero()},
+		SwapInfo: pool.FeeSwapInfo{Fee: &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: integer.Zero()}},
+		Gas:      s.gas.Swap,
 	}, nil
 }
 
@@ -146,7 +148,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if indexIn < 0 || indexOut < 0 {
 		return
 	}
-	s.Info.Reserves[indexIn] = new(big.Int).Sub(new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount), params.Fee.Amount)
+	s.Info.Reserves[indexIn] = new(big.Int).Sub(new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount), pool.SwapInfoFee(params.SwapInfo).Amount)
 	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 }
 

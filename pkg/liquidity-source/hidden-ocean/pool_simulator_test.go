@@ -193,7 +193,7 @@ func TestUpdateBalance(t *testing.T) {
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: "0xtoken0", Amount: big.NewInt(1000000)},
 		TokenAmountOut: pool.TokenAmount{Token: "0xtoken1", Amount: result.TokenAmountOut.Amount},
-		Fee:            pool.TokenAmount{Token: "0xtoken0", Amount: result.Fee.Amount},
+		SwapInfo:       SwapInfo{Fee: result.Fee.Amount},
 	})
 
 	// Price should have decreased (zeroForOne pushes price down)
@@ -432,7 +432,7 @@ func TestUpdateBalance_OneForZero(t *testing.T) {
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: "0xtoken1", Amount: big.NewInt(1000000)},
 		TokenAmountOut: pool.TokenAmount{Token: "0xtoken0", Amount: result.TokenAmountOut.Amount},
-		Fee:            pool.TokenAmount{Token: "0xtoken1", Amount: result.Fee.Amount},
+		SwapInfo:       SwapInfo{Fee: result.Fee.Amount},
 	})
 
 	// Price should have increased (oneForZero pushes price up)
@@ -450,7 +450,7 @@ func TestUpdateBalance_PriceBelowRange(t *testing.T) {
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: "0xtoken1", Amount: big.NewInt(1000)},
 		TokenAmountOut: pool.TokenAmount{Token: "0xtoken0", Amount: big.NewInt(900)},
-		Fee:            pool.TokenAmount{Token: "0xtoken1", Amount: big.NewInt(3)},
+		SwapInfo:       SwapInfo{Fee: big.NewInt(3)},
 	})
 
 	// Price was clamped up from below sqrtPa; oneForZero pushes it further up
@@ -468,7 +468,7 @@ func TestUpdateBalance_PriceAboveRange(t *testing.T) {
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: "0xtoken0", Amount: big.NewInt(1000)},
 		TokenAmountOut: pool.TokenAmount{Token: "0xtoken1", Amount: big.NewInt(900)},
-		Fee:            pool.TokenAmount{Token: "0xtoken0", Amount: big.NewInt(3)},
+		SwapInfo:       SwapInfo{Fee: big.NewInt(3)},
 	})
 
 	// Price was clamped down from above sqrtPb; zeroForOne pushes it lower
@@ -488,7 +488,7 @@ func TestUpdateBalance_ErrorFallback_ZeroForOne(t *testing.T) {
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: "0xtoken0", Amount: big.NewInt(1000)},
 		TokenAmountOut: pool.TokenAmount{Token: "0xtoken1", Amount: big.NewInt(900)},
-		Fee:            pool.TokenAmount{Token: "0xtoken0", Amount: big.NewInt(3)},
+		SwapInfo:       SwapInfo{Fee: big.NewInt(3)},
 	})
 
 	// zeroForOne error fallback sets price to sqrtPaX96
@@ -507,7 +507,7 @@ func TestUpdateBalance_ErrorFallback_OneForZero(t *testing.T) {
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: "0xtoken1", Amount: big.NewInt(1000)},
 		TokenAmountOut: pool.TokenAmount{Token: "0xtoken0", Amount: big.NewInt(900)},
-		Fee:            pool.TokenAmount{Token: "0xtoken1", Amount: big.NewInt(3)},
+		SwapInfo:       SwapInfo{Fee: big.NewInt(3)},
 	})
 
 	// oneForZero error fallback sets price to sqrtPbX96
@@ -534,7 +534,7 @@ func TestUpdateBalance_ConsecutiveSwaps(t *testing.T) {
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: "0xtoken0", Amount: big.NewInt(1000000)},
 		TokenAmountOut: pool.TokenAmount{Token: "0xtoken1", Amount: r1.TokenAmountOut.Amount},
-		Fee:            pool.TokenAmount{Token: "0xtoken0", Amount: r1.Fee.Amount},
+		SwapInfo:       SwapInfo{Fee: r1.Fee.Amount},
 	})
 
 	priceAfterFirst := new(uint256.Int).Set(sim.sqrtPriceX96)
@@ -550,7 +550,7 @@ func TestUpdateBalance_ConsecutiveSwaps(t *testing.T) {
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: "0xtoken0", Amount: big.NewInt(1000000)},
 		TokenAmountOut: pool.TokenAmount{Token: "0xtoken1", Amount: r2.TokenAmountOut.Amount},
-		Fee:            pool.TokenAmount{Token: "0xtoken0", Amount: r2.Fee.Amount},
+		SwapInfo:       SwapInfo{Fee: r2.Fee.Amount},
 	})
 
 	// Price should continue decreasing

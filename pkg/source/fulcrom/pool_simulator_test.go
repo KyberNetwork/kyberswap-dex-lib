@@ -97,6 +97,8 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 
 			poolSim, err := NewPoolSimulator(*poolEntity)
 			require.NoError(t, err)
+			// The adapter path (CalcAmtOut, UpdateState without a fee) must reach the same state as UpdateBalance with the fee.
+			testutil.TestUpdateStateParity(t, func() any { return poolSim.CloneState() }, []string{tc.amountIn})
 
 			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{

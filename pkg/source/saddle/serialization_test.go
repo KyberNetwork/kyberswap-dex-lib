@@ -30,7 +30,8 @@ func TestMsgpackRoundTrip(t *testing.T) {
 	in := pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: "A", Amount: big.NewInt(1e18)}, TokenOut: "B"}
 	res, err := sim.CalcAmountOut(in)
 	require.NoError(t, err)
-	sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: in.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee})
+	sim.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: in.TokenAmountIn, TokenAmountOut: *res.TokenAmountOut, Fee: *res.Fee,
+		SwapInfo: pool.FeeSwapInfo{Fee: res.Fee}})
 
 	sims := map[string]pool.IPoolSimulator{p.Address: sim}
 	for range 2 {

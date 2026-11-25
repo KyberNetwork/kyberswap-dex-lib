@@ -126,6 +126,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				Token:  tokenOut,
 				Amount: fee.ToBig(),
 			},
+			SwapInfo: pool.FeeSwapInfo{Fee: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: fee.ToBig(),
+			}},
 			Gas: p.gas.SellBase,
 		}, nil
 	case p.Info.Tokens[1]: // tokenIn is quote token
@@ -153,6 +157,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				Token:  tokenOut,
 				Amount: fee.ToBig(),
 			},
+			SwapInfo: pool.FeeSwapInfo{Fee: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: fee.ToBig(),
+			}},
 			Gas: p.gas.SellQuote,
 		}, nil
 	}
@@ -176,7 +184,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	inputAmount := input.Amount
 	// output.Amount was already fee-deducted in CalcAmountOut above, need to add back to update balances
-	outputAmount := new(big.Int).Add(output.Amount, params.Fee.Amount)
+	outputAmount := new(big.Int).Add(output.Amount, pool.SwapInfoFee(params.SwapInfo).Amount)
 
 	if isSellBase {
 		// p.Info.Reserves[0] = p.Info.Reserves[0] + inputAmount

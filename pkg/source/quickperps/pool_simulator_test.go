@@ -93,6 +93,9 @@ func TestPool_CalcAmountOut(t *testing.T) {
 
 			tc.entityPool.Extra = string(extraBytes)
 			pool, _ := NewPoolSimulator(tc.entityPool)
+			if tc.expectedErr == nil {
+				testutil.TestUpdateStateParity(t, func() any { return pool.CloneState() }, []string{tc.tokenAmountIn.Amount.String()})
+			}
 
 			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*poolPkg.CalcAmountOutResult, error) {
 				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
