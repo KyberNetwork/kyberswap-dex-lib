@@ -90,10 +90,16 @@ block:
   where the ladder's answer at its end is at least n bucket units and 2 under the ladder's last output, n being the
   fills the direction took before it and the unit 10^max(0, decimals - 6) of the token paid out: the pool books each
   fill's payout apart, rounded up to that unit, so fills that end at the ladder's top could pass its bucket. A pool that
-  takes a fee in the token it pays out (a spread rate, a notional rate or an operator's share) leaves the next fill
-  less room than the samples show, and this source does not model it: name its listing in `oneFillListings`, and it
-  takes one fill a route in each direction (`ErrSecondFill`). The source cannot read the pool's rates, so a listing
-  not named there is priced as if its pool took no fee, which the launch pool does.
+  takes a fee in the token it pays out (a spread rate, a notional rate or an operator's share) leaves the next fill of
+  the quote's side less room than the samples show, and this source does not model that. It reads the fee instead: the
+  lister reads the pool's `factory()` once, where the listing is scanned, and carries it in the static extra; each head
+  read asks the Factory's `spreadFeeRatesOf(pool)` and the pool's `operatorShare()`, two more inner calls of the head
+  multicall and no request of their own. A pool whose rates word or share is nonzero, or whose read fails, answers
+  short or has no Factory read, is priced as one that takes a fee (the read fails closed): its base-in direction takes
+  one fill a route (`ErrSecondFill`), and its quote-in direction keeps its later fills, since the fee is owed in the
+  quote and comes off the room of the fill that pays the quote. A pool listed before its Factory was read has none in
+  its static extra, so it is priced the same way until it is listed again. `oneFillListings` stays as an override that
+  forces one fill a route in both directions.
 - `StaleCheck`: route finding refuses a ladder older than 10 s and stops `inclusionAllowance` seconds before the
   ladder's `validUntil`. With `StaleCheck` off, no age gate applies.
 
@@ -276,7 +282,7 @@ list had left out: a failing url never brings a desk in. A list is refused whole
 | `approvedSources` | The price sources a listing may read and be quoted; none by default |
 | `layout`, `cellCodehash`, `titan` | Required on Ethereum, refused elsewhere. `layout` is `builder`; `titan.timeout` is in nanoseconds (unset: 1 s, at most 10 s) |
 | `creditListings` | Ethereum alone: `listing`, `custodyBaseIn`, `custodyQuoteIn`, `routeBaseIn`, `routeQuoteIn`, optional `routeLimitBaseIn`, `routeLimitQuoteIn`. A route figure of 0 leaves that side's routed sizes unquoted |
-| `oneFillListings` | Listings whose pool sets a spread rate, a notional rate or an operator's share: they take one fill a route in each direction. None by default; the launch pool sets none |
+| `oneFillListings` | Listings that take one fill a route in each direction whatever their pool's fee, as an override of the fee read. A listing id in 1 to 2^24 - 1, named once. None by default |
 | `listingGas` | A listing with no credit mode and its own `baseIn` and `quoteIn` figures, in place of its class's |
 | `minTipCapWei` | The least nonzero tip cap listed. Unset, 2 gwei on Ethereum and none elsewhere; `1` lists every listing |
 | `inclusionAllowance` | Seconds a routed fill takes to land: 1 on Ethereum and on chains with sub-second blocks, 3 elsewhere |
