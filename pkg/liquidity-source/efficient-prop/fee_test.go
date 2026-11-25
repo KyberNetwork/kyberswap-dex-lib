@@ -143,3 +143,24 @@ func TestFeeReadOnTheHeadPath(t *testing.T) {
 	n := chain.node(t, 1234)
 	assert.Zero(t, kinds(extraOf(t, track(t, n, listed(t, n))))[0], "a rates read that reverts")
 }
+
+// oneFillListings names listing ids: an id of 0, of 2^24 or more, or one named twice is refused, as listingGas and
+// creditListings refuse theirs.
+func TestOneFillListingsConfig(t *testing.T) {
+	with := func(ids ...uint32) Config {
+		c := *testConfig()
+		c.Fronts = append([]Front(nil), c.Fronts...)
+		c.Fronts[0].OneFillListings = ids
+		return c
+	}
+	good := with(1, 4, 1<<24-1)
+	require.NoError(t, good.validate())
+	assert.True(t, good.Fronts[0].oneFill(4))
+	assert.False(t, good.Fronts[0].oneFill(2))
+	none := with()
+	require.NoError(t, none.validate())
+	for name, ids := range map[string][]uint32{"zero": {0}, "past 2^24": {1 << 24}, "twice": {3, 5, 3}, "huge": {1 << 31}} {
+		c := with(ids...)
+		assert.ErrorIs(t, c.validate(), ErrInvalidConfig, name)
+	}
+}

@@ -341,6 +341,14 @@ func (c *Config) validate() error {
 // gas: each a listing id named once and by no credit listing, both figures measured.
 func (c *Config) validateBuilder(i int) error {
 	f := &c.Fronts[i]
+	one := make(map[uint32]bool, len(f.OneFillListings))
+	for k, id := range f.OneFillListings {
+		if id == 0 || id >= 1<<24 || one[id] {
+			return fmt.Errorf("%w: fronts[%d].oneFillListings[%d]=%d: not a listing id, or named twice", ErrInvalidConfig,
+				i, k, id)
+		}
+		one[id] = true
+	}
 	named := make(map[uint32]bool, len(f.ListingGas))
 	for k, g := range f.ListingGas {
 		if g.Listing == 0 || g.Listing >= 1<<24 || named[g.Listing] || f.creditListing(g.Listing) != nil {
