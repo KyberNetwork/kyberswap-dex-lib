@@ -98,14 +98,6 @@ func (p *PoolSimulator) GetExchange() string {
 	return p.exchange
 }
 
-func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapResult, error) {
-	amountsLeft, overflow := uint256.FromBig(amountIn)
-	if overflow {
-		return nil, shared.ErrInvalidAmountIn
-	}
-	return p.swapU(exactIn, swapForY, amountsLeft)
-}
-
 // swapU is swap on a uint256 amount. It consumes amountsLeft.
 func (p *PoolSimulator) swapU(exactIn, swapForY bool, amountsLeft *uint256.Int) (*swapResult, error) {
 	protocolFee := getZeroForOneFee(p.protocolFee)
@@ -224,54 +216,6 @@ func (p *PoolSimulator) gas() int64 {
 	return defaultGas
 }
 
-func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	tokenIn, tokenOut := params.TokenIn, params.TokenAmountOut
-	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut.Token)
-	if indexIn < 0 || indexOut < 0 {
-		return nil, shared.ErrInvalidToken
-	}
-
-	if p.activeId == 0 {
-		return nil, shared.ErrUninitializedPool
-	}
-
-	amountOut := tokenOut.Amount
-	// A native-flagged side trades at native's own decimals on-chain; only Arc's differ (18 vs 6).
-	if p.isNative[indexOut] {
-		amountOut = valueobject.UnwrapNativeAmount(p.chainID, amountOut)
-	}
-
-	res, err := p.swap(false, indexIn == 0, amountOut)
-	if err != nil {
-		return nil, err
-	}
-
-	amountIn := res.Amount.ToBig()
-	if p.isNative[indexIn] {
-		amountIn = valueobject.WrapNativeAmount(p.chainID, amountIn)
-	}
-
-	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{
-			Token:  tokenIn,
-			Amount: amountIn,
-		},
-		RemainingTokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut.Token,
-			Amount: bignumber.ZeroBI,
-		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenIn,
-			Amount: res.Fee.ToBig(),
-		},
-		Gas: p.gas(),
-		SwapInfo: SwapInfo{
-			NewActiveID:        res.NewActiveID,
-			BinsReserveChanges: res.BinsReserveChanges,
-		},
-	}, nil
-}
-
 // CalcAmtOut is CalcAmountOut with uint256 amounts.
 func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenOut
@@ -317,43 +261,50 @@ func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 // arcNativeScale is the 1e12 decimals gap between Arc's native currency and its wrapped native token.
 var arcNativeScale = uint256.NewInt(1e12)
 
-// CalcAmtIn is CalcAmountIn with uint256 amounts. It runs the shared big.Int CalcAmountIn body and converts at the
-// boundary, so the swap math keeps one copy.
+// CalcAmtIn is the exact-out quote. On Arc a native-flagged side trades at native's 18 decimals, so the amount out is
+// scaled up and the amount in scaled down (floor, as the legacy CalcAmountIn did).
 func (p *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
-	res, err := p.CalcAmountIn(pool.CalcAmountInParams{
-		TokenAmountOut: pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: params.TokenAmountOut.Amount.ToBig()},
-		TokenIn:        params.TokenIn,
-		Limit:          pool.AsSwapLimitBig(params.Limit),
-	})
+	tokenIn, tokenOut := params.TokenIn, params.TokenAmountOut.Token
+	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, shared.ErrInvalidToken
+	}
+
+	if p.activeId == 0 {
+		return nil, shared.ErrUninitializedPool
+	}
+
+	amountOut := params.TokenAmountOut.Amount
+	if p.isNative[indexOut] && p.chainID == valueobject.ChainIDArc {
+		if _, overflow := amountOut.MulOverflow(&amountOut, arcNativeScale); overflow {
+			return nil, shared.ErrInvalidAmountIn
+		}
+	}
+
+	res, err := p.swapU(false, indexIn == 0, &amountOut)
 	if err != nil {
 		return nil, err
 	}
+
+	amountIn := res.Amount
+	if p.isNative[indexIn] && p.chainID == valueobject.ChainIDArc {
+		amountIn.Div(amountIn, arcNativeScale)
+	}
+
 	return &pool.CalcAmtInResult{
-		TokenAmountIn:           tokenAmtFromBigBin(res.TokenAmountIn),
-		RemainingTokenAmountOut: tokenAmtFromBigBin(res.RemainingTokenAmountOut),
-		Gas:                     res.Gas,
-		SwapInfo:                res.SwapInfo,
+		TokenAmountIn:           &pool.TokenAmt{Token: tokenIn, Amount: *amountIn},
+		RemainingTokenAmountOut: &pool.TokenAmt{Token: tokenOut},
+		Gas:                     p.gas(),
+		SwapInfo: SwapInfo{
+			NewActiveID:        res.NewActiveID,
+			BinsReserveChanges: res.BinsReserveChanges,
+		},
 	}, nil
 }
 
-// tokenAmtFromBigBin converts a legacy big.Int amount to uint256. A nil amount becomes zero.
-func tokenAmtFromBigBin(t *pool.TokenAmount) *pool.TokenAmt {
-	if t == nil {
-		return nil
-	}
-	out := &pool.TokenAmt{Token: t.Token, AmountUsd: t.AmountUsd}
-	if t.Amount != nil {
-		out.Amount = *uint256.MustFromBig(t.Amount)
-	}
-	return out
-}
-
-// UpdateState is UpdateBalance with uint256 amounts. The swap only needs SwapInfo, so the amounts are ignored.
+// UpdateState moves the active bin and applies the per-bin reserve changes. The swap only needs SwapInfo, so the
+// amounts are ignored. Reserves are replaced, not mutated, because clones share the Int pointers.
 func (p *PoolSimulator) UpdateState(params pool.UpdateStateParams) {
-	p.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: params.SwapInfo})
-}
-
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
 		logger.WithFields(logger.Fields{
@@ -362,34 +313,17 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	// active bin ID
 	p.activeId = swapInfo.NewActiveID
-
-	// update reserves of bins
-	totalBinReserveChanges := make(map[uint32][2]*uint256.Int)
-	for _, b := range swapInfo.BinsReserveChanges {
-		changes, ok := totalBinReserveChanges[b.BinID]
-		if !ok {
-			totalBinReserveChanges[b.BinID] = [2]*uint256.Int{
-				new(uint256.Int).Sub(b.AmountXIn, b.AmountXOut),
-				new(uint256.Int).Sub(b.AmountYIn, b.AmountYOut),
-			}
+	for _, c := range swapInfo.BinsReserveChanges {
+		idx, err := FindBinArrIndex(p.bins, c.BinID)
+		if err != nil {
 			continue
 		}
-
-		changes[0].Add(changes[0], b.AmountXIn).Sub(changes[0], b.AmountXOut)
-		changes[1].Add(changes[1], b.AmountYIn).Sub(changes[1], b.AmountYOut)
+		b := &p.bins[idx]
+		x := new(uint256.Int).Add(b.ReserveX, c.AmountXIn)
+		y := new(uint256.Int).Add(b.ReserveY, c.AmountYIn)
+		b.ReserveX, b.ReserveY = x.Sub(x, c.AmountXOut), y.Sub(y, c.AmountYOut)
 	}
-	newBins := p.bins[:0]
-	for _, b := range p.bins {
-		if changes, ok := totalBinReserveChanges[b.ID]; ok {
-			b.ReserveX = changes[0].Add(b.ReserveX, changes[0])
-			b.ReserveY = changes[1].Add(b.ReserveY, changes[1])
-		}
-
-		newBins = append(newBins, b)
-	}
-	p.bins = newBins
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSim {

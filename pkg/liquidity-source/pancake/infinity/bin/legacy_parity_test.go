@@ -94,9 +94,26 @@ func sequentialBinParity(t *testing.T, base *PoolSimulator, tokenIn, tokenOut, a
 		require.Equal(t, lRes.Gas, nRes.Gas, name+" gas")
 		require.Equal(t, lRes.SwapInfo, nRes.SwapInfo, name+" swapinfo")
 
-		upd := func(sim *PoolSimulator, info any) { sim.UpdateState(pool.UpdateStateParams{SwapInfo: info}) }
-		upd(nativeSim, nRes.SwapInfo)
-		upd(legacySim, lRes.SwapInfo)
+		// exact-out on the same amount, then advance state: native UpdateState vs legacy UpdateBalance.
+		lIn, lInErr := legacySim.CalcAmountIn(pool.CalcAmountInParams{
+			TokenAmountOut: pool.TokenAmount{Token: tokenIn, Amount: new(big.Int).Set(amtBig)}, TokenIn: tokenOut})
+		nIn, nInErr := nativeSim.CalcAmtIn(pool.CalcAmtInParams{
+			TokenAmountOut: pool.TokenAmt{Token: tokenIn, Amount: *amtU}, TokenIn: tokenOut})
+		if lInErr != nil || nInErr != nil {
+			require.Equal(t, fmt.Sprint(lInErr), fmt.Sprint(nInErr), name+" in error")
+		} else {
+			require.Equal(t, lIn.TokenAmountIn.Amount.String(), nIn.TokenAmountIn.Amount.Dec(), name+" in")
+			require.Equal(t, lIn.TokenAmountIn.Token, nIn.TokenAmountIn.Token, name+" in token")
+			require.Equal(t, lIn.RemainingTokenAmountOut.Amount.String(), nIn.RemainingTokenAmountOut.Amount.Dec(), name+" in remaining")
+			require.Equal(t, lIn.Gas, nIn.Gas, name+" in gas")
+			require.Equal(t, lIn.SwapInfo, nIn.SwapInfo, name+" in swapinfo")
+			successes++
+		}
+
+		nativeSim.UpdateState(pool.UpdateStateParams{SwapInfo: nRes.SwapInfo})
+		legacySim.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: lRes.SwapInfo})
+		require.Equal(t, legacySim.bins, nativeSim.bins, name+" bins")
+		require.Equal(t, legacySim.activeId, nativeSim.activeId, name+" activeId")
 	}
 	return successes
 }
