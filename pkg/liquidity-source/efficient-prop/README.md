@@ -217,16 +217,17 @@ These are Ethereum's deployed front (proxy and implementation), its door factory
 price contracts and its first maker's desk contract (desk 1). The `creditListings` entry is the fork measurement above
 for a wstETH/WETH listing with id 1; ids and figures are checked against the live pool before the config is used.
 
-**`approvedDesks` is empty by default, and empty means nothing is listed or quoted.** A listing's maker is its desk,
-and a desk's contract is the front's `deskCellOf` of the listing's desk; a listing bound to no desk is never quoted.
-`approvedDesksURL` (optional, https only) answers the chain's approved desks as `{"chainId":1,"updatedAt":<unix
-s>,"version":<n>,"bundleSha256":"0x…","desks":["0x…"]}`: `chainId`, `updatedAt` and `desks` are read, any other field
-is ignored, an address is taken in either case, and an empty `desks` is a list that approves nobody. Any other status
-than 200 is a failed fetch. It is fetched in the background every 15 s at most (a failure is logged once a minute at
-most, and no refresh waits for the fetch), and its list rules while its last fetch is at most `approvedDesksMaxAge` old
-(seconds, 600 by default), so a desk it drops is quoted no more within one fetch. Once the list is older (the url failing, or answering a list that is refused), `approvedDesks` rules, less the desks that list
-had left out: a failing url never brings a desk in. A list is refused whole where it names another chain, is above 64
-KiB or 1,024 desks, names a bad address or no `updatedAt`, or is older than the one held.
+**`approvedDesks` is empty by default, and empty means nothing is listed or quoted.** A listing's maker is its desk, and
+a desk's contract is the front's `deskCellOf` of the listing's desk; a listing bound to no desk is never quoted.
+`approvedDesksURL` (optional, https only) answers the chain's approved desks as
+`{"chainId":1,"updatedAt":<unix s>,"version":<n>,"bundleSha256":"0x…","desks":["0x…"]}`: `chainId`, `updatedAt` and
+`desks` are read, any other field is ignored, an address is taken in either case, and an empty `desks` is a list that
+approves nobody. Any other status than 200 is a failed fetch. It is fetched in the background every 15 s at most (a
+failure is logged once a minute at most, and no refresh waits for the fetch), and its list rules while its last fetch is
+at most `approvedDesksMaxAge` old (seconds, 600 by default), so a desk it drops is quoted no more within one fetch. Once
+the list is older (the url failing, or answering a list that is refused), `approvedDesks` rules, less the desks that
+list had left out: a failing url never brings a desk in. A list is refused whole where it names another chain, is above
+64 KiB or 1,024 desks, names a bad address or no `updatedAt`, or is older than the one held.
 
 | Field | Meaning |
 |---|---|
