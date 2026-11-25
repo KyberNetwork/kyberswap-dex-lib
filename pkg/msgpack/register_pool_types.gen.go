@@ -314,311 +314,318 @@ import (
 	pkg_source_zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 )
 
+// registeredTypes lists every registered concrete type, for tests.
+var registeredTypes = []any{
+	&pkg_liquiditysource_1010prop.PoolSimulator{},
+	&pkg_liquiditysource_1inch_aqua.PoolSimulator{},
+	&pkg_liquiditysource_1inch_lo.PoolSimulator{},
+	&pkg_liquiditysource_aavev3.PoolSimulator{},
+	&pkg_liquiditysource_algebra_integral.PoolSimulator{},
+	&pkg_liquiditysource_algebra_v1.PoolSimulator{},
+	&pkg_liquiditysource_altfun.PoolSimulator{},
+	&pkg_liquiditysource_ambient.PoolSimulator{},
+	&pkg_liquiditysource_ammalgam.PoolSimulator{},
+	&pkg_liquiditysource_angletransmuter.PoolSimulator{},
+	&pkg_liquiditysource_arbera_den.PoolSimulator{},
+	&pkg_liquiditysource_arbera_zap.PoolSimulator{},
+	&pkg_liquiditysource_arcade_curve.PoolSimulator{},
+	&pkg_liquiditysource_arenabc.PoolSimulator{},
+	&pkg_liquiditysource_balancer_v1.PoolSimulator{},
+	&pkg_liquiditysource_balancer_v2_composablestable.PoolSimulator{},
+	&pkg_liquiditysource_balancer_v2_stable.PoolSimulator{},
+	&pkg_liquiditysource_balancer_v2_weighted.PoolSimulator{},
+	&pkg_liquiditysource_balancer_v3_base.PoolSimulator{},
+	&pkg_liquiditysource_balancer_v3_eclp.PoolSimulator{},
+	&pkg_liquiditysource_balancer_v3_quantamm.PoolSimulator{},
+	&pkg_liquiditysource_balancer_v3_reclamm.PoolSimulator{},
+	&pkg_liquiditysource_balancer_v3_stable.PoolSimulator{},
+	&pkg_liquiditysource_balancer_v3_weighted.PoolSimulator{},
+	&pkg_liquiditysource_bancorv21.PoolSimulator{},
+	&pkg_liquiditysource_bancorv3.PoolSimulator{},
+	&pkg_liquiditysource_baseline.PoolSimulator{},
+	&pkg_liquiditysource_bedrock_unibtc.PoolSimulator{},
+	&pkg_liquiditysource_bedrock_unieth.PoolSimulator{},
+	&pkg_liquiditysource_beetsss.PoolSimulator{},
+	&pkg_liquiditysource_biconomyprop.PoolSimulator{},
+	&pkg_liquiditysource_bouncetech.PoolSimulator{},
+	&pkg_liquiditysource_brownfi.PoolSimulator{},
+	&pkg_liquiditysource_brownfi_v2.PoolSimulator{},
+	&pkg_liquiditysource_brownfi_v3.PoolSimulator{},
+	&pkg_liquiditysource_btrprop.PoolSimulator{},
+	&pkg_liquiditysource_caliberprop.PoolSimulator{},
+	&pkg_liquiditysource_canonic.PoolSimulator{},
+	&pkg_liquiditysource_cap_cusd.PoolSimulator{},
+	&pkg_liquiditysource_capricornpamm.PoolSimulator{},
+	&pkg_liquiditysource_carbon.PoolSimulator{},
+	&pkg_liquiditysource_clear.PoolSimulator{},
+	&pkg_liquiditysource_clipper.PoolSimulator{},
+	&pkg_liquiditysource_cloberob.PoolSimulator{},
+	&pkg_liquiditysource_compound_v2.PoolSimulator{},
+	&pkg_liquiditysource_compound_v3.PoolSimulator{},
+	&pkg_liquiditysource_crystalob.PoolSimulator{},
+	&pkg_liquiditysource_curve_llamma.PoolSimulator{},
+	&pkg_liquiditysource_curve_plain.PoolSimulator{},
+	&pkg_liquiditysource_curve_stablemetang.PoolSimulator{},
+	&pkg_liquiditysource_curve_stableng.PoolSimulator{},
+	&pkg_liquiditysource_curve_tricryptong.PoolSimulator{},
+	&pkg_liquiditysource_curve_twocryptong.PoolSimulator{},
+	&pkg_liquiditysource_daiusds.PoolSimulator{},
+	&pkg_liquiditysource_daikonprop.PoolSimulator{},
+	&pkg_liquiditysource_deepstateob.PoolSimulator{},
+	&pkg_liquiditysource_deltaswapv1.PoolSimulator{},
+	&pkg_liquiditysource_dodo_classical.PoolSimulator{},
+	&pkg_liquiditysource_dodo_dpp.PoolSimulator{},
+	&pkg_liquiditysource_dodo_dsp.PoolSimulator{},
+	&pkg_liquiditysource_dodo_dvm.PoolSimulator{},
+	&pkg_liquiditysource_ekubo.PoolSimulator{},
+	&pkg_liquiditysource_ekubo_v3.PoolSimulator{},
+	&pkg_liquiditysource_elfomofi.PoolSimulator{},
+	&pkg_liquiditysource_erc4626.PoolSimulator{},
+	&pkg_liquiditysource_ethena_susde.PoolSimulator{},
+	&pkg_liquiditysource_ethervista.PoolSimulator{},
+	&pkg_liquiditysource_etherfi_ebtc.PoolSimulator{},
+	&pkg_liquiditysource_etherfi_eeth.PoolSimulator{},
+	&pkg_liquiditysource_etherfi_liquid.PoolSimulator{},
+	&pkg_liquiditysource_etherfi_vampire.PoolSimulator{},
+	&pkg_liquiditysource_etherfi_weeth.PoolSimulator{},
+	&pkg_liquiditysource_eulerswap_v1.PoolSimulator{},
+	&pkg_liquiditysource_eulerswap_v2.PoolSimulator{},
+	&pkg_liquiditysource_everlong_flamm.PoolSimulator{},
+	&pkg_liquiditysource_feltir.PoolSimulator{},
+	&pkg_liquiditysource_flap.PoolSimulator{},
+	&pkg_liquiditysource_flowstatec1.PoolSimulator{},
+	&pkg_liquiditysource_fluid_atokenswap.PoolSimulator{},
+	&pkg_liquiditysource_fluid_dexlite.PoolSimulator{},
+	&pkg_liquiditysource_fluid_dext1.PoolSimulator{},
+	&pkg_liquiditysource_fluid_dexv2.PoolSimulator{},
+	&pkg_liquiditysource_fluid_vaultt1.PoolSimulator{},
+	&pkg_liquiditysource_flywheelfun.PoolSimulator{},
+	&pkg_liquiditysource_frax_sfrxeth.PoolSimulator{},
+	&pkg_liquiditysource_frax_sfrxethconvertor.PoolSimulator{},
+	&pkg_liquiditysource_gblin.PoolSimulator{},
+	&pkg_liquiditysource_genericarm.PoolSimulator{},
+	&pkg_liquiditysource_genericsimplerate.PoolSimulator{},
+	&pkg_liquiditysource_ghost.PoolSimulator{},
+	&pkg_liquiditysource_gohm.PoolSimulator{},
+	&pkg_liquiditysource_gsm4626.PoolSimulator{},
+	&pkg_liquiditysource_gyroscope_2clp.PoolSimulator{},
+	&pkg_liquiditysource_gyroscope_3clp.PoolSimulator{},
+	&pkg_liquiditysource_gyroscope_eclp.PoolSimulator{},
+	&pkg_liquiditysource_hiddenocean.PoolSimulator{},
+	&pkg_liquiditysource_honey.PoolSimulator{},
+	&pkg_liquiditysource_hyeth.PoolSimulator{},
+	&pkg_liquiditysource_hyperamm.PoolSimulator{},
+	&pkg_liquiditysource_ilyrislb.PoolSimulator{},
+	&pkg_liquiditysource_infinifi_gateway.PoolSimulator{},
+	&pkg_liquiditysource_integral.PoolSimulator{},
+	&pkg_liquiditysource_kelp_rseth.PoolSimulator{},
+	&pkg_liquiditysource_kelp_rsethl2.PoolSimulator{},
+	&pkg_liquiditysource_kipseli_prop.PoolSimulator{},
+	&pkg_liquiditysource_kuruob.PoolSimulator{},
+	&pkg_liquiditysource_kuruob_v2.PoolSimulator{},
+	&pkg_liquiditysource_ladder.PoolSimulator{},
+	&pkg_liquiditysource_lfj_poe.PoolSimulator{},
+	&pkg_liquiditysource_lglclob.PoolSimulator{},
+	&pkg_liquiditysource_limitorder.PoolSimulator{},
+	&pkg_liquiditysource_liquidcore.PoolSimulator{},
+	&pkg_liquiditysource_liquidfiprop.PoolSimulator{},
+	&pkg_liquiditysource_liquidityparty.PoolSimulator{},
+	&pkg_liquiditysource_lista_stable.PoolSimulator{},
+	&pkg_liquiditysource_lista_stake.PoolSimulator{},
+	&pkg_liquiditysource_litepsm.PoolSimulator{},
+	&pkg_liquiditysource_lunarbase.PoolSimulator{},
+	&pkg_liquiditysource_lunya.PoolSimulator{},
+	&pkg_liquiditysource_lunyafun.PoolSimulator{},
+	&pkg_liquiditysource_machima.PoolSimulator{},
+	&pkg_liquiditysource_maker_savingsdai.PoolSimulator{},
+	&pkg_liquiditysource_maker_skypsm.PoolSimulator{},
+	&pkg_liquiditysource_mantle_cmeth.PoolSimulator{},
+	&pkg_liquiditysource_mantle_meth.PoolSimulator{},
+	&pkg_liquiditysource_maplesyrup.PoolSimulator{},
+	&pkg_liquiditysource_maverick_v1.PoolSimulator{},
+	&pkg_liquiditysource_maverick_v2.PoolSimulator{},
+	&pkg_liquiditysource_mento.PoolSimulator{},
+	&pkg_liquiditysource_metricpropamm.PoolSimulator{},
+	&pkg_liquiditysource_metronome_swap.PoolSimulator{},
+	&pkg_liquiditysource_midas.PoolSimulator{},
+	&pkg_liquiditysource_miromigrator.PoolSimulator{},
+	&pkg_liquiditysource_mkrsky.PoolSimulator{},
+	&pkg_liquiditysource_mooniswap.PoolSimulator{},
+	&pkg_liquiditysource_nabla.PoolSimulator{},
+	&pkg_liquiditysource_nadfun.PoolSimulator{},
+	&pkg_liquiditysource_nadswap.PoolSimulator{},
+	&pkg_liquiditysource_native_v3.PoolSimulator{},
+	&pkg_liquiditysource_nemoprop.PoolSimulator{},
+	&pkg_liquiditysource_netstaking.PoolSimulator{},
+	&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{},
+	&pkg_liquiditysource_obric.PoolSimulator{},
+	&pkg_liquiditysource_ondousdy.PoolSimulator{},
+	&pkg_liquiditysource_orderbook.PoolSimulator{},
+	&pkg_liquiditysource_overnightusdp.PoolSimulator{},
+	&pkg_liquiditysource_pancake_infinity_bin.PoolSimulator{},
+	&pkg_liquiditysource_pancake_infinity_bin_hooks_thanos.Hook{},
+	&pkg_liquiditysource_pancake_infinity_cl.PoolSimulator{},
+	&pkg_liquiditysource_pancake_infinity_cl_hooks_alpha.Hook{},
+	&pkg_liquiditysource_pancake_infinity_cl_hooks_brevis.Hook{},
+	&pkg_liquiditysource_pancake_infinity_cl_hooks_dynamicfee.Hook{},
+	&pkg_liquiditysource_pancake_infinity_cl_hooks_feemanager.Hook{},
+	&pkg_liquiditysource_pancake_infinity_cl_hooks_geniusmeme.Hook{},
+	&pkg_liquiditysource_pancake_infinity_cl_hooks_limitorder.Hook{},
+	&pkg_liquiditysource_pancake_infinity_cl_hooks_stable.Hook{},
+	&pkg_liquiditysource_pancake_infinity_cl_hooks_tax.Hook{},
+	&pkg_liquiditysource_pandafun.PoolSimulator{},
+	&pkg_liquiditysource_parityprop.PoolSimulator{},
+	&pkg_liquiditysource_pendle_spendle.PoolSimulator{},
+	&pkg_liquiditysource_ponsv2.PoolSimulator{},
+	&pkg_liquiditysource_poolparty.PoolSimulator{},
+	&pkg_liquiditysource_primeeth.PoolSimulator{},
+	&pkg_liquiditysource_printr.PoolSimulator{},
+	&pkg_liquiditysource_prismprop.PoolSimulator{},
+	&pkg_liquiditysource_prmfun.PoolSimulator{},
+	&pkg_liquiditysource_puffer_pufeth.PoolSimulator{},
+	&pkg_liquiditysource_range_weighted.PoolSimulator{},
+	&pkg_liquiditysource_renzo_ezeth.PoolSimulator{},
+	&pkg_liquiditysource_ringswap.PoolSimulator{},
+	&pkg_liquiditysource_rocketpool_reth.PoolSimulator{},
+	&pkg_liquiditysource_saturnusdat.PoolSimulator{},
+	&pkg_liquiditysource_slyngfun.PoolSimulator{},
+	&pkg_liquiditysource_smardex.PoolSimulator{},
+	&pkg_liquiditysource_smoothy.PoolSimulator{},
+	&pkg_liquiditysource_solidlyv2.PoolSimulator{},
+	&pkg_liquiditysource_someswap_v1.PoolSimulator{},
+	&pkg_liquiditysource_someswap_v2.PoolSimulator{},
+	&pkg_liquiditysource_spireprop.PoolSimulator{},
+	&pkg_liquiditysource_stabull.PoolSimulator{},
+	&pkg_liquiditysource_staderethx.PoolSimulator{},
+	&pkg_liquiditysource_stonkbrokersfun_v2.PoolSimulator{},
+	&pkg_liquiditysource_swell_rsweth.PoolSimulator{},
+	&pkg_liquiditysource_swell_sweth.PoolSimulator{},
+	&pkg_liquiditysource_syncswapv2_aqua.PoolSimulator{},
+	&pkg_liquiditysource_syncswapv2_classic.PoolSimulator{},
+	&pkg_liquiditysource_syncswapv2_stable.PoolSimulator{},
+	&pkg_liquiditysource_synthereum.PoolSimulator{},
+	&pkg_liquiditysource_tessera.PoolSimulator{},
+	&pkg_liquiditysource_thogprop.PoolSimulator{},
+	&pkg_liquiditysource_tidefiprop.PoolSimulator{},
+	&pkg_liquiditysource_umbrae_damm.PoolSimulator{},
+	&pkg_liquiditysource_umbrae_dlmm.PoolSimulator{},
+	&pkg_liquiditysource_unipool.PoolSimulator{},
+	&pkg_liquiditysource_uniswap_lo.PoolSimulator{},
+	&pkg_liquiditysource_uniswap_v1.PoolSimulator{},
+	&pkg_liquiditysource_uniswap_v2.PoolSimulator{},
+	&pkg_liquiditysource_uniswap_v3.PoolSimulator{},
+	&pkg_liquiditysource_uniswap_v4.PoolSimulator{},
+	&pkg_liquiditysource_uniswap_v4_hooks_aegis.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_aegisprop.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_alpha.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_alphix.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_angstrom.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_apefun.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_arcade.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_arena.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_arrakis.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_b20.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_bunniv2.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_cashcat.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_clanker.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_coocoo.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_cult.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_daosworld.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_deli.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_doppler.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_dualpool.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_evplusai.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_fablecurve.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_fables.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_few_hook.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_flaunch.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_gluehook.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_hyfiprop.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_idle.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_inverse.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_livo.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_lotflow.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_mofo.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_navjit.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_nft_strategy.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_o1.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_odysfun.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_onetoken.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_ponsv2.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_premium.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_reafund.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_renzo.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_st0x.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_stablestable.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_stablesfast.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_tickerdualpool.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_tickermemev4.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_volatile.Hook{},
+	&pkg_liquiditysource_uniswap_v4_hooks_zora.Hook{},
+	&pkg_liquiditysource_upshiftusdf.PoolSimulator{},
+	&pkg_liquiditysource_upshiftvaultv2.PoolSimulator{},
+	&pkg_liquiditysource_uscoreprop.PoolSimulator{},
+	&pkg_liquiditysource_usdai.PoolSimulator{},
+	&pkg_liquiditysource_usd0pp.PoolSimulator{},
+	&pkg_liquiditysource_valantisstex.PoolSimulator{},
+	&pkg_liquiditysource_velocorev2_cpmm.PoolSimulator{},
+	&pkg_liquiditysource_velocorev2_wombatstable.PoolSimulator{},
+	&pkg_liquiditysource_velodromev1.PoolSimulator{},
+	&pkg_liquiditysource_velodromev2.PoolSimulator{},
+	&pkg_liquiditysource_virtualfun_v1.PoolSimulator{},
+	&pkg_liquiditysource_virtualfun_v2.PoolSimulator{},
+	&pkg_liquiditysource_wasabiprop.PoolSimulator{},
+	&pkg_liquiditysource_wcm.PoolSimulator{},
+	&pkg_liquiditysource_whlp.PoolSimulator{},
+	&pkg_liquiditysource_wildcard.PoolSimulator{},
+	&pkg_liquiditysource_woofiv2.PoolSimulator{},
+	&pkg_liquiditysource_woofiv21.PoolSimulator{},
+	&pkg_liquiditysource_xsolvbtc.PoolSimulator{},
+	&pkg_source_camelot.PoolSimulator{},
+	&pkg_source_curve_aave.PoolSimulator{},
+	&pkg_source_curve_base.PoolSimulator{},
+	&pkg_source_curve_compound.PoolSimulator{},
+	&pkg_source_curve_meta.PoolSimulator{},
+	&pkg_source_curve_plainoracle.PoolSimulator{},
+	&pkg_source_curve_tricrypto.PoolSimulator{},
+	&pkg_source_curve_two.PoolSimulator{},
+	&pkg_source_dmm.PoolSimulator{},
+	&pkg_source_elastic.PoolSimulator{},
+	&pkg_source_equalizer.PoolSimulator{},
+	&pkg_source_fraxswap.PoolSimulator{},
+	&pkg_source_fulcrom.PoolSimulator{},
+	&pkg_source_fxdx.PoolSimulator{},
+	&pkg_source_gmx.PoolSimulator{},
+	&pkg_source_gmxglp.PoolSimulator{},
+	&pkg_source_iziswap.PoolSimulator{},
+	&pkg_source_kokonutcrypto.PoolSimulator{},
+	&pkg_source_lido.PoolSimulator{},
+	&pkg_source_lidosteth.PoolSimulator{},
+	&pkg_source_liquiditybookv20.PoolSimulator{},
+	&pkg_source_liquiditybookv21.PoolSimulator{},
+	&pkg_source_madmex.PoolSimulator{},
+	&pkg_source_makerpsm.PoolSimulator{},
+	&pkg_source_mantisswap.PoolSimulator{},
+	&pkg_source_metavault.PoolSimulator{},
+	&pkg_source_platypus.PoolSimulator{},
+	&pkg_source_polmatic.PoolSimulator{},
+	&pkg_source_quickperps.PoolSimulator{},
+	&pkg_source_saddle.PoolSimulator{},
+	&pkg_source_swapbasedperp.PoolSimulator{},
+	&pkg_source_syncswap_syncswapclassic.PoolSimulator{},
+	&pkg_source_syncswap_syncswapstable.PoolSimulator{},
+	&pkg_source_synthetix.PoolSimulator{},
+	&pkg_source_uniswap.PoolSimulator{},
+	&pkg_source_usdfi.PoolSimulator{},
+	&pkg_source_velocimeter.PoolSimulator{},
+	&pkg_source_vooi.PoolSimulator{},
+	&pkg_source_wombat_wombatlsd.PoolSimulator{},
+	&pkg_source_wombat_wombatmain.PoolSimulator{},
+	&pkg_source_zkerafinance.PoolSimulator{},
+}
+
 func init() {
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_1010prop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_1inch_aqua.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_1inch_lo.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_aavev3.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_integral.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_v1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_altfun.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ambient.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ammalgam.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_angletransmuter.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arbera_den.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arbera_zap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arcade_curve.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arenabc.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v2_composablestable.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v2_stable.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v2_weighted.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v3_base.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v3_eclp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v3_quantamm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v3_reclamm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v3_stable.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v3_weighted.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_bancorv21.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_bancorv3.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_baseline.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_bedrock_unibtc.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_bedrock_unieth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_beetsss.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_biconomyprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_bouncetech.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi_v2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi_v3.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_btrprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_caliberprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_canonic.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_cap_cusd.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_capricornpamm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_carbon.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_clear.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_clipper.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_cloberob.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_compound_v2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_compound_v3.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_crystalob.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_llamma.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_plain.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_stablemetang.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_stableng.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_tricryptong.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_twocryptong.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_daiusds.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_daikonprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_deepstateob.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_deltaswapv1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_classical.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dpp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dsp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dvm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ekubo.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ekubo_v3.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_elfomofi.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_erc4626.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ethena_susde.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ethervista.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_ebtc.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_eeth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_liquid.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_vampire.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_weeth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_eulerswap_v1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_eulerswap_v2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_everlong_flamm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_feltir.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_flap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_flowstatec1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_fluid_atokenswap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_fluid_dexlite.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_fluid_dext1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_fluid_dexv2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_fluid_vaultt1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_flywheelfun.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_frax_sfrxeth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_frax_sfrxethconvertor.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gblin.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_genericarm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_genericsimplerate.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ghost.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gohm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gsm4626.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gyroscope_2clp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gyroscope_3clp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_gyroscope_eclp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_hiddenocean.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_honey.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_hyeth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_hyperamm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ilyrislb.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_infinifi_gateway.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_integral.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kelp_rseth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kelp_rsethl2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kipseli_prop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kuruob.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_kuruob_v2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ladder.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lfj_poe.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lglclob.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_limitorder.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_liquidcore.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_liquidfiprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_liquidityparty.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lista_stable.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lista_stake.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_litepsm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunarbase.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunya.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_lunyafun.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_machima.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_savingsdai.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_skypsm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mantle_cmeth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mantle_meth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maplesyrup.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maverick_v1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_maverick_v2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mento.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_metricpropamm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_metronome_swap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_midas.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_miromigrator.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mkrsky.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_mooniswap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nabla.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nadfun.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nadswap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v3.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nemoprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_netstaking.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_obric.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ondousdy.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_orderbook.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_overnightusdp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_bin.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_bin_hooks_thanos.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_alpha.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_brevis.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_dynamicfee.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_feemanager.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_geniusmeme.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_limitorder.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_stable.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pancake_infinity_cl_hooks_tax.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pandafun.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_parityprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_pendle_spendle.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ponsv2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_poolparty.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_primeeth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_printr.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_prismprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_prmfun.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_puffer_pufeth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_range_weighted.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ringswap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_rocketpool_reth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_saturnusdat.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_slyngfun.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_smardex.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_smoothy.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_solidlyv2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_someswap_v1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_someswap_v2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_spireprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_stabull.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_staderethx.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_stonkbrokersfun_v2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_rsweth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_sweth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_aqua.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_classic.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_stable.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_synthereum.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_tessera.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_thogprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_tidefiprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_umbrae_damm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_umbrae_dlmm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_unipool.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_lo.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v3.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_aegis.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_aegisprop.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_alpha.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_alphix.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_angstrom.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_apefun.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_arcade.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_arena.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_arrakis.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_b20.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_bunniv2.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_cashcat.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_clanker.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_coocoo.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_cult.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_daosworld.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_deli.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_doppler.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_dualpool.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_evplusai.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_fablecurve.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_fables.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_few_hook.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_flaunch.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_gluehook.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_hyfiprop.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_idle.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_inverse.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_livo.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_lotflow.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_mofo.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_navjit.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_nft_strategy.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_o1.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_odysfun.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_onetoken.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_ponsv2.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_premium.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_reafund.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_renzo.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_st0x.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_stablestable.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_stablesfast.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_tickerdualpool.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_tickermemev4.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_volatile.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswap_v4_hooks_zora.Hook{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_upshiftusdf.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_upshiftvaultv2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_uscoreprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_usdai.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_usd0pp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_valantisstex.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velocorev2_cpmm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velocorev2_wombatstable.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_virtualfun_v1.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_virtualfun_v2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wasabiprop.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wcm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_whlp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_wildcard.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv2.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv21.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_xsolvbtc.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_camelot.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_curve_aave.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_curve_base.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_curve_compound.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_curve_meta.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_curve_plainoracle.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_curve_tricrypto.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_curve_two.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_dmm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_elastic.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_equalizer.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_fraxswap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_fulcrom.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_fxdx.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_gmx.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_gmxglp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_iziswap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_kokonutcrypto.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_lido.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_lidosteth.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_liquiditybookv20.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_liquiditybookv21.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_madmex.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_makerpsm.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_mantisswap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_metavault.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_platypus.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_polmatic.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_quickperps.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_saddle.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_swapbasedperp.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_syncswap_syncswapclassic.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_syncswap_syncswapstable.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_synthetix.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_uniswap.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_usdfi.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_velocimeter.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_vooi.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_wombat_wombatlsd.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_wombat_wombatmain.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_zkerafinance.PoolSimulator{})
+	for _, t := range registeredTypes {
+		_ = msgpack.RegisterConcreteType(t)
+	}
 }

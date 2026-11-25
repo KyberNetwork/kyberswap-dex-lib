@@ -61,11 +61,15 @@ func main() {
 	emitImports(outFileBuf, moduleName, paths, nameByFile, fileByPath)
 	emitf(outFileBuf, "\n")
 
-	emitf(outFileBuf, "func init() {\n")
+	emitf(outFileBuf, "// registeredTypes lists every registered concrete type, for tests.\n")
+	emitf(outFileBuf, "var registeredTypes = []any{\n")
 	for _, path := range paths {
 		file := fileByPath[path]
-		emitf(outFileBuf, "\t_ = msgpack.RegisterConcreteType(&%s.%s{})\n", nameByFile[file], structByFile[file])
+		emitf(outFileBuf, "\t&%s.%s{},\n", nameByFile[file], structByFile[file])
 	}
+	emitf(outFileBuf, "}\n\n")
+	emitf(outFileBuf, "func init() {\n")
+	emitf(outFileBuf, "\tfor _, t := range registeredTypes {\n\t\t_ = msgpack.RegisterConcreteType(t)\n\t}\n")
 	emitf(outFileBuf, "}\n")
 }
 
