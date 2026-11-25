@@ -900,11 +900,11 @@ func newHeadRig(t *testing.T) *headRig {
 	return r
 }
 
-// answer makes the /state server's answer for block 1235 write the listing's quote word at pair slot i, with version
-// in its unused bits.
-func (r *headRig) answer(i uint8, version uint) {
+// answer makes the /state server's answer for block 1235 write the listing's quote word at pair slot i, the maker's
+// post-th post of it (bit 100+post set in its unused bits, so each post is another word).
+func (r *headRig) answer(i uint8, post uint) {
 	w := quoteWordAt(1235, 0, false, false)
-	w.SetBit(w, int(100+version), 1)
+	w.SetBit(w, int(100+post), 1)
 	r.st.setEntries(slotAfter(r.n.time), 1235, map[string]stateEntry{"a": {
 		cellOf(7): {quoteKey(i): common.BigToHash(w)}, create3Child(testFront, printIDs[0]): printSlots}})
 }
