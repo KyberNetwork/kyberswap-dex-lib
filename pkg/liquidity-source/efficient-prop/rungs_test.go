@@ -886,3 +886,52 @@ func TestTrackerStartsTheLadderAtTheMinimumFill(t *testing.T) {
 	track(t, k, r)
 	assert.Equal(t, len(k.multis)-kMultis, len(n.multis)-multis)
 }
+
+// rungEthChain is rungChain's listing 1 under the Ethereum config, with a credit mode where credit is set (as
+// creditChain's: its WETH-in side routed past 2 WETH).
+func rungEthChain(credit bool) *fakeChain {
+	rung, _ := rungChain()
+	chain := creditChain()
+	if !credit {
+		chain = ethChain()
+	}
+	l, r := chain.listings[1], rung.listings[1]
+	l.view.PairWord, l.view.Depth, l.boards, l.sides = r.view.PairWord, r.view.Depth, r.boards, r.sides
+	return chain
+}
+
+// askedSizes is the sizes a refresh of rungEthChain's listing asks the door at, per direction, with the config's front
+// running the implementation given (unlisted: the grid as it was).
+func askedSizes(t *testing.T, credit bool, impl common.Address) [2]map[string]bool {
+	t.Helper()
+	chain := rungEthChain(credit)
+	chain.impl = impl
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	st.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := ethConfig(st.URL)
+	if credit {
+		setCredit(cfg, testCredit)
+	}
+	p := ethListed(t, n, cfg)
+	before := len(n.calls())
+	ethTrack(t, n, cfg, p)
+	return quotedSizes(t, n, before)
+}
+
+// A listing with a credit mode keeps the grid it had: it takes one fill a route whatever the state says, so the rung
+// middles and the minimum fill's sizes buy it nothing, and each size there costs a plan beside its quote in the one
+// pinned call. A listing without one takes the new grid, which is larger.
+func TestCreditListingKeepsTheOldGrid(t *testing.T) {
+	unlisted := common.HexToAddress("0x6000000000000000000000000000000000000002")
+	oldGrid := askedSizes(t, false, unlisted)
+	custody := askedSizes(t, false, common.Address{})
+	routed := askedSizes(t, true, common.Address{})
+	routedOld := askedSizes(t, true, unlisted)
+	for dir := range 2 {
+		assert.LessOrEqual(t, len(oldGrid[dir]), 22, "direction %d: the old grid's most", dir)
+		assert.Greater(t, len(custody[dir]), len(oldGrid[dir]), "direction %d: a custody listing takes the new grid", dir)
+		assert.LessOrEqual(t, len(routed[dir]), 22, "direction %d: a credit listing stays at the old grid's most", dir)
+		assert.Equal(t, routedOld[dir], routed[dir], "direction %d: a credit listing asks the sizes it asked before", dir)
+	}
+}

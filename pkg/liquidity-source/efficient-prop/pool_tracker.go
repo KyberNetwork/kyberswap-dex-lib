@@ -388,8 +388,10 @@ func (t *PoolTracker) GetNewPoolState(
 				top.Cmp(maxPointInput) < 0 {
 				points[dir] = withSize(points[dir], top)
 			}
-			// a point on every rung boundary: between two neighbouring sizes the walk is then on one rung
-			if layout {
+			// a point on every rung boundary: between two neighbouring sizes the walk is then on one rung. Not on a
+			// listing with a credit mode: it takes one fill a route whatever the state says, so the middles buy it
+			// nothing, and each size there costs a plan beside its quote in the one pinned call
+			if layout && plan == nil {
 				points[dir] = withEdges(points[dir], rungEdges(v, dir, h.rungs))
 				// and one at the listing's minimum fill, so the ladder starts where the listing does
 				var first Point
