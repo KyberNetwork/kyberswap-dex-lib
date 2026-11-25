@@ -26,10 +26,12 @@ import (
 // replaced at the same height reads again. One entry a listing, held in the tracker's process; a refresh that finds
 // the hash changed starts a new entry, and a refresh that cannot read the hash is not cached at all.
 
-// headID is the chain's head as the tracker read it: its number and hash.
+// headID is the chain's head as the tracker read it: its number and hash, and its milliseconds where the node gives
+// them (BNB Chain's milliTimestamp; 0: not given).
 type headID struct {
 	number *big.Int
 	hash   common.Hash
+	ms     uint64
 }
 
 // sharedHead is one front's head as last probed. Its lock is held through a probe, so the refreshes of the front's
@@ -42,13 +44,13 @@ type sharedHead struct {
 	held bool
 }
 
-// headProbe is the chain's head, number and hash, for front f: the latest block read from the node, or the last
-// probe's where that is under stateEvery old (the window the front's /state read is shared over), so the listings of
-// one front refreshed together ask the node once. Sharing delays seeing a new head by up to that window, which does
-// no harm: a state's validity ends on the wall clock (ValidUntilMs less the allowance), a second before its target
-// block, so a held result is already refused by the time the head can move; and at a new head there is nothing new to
-// quote until the desk signs for the next block, seconds later, with the /state read shared over the same window.
-// ok is false where the node does not answer a block.
+// headProbe is the chain's head, number and hash, for front f: the latest block read from the node, or the last probe's
+// where that is under stateEvery old (the window the front's /state read is shared over: 250 ms, 100 ms on BNB Chain),
+// so the listings of one front refreshed together ask the node once. Sharing delays seeing a new head by up to that
+// window, which does no harm: a state's validity ends on the wall clock (ValidUntilMs less the allowance), the
+// allowance before its target block, so a state read at a head the chain has already moved past is refused by then; and
+// an answer for the new head's next block is not the held head's next, so nothing is quoted from it. ok is false where
+// the node does not answer a block.
 func (t *PoolTracker) headProbe(ctx context.Context, f *Front) (id headID, ok bool) {
 	s := t.heads[f.Address]
 	if s == nil || t.stateEvery <= 0 {
@@ -65,17 +67,24 @@ func (t *PoolTracker) headProbe(ctx context.Context, f *Front) (id headID, ok bo
 	return id, ok
 }
 
-// readHead0 reads the chain's latest block's number and hash from the node.
+// readHead0 reads the chain's latest block's number and hash from the node, and its milliseconds where it gives them
+// in its second (milliTimestamp, beside timestamp).
 func (t *PoolTracker) readHead0(ctx context.Context) (id headID, ok bool) {
 	var res struct {
-		Number *hexutil.Big `json:"number"`
-		Hash   common.Hash  `json:"hash"`
+		Number *hexutil.Big    `json:"number"`
+		Hash   common.Hash     `json:"hash"`
+		Time   *hexutil.Uint64 `json:"timestamp"`
+		Ms     *hexutil.Uint64 `json:"milliTimestamp"`
 	}
 	if err := t.ethrpcClient.GetETHClient().Client().CallContext(ctx, &res, "eth_getBlockByNumber", "latest",
 		false); err != nil || res.Number == nil || res.Hash == (common.Hash{}) {
 		return id, false
 	}
-	return headID{number: res.Number.ToInt(), hash: res.Hash}, true
+	id = headID{number: res.Number.ToInt(), hash: res.Hash}
+	if res.Ms != nil && res.Time != nil && uint64(*res.Ms)/1000 == uint64(*res.Time) {
+		id.ms = uint64(*res.Ms)
+	}
+	return id, true
 }
 
 // builderFacts are the head-fixed reads of readBuilderHead: the listing's doorView (and whether it answered), the
@@ -86,6 +95,8 @@ type builderFacts struct {
 	block     *big.Int
 	multicall common.Address
 	headTime  *big.Int
+	// headMs is the head's milliseconds where the probe that named this head read them (headID.ms; 0: not read)
+	headMs    uint64
 	slots     listingSlots
 	slotted   bool
 	ids, live *big.Int

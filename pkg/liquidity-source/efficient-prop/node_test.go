@@ -112,6 +112,9 @@ type node struct {
 	reorg uint64
 	// noBlocks: the node answers no block by number
 	noBlocks bool
+	// ms, where set, is the head's milliseconds, which the node's block answer gives beside its second
+	// (milliTimestamp, as a BNB Chain node gives it)
+	ms uint64
 	// requests is how many JSON-RPC requests of each method the node answered, a batch's each counted
 	requests map[string]int
 }
@@ -212,15 +215,19 @@ func (n *node) answer(m rpcMessage) map[string]any {
 		reply["result"] = hexutil.EncodeUint64(n.block)
 	case "eth_getBlockByNumber":
 		n.mu.Lock()
-		salt, none := n.reorg, n.noBlocks
+		salt, none, ms := n.reorg, n.noBlocks, n.ms
 		n.mu.Unlock()
 		if none {
 			reply["error"] = map[string]any{"code": -32000, "message": "no block"}
 			return reply
 		}
-		reply["result"] = map[string]any{"number": hexutil.EncodeUint64(n.block),
+		block := map[string]any{"number": hexutil.EncodeUint64(n.block),
 			"hash": crypto.Keccak256Hash(common.BigToHash(new(big.Int).SetUint64(n.block)).Bytes(),
 				common.BigToHash(new(big.Int).SetUint64(salt)).Bytes())}
+		if ms != 0 {
+			block["timestamp"], block["milliTimestamp"] = hexutil.EncodeUint64(ms/1000), hexutil.EncodeUint64(ms)
+		}
+		reply["result"] = block
 	case "eth_getCode":
 		var a common.Address
 		if err := json.Unmarshal(m.Params[0], &a); err != nil {

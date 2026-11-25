@@ -221,12 +221,41 @@ func TestConfigStateTimeout(t *testing.T) {
 }
 
 // On the /state read a quote is good for its target block, and route finding stops the inclusion allowance before the
-// block's second: 1 s by default, a configured allowance standing.
+// block's time: 1,000 ms by default on Ethereum and 100 ms on BNB Chain, a configured allowance standing (in seconds
+// or in milliseconds, not both). An allowance of a whole block or more would quote no state, and is refused; the
+// millisecond allowance is refused on a chain read at the head.
 func TestConfigBuilderInclusionAllowance(t *testing.T) {
-	cfg := Config{ChainID: valueobject.ChainIDEthereum}
-	assert.Equal(t, uint64(1), cfg.builderAllowance())
-	cfg.InclusionAllowance = 2
-	assert.Equal(t, uint64(2), cfg.builderAllowance())
+	for _, c := range []struct {
+		chain     valueobject.ChainID
+		seconds   uint64
+		ms        uint64
+		want      uint64
+		refused   bool
+		titleNote string
+	}{
+		{chain: valueobject.ChainIDEthereum, want: 1_000, titleNote: "Ethereum's default"},
+		{chain: valueobject.ChainIDEthereum, seconds: 2, want: 2_000, titleNote: "seconds on Ethereum"},
+		{chain: valueobject.ChainIDEthereum, ms: 1_500, want: 1_500, titleNote: "ms on Ethereum"},
+		{chain: valueobject.ChainIDEthereum, seconds: 12, refused: true, titleNote: "a whole slot"},
+		{chain: valueobject.ChainIDEthereum, seconds: 1, ms: 1_000, refused: true, titleNote: "both set"},
+		{chain: valueobject.ChainIDBSC, want: 100, titleNote: "BNB Chain's default"},
+		{chain: valueobject.ChainIDBSC, ms: 200, want: 200, titleNote: "ms on BNB Chain"},
+		{chain: valueobject.ChainIDBSC, ms: 450, refused: true, titleNote: "a whole BNB block"},
+		{chain: valueobject.ChainIDBSC, seconds: 1, refused: true, titleNote: "a second on BNB Chain"},
+		{chain: valueobject.ChainIDBase, ms: 100, refused: true, titleNote: "ms on Base"},
+	} {
+		f := ethFront("https://state.example/v1/1/state")
+		if c.chain == valueobject.ChainIDBase {
+			f = testConfig().Fronts[0]
+		}
+		cfg := Config{ChainID: c.chain, InclusionAllowance: c.seconds, InclusionAllowanceMs: c.ms, Fronts: []Front{f}}
+		if c.refused {
+			assert.ErrorIs(t, cfg.validate(), ErrInvalidConfig, c.titleNote)
+			continue
+		}
+		require.NoError(t, cfg.validate(), c.titleNote)
+		assert.Equal(t, c.want, cfg.builderAllowanceMs(), c.titleNote)
+	}
 }
 
 func withCell(f Front, h string) Front {
@@ -277,22 +306,54 @@ func TestConfigLayoutAndCellCodehashByChain(t *testing.T) {
 	}
 }
 
-// BNB Chain's front is a builder build, and this source has no next-block read for it: read at the head it would hold
-// no word that stands for a fill, so a BNB Chain config is refused, with a layout and desk code hash or without.
-func TestConfigRefusesBNBChain(t *testing.T) {
-	f := testConfig().Fronts[0]
-	with := f
-	with.Layout, with.CellCodehash = LayoutBuilder, "0x9D1E3C1C5F0C7B0F6A2E4D7B8C3A5E1F2B4D6C8A0E9F1A3B5C7D9E0F2A4B6C8D"
-	for name, fr := range map[string]Front{"read at the head": f, "as a builder front": with} {
-		cfg := Config{ChainID: valueobject.ChainIDBSC, Fronts: []Front{fr}}
-		err := cfg.validate()
-		require.ErrorIs(t, err, ErrInvalidConfig, name)
-		assert.Contains(t, err.Error(), "no next-block read", name)
-		_, terr := NewPoolTracker(&cfg, nil)
+// BNB Chain's front is a builder build, read through /state as Ethereum's is: a front there names its layout, its desk
+// code hash and its /state urls, and one read at the head (none of them) is refused. Its chain's tip floor is 0.1
+// gwei, and its /state read runs on its 450 ms blocks: one fetch shared for 100 ms, a 100 ms merge window and a
+// 400 ms timeout where the config sets none.
+func TestConfigOnBNBChain(t *testing.T) {
+	cfg := Config{ChainID: valueobject.ChainIDBSC, Fronts: []Front{ethFront("https://state.example/v1/56/state")}}
+	require.NoError(t, cfg.validate())
+	assert.True(t, cfg.builder())
+	assert.True(t, cfg.Fronts[0].builder())
+	assert.False(t, cfg.clock().beacon)
+	assert.Equal(t, uint64(450), cfg.clock().blockMs)
+	assert.True(t, cfg.clock().msPrecompile)
+	assert.False(t, cfg.clock().classGas, "no class figure was measured on BNB Chain's build")
+	assert.False(t, cfg.tipCapOK(99_999_999))
+	assert.True(t, cfg.tipCapOK(100_000_000))
+	assert.True(t, cfg.tipCapOK(0), "a cap of 0 is no cap on a builder build")
+
+	tr, err := NewPoolTracker(&cfg, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 100*time.Millisecond, tr.stateEvery)
+	f := cfg.Fronts[0]
+	f.Titan.Timeout = 0
+	assert.Equal(t, 400*time.Millisecond, tr.stateTimeout(&f))
+	f.Titan.Timeout = 300 * time.Millisecond
+	assert.Equal(t, 300*time.Millisecond, tr.stateTimeout(&f))
+
+	eth := Config{ChainID: valueobject.ChainIDEthereum, Fronts: []Front{ethFront("https://state.example/v1/1/state")}}
+	require.NoError(t, eth.validate())
+	te, err := NewPoolTracker(&eth, nil)
+	require.NoError(t, err)
+	assert.Equal(t, stateShareWindow, te.stateEvery, "Ethereum's share window stands")
+	f.Titan.Timeout = 0
+	assert.Equal(t, defaultStateTimeout, te.stateTimeout(&f), "Ethereum's timeout stands")
+
+	for name, fr := range map[string]Front{"read at the head": testConfig().Fronts[0],
+		"no titan block": withTitan(ethFront(), nil)} {
+		bad := Config{ChainID: valueobject.ChainIDBSC, Fronts: []Front{fr}}
+		require.ErrorIs(t, bad.validate(), ErrInvalidConfig, name)
+		_, terr := NewPoolTracker(&bad, nil)
 		assert.ErrorIs(t, terr, ErrInvalidConfig, name)
-		_, lerr := NewPoolsListUpdater(&cfg, nil)
+		_, lerr := NewPoolsListUpdater(&bad, nil)
 		assert.ErrorIs(t, lerr, ErrInvalidConfig, name)
 	}
+}
+
+func withTitan(f Front, c *titan.Config) Front {
+	f.Titan = c
+	return f
 }
 
 // A listing's own gas is named once, by its id, with both figures measured, and never for a listing its front's

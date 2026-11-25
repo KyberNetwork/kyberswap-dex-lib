@@ -158,9 +158,8 @@ func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 		from[i] = len(ladders[i])
 	}
 	if c := extra.Credit; c != nil {
-		// only a front read through /state quotes a listing with a credit mode, each class at its configured figure,
-		// its ladders in Credit alone
-		if !extra.Builder || extra.CreditMode == 0 || len(extra.Ladders[0]) > 0 || len(extra.Ladders[1]) > 0 {
+		// a listing with a credit mode is quoted with each class at its configured figure, its ladders in Credit alone
+		if extra.CreditMode == 0 || len(extra.Ladders[0]) > 0 || len(extra.Ladders[1]) > 0 {
 			return nil, ErrInvalidState
 		}
 		for i := range 2 {
@@ -482,7 +481,8 @@ func gasOf(mode uint8, print, guarded, past bool) (baseIn, quoteIn int64, ok boo
 	return baseIn, quoteIn, true
 }
 
-// gasOfBuilder is the class figures of a listing read through /state, on Ethereum, by its fill mode, whether its
+// gasOfBuilder is the class figures of a listing read through /state, measured on Ethereum (the tracker quotes no class
+// figure on a chain whose build was not measured, builderClock.classGas), by its fill mode, whether its
 // fill reads a price source (print), whether its pair is past its pool's hook pair (past) and, past it, whether
 // neither of its tokens is the pool's asset (noAsset). A class has a figure only where it was measured on the deployed
 // build, each the least first fill over the pairs measured (constant.go): a listing that reads a price source, on the

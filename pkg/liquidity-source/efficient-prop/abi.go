@@ -123,11 +123,13 @@ const (
 )
 
 // The front's clock modes (clock().clockMode) an override can place: mode 0 reads the block's second, mode 2 the
-// block number's milliseconds from its anchor, blockMs a block, where they agree with the block's second.
+// block number's milliseconds from its anchor, blockMs a block, where they agree with the block's second. Mode 3
+// reads BNB Chain's millisecond precompile, and the block's second while that answers nothing (builderClock).
 const (
-	clockSeconds = 0
-	clockBlocks  = 2
-	blockMs      = 200
+	clockSeconds    = 0
+	clockBlocks     = 2
+	clockPrecompile = 3
+	blockMs         = 200
 )
 
 // place is the block override in which the front's clock reads the latest moment, ms, no later than ms that a block

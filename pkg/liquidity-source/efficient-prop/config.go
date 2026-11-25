@@ -42,29 +42,35 @@ type Config struct {
 	// MinTipCapWei is the least nonzero taker tip cap, wei per gas above the base fee, of a listing listed and quoted:
 	// a fill sent at a higher tip than its listing's cap reverts, and nothing here sees the taker's tip. A listing whose
 	// cap is 0 passes (on a storage build it fills nothing, and quotes no size; on any other it has no cap). Zero: the
-	// chain's default (defaultMinTipCapWei: 2 gwei on Ethereum, none on any other chain); 1 lists every listing.
+	// chain's default (defaultMinTipCapWei: 2 gwei on Ethereum, 0.1 gwei on BNB Chain, none on any other chain); 1
+	// lists every listing.
 	MinTipCapWei uint64 `json:"minTipCapWei,omitempty"`
 
 	// InclusionAllowance is the time a routed fill takes to land, seconds: route finding quotes a listing only where a
 	// fill landing that much later still finds its word standing. Zero: 1 s on a chain whose blocks are under a second
-	// apart (Base), 3 s on any other (README, Config); on a front read through /state (Front.Titan), 1 s before its
-	// target block's second.
+	// apart (Base), 3 s on any other (README, Config); on a front read through /state (Front.Titan), the chain's
+	// allowance before its target block's time (InclusionAllowanceMs).
 	InclusionAllowance uint64 `json:"inclusionAllowance,omitempty"`
+	// InclusionAllowanceMs is the same on a builder chain in milliseconds, which it takes in place of
+	// InclusionAllowance: how long before a state's target block a route quoted from it must reach the block's
+	// builder. Zero: InclusionAllowance where that is set, else the chain's (1,000 on Ethereum, 100 on BNB Chain). It
+	// must be under the chain's block time, or no state is ever quoted; set on any other chain, it is refused.
+	InclusionAllowanceMs uint64 `json:"inclusionAllowanceMs,omitempty"`
 }
 
 // Front is one PropAMM front (its proxy) and the factory of its listing doors. The config names no door code hash: the
 // source reads DOOR_CODEHASH() from the deployed factory, and derives no door from anything else. On a builder chain
-// (Ethereum), whose fronts are read by the per-desk coverage rule, it also names the front's Layout and CellCodehash,
-// its CELL_CODEHASH() fixed when the front is created: the front must answer it, else it is refused, and the desk
-// contracts are the CREATE2 children of the front under it. On any other chain, which is read at the head, both are
-// unset and refused if set.
+// (Ethereum, BNB Chain), whose fronts are read by the per-desk coverage rule, it also names the front's Layout and
+// CellCodehash, its CELL_CODEHASH() fixed when the front is created: the front must answer it, else it is refused, and
+// the desk contracts are the CREATE2 children of the front under it. On any other chain, which is read at the head,
+// both are unset and refused if set.
 type Front struct {
 	Address      string `json:"address"`
 	DoorFactory  string `json:"doorFactory"`
 	CellCodehash string `json:"cellCodehash"`
 	// Layout names the layout of the front's quote contract, the one this source reads. Required on a builder chain
-	// (Ethereum), where the only layout is LayoutBuilder: a front with another value, or none, is refused at load. Unset
-	// on any other chain.
+	// (Ethereum, BNB Chain), where the only layout is LayoutBuilder: a front with another value, or none, is refused at
+	// load. Unset on any other chain.
 	Layout string `json:"layout"`
 	// FillMode is the entry the adapter fills this front's listings through, FillModeFront or FillModeDoor. It is
 	// required: neither is a default. Its pools carry it (StaticExtra.Mode) from their listing on.
@@ -88,8 +94,8 @@ type Front struct {
 	// sets its stored sub-second by a state override to place a sample. Required where the front's clock is the
 	// block-count mode: such a front's refresh fails while it is unset. A front on another clock does not read it.
 	BaseTime string `json:"baseTime,omitempty"`
-	// Titan is the /state read of a front on a builder chain (Ethereum), where a maker's update lands only in a block a
-	// builder built with it ahead of a fill, so the chain's head never holds a quotable word: the urls answering
+	// Titan is the /state read of a front on a builder chain (Ethereum, BNB Chain), where a maker's update lands only in
+	// a block a builder built with it ahead of a fill, so the chain's head never holds a quotable word: the urls answering
 	// titan_getPammStateOverrides (the api's /v1/<chain>/state and the builders' data hosts), in the order a listing's
 	// answer is chosen by (of the highest block's, the first holding its entries), and the read's timeout. Every
 	// refresh samples the door under the overrides and the target block of that answer. Required on a builder chain,
@@ -100,8 +106,9 @@ type Front struct {
 	// swap past it (its credit route, which may borrow), so its fill's output and gas depend on the size. Its ladder
 	// marks each size the front routes (README, Credit-mode listings). The gas of a route belongs to its pool (its
 	// venue, its tokens, its caps), so no figure of this source's own can stand for it: only a listing named here, with
-	// figures measured on its pool, is quoted. Only on a builder chain (a front read through /state), where each state
-	// is sampled in the blocks it can fill in alone; refused on any other. None by default.
+	// figures measured on its pool, is quoted. On every chain: on a front read at the head (Base) each size's class is
+	// asked of the front's plan at every moment the window samples, as on a builder chain in its blocks. None by
+	// default.
 	CreditListings []CreditListing `json:"creditListings,omitempty"`
 	// ListingGas are listings charged their own measured gas in place of their class's figure (README, Execution and
 	// gas). A class's figure is the least of the listings it was measured on, and two listings of one class may differ
@@ -218,14 +225,15 @@ func (f Front) implements(impl common.Address) bool {
 }
 
 // LayoutBuilder is the quote contract layout of the builder code, a desk contract with a pair slot for each listing
-// (Ethereum, the one builder chain): the only layout this source reads.
+// (Ethereum and BNB Chain run the same desk code): the only layout this source reads.
 const LayoutBuilder = "builder"
 
 // The fill modes a front may be configured with, and the adapter's mode word for each (its data's fourth word).
 //   - FillModeFront: the front's own entries. Where the front names the listing's pool (payPoolOf), the adapter pays
 //     the input to that pool and calls the front's paid entry; else it approves the front and calls its named entry.
-//   - FillModeDoor: the listing door's pull entry. The adapter approves the door. The fill's Swapped is logged once in
-//     either mode: by the door on a storage build, by the listing's quote contract on a builder build.
+//   - FillModeDoor: the listing door's pull entry. The adapter approves the door. On a builder build the fill's Swapped
+//     is logged once in either mode, by the listing's quote contract; on a storage build (Base) the door logs it in its
+//     own mode, and a fill through the front's entries logs the front's PoolFill alone.
 const (
 	FillModeFront = "front"
 	FillModeDoor  = "door"
@@ -250,9 +258,17 @@ func (c *Config) validate() error {
 	if c.ChainID == 0 {
 		return fmt.Errorf("%w: chainID is not set", ErrInvalidConfig)
 	}
-	if unreadChains[c.ChainID] {
-		return fmt.Errorf("%w: chain %d's front is a builder build, and this source has no next-block read for it",
-			ErrInvalidConfig, c.ChainID)
+	if clk, ok := builderClocks[c.ChainID]; ok {
+		if c.InclusionAllowance != 0 && c.InclusionAllowanceMs != 0 {
+			return fmt.Errorf("%w: inclusionAllowance and inclusionAllowanceMs are both set", ErrInvalidConfig)
+		}
+		if a := c.builderAllowanceMs(); a >= clk.blockMs {
+			return fmt.Errorf("%w: an inclusion allowance of %d ms is not under chain %d's %d ms block: no state "+
+				"would ever be quoted", ErrInvalidConfig, a, c.ChainID, clk.blockMs)
+		}
+	} else if c.InclusionAllowanceMs != 0 {
+		return fmt.Errorf("%w: inclusionAllowanceMs on chain %d, which is read at the head: inclusionAllowance "+
+			"applies", ErrInvalidConfig, c.ChainID)
 	}
 	if len(c.Fronts) == 0 {
 		return fmt.Errorf("%w: no fronts", ErrInvalidConfig)
@@ -335,8 +351,9 @@ func (c *Config) validate() error {
 // validateBuilder checks front i's /state read against its chain: on a builder chain a titan block with at least one
 // url, in either fill mode (the fill's Swapped, which a builder matches to place the desk's update, is the quote
 // contract's there in either mode, and the door's entries are the front's own, called with the listing); on any other
-// chain none, since the read takes its block's time from the beacon chain's slot. On every chain, the front's listing
-// gas: each a listing id named once and by no credit listing, both figures measured.
+// chain none, since no builder there places a desk's update. On every chain, the front's listing gas, each a listing
+// id named once and by no credit listing, both figures measured, and its credit listings, each named once with both
+// custody figures measured.
 func (c *Config) validateBuilder(i int) error {
 	f := &c.Fronts[i]
 	one := make(map[uint32]bool, len(f.OneFillListings))
@@ -360,18 +377,6 @@ func (c *Config) validateBuilder(i int) error {
 					ErrInvalidConfig, i, k, name, v, maxCreditGas)
 			}
 		}
-	}
-	if !builderChains[c.ChainID] {
-		if f.Titan != nil {
-			return fmt.Errorf("%w: fronts[%d].titan on chain %d, which no builder orders", ErrInvalidConfig, i,
-				c.ChainID)
-		}
-		if len(f.CreditListings) > 0 {
-			return fmt.Errorf("%w: fronts[%d].creditListings on chain %d, which is read at the head: a credit "+
-				"listing is quoted only where each state is sampled in the blocks it can fill in", ErrInvalidConfig, i,
-				c.ChainID)
-		}
-		return nil
 	}
 	seen := make(map[uint32]bool, len(f.CreditListings))
 	for k, cl := range f.CreditListings {
@@ -401,6 +406,13 @@ func (c *Config) validateBuilder(i int) error {
 					"%d] on a side with a route figure", ErrInvalidConfig, i, k, name, g[0], g[1], maxCreditGasLimit)
 			}
 		}
+	}
+	if !builderChains[c.ChainID] {
+		if f.Titan != nil {
+			return fmt.Errorf("%w: fronts[%d].titan on chain %d, which no builder orders", ErrInvalidConfig, i,
+				c.ChainID)
+		}
+		return nil
 	}
 	if f.Titan == nil || len(f.Titan.URLs) == 0 {
 		return fmt.Errorf("%w: fronts[%d].titan.urls is empty on chain %d", ErrInvalidConfig, i, c.ChainID)
@@ -457,14 +469,20 @@ func (c *Config) inclusionAllowance() uint64 {
 	return defaultInclusionAllowance
 }
 
-// builderAllowance is the inclusion allowance of a front read through /state: the configured one, else
-// builderInclusionAllowance.
-func (c *Config) builderAllowance() uint64 {
-	if c.InclusionAllowance != 0 {
-		return c.InclusionAllowance
+// builderAllowanceMs is the inclusion allowance of a front read through /state, ms: the configured one, else the
+// chain's (builderClock.allowanceMs).
+func (c *Config) builderAllowanceMs() uint64 {
+	switch {
+	case c.InclusionAllowanceMs != 0:
+		return c.InclusionAllowanceMs
+	case c.InclusionAllowance != 0:
+		return c.InclusionAllowance * 1000
 	}
-	return builderInclusionAllowance
+	return builderClocks[c.ChainID].allowanceMs
 }
+
+// clock is the chain's block clock where it is a builder chain (builderClocks); the zero clock elsewhere.
+func (c *Config) clock() builderClock { return builderClocks[c.ChainID] }
 
 func (c *Config) dexID() string {
 	if c.DexID == "" {

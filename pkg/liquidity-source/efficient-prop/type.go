@@ -38,8 +38,8 @@ type Extra struct {
 	// ValidUntil is the last unix second a fill quoted from the state may land: the end of the window its ladders were
 	// sampled over, never after the last second in which a fill certainly finds the sampled word standing and the
 	// sampled sides' depth unexpired (validUntil); zero where the listing had no ladder. On a front read through /state
-	// (Builder) it is the last second a route quoted from the state may be built: its target block's second, or the
-	// next block's where it carries, less the inclusion allowance.
+	// (Builder) it is the last second a route quoted from the state may be built: its target block's time, or the next
+	// block's where it carries, less the inclusion allowance, in whole seconds rounded down.
 	ValidUntil uint64 `json:"validUntil,omitempty"`
 	// Allowance is the time a routed fill takes to land, s (Config.InclusionAllowance): route finding quotes a fill
 	// only where it lands by ValidUntil.
@@ -74,8 +74,9 @@ type Extra struct {
 	// direction's gas past the hook pair on a front read through /state (Builder): the side whose input is the asset.
 	AssetQuote bool `json:"assetQuote,omitempty"`
 	// Builder is whether the listing's front is read through /state (Config's Front.Titan, a builder chain's): its
-	// ladders hold for the answer's target block, and the next where it carries; its ValidUntil is that block's second
-	// less the inclusion allowance, so its Allowance is 0 (the allowance is AllowanceMs); and it is refreshed on the wall clock (NextUpdateAt).
+	// ladders hold for the answer's target block, and the next where it carries; its ValidUntil is that block's time
+	// less the inclusion allowance, so its Allowance is 0 (the allowance is AllowanceMs); and it is refreshed on the wall
+	// clock (NextUpdateAt).
 	Builder bool `json:"builder,omitempty"`
 	// Gas, where set, is the listing's own gas with its base token in ([0]) and with its quote token in ([1]), from
 	// its front's config (Front.ListingGas): it stands in place of the class's figure the flags above pick.

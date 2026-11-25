@@ -140,7 +140,7 @@ func TestForkBuilderFillsTheSampledQuote(t *testing.T) {
 			}
 			require.NotEmpty(t, e.ladders()[dir], "%s direction %d: no ladder in a block with its desk's update",
 				p.Address, dir)
-			require.Equal(t, o.time-b.cfg.builderAllowance(), e.ValidUntil,
+			require.Equal(t, o.time-b.cfg.builderAllowanceMs()/1000, e.ValidUntil,
 				"%s: valid to the target block's second less the allowance", p.Address)
 			b.checkUnder(p, o)
 			size := e.ladders()[dir][0][0].ToBig()
@@ -387,7 +387,7 @@ func (b *builderFork) state(cfg *Config) override {
 		b.t.Cleanup(c.Close)
 		clients = append(clients, stateClient{url: url, client: c})
 	}
-	answers := fetchAnswers(b.ctx, clients, cfg.Fronts[0].Titan.Timeout, nil)
+	answers := fetchAnswers(b.ctx, clients, cfg.Fronts[0].Titan.Timeout, 0, nil)
 	var a *answer
 	for k := range answers {
 		if answers[k].number != nil && (a == nil || answers[k].number.Cmp(a.number) > 0) {
@@ -607,7 +607,7 @@ func (b *builderFork) carry(p entity.Pool) {
 		dir = 1
 	}
 	require.NotEmpty(t, e.ladders()[dir], "%s: a carried word quotes nothing", p.Address)
-	require.Equal(t, o.time+slotSeconds-b.cfg.builderAllowance(), e.ValidUntil,
+	require.Equal(t, o.time+slotSeconds-b.cfg.builderAllowanceMs()/1000, e.ValidUntil,
 		"%s: valid to the carried block's second less the allowance", p.Address)
 	next := o
 	next.time, next.number = o.time+slotSeconds, o.number+1
@@ -645,7 +645,7 @@ func (b *builderFork) carry(p entity.Pool) {
 		dir = 1
 	}
 	require.NotEmpty(t, eq.ladders()[dir], "%s: an 11 s carried word quotes nothing in its own block", q.Address)
-	require.Equal(t, o.time-b.cfg.builderAllowance(), eq.ValidUntil, "%s: valid to the target block alone", q.Address)
+	require.Equal(t, o.time-b.cfg.builderAllowanceMs()/1000, eq.ValidUntil, "%s: valid to the target block alone", q.Address)
 	tokenIn, tokenOut := q.Tokens[dir].Address, q.Tokens[1-dir].Address
 	for _, pt := range eq.ladders()[dir] {
 		at, ok := b.quoteUnder(q.Address, tokenIn, tokenOut, pt[0].ToBig(), q.BlockNumber, o)

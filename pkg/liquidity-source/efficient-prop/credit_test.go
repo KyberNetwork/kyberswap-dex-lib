@@ -2,6 +2,7 @@ package efficientprop
 
 import (
 	"bytes"
+	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -158,8 +159,7 @@ func countQuotesAtHead(n *node) int {
 	return k
 }
 
-// Without its front's config naming it, a listing with a credit mode is not quoted, nor its plan asked; nor on a
-// front read at the head (Base), whose config refuses to name one.
+// Without its front's config naming it, a listing with a credit mode is not quoted, nor its plan asked.
 func TestCreditListingNotNamedIsNotQuoted(t *testing.T) {
 	chain := creditChain()
 	got, n, _ := creditTrack(t, chain, false)
@@ -268,8 +268,8 @@ func TestCreditClassThatFlipsInTheCarriedBlockIsNoPoint(t *testing.T) {
 	assert.Less(t, e.Credit.From[0], len(e.Credit.Ladders[0]))
 }
 
-// A credit listing is named only on a builder chain, once, with both custody figures measured; a route figure is
-// measured or 0, a side whose route was never measured.
+// A credit listing is named once, with both custody figures measured, on a builder chain and on a chain read at the
+// head (Base); a route figure is measured or 0, a side whose route was never measured.
 func TestCreditListingsConfig(t *testing.T) {
 	eth := func(cl ...CreditListing) Config {
 		c := *ethConfig("http://state")
@@ -301,6 +301,9 @@ func TestCreditListingsConfig(t *testing.T) {
 	wide.Listing = 1 << 24
 	base := *testConfig()
 	base.Fronts[0].CreditListings = []CreditListing{testCredit}
+	require.NoError(t, base.validate(), "on Base")
+	baseZero := *testConfig()
+	baseZero.Fronts[0].CreditListings = []CreditListing{zero}
 	for name, bad := range map[string]Config{
 		"a figure missing":             eth(zero),
 		"a figure too high":            eth(huge),
@@ -311,7 +314,7 @@ func TestCreditListingsConfig(t *testing.T) {
 		"no listing":                   eth(noID),
 		"past 24 bits":                 eth(wide),
 		"named twice":                  eth(testCredit, testCredit),
-		"on Base":                      base,
+		"a figure missing on Base":     baseZero,
 	} {
 		assert.ErrorIs(t, bad.validate(), ErrInvalidConfig, name)
 	}
@@ -337,12 +340,16 @@ func creditPool(t *testing.T, from int, edit func(*Extra)) entity.Pool {
 	return withStatic(t, p, func(se *StaticExtra) { se.Mode = modeDoor })
 }
 
-// The simulator takes a credit state only from a builder front, with each custody figure set, a route figure on every
-// side that holds a routed point, each step inside its ladder, and no ladder of a listing with a credit mode without
-// one. A fill in either direction ends both: a route moves the pool's debt, which both sides' quotes read.
+// The simulator takes a credit state, from a builder front or one read at the head, with each custody figure set, a
+// route figure on every side that holds a routed point, each step inside its ladder, and no ladder of a listing with a
+// credit mode without one. A fill in either direction ends both: a route moves the pool's debt, which both sides'
+// quotes read.
 func TestSimulatorCreditState(t *testing.T) {
+	_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: creditPool(t, 2, func(e *Extra) {
+		e.Builder, e.ValidUntilMs, e.AllowanceMs, e.Allowance = false, 0, 0, 1
+	})})
+	require.NoError(t, err, "a front read at the head")
 	for name, edit := range map[string]func(*Extra){
-		"not a builder front":      func(e *Extra) { e.Builder = false },
 		"no credit mode":           func(e *Extra) { e.CreditMode = 0 },
 		"a custody figure missing": func(e *Extra) { e.Credit.Gas[1][0] = 0 },
 		"a routed side's figure 0": func(e *Extra) { e.Credit.Gas[0][1] = 0 },
@@ -357,7 +364,7 @@ func TestSimulatorCreditState(t *testing.T) {
 	}
 
 	// a side that holds no routed point needs no route figure
-	_, err := NewPoolSimulator(pool.FactoryParams{EntityPool: creditPool(t, 2,
+	_, err = NewPoolSimulator(pool.FactoryParams{EntityPool: creditPool(t, 2,
 		func(e *Extra) { e.Credit.Gas[1][1] = 0 })})
 	require.NoError(t, err)
 
@@ -667,4 +674,57 @@ func TestCreditRouteIsChargedTheCheaperVenueAndCarriesTheDearersLimit(t *testing
 	low := [2]int64{610_500, 0}
 	_, err = NewPoolSimulator(pool.FactoryParams{EntityPool: creditPool(t, 2, func(e *Extra) { e.Credit.Limit = &low })})
 	assert.ErrorIs(t, err, ErrInvalidState, "a limit under the gas it covers")
+}
+
+// On a front read at the head (Base, a storage build) a listing with a credit mode is quoted as on a builder front
+// where its front's config names it: each sampled size classed by the front's plan beside the door's quote, at the
+// head and at every moment the window samples, the ladders in the state's credit data alone at the configured gas.
+func TestCreditListingOnAFrontReadAtTheHead(t *testing.T) {
+	chain := trackedChain()
+	l := chain.listings[1]
+	l.view.CreditMode = 2
+	l.route[0] = &fakeRoute{custodyTo: 2e18}
+	chain.balances[[2]common.Address{testUSDC, testPoolA}] = big.NewInt(7_000e6)
+	n := chain.node(t, 900)
+	p := listed(t, n)
+
+	got := track(t, n, p)
+	assert.Nil(t, extraOf(t, got).Credit, "not named: not quoted")
+	assert.Empty(t, extraOf(t, got).Ladders[0])
+
+	cfg := testConfig()
+	cfg.Fronts[0].CreditListings = []CreditListing{testCredit}
+	tr, err := NewPoolTracker(cfg, n.client())
+	require.NoError(t, err)
+	before := len(n.calls())
+	got, err = tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	e := extraOf(t, got)
+	assert.False(t, e.Builder)
+	require.NotNil(t, e.Credit)
+	assert.Empty(t, e.Ladders[0], "the ladders ride in the credit data alone")
+	bid := e.Credit.Ladders[0]
+	require.NotEmpty(t, bid)
+	from := e.Credit.From[0]
+	require.Greater(t, from, 0, "custody points first")
+	require.Less(t, from, len(bid), "then routed points")
+	for k, pt := range bid {
+		assert.Equal(t, k >= from, pt[0].ToBig().Cmp(big.NewInt(2e18)) > 0, "the plan's class at %s", pt[0])
+	}
+	assert.Equal(t, [2][2]int64{{171_000, 610_501}, {166_000, 187_000}}, e.Credit.Gas)
+	assert.NotZero(t, e.ValidUntil)
+	plans := 0
+	for _, c := range n.calls()[before:] {
+		if len(c.data) >= 4 && hexutil.Encode(c.data[:4]) == planSelector {
+			plans++
+			assert.Equal(t, chain.front, c.to)
+		}
+	}
+	assert.Positive(t, plans, "each size's class is asked of the front's plan")
+
+	sim, err := NewPoolSimulator(pool.FactoryParams{EntityPool: got})
+	require.NoError(t, err)
+	res, err := calc(sim, hexutil.Encode(testWETH[:]), hexutil.Encode(testUSDC[:]), bid[len(bid)-1][0].ToBig(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, int64(610_501), res.Gas, "a routed size is charged the route's gas")
 }

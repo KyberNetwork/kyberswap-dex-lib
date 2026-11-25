@@ -23,11 +23,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
-// slotSeconds is the time between two of a builder chain's blocks (Ethereum's slot), s: the block after a /state
-// answer's target block, where a carried word may still fill, is that much later.
+// slotSeconds is the time between two of Ethereum's blocks (its slot), s: a beacon slot's second follows the
+// previous one's by that much (builderClock.beacon).
 const slotSeconds = 12
 
-// beaconGenesis is the beacon chain's genesis second: a /state answer's slot s names the block of second
+// beaconGenesis is the beacon chain's genesis second: on Ethereum a /state answer's slot s names the block of second
 // beaconGenesis + slotSeconds * s.
 const beaconGenesis = 1_606_824_023
 
@@ -50,13 +50,16 @@ func priceContract(front common.Address, id uint32) common.Address {
 }
 
 // answer is one url's /state answer: its place in the front's url list (rank), its target block (nil where it names
-// none), the second its beacon slot names (0 where it names none), and each account's override. Where two of its
+// none), its slot (0 where it names none) and the second that slot names as a beacon slot (0 where it names none or
+// one past the beacon chain's reach), and each account's override. On a chain with no beacon slot (BNB Chain) the
+// answer's slot is its block number, and names no second. Where two of its
 // entries give an account different values, those values are left out of the override (a slot, or its balance and
 // nonce) and the account is split (split): a listing whose own slots split is not read from the answer (covers), and
 // any other account split anywhere is left out whole where a listing needs or carries it (whole).
 type answer struct {
 	rank     int
 	number   *big.Int
+	slot     uint64
 	time     uint64
 	accounts map[common.Address]gethclient.OverrideAccount
 	split    map[common.Address]*splitValues
@@ -152,22 +155,25 @@ type stateClient struct {
 }
 
 // fetchAnswers asks each of a front's /state urls (clients, in the config's order) for its answer, as Kyber's titan
-// client does: in parallel, until each has answered or failed, or until titan.DefaultMergeWindow after the first that
-// holds an account (an empty answer does not start the window: urls often disagree on which entries they carry), or
-// the timeout. The one difference from the client is the timeout's default, defaultStateTimeout (1 s) where the
-// client's is titan.DefaultTimeout (10 s): the fetch holds the front's lock. It answers them in the url order, never
-// merged. A
-// url whose call fails is passed to failed, before its answer is counted; one the window or the caller cancelled
+// client does: in parallel, until each has answered or failed, or until merge (titan.DefaultMergeWindow where 0) after
+// the first that holds an account (an empty answer does not start the window: urls often disagree on which entries they
+// carry), or the timeout. The differences from the client are the timeout's default, defaultStateTimeout (1 s) where
+// the client's is titan.DefaultTimeout (10 s), as the fetch holds the front's lock, and the chain's own windows on a
+// chain whose blocks are under a second apart (builderClock). It answers them in the url order, never merged. A url
+// whose call fails is passed to failed, before its answer is counted; one the window or the caller cancelled
 // (context.Canceled) has not failed. titan.FetchState is not called in its place: it merges the urls' answers into one
-// override map, and a listing here is read from one answer whole (pick), with the slots an answer's entries disagree
-// on marked (parseAnswer).
-func fetchAnswers(ctx context.Context, clients []stateClient, timeout time.Duration,
+// override map, and a listing here is read from one answer whole (pick), with the slots an answer's entries disagree on
+// marked (parseAnswer).
+func fetchAnswers(ctx context.Context, clients []stateClient, timeout, merge time.Duration,
 	failed func(url string, err error)) []answer {
 	if len(clients) == 0 {
 		return nil
 	}
 	if timeout == 0 {
 		timeout = defaultStateTimeout
+	}
+	if merge == 0 {
+		merge = titan.DefaultMergeWindow
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -199,7 +205,7 @@ collect:
 			}
 			a := parseAnswer(g.rank, g.result)
 			if window == nil && len(a.accounts) > 0 {
-				window = time.After(titan.DefaultMergeWindow)
+				window = time.After(merge)
 			}
 			answers = append(answers, a)
 		case <-window:
@@ -212,10 +218,11 @@ collect:
 	return answers
 }
 
-// parseAnswer is a /state result as one answer: its blockNumber, its slot's second, and every entry's accounts (each
-// entry's stateOverride, an account with no slot skipped as Kyber's titan client skips it), merged slot by slot. A
-// slot two entries give different values is left out of its account's override, and a balance or nonce two entries
-// give different values leaves both out (the head's stand); the account is marked split with them.
+// parseAnswer is a /state result as one answer: its blockNumber, its slot and that slot's beacon second, and every
+// entry's accounts (each entry's stateOverride, an account with no slot skipped as Kyber's titan client skips it),
+// merged slot by slot. A slot two entries give different values is left out of its account's override, and a balance
+// or nonce two entries give different values leaves both out (the head's stand); the account is marked split with
+// them.
 func parseAnswer(rank int, result map[string]json.RawMessage) answer {
 	a := answer{rank: rank, accounts: map[common.Address]gethclient.OverrideAccount{},
 		split: map[common.Address]*splitValues{}}
@@ -226,9 +233,11 @@ func parseAnswer(rank int, result map[string]json.RawMessage) answer {
 		}
 	}
 	var slot uint64
-	if raw, ok := result["slot"]; ok && json.Unmarshal(raw, &slot) == nil && slot > 0 &&
-		slot <= (math.MaxUint64-beaconGenesis)/slotSeconds {
-		a.time = beaconGenesis + slotSeconds*slot
+	if raw, ok := result["slot"]; ok && json.Unmarshal(raw, &slot) == nil && slot > 0 {
+		a.slot = slot
+		if slot <= (math.MaxUint64-beaconGenesis)/slotSeconds {
+			a.time = beaconGenesis + slotSeconds*slot
+		}
 	}
 	mark := func(account common.Address) *splitValues {
 		s := a.split[account]
@@ -347,6 +356,11 @@ type headRead struct {
 	// sourceIds is the listing's source ids word (record word 10) as the facts batch read it at block, nil where it
 	// was not read: sourcesApproved takes it in place of a read of its own
 	sourceIds *big.Int
+	// targetMs is the time of the answer's target block, ms, where the read is ahead (0: none): its beacon slot's
+	// second on Ethereum, the head's milliseconds plus one block on a chain with no beacon slot
+	targetMs uint64
+	// msAnswered: the chain's millisecond precompile answered a word in the target block (builderClock.msPrecompile)
+	msAnswered bool
 }
 
 // headReads is how many calls a head read makes (headCalls).
@@ -385,8 +399,10 @@ func headCalls(front, door common.Address, listing uint32, tokens [2]common.Addr
 // listing: another listing's update on the same contract is not this one's. Of that answer o carries only the quote
 // contract, whole (any other listing's slots of it in the answer with it, a split slot left out), and the bound price
 // contracts, each where nothing of it split: no other account rides on the listing's calls. mapped is whether the
-// listing is quoted on that state: the answer's block is the head's next, its slot is the head's slot plus one (its
-// second the head's plus slotSeconds), the node ran the read in that block, the desk and its slots are the ones the
+// listing is quoted on that state: the answer's block is the head's next, on Ethereum its slot is the head's slot plus
+// one (its second the head's plus slotSeconds), on a chain with no beacon slot its slot, where it names one, is that
+// block's number (the block's time is then the head's milliseconds plus one block), the node ran the read in that
+// block, the desk and its slots are the ones the
 // head named, and a carried update's word carries (carries). A later slot (a missed slot, or an answer ahead of the
 // wall clock) would sample the door at a second its fill does not run at, so it quotes nothing for that refresh, and
 // the next refresh reads the next answer as usual. Where no answer is such, the read runs at the head with no
@@ -416,6 +432,7 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 		}
 	}
 	answers := <-fetched
+	clk := t.cfg.clock()
 	h.block = bf.block
 	multicall := bf.multicall
 	h.multicall = &multicall
@@ -460,9 +477,23 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 		a, carried = pick(answers, slots, carryLife(at.View.Scopes), need...)
 	}
 	ahead := a != nil && !slices.Contains(need, common.Address{}) &&
-		headTime != nil && headTime.IsUint64() && a.number.IsUint64() && a.number.Uint64() == h.block.Uint64()+1 &&
-		a.time == headTime.Uint64()+slotSeconds
+		headTime != nil && headTime.IsUint64() && a.number.IsUint64() && a.number.Uint64() == h.block.Uint64()+1
+	var targetMs uint64
+	switch {
+	case !ahead:
+	case clk.beacon:
+		ahead, targetMs = a.time == headTime.Uint64()+slotSeconds, a.time*1000
+	default:
+		// the head's milliseconds where the probe read them at this head, else the start of its second (earlier, so
+		// the state ends sooner, and the late sample covers the second after)
+		headMs := headTime.Uint64() * 1000
+		if bf.headMs/1000 == headTime.Uint64() {
+			headMs = bf.headMs
+		}
+		ahead, targetMs = a.slot == 0 || a.slot == a.number.Uint64(), headMs+clk.blockMs
+	}
 	if ahead {
+		h.targetMs = targetMs
 		accounts := make(map[common.Address]gethclient.OverrideAccount, len(keep))
 		for _, account := range keep {
 			// the quote contract whole as the answer holds it (covers checked the listing's own slots), every
@@ -471,8 +502,8 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 				accounts[account] = acct
 			}
 		}
-		o = override{time: a.time, number: a.number.Uint64(),
-			state: &titan.State{Overrides: accounts, BlockNumber: a.number, BlockTimestamp: a.time}}
+		o = override{time: targetMs / 1000, number: a.number.Uint64(),
+			state: &titan.State{Overrides: accounts, BlockNumber: a.number, BlockTimestamp: targetMs / 1000}}
 	}
 
 	// the same head under the same override: what the refresh priced then stands
@@ -488,6 +519,12 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	slotsAt := len(calls)
 	again, againHolder := rule.read(front, b)
 	calls = append(calls, again)
+	// the chain's millisecond precompile, in the target block: a mode-3 clock reads it where it answers
+	msAt := -1
+	if clk.msPrecompile {
+		msAt = len(calls)
+		calls = append(calls, call{abi: &baseTimeABI, target: msPrecompile, method: "timestampMs"})
+	}
 	var raw hexutil.Bytes
 	elem, err := multicallElem(multicall, calls, h.block, o, &raw)
 	if err != nil {
@@ -526,6 +563,9 @@ func (t *PoolTracker) readBuilderHead(ctx context.Context, f *Front, p entity.Po
 	}
 	h.rungs = unpackRungRead(rets[6])
 	h.fee = feeOf(rets[7], rets[8])
+	if msAt >= 0 {
+		h.msAnswered = len(rets[msAt]) >= common.HashLength
+	}
 	if !ahead || !readsBlock(rets[head:slotsAt], o, o.number) {
 		return h, o, false, nil
 	}
@@ -560,6 +600,9 @@ func (t *PoolTracker) readBuilderFacts(ctx context.Context, f *Front, se StaticE
 	bf.multicall = *resp.Request.RawCallMsg.To
 	bf.atOK = resp.Result[0]
 	cacheable = probed && hd.number != nil && hd.number.Cmp(bf.block) == 0
+	if cacheable {
+		bf.headMs = hd.ms
+	}
 	desk := uint32(0)
 	if bf.atOK {
 		desk = bf.at.View.Desk
@@ -650,29 +693,45 @@ func carryLife(scopes uint8) bool {
 }
 
 // builderWindow is the window of a listing read through /state, whose state is good for the answer's target block
-// alone (the pinned sample s, which ran there): each direction is valid to that block's second less the inclusion
-// allowance, the last second a route finding quotes it may be built and still reach the block's builder. Where the
-// listing and the word both carry (carries), a fill may still read the word in the next block under the same slots:
-// that block is sampled too, a slot later, each size keeping its lower output, and the state is valid to that block's
-// second less the allowance. Where that sample is not read, or refuses every size of a direction (a word whose life
-// ends before that block), the direction keeps the target block's outputs, valid to that block's (cap, keep). An
-// update already carried into the target block (carried: stamped with the block before it) is read in no later block,
-// so its window is the target block alone. No other moment needs a sample: a fill lands only in those blocks, and the
-// front's clock (the block's second, SEAL) reads the same throughout one.
-func builderWindow(v DoorView, s pinned, o override, allowance uint64, carried bool) (w window) {
+// alone (the pinned sample s, which ran there, at targetMs): each direction is valid to that block's time, ms, and in
+// whole seconds to that time less the inclusion allowance (allowanceMs), the last second a route finding quotes it may
+// be built and still reach the block's builder. On a chain with no beacon slot (BNB Chain) the target block's time is
+// the head's plus one block, and a block may come late: the same block is sampled a second later too (o's second plus
+// one), each size keeping its lower output, so a word whose life ends there is not quoted. Where the listing and the
+// word both carry (carries), a fill may still read the word in the next block under the same slots: that block is
+// sampled too, one block later (clk.blockMs), each size keeping its lower output, and the state is valid to that
+// block's time. Where that sample is not read, or refuses every size of a direction (a word whose life ends before
+// that block), the direction keeps the target block's outputs, valid to that block's (cap, keep). An update already
+// carried into the target block (carried: stamped with the block before it) is read in no later block, so its window
+// is the target block alone. No other moment needs a sample: a fill lands only in those blocks, and the front's clock
+// (the block's second, SEAL, or the precompile's mode while it answers nothing) reads the same throughout one.
+func builderWindow(v DoorView, s pinned, o override, clk builderClock, allowanceMs, targetMs uint64,
+	carried bool) (w window) {
 	end := uint64(0)
-	if s.time > allowance {
-		end = s.time - allowance
+	if targetMs > allowanceMs {
+		end = (targetMs - allowanceMs) / 1000
+	}
+	var at, keep []override
+	if end != 0 && !clk.beacon {
+		late := o
+		late.time = o.time + 1
+		at = append(at, late)
+	}
+	carry := carries(v) && !carried && end != 0
+	nextMs := targetMs + clk.blockMs
+	if carry {
+		next := o
+		next.time, next.number = nextMs/1000, s.number+1
+		at, keep = append(at, next), append(keep, next)
 	}
 	for dir := range 2 {
-		w.end[dir] = end
-		if carries(v) && !carried && end != 0 {
-			next := o
-			next.time, next.number = s.time+slotSeconds, s.number+1
-			w.at[dir] = []override{next}
-			w.cap[dir] = end
-			w.keep[dir] = true
-			w.end[dir] = end + slotSeconds
+		w.end[dir], w.endMs[dir] = end, targetMs
+		if len(at) > 0 {
+			w.at[dir], w.keep[dir] = slices.Clone(at), slices.Clone(keep)
+			w.cap[dir], w.capMs[dir] = end, targetMs
+		}
+		if carry {
+			w.end[dir], w.endMs[dir] = (nextMs-allowanceMs)/1000, nextMs
 		}
 	}
 	w.guarded = s.guarded

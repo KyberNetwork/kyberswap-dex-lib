@@ -4,22 +4,27 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/titan"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const (
 	DexType = "efficient-prop"
 
-	// A fill's gas, less the refund it earns, by the pool's fill mode, its input (the pair's base or its quote token)
-	// and the listing's class: the least first fill of that side in its block, through the adapter (executeEfficientProp),
-	// measured with real transactions on a Base fork of the deployed front run on live Base's clock (the block count
-	// on its grid, so the front reads no millisecond predeploy), the recipient holding the output token (README,
-	// Execution and gas). The tokens' own transfer cost is in each figure, as measured on WETH and USDC (the hook
-	// pair) and cbBTC and USDC (past it). The front's mode pays the input straight to the listing's pool and calls the
-	// front's paid entry; the door's approves the door, which pulls the input to the pool. Each figure is the adapter
-	// call frame's gas less the frame's refund, 19,900 in the front's mode (the adapter's input balance, set and
-	// cleared in the transaction) and 39,800 in the door's (that and the door's allowance): what the fill adds to its
-	// transaction's receipt. A gas limit is set from the gas before refunds, never from these (README, Gas limits).
+	// A fill's gas, less the refund it earns, by the pool's fill mode, its input (the pair's base or its quote token) and
+	// the listing's class: the least first fill of that side in its block, through the adapter (executeEfficientProp),
+	// measured with real transactions on a Base fork of the front's earlier storage build (its desk before the packed
+	// desk; that deployment is retired) run on live Base's clock (the block count on its grid, so the front reads no
+	// millisecond predeploy), the recipient holding the output token (README, Execution and gas). They are not yet
+	// measured on the deployed build, whose desk is new code (the packed desk). The tokens' own transfer cost is in each
+	// figure, as measured on WETH and USDC (the hook pair) and cbBTC and USDC (past it). The front's mode pays the input
+	// straight to the listing's pool and calls the front's paid entry; the door's approves the door, which pulls the input
+	// to the pool. Each figure is the adapter call frame's gas less the frame's refund, 19,900 in the front's mode (the
+	// adapter's input balance, set and cleared in the transaction) and 39,800 in the door's (that and the door's
+	// allowance): what the fill adds to its transaction's receipt. A gas limit is set from the gas before refunds, never
+	// from these (README, Gas limits).
 	//
 	// A WORD or NONE listing on its pool's hook pair (base index 0, quote index 1), measured on a WORD WETH/USDC listing.
 	gasWordFrontBaseIn  = 101_664
@@ -110,7 +115,8 @@ const (
 	// idleRefreshEvery is the same for a listing whose state holds no ladder (dark, retired, its desk silent or not
 	// approved): nothing of it is quoted, so it is read less often until it is. It is no multiple of Ethereum's 12 s
 	// slot, so an idle listing is not sampled at one moment of every slot, where a desk that publishes later in the
-	// slot would never be seen.
+	// slot would never be seen. On BNB Chain both are several blocks: a refresh is asked for in whole seconds, and a
+	// state whose block has passed asks for its next at once (NextUpdateAt).
 	idleRefreshEvery = 5 * time.Second
 	// stateShareWindow is how long one fetch of a front's /state answers serves the refreshes of its listings: they
 	// come together, a listing each, and one fetch a url stands for all of them.
@@ -129,11 +135,10 @@ const (
 	// output, not by the state's window.
 	defaultInclusionAllowance   = 3
 	subSecondInclusionAllowance = 1
-	// builderInclusionAllowance is the same on a front read through /state (Front.Titan), where a quote is good for
-	// its target block alone: route finding stops that long before the block's second. A longer allowance drops more
-	// of each block's quoting time, and a shorter one quotes routes that may reach the builder after it has built the
-	// block, which then revert (README, Ethereum).
-	builderInclusionAllowance = 1
+	// On a front read through /state (Front.Titan) a quote is good for its target block alone, and route finding stops
+	// the chain's allowance before the block's time (builderClock.allowanceMs). A longer allowance drops more of each
+	// block's quoting time, and a shorter one quotes routes that may reach the builder after it has built the block,
+	// which then revert (README, Ethereum and BNB Chain).
 
 	// scanBatch is how many listing ids the lister reads in one multicall, and defaultMaxListings how many it reads
 	// from one front in one poll at most.
@@ -163,18 +168,60 @@ var subSecondChains = map[valueobject.ChainID]bool{valueobject.ChainIDBase: true
 // Ethereum's is 2 gwei, from eth_feeHistory over the 7,168 blocks to 26,486,699 (one day to 24 Nov 2026, a public
 // node): the 90th-percentile priority fee of a block, by gas, was 1.0 gwei at the median block, at most 2.0 gwei in
 // 90% of blocks and at most 2.1 gwei in 99% (the median transaction's: 0.011 gwei at the median block). So a cap of 2
-// gwei takes nine transactions in ten in nine blocks in ten, and a cap under it turns ordinary wallet tips away. No
-// other chain has a default: a chain read at the head sets its own.
-var defaultMinTipCapWei = map[valueobject.ChainID]uint64{valueobject.ChainIDEthereum: 2_000_000_000}
+// gwei takes nine transactions in ten in nine blocks in ten, and a cap under it turns ordinary wallet tips away. BNB
+// Chain's is 0.1 gwei: its base fee is 0, its validators' floor 0.05 gwei, and its tips read on 25 Nov 2026 were 0.05
+// gwei at the 10th percentile, about 0.05 at the median and 0.1 at the 90th. No other chain has a default: a chain
+// read at the head sets its own.
+var defaultMinTipCapWei = map[valueobject.ChainID]uint64{valueobject.ChainIDEthereum: 2_000_000_000,
+	valueobject.ChainIDBSC: 100_000_000}
 
 // builderChains are the chains whose builders sell a block's placement, where a desk's update lands only in a block a
 // builder built with it ahead of a fill: a front there is read through /state (Front.Titan) and filled through its
-// doors.
-var builderChains = map[valueobject.ChainID]bool{valueobject.ChainIDEthereum: true}
+// doors. Each is read on its own block clock (builderClocks).
+var builderChains = map[valueobject.ChainID]bool{valueobject.ChainIDEthereum: true, valueobject.ChainIDBSC: true}
 
-// unreadChains are the chains whose front is a builder build this source has no next-block read for: BNB Chain. A
-// config for one is refused, since read at the head such a front holds no word that stands for a fill.
-var unreadChains = map[valueobject.ChainID]bool{valueobject.ChainIDBSC: true}
+// builderClock is how a builder chain's blocks fall in time, as its /state read follows them, and the read's own
+// timings there.
+type builderClock struct {
+	// blockMs is the time from one block to the next, ms
+	blockMs uint64
+	// beacon: an answer's slot is the beacon chain's, whose second is its target block's (Ethereum). Else its target
+	// block's time is no field of the answer: it is the head's milliseconds (BNB Chain's milliTimestamp, else the start
+	// of the head's second) plus one block, and the block may be late, so the second after it is sampled too
+	beacon bool
+	// allowanceMs is the default inclusion allowance (Config.InclusionAllowanceMs): how long before its target block
+	// a route quoted from a state must reach the block's builder
+	allowanceMs uint64
+	// shareWindow is how long one /state fetch and one head probe serve the refreshes of a front's listings
+	// (stateShareWindow on Ethereum), mergeWindow how long a fetch waits for the other urls after the first answer that
+	// holds an account (titan.DefaultMergeWindow on Ethereum), and timeout the fetch's default timeout
+	// (defaultStateTimeout on Ethereum): on BNB Chain each is a fraction of its 450 ms block, past which a state is
+	// for a block already built
+	shareWindow, mergeWindow, timeout time.Duration
+	// classGas: the chain's builder build was measured, so a listing of a measured class is charged its class's
+	// figure (gasOfBuilder). Elsewhere a listing is quoted only with figures of its own (Front.ListingGas,
+	// Front.CreditListings)
+	classGas bool
+	// msPrecompile: the chain's millisecond precompile (BEP-706, msPrecompile) is read beside the head read, and a
+	// front whose clock reads it (mode 3) is quoted only while it answers nothing, when the front reads the block's
+	// second (its seal time); once it answers, the clock reads the block's own milliseconds, which no block override
+	// sets, so nothing is quoted
+	msPrecompile bool
+}
+
+// msPrecompile is BNB Chain's millisecond timestamp precompile (BEP-706), which a mode-3 front clock reads.
+var msPrecompile = common.HexToAddress("0x0000000000000000000000000000000000000070")
+
+// builderClocks are the builder chains' clocks. Ethereum: 12 s slots, each block at its beacon slot's second, a 1 s
+// allowance. BNB Chain: 450 ms blocks (450.4 ms on average over the 30,000 blocks to 135,693,393, 25 Nov 2026), each
+// header's milliseconds in its milliTimestamp, and an allowance of 100 ms, the time before a block's end by which its
+// builder (48 Club) takes the bundles it places a desk's update ahead of.
+var builderClocks = map[valueobject.ChainID]builderClock{
+	valueobject.ChainIDEthereum: {blockMs: 12_000, beacon: true, allowanceMs: 1_000, shareWindow: stateShareWindow,
+		mergeWindow: titan.DefaultMergeWindow, timeout: defaultStateTimeout, classGas: true},
+	valueobject.ChainIDBSC: {blockMs: 450, allowanceMs: 100, shareWindow: 100 * time.Millisecond,
+		mergeWindow: 100 * time.Millisecond, timeout: 400 * time.Millisecond, msPrecompile: true},
+}
 
 var (
 	ErrInvalidConfig = errors.New("efficient-prop: invalid config")

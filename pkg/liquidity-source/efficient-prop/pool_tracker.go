@@ -43,7 +43,7 @@ type PoolTracker struct {
 	hashes *codeHashes
 	// desks is the maker gate: the desk contracts whose listings are quoted
 	desks *approvedDesks
-	// shared is each front's last /state answers, by its address, kept for stateEvery (stateShareWindow)
+	// shared is each front's last /state answers, by its address, kept for stateEvery (the chain's shareWindow)
 	shared     map[string]*sharedAnswers
 	stateEvery time.Duration
 	// cache holds, a listing of a front read through /state, its head-fixed reads and its priced result (head_cache.go)
@@ -75,7 +75,11 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 	t := &PoolTracker{cfg: cfg, ethrpcClient: ethrpcClient, titan: map[string][]stateClient{}, now: time.Now,
 		warned: map[string]time.Time{}, warn: warn,
 		hashes: newCodeHashes(ethrpcClient), desks: newApprovedDesks(cfg),
-		shared: map[string]*sharedAnswers{}, stateEvery: stateShareWindow, cache: newListingCache(), heads: map[string]*sharedHead{}}
+		shared: map[string]*sharedAnswers{}, stateEvery: stateShareWindow, cache: newListingCache(),
+		heads: map[string]*sharedHead{}}
+	if clk := cfg.clock(); clk.shareWindow != 0 {
+		t.stateEvery = clk.shareWindow
+	}
 	if t.warn == nil {
 		t.warn = func(url string, err error) {
 			logger.WithFields(logger.Fields{"dexId": cfg.dexID(), "url": url, "error": err.Error()}).
@@ -108,18 +112,26 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 func (t *PoolTracker) stateAnswers(ctx context.Context, f *Front) []answer {
 	s := t.shared[f.Address]
 	if s == nil || t.stateEvery <= 0 {
-		return fetchAnswers(ctx, t.titan[f.Address], f.Titan.Timeout, t.stateFailed)
+		return fetchAnswers(ctx, t.titan[f.Address], t.stateTimeout(f), t.cfg.clock().mergeWindow, t.stateFailed)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if age := t.now().Sub(s.at); s.held && age >= 0 && age < t.stateEvery {
 		return s.answers
 	}
-	answers := fetchAnswers(ctx, t.titan[f.Address], f.Titan.Timeout, t.stateFailed)
+	answers := fetchAnswers(ctx, t.titan[f.Address], t.stateTimeout(f), t.cfg.clock().mergeWindow, t.stateFailed)
 	if ctx.Err() == nil {
 		s.answers, s.at, s.held = answers, t.now(), true
 	}
 	return answers
+}
+
+// stateTimeout is front f's /state read timeout: its config's, else its chain's (builderClock.timeout).
+func (t *PoolTracker) stateTimeout(f *Front) time.Duration {
+	if f.Titan.Timeout != 0 {
+		return f.Titan.Timeout
+	}
+	return t.cfg.clock().timeout
 }
 
 // stateWarnEvery is how often a failing /state url is logged at most.
@@ -204,7 +216,8 @@ var maxPointInput = new(big.Int).Lsh(big.NewInt(1), maxPointBits)
 // depth unexpired (validUntil, from doorView and the front's clock() read at the same block). Its timestamp is the
 // block's own time, read in the pinned probe, so its age runs from the state it holds.
 //
-// A front on a builder chain (Ethereum) is read through /state (Front.Titan): there a desk's update lands only in a
+// A front on a builder chain (Ethereum, BNB Chain) is read through /state (Front.Titan): there a desk's update lands
+// only in a
 // block a builder built with it ahead of a fill, so at the head the door refuses every size. Each refresh fetches the
 // front's urls' /state answers and reads the listing from one of them (readBuilderHead): of the highest block's, the
 // first in the url order that writes the listing's own stamp slot in its desk's quote contract (its front's slot rule)
@@ -213,10 +226,12 @@ var maxPointInput = new(big.Int).Lsh(big.NewInt(1), maxPointBits)
 // the head's block and runs in the answer's target block (its number and second, as block overrides) on that answer's
 // overrides of the quote contract and the listing's bound price contracts alone; the front's storage reads stay plain
 // reads at the head, since a desk's update writes only those contracts. A listing is quoted only where the answer's
-// block is the head's next, its slot is the head's slot plus one (its second the head's plus 12 s), and the front's
-// clock is the block's second (SEAL), which a time override places; a listing bound to a guarded entry is not quoted
-// there. The window is that block, and the next where the listing and the word both carry and the update is the
-// target block's own (builderWindow). Every other rule above holds there.
+// block is the head's next (on Ethereum its slot the head's slot plus one, its second the head's plus 12 s; on BNB
+// Chain its slot, where it names one, that block's number, its time the head's milliseconds plus 450 ms), and the
+// front's clock is the block's second (SEAL, or on BNB Chain the millisecond precompile's mode while the precompile
+// answers nothing), which a time override places; a listing bound to a guarded entry is not quoted there. The window
+// is that block, a second later too on BNB Chain where the block comes late, and the next block where the listing and
+// the word both carry and the update is the target block's own (builderWindow). Every other rule above holds there.
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
@@ -295,12 +310,12 @@ func (t *PoolTracker) GetNewPoolState(
 		BaseToken1: v.PairWord == nil || v.PairWord.Bit(8) == 0,
 		Print:      printed(v.Scopes) || v.PairWord != nil && v.PairWord.Bit(pairAssetBit) == 1,
 		Past:       v.BaseIndex != 0 || v.QuoteIndex != 1}
-	// a listing with a credit mode only on a front read through /state that names it, with its gas
+	// a listing with a credit mode only on a front that names it, with its gas
 	var credit *CreditListing
 	if f != nil {
 		credit = f.creditListing(staticExtra.Listing)
 	}
-	creditOK := v.CreditMode == 0 || builder && credit != nil && v.CreditMode <= creditModeAlways
+	creditOK := v.CreditMode == 0 || credit != nil && v.CreditMode <= creditModeAlways
 	// a pool keeps the fill mode it was listed under (StaticExtra.Mode): the adapter fills it through that entry, and
 	// every gas figure its front's config names is the configured mode's. Under a front set to the other mode since,
 	// it is not quoted until it is listed again
@@ -336,16 +351,20 @@ func (t *PoolTracker) GetNewPoolState(
 		// its allowance is taken off validUntil (builderWindow); its front's clock must be the block's second, which
 		// a time override places
 		extra.Builder, extra.Allowance = true, 0
-		extra.AllowanceMs = t.cfg.builderAllowance() * 1000
+		extra.AllowanceMs = t.cfg.builderAllowanceMs()
 		extra.NoAsset, extra.AssetQuote = v.BaseIndex != 0 && v.QuoteIndex != 0, v.QuoteIndex == 0
-		quoted = quoted && mapped && clock.ClockMode.Uint64() == clockSeconds
+		clk := t.cfg.clock()
+		mode := clock.ClockMode.Uint64()
+		quoted = quoted && mapped && (mode == clockSeconds || mode == clockPrecompile && clk.msPrecompile &&
+			!h.msAnswered)
 		if !mapped {
 			o0 = override{}
 		}
-		// a class with no measured figure in the front's fill mode is quoted only with figures of its own
+		// a class with no measured figure in the front's fill mode, or any class on a chain whose builder build was
+		// not measured, is quoted only with figures of its own
 		if v.CreditMode == 0 && extra.Gas == nil {
 			if _, _, ok := gasOfBuilder(staticExtra.Mode, extra.Print, false, extra.Past, extra.NoAsset,
-				extra.AssetQuote); !ok {
+				extra.AssetQuote); !ok || !clk.classGas {
 				quoted, extra.Idle = false, true
 			}
 		}
@@ -434,7 +453,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if quoted {
 		var w window
 		if builder {
-			w = builderWindow(v, s, o0, t.cfg.builderAllowance(), h.carried)
+			w = builderWindow(v, s, o0, t.cfg.clock(), extra.AllowanceMs, h.targetMs, h.carried)
 		} else {
 			ends := t.ends(v, s, clock)
 			var life printLife
@@ -485,12 +504,24 @@ func (t *PoolTracker) GetNewPoolState(
 			if extra.ValidUntil == 0 || until < extra.ValidUntil {
 				extra.ValidUntil = until
 			}
+			// on a front read through /state, the same end in milliseconds, the allowance not taken off (the time of
+			// the block a fill lands in)
+			if builder {
+				untilMs := w.endMs[dir]
+				if caps[dir] != 0 {
+					untilMs = min(untilMs, w.capMs[dir])
+				}
+				if extra.ValidUntilMs == 0 || untilMs < extra.ValidUntilMs {
+					extra.ValidUntilMs = untilMs
+				}
+			}
 		}
-		// the same end in milliseconds, the allowance not yet taken off (until is the second a fill may land in, less
-		// the allowance)
-		if builder && extra.ValidUntil != 0 {
-			extra.ValidUntilMs = extra.ValidUntil*1000 + extra.AllowanceMs
-		}
+	}
+
+	// on a front read at the head (a storage build) a tip cap of 0 stands no word, so its listing quotes nothing until
+	// a cap is set, which waits the listing's delay: idle, as a reason no new block lifts
+	if l := extra.ladders(); !builder && extra.TipCapWei == 0 && len(l[0]) == 0 && len(l[1]) == 0 {
+		extra.Idle = true
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -527,7 +558,10 @@ func (t *PoolTracker) GetNewPoolState(
 // A state read through /state (Extra.Builder) holds a target block whose second is ahead of the wall clock, and a new
 // answer, a higher block, comes with each block: its refresh is asked for refreshEvery from now, or at its
 // ValidUntil where that is sooner (now where that has passed), so a new answer is quoted within a second of its
-// publication and no state stands past its block.
+// publication and no state stands past its block. On a chain whose blocks are under a second apart (BNB Chain), where
+// a second is two blocks and more, a state that is not idle is asked for at once: its block is gone within the second,
+// and the front's shared /state fetch and head probe (builderClock.shareWindow) bound what that asks of the urls and
+// the node.
 //
 // An idle state (Extra.Idle), one not quoted for a reason no new block lifts, is asked for idleRefreshEvery on
 // instead, on either kind of front. A listing with no ladder for its block alone (no answer for the head's next block
@@ -541,6 +575,9 @@ func (t *PoolTracker) NextUpdateAt(p entity.Pool) int64 {
 	}
 	if err == nil && e.Builder {
 		now := t.now().Unix()
+		if !e.Idle && t.cfg.clock().blockMs < 1000 {
+			return now
+		}
 		next := now + int64(every/time.Second)
 		if e.ValidUntil != 0 && int64(e.ValidUntil) < next {
 			next = max(now, int64(e.ValidUntil))
@@ -840,9 +877,12 @@ type window struct {
 	// guarded: the listing is bound to a guarded source, and a direction any of whose samples is not read or placed
 	// has no ladder
 	guarded bool
-	// keep marks a direction whose samples, where all refuse every size, leave the pinned block's outputs standing,
+	// keep are a direction's samples that, where one refuses every size, leave the pinned block's outputs standing,
 	// quoted no later than its cap (a carried block on a front read through /state, builderWindow)
-	keep [2]bool
+	keep [2][]override
+	// endMs and capMs are end and cap in milliseconds, on a front read through /state: the time of the block a fill
+	// lands in, the allowance not taken off (Extra.ValidUntilMs)
+	endMs, capMs [2]uint64
 }
 
 // ends is each direction's last second a fill quoted from the state lands in: the state's age bound plus the
@@ -1272,7 +1312,8 @@ func (t *PoolTracker) sampleWindow(ctx context.Context, multicall, door common.A
 		}
 		for dir := range 2 {
 			// a kept direction refused every size there: its pinned outputs stand, to its cap
-			if masks[k][dir] && w.keep[dir] && !slices.ContainsFunc(later[dir], func(o *big.Int) bool { return o != nil }) {
+			if masks[k][dir] && slices.Contains(w.keep[dir], blocks[k]) &&
+				!slices.ContainsFunc(later[dir], func(o *big.Int) bool { return o != nil }) {
 				caps[dir] = w.cap[dir]
 				continue
 			}

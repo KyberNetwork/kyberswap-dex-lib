@@ -1961,3 +1961,29 @@ func TestTrackerDoesNotQuoteAPoolListedUnderAnotherFillMode(t *testing.T) {
 	assert.Zero(t, ladders(front, en, ep), "listed in the door's mode, the config now the front's")
 	assert.NotZero(t, ladders(front, en, relist(front, en)), "listed again under the front's mode")
 }
+
+// On a front read at the head (Base, a storage build) a listing whose tip cap is 0 stands no word, so it quotes
+// nothing until a cap is set, which waits the listing's delay: with no ladder it is idle, refreshed on the idle
+// schedule. The same listing with a cap is not idle, its next word a refresh away.
+func TestHeadReadCapZeroWithNoLadderIsIdle(t *testing.T) {
+	chain := trackedChain()
+	l := chain.listings[1]
+	l.shrinkAt, l.shrinkTo = 1, 0 // the door refuses every size
+	l.view.TipCap = 0
+	n := chain.node(t, 900)
+	p := listed(t, n)
+	e := extraOf(t, track(t, n, p))
+	assert.Empty(t, e.Ladders[0])
+	assert.Zero(t, e.TipCapWei)
+	assert.True(t, e.Idle, "cap 0 and no ladder")
+
+	l.view.TipCap = 0x8001
+	e = extraOf(t, track(t, n, p))
+	assert.Empty(t, e.Ladders[0])
+	assert.False(t, e.Idle, "a cap, and no ladder this block")
+
+	l.view.TipCap, l.shrinkAt = 0, 0
+	e = extraOf(t, track(t, n, p))
+	assert.NotEmpty(t, e.Ladders[0])
+	assert.False(t, e.Idle, "a ladder is never idle")
+}

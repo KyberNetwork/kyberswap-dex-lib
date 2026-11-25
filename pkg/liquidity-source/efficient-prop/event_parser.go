@@ -46,17 +46,22 @@ import (
 //     storage (record word 10 and the entries it names), and learns again after a binding, as for a desk, or a source
 //     change (a SettingsSet of kind 34, which setSource logs). A post that stored nothing maps to nothing.
 //   - a fill's Swapped (IPropAMM's event, once per settled fill). Its emitter follows the front's build. On a storage
-//     build the door called logs it: that door. On a builder build (Ethereum) the filling listing's quote contract
-//     logs it and no door does, naming the front's caller its sender: where the sender is a door of a listing that
-//     contract holds, that door, and else (a fill through the front's own entries) every door of the contract, as
+//     build the door called logs it: that door. On a builder build (Ethereum, BNB Chain) the filling listing's quote
+//     contract logs it and no door does, naming the front's caller its sender: where the sender is a door of a listing
+//     that contract holds, that door, and else (a fill through the front's own entries) every door of the contract, as
 //     for LaneFill. The topic is not ours alone (any IPropAMM venue logs it), so a Swapped of an address the parser
 //     does not know maps to nothing and prompts no learning: a new desk's contract is learned at its binding.
 //
 // The parser learns every listing the front reserved, live or not, so a listing relisted later is mapped as it is.
 //
-// On a builder chain (Ethereum) a desk's update lands only with the block that fills against it and comes in /state
-// (Front.Titan), not by a log: no desk logs DeskPush there (the storage build's) and no stored price lane posts. So
-// the parser maps neither, and reads no listing's price binding; every other log above maps as it does elsewhere.
+// On a builder chain (Ethereum, BNB Chain) a desk's update lands only with the block that fills against it and comes
+// in /state (Front.Titan), not by a log: no desk logs DeskPush there (the storage build's) and no stored price lane
+// posts. So the parser maps neither, and reads no listing's price binding; every other log above maps as it does
+// elsewhere. On BNB Chain the builder's own door (a block door, which settles bundles it places a desk's update ahead
+// of) logs no Swapped either: the desk's contract logs it, as for any other caller.
+//
+// On Base the desk is the packed desk, which logs DeskPush only where its record asks (byte 13, bit 5) and logs no
+// LaneFill: a post it does not log is seen at the listing's next scheduled refresh, a second after its state's block.
 type EventParser struct {
 	cfg          *Config
 	cfgErr       error
