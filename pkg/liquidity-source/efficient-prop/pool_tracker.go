@@ -470,7 +470,7 @@ func (t *PoolTracker) GetNewPoolState(
 		} else if layout {
 			// a direction takes a further fill a route where its ladder proves what one pays; its board unit is read
 			// by the layout
-			extra.Repeat = repeatOf(v, points, extra.Ladders, samples)
+			extra.Repeat = repeatOf(v, h.rungs, points, extra.Ladders, samples)
 		}
 		// valid to the end of the window sampled, never later: route finding checks no other bound once the
 		// simulator is built

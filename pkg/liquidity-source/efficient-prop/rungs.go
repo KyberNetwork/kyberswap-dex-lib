@@ -198,27 +198,47 @@ func withEdges(sizes, edges []*big.Int) []*big.Int {
 	return sizes
 }
 
+// refillsLater is whether the standing word may refill the side at a fill after the refresh: the controls let a word
+// refill, the word asks it of the side, and its acknowledgement is ahead of the board's fill sequence, by 1 to 1,023
+// of the 11-bit sequence's steps. Each fill raises the sequence by one, so the word may then match it, and a word
+// stamped ahead of the block's clock is after the side's last fill: the front refills the side, and the next fill
+// walks from its first rung (PropAMMWords.refills). A word whose acknowledgement is the sequence at the refresh
+// (refills) refills it at the first fill or not at all. The word's time and its last refill are not asked: a side that
+// may refill is not priced past the first fill.
+func refillsLater(word, board, controls *big.Int, bid bool) bool {
+	if word == nil || board == nil || controls == nil || controls.Bit(ctlRefill) == 0 {
+		return false
+	}
+	on, ack := word.Bit(233) == 1, bits(word, 245, 11)
+	if bid {
+		on, ack = word.Bit(232) == 1, bits(word, 234, 11)
+	}
+	ahead := (ack - bits(board, 236, 11)) & 0x7ff
+	return on && ahead >= 1 && ahead <= 1023
+}
+
 // repeatOf is a listing's Repeat: for each direction with a ladder, its input's board unit and what its ladder proves
-// of a later fill in one route (repeatKind). Nil where no direction's proves anything.
-func repeatOf(v DoorView, sizes [2][]*big.Int, ladders [2][]Point, samples [2][][]*big.Int) *Repeat {
-	var r Repeat
+// of a later fill in one route (repeatKind). Nil where no direction's proves anything. A direction whose side's word
+// may refill it at a later fill (refillsLater) proves nothing: it takes one fill a route.
+func repeatOf(v DoorView, r rungRead, sizes [2][]*big.Int, ladders [2][]Point, samples [2][][]*big.Int) *Repeat {
+	var rep Repeat
 	for dir := range 2 {
 		// the side's unit, and its depth post of the version whose fill memory this reads (rungEdges)
 		bid := sideIsBid(v.PairWord, dir)
-		d0 := v.Depth[2]
+		d0, board := v.Depth[2], r.board[1]
 		if bid {
-			d0 = v.Depth[0]
+			d0, board = v.Depth[0], r.board[0]
 		}
 		exp, ok := boardExp(v.PairWord, bid)
-		if !ok || bits(d0, 0, 4) != 1 {
+		if !ok || bits(d0, 0, 4) != 1 || refillsLater(v.Word, board, r.controls, bid) {
 			continue
 		}
-		r.Unit[dir], r.Kind[dir] = exp, repeatKind(sizes[dir], ladders[dir], samples[dir])
+		rep.Unit[dir], rep.Kind[dir] = exp, repeatKind(sizes[dir], ladders[dir], samples[dir])
 	}
-	if r.Kind == [2]uint8{} {
+	if rep.Kind == [2]uint8{} {
 		return nil
 	}
-	return &r
+	return &rep
 }
 
 // repeatKind is what a direction's ladder proves of a later fill, from the samples it was kept from (each the door's
