@@ -69,7 +69,9 @@ one block, then asks the door's own `quote` at a ladder of sizes in both directi
 block:
 
 - Sizes come from the shared `ladder` grid, dense at the last ladder's knee. A size the door refuses is no point. A
-  direction's ladder is the run of passing sizes up to the first refusal or falling output, at most 64 points.
+  direction's ladder is the run of passing sizes up to the first refusal or falling output, at most 64 points. On
+  Ethereum and BNB Chain a state no answer covered holds no ladder, so the tracker keeps the listing's last ladder and
+  draws the next quoted refresh's grid from it (sizes only, never a price).
 - The grid also holds every rung boundary. A side fills from at most ten rungs, each at one price, and the output
   bends only where the fill moves to the next rung. The tracker reads the rung sizes from `doorView` and the side's
   fill memory from the front's storage (`extSloads`, one more call in the head read's multicall, no request of its
@@ -137,12 +139,18 @@ block:
 - **Node load.** The tracker keeps, a listing, what the chain's head fixes, under the head's hash (never its number,
   so a head replaced at the same height reads again), and the result priced under the bytes of the listing's own
   override. The head's hash is asked of the node once a front per 250 ms, 100 ms on BNB Chain
-  (`eth_getBlockByNumber`), whatever the number of its listings. A refresh of a quoted listing that reads a price
-  source (a primary and a backup), on Ethereum, then makes at a new head 4 `eth_call` (5 on a tracker's first refresh,
-  which reads the front's code hashes; 5 and 6 where the listing and its word carry into the next block) and 9
-  `eth_getStorageAt`; at the same head under a new override (the maker's update), 2 `eth_call` and no storage read; at
-  the same head under the same override, no node call (`TestBuilderRefreshNodeLoad`,
-  `TestBuilderHeadCacheSavesTheNodeCalls`, `TestBuilderListingsRefreshedTogetherShareOneStateFetch`). The listings of
+  (`eth_getBlockByNumber`), whatever the number of its listings. The head read under an override asks, in its own
+  multicall, the door's quotes at the sizes the listing's last quoted refresh drew for the next, and beside it, in the
+  same batch, the window's samples at them; a refresh that needs a size not asked there reads the pinned read after it.
+  At a new head the head read is asked beside the head's facts, on the binding and slots of the head before, and is
+  asked again where the facts name others. A refresh of a quoted listing that reads a price source (a primary and a
+  backup), on Ethereum, then makes at a new head 2 `eth_call` and 3 `eth_getStorageAt` (on a tracker's first refresh,
+  which reads the front's code hashes and holds no sizes, 5 and 7; 6 and 7 where the listing and its word carry into
+  the next block); at a new head no answer covers yet, 1 `eth_call` and 3 `eth_getStorageAt`; at the same head under a
+  new override (the maker's update), 1 `eth_call`; at the same head under the same override, no node call
+  (`TestBuilderRefreshNodeLoad`, `TestBuilderHeadCacheSavesTheNodeCalls`, `TestBuilderPrefetchedReadIsTheReadItSaves`,
+  `TestBuilderNewHeadAsksTheHeadReadBesideTheFacts`, `TestBuilderListingNoAnswerCoversReadsTheFactsAlone`,
+  `TestBuilderListingsRefreshedTogetherShareOneStateFetch`). The listings of
   a front refreshed within 250 ms (100 ms on BNB Chain) share one `/state` read of each url. On BNB Chain the window
   also samples the second after the target block's, and the head read asks the millisecond precompile, one more inner
   call of its multicall. At the head a refresh makes 3 to 16 `eth_call` by the listing's kind.
