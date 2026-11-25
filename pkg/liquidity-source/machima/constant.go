@@ -1,8 +1,6 @@
 package machima
 
 import (
-	"math/big"
-
 	"github.com/pkg/errors"
 
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
@@ -46,6 +44,4 @@ var (
 	ErrZeroAmount         = errors.New("zero amount")
 	ErrTaxTooHigh         = errors.New("tax bps >= 100%")
 	ErrUnexpectedSwapInfo = errors.New("underlying v3 simulator returned unexpected swapInfo")
-
-	bigBpsDenominator = big.NewInt(bpsDenominator)
 )

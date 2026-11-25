@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/KyberNetwork/int256"
-	"github.com/KyberNetwork/msgpack/v5"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/msgpack/v5"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
@@ -379,9 +380,10 @@ func TestGrossUpBpsInvertsDeductBps(t *testing.T) {
 	for _, bps := range []uint16{0, 1, 300, 500, 9999} {
 		for _, amount := range []int64{1, 7, 1e6, 1e15, 123456789} {
 			target := big.NewInt(amount)
-			gross := grossUpBps(target, bps)
 			var after uint256.Int
-			after.SetFromBig(gross)
+			after.SetFromBig(target)
+			require.NoError(t, grossUpBps(&after, bps))
+			require.Equal(t, legacyGrossUpBps(target, bps).String(), after.Dec())
 			require.NoError(t, deductBps(&after, bps))
 			assert.GreaterOrEqual(t, after.ToBig().Cmp(target), 0,
 				"grossUpBps(%d, %d) undershoots after deductBps", amount, bps)

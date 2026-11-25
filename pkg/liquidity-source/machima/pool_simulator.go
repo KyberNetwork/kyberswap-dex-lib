@@ -1,18 +1,17 @@
 package machima
 
 import (
-	"math/big"
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -41,9 +40,8 @@ type PoolSimulator struct {
 }
 
 var (
-	_ pool.IPoolSim               = (*PoolSimulator)(nil)
-	_ pool.IPoolExactOutSimulator = (*PoolSimulator)(nil)
-	_ pool.ICalcAmtIn             = (*PoolSimulator)(nil)
+	_ pool.IPoolSim   = (*PoolSimulator)(nil)
+	_ pool.ICalcAmtIn = (*PoolSimulator)(nil)
 
 	_ = pool.RegisterFactory1(DexType, NewPoolSimulator)
 )
@@ -173,11 +171,11 @@ func (p *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOu
 	}, nil
 }
 
-// CalcAmountIn inverts CalcAmountOut. It matters even though the pathfinder does not use exact-out:
-// onchain-price-service's ApproxAmountIn prefers a simulator's own CalcAmountIn over its
-// regula-falsi fallback, then re-checks the answer with CalcAmountOut and drops the pool when the
-// two disagree. An untaxed CalcAmountIn would therefore delete Machima pools from the price graph.
-func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+// CalcAmtIn inverts CalcAmtOut. It matters even though the pathfinder does not use exact-out:
+// onchain-price-service's ApproxAmountIn prefers a simulator's own CalcAmtIn over its
+// regula-falsi fallback, then re-checks the answer with CalcAmtOut and drops the pool when the
+// two disagree. An untaxed CalcAmtIn would therefore delete Machima pools from the price graph.
+func (p *PoolSimulator) CalcAmtIn(param pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
 	if p.isInAntiSniperWindow() {
 		return nil, ErrAntiSniperActive
 	}
@@ -191,16 +189,20 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	// Gross the requested output back up to what the pool has to produce before sell tax.
 	poolAmountOut := param.TokenAmountOut.Amount
 	if !isBuy {
-		poolAmountOut = grossUpBps(poolAmountOut, p.taxBps(false))
+		if err := grossUpBps(&poolAmountOut, p.taxBps(false)); err != nil {
+			// More than 2^256 out: no pool holds it, so the V3 reserve check rejects it (as for the
+			// legacy big.Int path) once the amount is saturated.
+			poolAmountOut.SetAllOne()
+		}
 	}
-	if poolAmountOut.Sign() <= 0 {
+	if poolAmountOut.IsZero() {
 		return nil, ErrZeroAmount
 	}
 
-	//nolint:staticcheck // QF1008: explicit embedded selector is intentional, see CalcAmountOut
-	res, err := p.PoolSimulator.CalcAmountInWithPriceLimit(pool.CalcAmountInParams{
+	//nolint:staticcheck // QF1008: explicit embedded selector is intentional, see CalcAmtOut
+	res, err := p.PoolSimulator.CalcAmtInWithPriceLimit(pool.CalcAmtInParams{
 		TokenIn:        tokenIn,
-		TokenAmountOut: pool.TokenAmount{Token: tokenOut, Amount: poolAmountOut},
+		TokenAmountOut: pool.TokenAmt{Token: tokenOut, Amount: poolAmountOut},
 	}, p.sqrtPriceLimit(tokenIn, isBuy))
 	if err != nil {
 		return nil, err
@@ -215,43 +217,19 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	poolAmountIn := res.TokenAmountIn.Amount
 	amountIn := poolAmountIn
 	if isBuy {
-		amountIn = grossUpBps(poolAmountIn, p.taxBps(true))
+		if err := grossUpBps(&amountIn, p.taxBps(true)); err != nil {
+			return nil, err
+		}
 	}
 
-	var poolInU, poolOutU uint256.Int
-	if poolInU.SetFromBig(poolAmountIn) || poolOutU.SetFromBig(poolAmountOut) {
-		return nil, ErrOverflow
-	}
-	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountIn},
-		Fee:           &pool.TokenAmount{Token: tokenIn, Amount: new(big.Int).Sub(amountIn, poolAmountIn)},
+	return &pool.CalcAmtInResult{
+		TokenAmountIn: &pool.TokenAmt{Token: tokenIn, Amount: amountIn},
 		Gas:           res.Gas,
 		SwapInfo: SwapInfo{
 			V3:            v3SwapInfo,
-			PoolAmountIn:  poolInU,
-			PoolAmountOut: poolOutU,
+			PoolAmountIn:  poolAmountIn,
+			PoolAmountOut: poolAmountOut,
 		},
-	}, nil
-}
-
-// CalcAmtIn is CalcAmountIn with uint256 amounts. It runs the shared big.Int body and converts at the boundary,
-// so the tax rules stay in CalcAmountIn.
-func (p *PoolSimulator) CalcAmtIn(params pool.CalcAmtInParams) (*pool.CalcAmtInResult, error) {
-	res, err := p.CalcAmountIn(pool.CalcAmountInParams{
-		TokenAmountOut: pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: params.TokenAmountOut.Amount.ToBig()},
-		TokenIn:        params.TokenIn,
-	})
-	if err != nil {
-		return nil, err
-	}
-	var amountIn, fee uint256.Int
-	if amountIn.SetFromBig(res.TokenAmountIn.Amount) || fee.SetFromBig(res.Fee.Amount) {
-		return nil, ErrOverflow
-	}
-	return &pool.CalcAmtInResult{
-		TokenAmountIn: &pool.TokenAmt{Token: res.TokenAmountIn.Token, Amount: amountIn},
-		Gas:           res.Gas,
-		SwapInfo:      res.SwapInfo,
 	}, nil
 }
 
@@ -364,14 +342,22 @@ func deductBps(amount *uint256.Int, bps uint16) error {
 	return nil
 }
 
-// grossUpBps is the inverse of deductBps, rounded up so the grossed-up amount always clears the
-// target after the contract's flooring tax.
-func grossUpBps(amount *big.Int, bps uint16) *big.Int {
+// grossUpBps sets amount to ceil(amount*10000/(10000-bps)), the inverse of deductBps, rounded up so the grossed-up
+// amount always clears the target after the contract's flooring tax. A result past 256 bits is an overflow error.
+func grossUpBps(amount *uint256.Int, bps uint16) error {
 	if bps == 0 {
-		return amount
+		return nil
 	}
-	gross := new(big.Int).Mul(amount, bigBpsDenominator)
-	den := big.NewInt(int64(bpsDenominator - bps))
-	gross.Add(gross, new(big.Int).Sub(den, bignumber.One))
-	return gross.Div(gross, den)
+	var den, rem uint256.Int
+	den.SetUint64(bpsDenominator - uint64(bps))
+	rem.MulMod(amount, uint256.NewInt(bpsDenominator), &den)
+	if _, overflow := amount.MulDivOverflow(amount, uint256.NewInt(bpsDenominator), &den); overflow {
+		return ErrOverflow
+	}
+	if !rem.IsZero() {
+		if _, overflow := amount.AddOverflow(amount, uint256.NewInt(1)); overflow {
+			return ErrOverflow
+		}
+	}
+	return nil
 }
