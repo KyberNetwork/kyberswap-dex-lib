@@ -63,7 +63,8 @@ block:
 - The grid holds a size at the listing's minimum fill, so a ladder starts where the listing does. The minimum is in
   the listing's settings word, read in that same storage call (a listing with a credit mode is not given it). With
   the quote token in it is an input, and the size is the minimum itself. With the base token in it is an output: the
-  sizes are the two inputs that bracket it on the last ladder's first point, so the ladder reaches the minimum from the second refresh.
+  sizes are the two inputs that bracket it on the last ladder's first point, so the ladder reaches the minimum from the
+  second refresh.
 - The ladder holds for its whole window. A listing's levels may widen with its quote's age, so every size is sampled
   again at the window's last block (and around a premium's end, and at each block of a guarded source's hold) by an
   `eth_call` with a block override, and the least output of each size is kept. Each sample reads its block's time and
@@ -74,7 +75,8 @@ block:
   base unit of the output token less, on a ladder one block sampled. A listing with a credit mode keeps the shared grid
   alone, with no boundary, middle or minimum-fill size: it takes one fill a route whatever the state says, so they
   would buy it nothing, and each of its sizes costs a plan beside its quote in the one pinned call.
-  The pinned call of a listing without a credit mode asks up to 44 sizes a side, where the shared grid asked up to 22.
+  The pinned call of a listing without a credit mode asks about 44 sizes a side at most, where the shared grid asked
+  up to 22.
 - It pays no more than the listing's pool holds of the output token. Listings of one pool share a swap limit keyed by
   pool and token.
 - A direction takes more than one fill a route. A fill moves the side's fill memory by its input, rounded up to the

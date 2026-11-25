@@ -1,8 +1,8 @@
 package efficientprop
 
-// Two fixed inputs against the model of the contracts (chain_model_test.go), on a listing shaped as the launch pool's wstETH/USDC one (18 and 6 decimals,
-// a board unit of 1e12 wei of wstETH and of 1 base unit of USDC, the pool's bucket unit 1e12 wei of wstETH), and the
-// gate's and the wire's small cases. Each test passes while the finding stands: it asserts what the chain does.
+// Fixed inputs against the model of the contracts (chain_model_test.go), on a listing shaped as the launch pool's
+// wstETH/USDC one (18 and 6 decimals, a board unit of 1e12 wei of wstETH and of 1 base unit of USDC, the pool's bucket
+// unit 1e12 wei of wstETH). Each is a later fill the chain refuses: the simulator quotes it only if the chain pays it.
 
 import (
 	"math/big"
