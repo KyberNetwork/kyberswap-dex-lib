@@ -64,7 +64,8 @@ var liveChains = []liveChain{
 // block count from Base's millisecond anchor; BNB Chain's millisecond precompile mode, whose precompile answers
 // nothing yet), and that the lister runs on the front as configured and finds every listing of desk 1 from the chain
 // alone, none named in the config, each of which a refresh reads at the head (on BNB Chain with a /state answer that
-// holds no update, so nothing is quoted). A chain whose front holds no code yet is skipped with a note.
+// holds no update, so nothing is quoted). A chain where the front, its implementation, its door factory or desk 1's
+// contract holds no code yet is skipped with a note, not failed: a chain landing in part is not a fault here.
 // EFFICIENT_PROP_LIVE_RPC_<chain id> points a chain at another node, such as a local fork of a rehearsal.
 //
 //	EFFICIENT_PROP_LIVE=1 go test ./pkg/liquidity-source/efficient-prop -run TestLive -v
@@ -85,10 +86,17 @@ func TestLiveFrontsOnBaseAndBNBChain(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, uint64(c.chain), id.Uint64())
 			front := common.HexToAddress(liveFront)
-			code, err := eth.CodeAt(ctx, front, nil)
-			require.NoError(t, err)
-			if len(code) == 0 {
-				t.Skipf("%s: the front %s holds no code at the head: not deployed yet", c.name, liveFront)
+			for _, a := range []struct {
+				name string
+				addr common.Address
+			}{{"front", front}, {"implementation", liveImpl}, {"door factory", common.HexToAddress(liveFactory)},
+				{"desk 1's contract", c.desk1}} {
+				code, err := eth.CodeAt(ctx, a.addr, nil)
+				require.NoError(t, err)
+				if len(code) == 0 {
+					t.Skipf("%s: the %s %s holds no code at the head: not deployed, or deployed in part", c.name,
+						a.name, a.addr)
+				}
 			}
 
 			f := Front{Address: liveFront, DoorFactory: liveFactory, FillMode: FillModeDoor,
@@ -99,6 +107,7 @@ func TestLiveFrontsOnBaseAndBNBChain(t *testing.T) {
 			if c.builder {
 				f.Layout, f.CellCodehash = LayoutBuilder, c.cell.Hex()
 				f.Titan = &titan.Config{URLs: []string{st.URL}}
+				f.BundleOnly = true
 			} else {
 				f.BaseTime = "0x4200000000000000000000000000000000000030"
 			}

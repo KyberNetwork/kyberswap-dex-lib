@@ -52,7 +52,7 @@ func TestForkBNBFillsTheSampledQuote(t *testing.T) {
 		Address: liveFront, DoorFactory: liveFactory, Layout: LayoutBuilder, CellCodehash: bnb.cell.Hex(),
 		FillMode: FillModeDoor, Implementations: []string{liveImpl.Hex()},
 		ApprovedSources: []string{priceContract(front, 1).Hex()},
-		Titan:           &titan.Config{URLs: []string{st.URL}},
+		Titan:           &titan.Config{URLs: []string{st.URL}}, BundleOnly: true,
 		CreditListings: []CreditListing{{Listing: 1, CustodyBaseIn: 300_000, CustodyQuoteIn: 300_000,
 			RouteBaseIn: 1_200_000, RouteQuoteIn: 1_200_000}},
 	}}}
