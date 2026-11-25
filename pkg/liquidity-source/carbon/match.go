@@ -535,44 +535,9 @@ func expandRate(dst *uint256.Int, rate uint64) *uint256.Int {
 	return dst.Lsh(dst, uint(rate/one))
 }
 
-// mul512 returns the full 512-bit product of x*y as (hi, lo) by value.
-// Uses 128-bit halving to compute hi without MulMod, avoiding the Reciprocal cost.
-func mul512(x, y *uint256.Int) (hi, lo uint256.Int) {
-	lo.Mul(x, y)
-
-	var xL, xH, yL, yH uint256.Int
-	xL.And(x, u256.UMaxU128)
-	xH.Rsh(x, 128)
-	yL.And(y, u256.UMaxU128)
-	yH.Rsh(y, 128)
-
-	// cross = (xL*yL)>>128 + xH*yL + xL*yH
-	// Track 256-bit overflow carries: each carry contributes 2^128 to hi.
-	var cross, tmp uint256.Int
-	cross.Mul(&xL, &yL)
-	cross.Rsh(&cross, 128)
-
-	tmp.Mul(&xH, &yL)
-	_, c1 := cross.AddOverflow(&cross, &tmp)
-
-	tmp.Mul(&xL, &yH)
-	_, c2 := cross.AddOverflow(&cross, &tmp)
-
-	hi.Mul(&xH, &yH)
-	cross.Rsh(&cross, 128)
-	hi.Add(&hi, &cross)
-	if c1 {
-		hi.Add(&hi, u256.U2Pow128)
-	}
-	if c2 {
-		hi.Add(&hi, u256.U2Pow128)
-	}
-	return
-}
-
 // minFactor writes the result into dst and returns dst.
 func minFactor(dst, x, y *uint256.Int) *uint256.Int {
-	hi, lo := mul512(x, y)
+	hi, lo := u256.Mul512(x, y)
 	var notLo uint256.Int
 	notLo.Not(&lo)
 	if hi.Gt(&notLo) {
