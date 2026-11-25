@@ -383,16 +383,19 @@ func (h *DynamicFeeHook) simulateSwap(amountSpecified *uint256.Int, zeroForOne, 
 		return result.SwapInfo.(uniswapv3.SwapInfo), nil
 	}
 
-	amountForSim := u256.ToBig(amountSpecified)
+	amountForSim := *amountSpecified
 	if zeroForOne != h.ClankerIsToken0 { // swapping for clanker
-		var fee big.Int
-		bignumber.MulDivDown(&fee, amountForSim, scaledProtocolFee(h.ProtocolFee), bignumber.BONE)
-		amountForSim = fee.Add(amountForSim, &fee)
+		var fee uint256.Int
+		fee.SetFromBig(scaledProtocolFee(h.ProtocolFee)) // < 1e18, so the conversion cannot overflow
+		u256.MulWadDown(&fee, amountSpecified, &fee)
+		if _, overflow := amountForSim.AddOverflow(&amountForSim, &fee); overflow {
+			return uniswapv3.SwapInfo{}, uniswapv3.ErrOverflow
+		}
 	}
 
-	var result *pool.CalcAmountOutResult
-	result, err = h.poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
+	var result *pool.CalcAmtOutResult
+	result, err = h.poolSim.CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{
 			Token:  tokenIn,
 			Amount: amountForSim,
 		},
