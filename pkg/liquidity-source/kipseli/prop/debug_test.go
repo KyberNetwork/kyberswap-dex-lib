@@ -20,6 +20,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 const (
@@ -91,7 +92,7 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 		}
 	}
 
-	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
+	limit := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit()))
 
 	for _, dir := range directions {
 		snap, err := fetchSnapshot(context.Background(), rpcClient, common.HexToAddress(testRouterAddr),
@@ -102,11 +103,7 @@ func TestKipseliDebug_QuoteVsSim(t *testing.T) {
 			t.Run(fmt.Sprintf("%s_%s", dir.label, amt.String()), func(t *testing.T) {
 				quoterOut := snap.AmountsOut[0][i]
 
-				simRes, simErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: dir.tokenIn.Hex(), Amount: amt},
-					TokenOut:      dir.tokenOut.Hex(),
-					Limit:         limit,
-				})
+				simRes, simErr := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: dir.tokenIn.Hex(), Amount: amt}, dir.tokenOut.Hex(), limit)
 
 				if quoterOut == nil || quoterOut.Sign() == 0 {
 					if simErr == nil && simRes != nil && simRes.TokenAmountOut.Amount.Sign() > 0 {
@@ -148,15 +145,11 @@ func TestKipseliMergeSwap(t *testing.T) {
 	numSwaps := 20
 	totalAmount := new(big.Int).Mul(amountPerSwap, big.NewInt(int64(numSwaps)))
 
-	limit1 := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim1.CalculateLimit())))
+	limit1 := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim1.CalculateLimit()))
 	totalOut1 := new(big.Int)
 	var err1 error
 	for i := range numSwaps {
-		res, err := sim1.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountPerSwap},
-			TokenOut:      tokenOut,
-			Limit:         limit1,
-		})
+		res, err := testutil.CalcAmountOutNative(sim1, pool.TokenAmount{Token: tokenIn, Amount: amountPerSwap}, tokenOut, limit1)
 		if err != nil {
 			err1 = err
 			t.Logf("N-swap: failed at swap %d: %v", i+1, err)
@@ -166,16 +159,12 @@ func TestKipseliMergeSwap(t *testing.T) {
 		sim1.UpdateBalance(pool.UpdateBalanceParams{
 			TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: amountPerSwap},
 			TokenAmountOut: *res.TokenAmountOut,
-			SwapLimitBig:   limit1,
+			SwapLimitBig:   pool.AsSwapLimitBig(limit1),
 		})
 	}
 
 	sim2Typed := sim2.(*PoolSimulator)
-	res2, err2 := sim2Typed.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: totalAmount},
-		TokenOut:      tokenOut,
-		Limit:         pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim2Typed.CalculateLimit()))),
-	})
+	res2, err2 := testutil.CalcAmountOutNative(sim2Typed, pool.TokenAmount{Token: tokenIn, Amount: totalAmount}, tokenOut, swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim2Typed.CalculateLimit())))
 
 	if err2 != nil {
 		if err1 == nil {

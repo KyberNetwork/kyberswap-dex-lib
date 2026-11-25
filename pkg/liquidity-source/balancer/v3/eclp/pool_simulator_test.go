@@ -123,10 +123,7 @@ func TestCalcAmountOut(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return tc.pool.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: tc.tokenAmountIn,
-					TokenOut:      tc.tokenOut,
-				})
+				return testutil.CalcAmountOutNative(tc.pool, tc.tokenAmountIn, tc.tokenOut, nil)
 			})
 
 			assert.Equal(t, tc.expectedError, err)

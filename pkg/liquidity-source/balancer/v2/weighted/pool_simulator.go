@@ -844,7 +844,7 @@ func tokenAmtFromBigWeighted(t *pool.TokenAmount) (*pool.TokenAmt, error) {
 		return nil, nil
 	}
 	out := &pool.TokenAmt{Token: t.Token, AmountUsd: t.AmountUsd}
-	if t.Amount != nil && out.Amount.SetFromBig(t.Amount) {
+	if t.Amount != nil && (t.Amount.Sign() < 0 || out.Amount.SetFromBig(t.Amount)) {
 		return nil, ErrInvalidAmountIn
 	}
 	return out, nil

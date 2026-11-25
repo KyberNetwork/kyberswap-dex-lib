@@ -62,8 +62,30 @@ func TestLegacyAdapterLimitsAndReservesConvert(t *testing.T) {
 	require.Equal(t, uint64(9), u.GetReserves()[0].Uint64())
 }
 
-// A legacy result with a nil or negative amount must not become a real value.
-func TestBigToUOrZeroRejectsNilAndNegative(t *testing.T) {
+// A legacy result with a nil, negative or oversized quote amount is an error, not a zero. Only a nil fee
+// amount zero-fills.
+func TestLegacyAdapterRejectsInvalidAmounts(t *testing.T) {
+	over := new(big.Int).Lsh(big.NewInt(1), 256)
+	for name, amt := range map[string]*big.Int{"nil": nil, "negative": big.NewInt(-4), "oversized": over} {
+		_, err := calcAmtOutResultFromBig(&CalcAmountOutResult{TokenAmountOut: &TokenAmount{Amount: amt}})
+		require.ErrorIs(t, err, ErrInvalidLegacyAmount, "amount out %s", name)
+		_, err = calcAmtOutResultFromBig(&CalcAmountOutResult{TokenAmountOut: &TokenAmount{Amount: big.NewInt(1)},
+			RemainingTokenAmountIn: &TokenAmount{Amount: amt}})
+		require.ErrorIs(t, err, ErrInvalidLegacyAmount, "remaining %s", name)
+	}
+	_, err := calcAmtOutResultFromBig(&CalcAmountOutResult{TokenAmountOut: &TokenAmount{Amount: big.NewInt(1)},
+		Fee: &TokenAmount{Amount: big.NewInt(-1)}})
+	require.ErrorIs(t, err, ErrInvalidLegacyAmount, "negative fee")
+
+	res, err := calcAmtOutResultFromBig(&CalcAmountOutResult{TokenAmountOut: &TokenAmount{Amount: big.NewInt(7)},
+		Fee: &TokenAmount{}})
+	require.NoError(t, err)
+	require.Equal(t, uint64(7), res.TokenAmountOut.Amount.Uint64())
+	require.True(t, res.Fee.Amount.IsZero(), "nil fee amount zero-fills")
+}
+
+// Reserves and limits still clamp to zero.
+func TestBigToU256OrZeroClampsReservesAndLimits(t *testing.T) {
 	require.True(t, bigToU256OrZero(nil).IsZero())
 	require.True(t, bigToU256OrZero(big.NewInt(-4)).IsZero())
 	require.Equal(t, uint64(4), bigToU256OrZero(big.NewInt(4)).Uint64())

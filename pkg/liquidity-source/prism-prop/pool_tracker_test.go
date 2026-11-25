@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 const (
@@ -57,10 +58,7 @@ func newSim(t testing.TB) *PoolSimulator {
 
 func calc(sim *PoolSimulator, tokenIn, tokenOut, amountIn string) (*big.Int, error) {
 	in, _ := new(big.Int).SetString(amountIn, 10)
-	res, err := sim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-		TokenAmountIn: poolpkg.TokenAmount{Token: tokenIn, Amount: in},
-		TokenOut:      tokenOut,
-	})
+	res, err := testutil.CalcAmountOutNative(sim, poolpkg.TokenAmount{Token: tokenIn, Amount: in}, tokenOut, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +120,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 	}
 	b.ReportAllocs()
 	for b.Loop() {
-		if _, err := sim.CalcAmountOut(params); err != nil {
+		if _, err := testutil.CalcAmountOutNative(sim, params.TokenAmountIn, params.TokenOut, nil); err != nil {
 			b.Fatal(err)
 		}
 	}

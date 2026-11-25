@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 type testChainIDRPC struct {
@@ -108,10 +109,7 @@ func TestHelperLevelsMatchOnchainQuote(t *testing.T) {
 	base := "0x4200000000000000000000000000000000000006"
 	quote := "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
 	simulator := newFixtureSimulator(t, base, quote, 18, 6, bids)
-	res, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: base, Amount: mustBigInt("5000000000000000000")},
-		TokenOut:      quote,
-	})
+	res, err := testutil.CalcAmountOutNative(simulator, pool.TokenAmount{Token: base, Amount: mustBigInt("5000000000000000000")}, quote, nil)
 	require.NoError(t, err)
 	diff := new(big.Int).Sub(res.TokenAmountOut.Amount, big.NewInt(13241311681))
 	require.LessOrEqual(t, new(big.Int).Abs(diff).Int64(), int64(2), "helper quote should match getAmountOut to USDC wei")
@@ -138,10 +136,7 @@ func TestHelperLevelsFixAAPLUnderquote(t *testing.T) {
 		{200000000, 657925161, 522956931},
 		{500000000, 1251317860, 1104637735},
 	} {
-		result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: base, Amount: big.NewInt(tc.input)},
-			TokenOut:      quote,
-		})
+		result, err := testutil.CalcAmountOutNative(simulator, pool.TokenAmount{Token: base, Amount: big.NewInt(tc.input)}, quote, nil)
 		require.NoError(t, err)
 		actual := result.TokenAmountOut.Amount.Int64()
 		require.InDelta(t, tc.direct, actual, 2)

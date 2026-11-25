@@ -14,6 +14,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 type liveChain struct {
@@ -288,10 +289,7 @@ func checkDirection(
 
 		tokenInLower := hexutil.Encode(tokenIn[:])
 		tokenOutLower := hexutil.Encode(tokenOut[:])
-		simRes, simErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokenInLower, Amount: amt},
-			TokenOut:      tokenOutLower,
-		})
+		simRes, simErr := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: tokenInLower, Amount: amt}, tokenOutLower, nil)
 
 		label := fmt.Sprintf("%s->%s amt=%s", tokenInLower, tokenOutLower, amt)
 

@@ -97,13 +97,10 @@ func TestCalcAmountOut(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{
-						Token:  tokens[tc.tokenInIdx].Address,
-						Amount: tc.amountIn,
-					},
-					TokenOut: tokens[tc.tokenOutIdx].Address,
-				})
+				return testutil.CalcAmountOutNative(poolSim, pool.TokenAmount{
+					Token:  tokens[tc.tokenInIdx].Address,
+					Amount: tc.amountIn,
+				}, tokens[tc.tokenOutIdx].Address, nil)
 			})
 			tc.expectedError(t, err)
 			if err == nil {

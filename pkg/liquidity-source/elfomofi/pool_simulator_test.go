@@ -48,10 +48,7 @@ func TestPoolSimulator_GreedyMatchesBatch(t *testing.T) {
 
 	total := new(big.Int)
 	for range 10 {
-		res, err := greedy.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: weth, Amount: chunk},
-			TokenOut:      usdc,
-		})
+		res, err := testutil.CalcAmountOutNative(greedy, pool.TokenAmount{Token: weth, Amount: chunk}, usdc, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -64,10 +61,7 @@ func TestPoolSimulator_GreedyMatchesBatch(t *testing.T) {
 
 	batch := lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool}))
 	full, _ := new(big.Int).SetString("1000000000000000000", 10) // 1 WETH
-	res, err := batch.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: weth, Amount: full},
-		TokenOut:      usdc,
-	})
+	res, err := testutil.CalcAmountOutNative(batch, pool.TokenAmount{Token: weth, Amount: full}, usdc, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // Vault._swap updates raw pool-token balances before BatchRouter unwraps output.
@@ -17,7 +18,7 @@ func TestUpdateBalanceQuotedRawAmounts(t *testing.T) {
 	t.Run("exact_in_unwrapped_output", func(t *testing.T) {
 		s := poolSim.CloneState().(*base.PoolSimulator)
 		in := pool.TokenAmount{Token: s.GetTokens()[2], Amount: big.NewInt(2e18)}
-		r, err := s.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: in, TokenOut: s.GetTokens()[1]})
+		r, err := testutil.CalcAmountOutNative(s, in, s.GetTokens()[1], nil)
 		require.NoError(t, err)
 		info := r.SwapInfo.(shared.SwapInfo)
 		require.NotNil(t, info.AmountOutBeforeConvert)

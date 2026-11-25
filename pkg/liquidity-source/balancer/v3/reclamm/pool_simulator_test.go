@@ -58,13 +58,10 @@ func TestCalcAmountOutInRange(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return poolSimInRange.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{
-						Token:  entityPoolInRange.Tokens[tc.tokenInIdx].Address,
-						Amount: tc.amountIn,
-					},
-					TokenOut: entityPoolInRange.Tokens[tc.tokenOutIdx].Address,
-				})
+				return testutil.CalcAmountOutNative(poolSimInRange, pool.TokenAmount{
+					Token:  entityPoolInRange.Tokens[tc.tokenInIdx].Address,
+					Amount: tc.amountIn,
+				}, entityPoolInRange.Tokens[tc.tokenOutIdx].Address, nil)
 			})
 			tc.expectedError(t, err)
 			if err == nil {
@@ -104,13 +101,10 @@ func TestCalcAmountOutOutOfRange(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return poolSimOutOfRange.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{
-						Token:  entityPoolOutOfRange.Tokens[tc.tokenInIdx].Address,
-						Amount: tc.amountIn,
-					},
-					TokenOut: entityPoolOutOfRange.Tokens[tc.tokenOutIdx].Address,
-				})
+				return testutil.CalcAmountOutNative(poolSimOutOfRange, pool.TokenAmount{
+					Token:  entityPoolOutOfRange.Tokens[tc.tokenInIdx].Address,
+					Amount: tc.amountIn,
+				}, entityPoolOutOfRange.Tokens[tc.tokenOutIdx].Address, nil)
 			})
 			tc.expectedError(t, err)
 			if err == nil {

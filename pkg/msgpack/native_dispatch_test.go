@@ -27,7 +27,7 @@ var nativePairs = [][2]string{
 
 // staleInherited lists the legacy methods t declares whose native twin t inherits. Dispatch prefers the native
 // method, so such a type would silently quote with the embedded parent's math. Shadow the native method on the
-// embedder (return pool.ErrUnsupported or reimplement it).
+// embedder (reimplement it, or return an error).
 func staleInherited(t reflect.Type) (stale []string) {
 	for _, p := range nativePairs {
 		legacyPromoted, hasLegacy := promoted(t, p[0])

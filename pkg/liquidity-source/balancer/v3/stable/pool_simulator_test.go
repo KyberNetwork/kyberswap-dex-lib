@@ -366,13 +366,10 @@ func TestCalcAmountOutPanic(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			Amount: big.NewInt(10_000_000),
-		},
-		TokenOut: "0x8292bb45bf1ee4d140127049757c2e0ff06317ed",
-	})
+	res, err := testutil.CalcAmountOutNative(sim, pool.TokenAmount{
+		Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+		Amount: big.NewInt(10_000_000),
+	}, "0x8292bb45bf1ee4d140127049757c2e0ff06317ed", nil)
 	assert.NoError(t, err)
 
 	defer func() {
@@ -389,13 +386,4 @@ func TestCalcAmountOutPanic(t *testing.T) {
 		Fee:            *res.Fee,
 		SwapInfo:       res.SwapInfo,
 	})
-}
-
-// TestCalcAmtOutParity pins base.PoolSimulator's native CalcAmtOut to the legacy CalcAmountOut.
-func TestCalcAmtOutParity(t *testing.T) {
-	t.Parallel()
-	testutil.TestCalcAmtOutParity(t, poolSim, []string{
-		"1", "799999", "842557", "1000000", "1000000000", "123456789012", "2000000000000000000",
-		"500000000000000000000", "10000000000000000000000",
-	}, nil)
 }

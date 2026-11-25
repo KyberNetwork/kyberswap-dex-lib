@@ -146,14 +146,6 @@ func decodeOrders(orders []*Order) error {
 	return nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	var amountIn uint256.Int
-	if param.TokenAmountIn.Amount != nil && amountIn.SetFromBig(param.TokenAmountIn.Amount) {
-		return nil, ErrCannotFulfillAmountIn
-	}
-	return p.quoteOut(param.TokenAmountIn.Token, param.TokenOut, &amountIn, param.Limit)
-}
-
 // CalcAmtOut is CalcAmountOut in uint256: the amount in and the limit are uint256.
 func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	res, err := p.quoteOut(params.TokenAmountIn.Token, params.TokenOut, &params.TokenAmountIn.Amount, pool.AsSwapLimitBig(params.Limit))

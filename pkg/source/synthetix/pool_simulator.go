@@ -68,30 +68,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	param pool.CalcAmountOutParams,
-) (*pool.CalcAmountOutResult, error) {
-	if param.Limit == nil {
-		return nil, ErrNoSwapLimit
-	}
-	res, err := p.calcAmtOut(pool.CalcAmtOutParams{
-		TokenAmountIn: pool.TokenAmt{
-			Token:     param.TokenAmountIn.Token,
-			Amount:    *uint256.MustFromBig(param.TokenAmountIn.Amount),
-			AmountUsd: param.TokenAmountIn.AmountUsd,
-		},
-		TokenOut: param.TokenOut,
-	}, func(key string) *uint256.Int { return toU256(param.Limit.GetLimit(key)) })
-	if res == nil {
-		return nil, err
-	}
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: res.TokenAmountOut.Token, Amount: res.TokenAmountOut.Amount.ToBig()},
-		Fee:            &pool.TokenAmount{Token: res.Fee.Token, Amount: res.Fee.Amount.ToBig()},
-		Gas:            res.Gas,
-	}, err
-}
-
 func (p *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	if param.Limit == nil {
 		return nil, ErrNoSwapLimit
@@ -151,13 +127,6 @@ func (p *PoolSimulator) calcAmtOut(param pool.CalcAmtOutParams,
 		Fee:            tokenAmountFee,
 		Gas:            estimatedGas,
 	}, nil
-}
-
-func toU256(b *big.Int) *uint256.Int {
-	if b == nil {
-		return nil
-	}
-	return uint256.MustFromBig(b)
 }
 
 // GetAtomicVolume returns the atomic volume of the trade in case of Ethereum

@@ -169,22 +169,24 @@ func CalcAmountOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn Token
 	return DefaultCalcAmtOut(ctx, pool, tokenAmountIn, tokenOut, limit)
 }
 
-// DefaultCalcAmtOut quotes with the native uint256 CalcAmtOut when the pool has one. Otherwise it uses the legacy
-// big.Int CalcAmountOut.
+// DefaultCalcAmtOut quotes with the native uint256 CalcAmtOut when the pool has one, and returns its error as is.
+// Otherwise it uses the legacy big.Int CalcAmountOut.
 func DefaultCalcAmtOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string,
 	limit SwapLimit) (*CalcAmountOutResult, error) {
 	if native, ok := pool.(ICalcAmtOut); ok {
+		amtIn, err := tokenAmtFromBig(&tokenAmountIn)
+		if err != nil {
+			return nil, errors.Wrap(err, "token amount in")
+		}
 		res, err := native.CalcAmtOut(CalcAmtOutParams{
-			TokenAmountIn: tokenAmtFromBig(&tokenAmountIn),
+			TokenAmountIn: amtIn,
 			TokenOut:      tokenOut,
 			Limit:         limit,
 		})
-		if !errors.Is(err, ErrUnsupported) {
-			if err != nil || res == nil {
-				return nil, err
-			}
-			return calcAmountOutResultFromAmt(res), nil
+		if err != nil || res == nil {
+			return nil, err
 		}
+		return calcAmountOutResultFromAmt(res), nil
 	}
 	legacy, ok := pool.(ILegacyCalcAmountOut)
 	if !ok {

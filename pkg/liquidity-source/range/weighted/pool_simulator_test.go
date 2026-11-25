@@ -88,10 +88,7 @@ func TestCalcAmountOut(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			sim := newROMEUSDTSim(t)
 			res, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return sim.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: big.NewInt(tc.amountIn)},
-					TokenOut:      tc.tokenOut,
-				})
+				return testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: tc.tokenIn, Amount: big.NewInt(tc.amountIn)}, tc.tokenOut, nil)
 			})
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedOut, res.TokenAmountOut.Amount.String())
@@ -143,10 +140,7 @@ func TestUpdateBalance(t *testing.T) {
 	reserveOutBefore := new(big.Int).Set(before[1])
 
 	amountIn := big.NewInt(100_000_000)
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: romeToken, Amount: amountIn},
-		TokenOut:      usdtToken,
-	})
+	res, err := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: romeToken, Amount: amountIn}, usdtToken, nil)
 	require.NoError(t, err)
 
 	sim.UpdateBalance(pool.UpdateBalanceParams{
@@ -215,10 +209,7 @@ func TestPausedPoolRejectsSwap(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: romeToken, Amount: big.NewInt(100_000_000)},
-		TokenOut:      usdtToken,
-	})
+	_, err = testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: romeToken, Amount: big.NewInt(100_000_000)}, usdtToken, nil)
 	assert.ErrorIs(t, err, shared.ErrPoolIsPaused)
 }
 
@@ -231,10 +222,7 @@ func TestZeroAmountRejected(t *testing.T) {
 	t.Parallel()
 	sim := newROMEUSDTSim(t)
 
-	_, errOut := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: romeToken, Amount: big.NewInt(0)},
-		TokenOut:      usdtToken,
-	})
+	_, errOut := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: romeToken, Amount: big.NewInt(0)}, usdtToken, nil)
 	assert.Error(t, errOut, "EXACT_IN with zero input must error")
 
 	_, errIn := sim.CalcAmountIn(pool.CalcAmountInParams{

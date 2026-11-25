@@ -61,29 +61,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult,
-	err error) {
-	amtIn, overflow := uint256.FromBig(param.TokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrInvalidAmount
-	}
-	var limit func(key string) *uint256.Int
-	if param.Limit != nil {
-		limit = func(key string) *uint256.Int { return toU256(param.Limit.GetLimit(key)) }
-	}
-	q, err := p.quote(param.TokenAmountIn.Token, amtIn, param.TokenOut, limit)
-	if err != nil {
-		return nil, err
-	}
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut:         &pool.TokenAmount{Token: q.tokenOut, Amount: q.amountOut.ToBig()},
-		Fee:                    &pool.TokenAmount{Token: q.feeToken, Amount: q.fee.ToBig()},
-		RemainingTokenAmountIn: &pool.TokenAmount{Token: q.tokenIn, Amount: q.remainingIn.ToBig()},
-		Gas:                    q.gas,
-		SwapInfo:               q.swapInfo,
-	}, nil
-}
-
 // CalcAmtOut is CalcAmountOut with uint256 amounts. It shares quote with the legacy method.
 func (p *PoolSimulator) CalcAmtOut(param pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	var limit func(key string) *uint256.Int

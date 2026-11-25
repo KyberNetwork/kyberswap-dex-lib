@@ -95,37 +95,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if !p.isEnabled {
-		return nil, ErrTR05
-	}
-	if params.Limit == nil {
-		return nil, ErrNoSwapLimit
-	}
-	tokenOut := params.TokenOut
-	maxAmountOut := p.maxAmountOut(tokenOut, number.SetFromBig(params.Limit.GetLimit(tokenOut)))
-
-	amountOut, fee, err := p.quote(params.TokenAmountIn.Token, tokenOut, number.SetFromBig(params.TokenAmountIn.Amount), maxAmountOut)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
-		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: fee.ToBig(),
-		},
-		Gas: p.gas.Swap,
-		SwapInfo: SwapInfo{
-			RelayerAddress: p.relayerAddress,
-		},
-	}, nil
-}
-
 // CalcAmtOut is CalcAmountOut with uint256 amounts. It shares quote with the legacy method.
 func (p *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	if !p.isEnabled {

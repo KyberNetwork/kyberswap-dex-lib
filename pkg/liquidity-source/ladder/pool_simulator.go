@@ -114,26 +114,6 @@ func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtO
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	amountInF, _ := params.TokenAmountIn.Amount.Float64()
-	amountOut, err := s.quote(params.TokenAmountIn.Token, params.TokenOut, amountInF)
-	if err != nil {
-		return nil, err
-	}
-
-	if limit := params.Limit; limit != nil {
-		if l := limit.GetLimit(params.TokenOut); l == nil || amountOut.ToBig().Cmp(l) > 0 {
-			return nil, pool.ErrNotEnoughInventory
-		}
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: bignum.ZeroBI},
-		Gas:            s.Gas,
-	}, nil
-}
-
 // quote returns the ladder amount out for amountInF of tokenIn, net of the amount already consumed in that
 // direction. It does not check the swap limit; the callers do.
 func (s *PoolSimulator) quote(tokenIn, tokenOut string, amountInF float64) (*uint256.Int, error) {

@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/test"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -140,10 +141,7 @@ func (ts *ParitySuite) TestOversizedExactIn_TopCryptoWETH() {
 	oversized := new(big.Int).Mul(big.NewInt(1_000_000_000_000_000_000), big.NewInt(1_000_000_000_000))
 
 	_, oracleErr := ts.querySwapExactIn(block, tracked.Address, tokenIn, tokenOut, oversized)
-	_, simErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: oversized},
-		TokenOut:      tokenOut,
-	})
+	_, simErr := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: tokenIn, Amount: oversized}, tokenOut, nil)
 	ts.Require().Errorf(oracleErr, "expected on-chain querySwap to revert on the oversized exact-in (idx %d->%d)", wethIdx, out)
 	ts.Require().Errorf(simErr, "sim priced an oversized amount the chain reverts (%v) — pow overflow not handled as no-price", oracleErr)
 
@@ -151,10 +149,7 @@ func (ts *ParitySuite) TestOversizedExactIn_TopCryptoWETH() {
 	normal := fracOf(mustBig(tracked.Reserves[wethIdx]), 100)
 	oracleOut, oracleErr2 := ts.querySwapExactIn(block, tracked.Address, tokenIn, tokenOut, normal)
 	ts.Require().NoError(oracleErr2, "normal amount should price on-chain — adjust sizing if this fails")
-	res, simErr2 := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: normal},
-		TokenOut:      tokenOut,
-	})
+	res, simErr2 := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: tokenIn, Amount: normal}, tokenOut, nil)
 	ts.Require().NoError(simErr2, "sim errored on a normal amount after an oversized one — failure isolation broken")
 	ts.Require().Equal(oracleOut.String(), res.TokenAmountOut.Amount.String(), "normal-amount wei parity after an oversized-amount rejection")
 	ts.T().Logf("oversized #4: idx %d->%d oversized=no-price<->revert OK; normal amount still prices to the wei", wethIdx, out)
@@ -180,10 +175,7 @@ func (ts *ParitySuite) assertPairParity(sim *base.PoolSimulator, tracked entity.
 		}
 
 		oracleOut, oracleErr := ts.querySwapExactIn(block, tracked.Address, tokenIn, tokenOut, amountIn)
-		res, simErr := sim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
-			TokenOut:      tokenOut,
-		})
+		res, simErr := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: tokenIn, Amount: amountIn}, tokenOut, nil)
 
 		if oracleErr != nil {
 			// On-chain rejected this size (e.g. below MINIMUM_TRADE_AMOUNT); the sim must

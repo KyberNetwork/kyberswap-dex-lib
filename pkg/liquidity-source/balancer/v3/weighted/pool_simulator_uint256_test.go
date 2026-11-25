@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // TestCalcAmtOutParity checks the uint256 CalcAmtOut against the big.Int CalcAmountOut on the same
@@ -32,10 +33,7 @@ func TestCalcAmtOutParity(t *testing.T) {
 
 	for _, pair := range pairs {
 		for _, amt := range amounts {
-			want, wantErr := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: pair[0], Amount: amt},
-				TokenOut:      pair[1],
-			})
+			want, wantErr := testutil.CalcAmountOutNative(poolSim, pool.TokenAmount{Token: pair[0], Amount: amt}, pair[1], nil)
 			got, gotErr := poolSim.CalcAmtOut(pool.CalcAmtOutParams{
 				TokenAmountIn: pool.TokenAmt{Token: pair[0], Amount: *uint256.MustFromBig(amt)},
 				TokenOut:      pair[1],

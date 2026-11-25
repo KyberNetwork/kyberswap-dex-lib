@@ -98,3 +98,24 @@ func errText(err error) string {
 	}
 	return err.Error()
 }
+
+// CalcAmountOutNative quotes with the native CalcAmtOut and returns big.Int amounts. For tests of a pool whose
+// legacy CalcAmountOut is gone. 
+func CalcAmountOutNative(sim any, in pool.TokenAmount, tokenOut string,
+	limit pool.SwapLimit) (*pool.CalcAmountOutResult, error) {
+	res, err := sim.(pool.ICalcAmtOut).CalcAmtOut(pool.CalcAmtOutParams{
+		TokenAmountIn: pool.TokenAmt{Token: in.Token, Amount: *uint256.MustFromBig(in.Amount)},
+		TokenOut:      tokenOut,
+		Limit:         limit,
+	})
+	if err != nil || res == nil {
+		return nil, err
+	}
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut:         bigAmt(res.TokenAmountOut),
+		Fee:                    bigAmt(res.Fee),
+		RemainingTokenAmountIn: bigAmt(res.RemainingTokenAmountIn),
+		Gas:                    res.Gas,
+		SwapInfo:               res.SwapInfo,
+	}, nil
+}

@@ -56,25 +56,6 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
-
-	res, err := s.CalcAmtOut(pool.CalcAmtOutParams{
-		TokenAmountIn: pool.TokenAmt{Token: params.TokenAmountIn.Token, Amount: *amountIn, AmountUsd: params.TokenAmountIn.AmountUsd},
-		TokenOut:      params.TokenOut,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: res.TokenAmountOut.Token, Amount: res.TokenAmountOut.Amount.ToBig()},
-		Fee:            &pool.TokenAmount{Token: res.Fee.Token, Amount: res.Fee.Amount.ToBig()},
-		Gas:            res.Gas,
-		SwapInfo:       res.SwapInfo,
-	}, nil
-}
-
 func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	if !s.CanSwap {
 		return nil, ErrCannotSwap

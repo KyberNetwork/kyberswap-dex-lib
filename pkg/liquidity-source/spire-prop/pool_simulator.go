@@ -110,32 +110,6 @@ func (s *PoolSimulator) deadline() uint64 {
 
 func (s *PoolSimulator) expired(now uint64) bool { return now > s.deadline() }
 
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if params.TokenAmountIn.Amount == nil || params.TokenAmountIn.Amount.Sign() <= 0 {
-		return nil, ErrAmount
-	}
-	amount, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrAmount
-	}
-	q, err := s.quote(params.TokenAmountIn.Token, params.TokenOut, amount)
-	if err != nil {
-		return nil, err
-	}
-	if params.Limit != nil {
-		limit := params.Limit.GetLimit(s.limitKey(s.Info.Tokens[q.out]))
-		if limit == nil || q.output.ToBig().Cmp(limit) > 0 {
-			return nil, pool.ErrNotEnoughInventory
-		}
-	}
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[q.out], Amount: q.output.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[q.in], Amount: new(big.Int)},
-		Gas:            q.gas,
-		SwapInfo:       q.swapInfo,
-	}, nil
-}
-
 // CalcAmtOut is CalcAmountOut with uint256 amounts. It shares quote with the legacy method.
 func (s *PoolSimulator) CalcAmtOut(params pool.CalcAmtOutParams) (*pool.CalcAmtOutResult, error) {
 	q, err := s.quote(params.TokenAmountIn.Token, params.TokenOut, &params.TokenAmountIn.Amount)

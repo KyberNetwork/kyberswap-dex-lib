@@ -37,10 +37,7 @@ func TestCalcAmountOut(t *testing.T) {
 		expectedSwapFee := "7810046538733162"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
+			return testutil.CalcAmountOutNative(poolSim, tokenAmountIn, tokenOut, nil)
 		})
 
 		assert.Nil(t, err)
@@ -64,10 +61,7 @@ func TestCalcAmountOut(t *testing.T) {
 		expectedSwapFee := "8000000000000000"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
+			return testutil.CalcAmountOutNative(poolSim, tokenAmountIn, tokenOut, nil)
 		})
 
 		assert.Nil(t, err)
@@ -88,10 +82,7 @@ func TestCalcAmountOut(t *testing.T) {
 		tokenOut := "0x77146784315ba81904d654466968e3a7c196d1f3"
 
 		_, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
+			return testutil.CalcAmountOutNative(poolSim, tokenAmountIn, tokenOut, nil)
 		})
 
 		assert.Error(t, err)
@@ -110,10 +101,7 @@ func TestCalcAmountOut(t *testing.T) {
 		tokenOut := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 
 		_, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
+			return testutil.CalcAmountOutNative(poolSim, tokenAmountIn, tokenOut, nil)
 		})
 
 		assert.Error(t, err)
@@ -145,10 +133,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 		// actual
 		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
+			return testutil.CalcAmountOutNative(s, tokenAmountIn, tokenOut, nil)
 		})
 
 		assert.Nil(t, err)
@@ -182,10 +167,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 		// actual
 		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
+			return testutil.CalcAmountOutNative(s, tokenAmountIn, tokenOut, nil)
 		})
 
 		assert.Nil(t, err)

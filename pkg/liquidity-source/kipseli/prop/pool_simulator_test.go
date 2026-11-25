@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 const (
@@ -85,18 +86,14 @@ func TestPoolSimulator_UpdateBalanceConsumesLadder(t *testing.T) {
 	}
 	sim := mustSim(t, ladders, big.NewInt(9e18), big.NewInt(30000e6))
 
-	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1e18)},
-		TokenOut:      testUSDC,
-		Limit:         limit,
-	})
+	limit := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit()))
+	res, err := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1e18)}, testUSDC, limit)
 	require.NoError(t, err)
 
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1e18)},
 		TokenAmountOut: *res.TokenAmountOut,
-		SwapLimitBig:   limit,
+		SwapLimitBig:   pool.AsSwapLimitBig(limit),
 	})
 
 	// a second 1e18 swap now needs the ladder's second knot (2e18 total consumed)
@@ -113,17 +110,13 @@ func TestPoolSimulator_CloneStateIsolatesReserves(t *testing.T) {
 	sim := mustSim(t, ladders, big.NewInt(9e18), big.NewInt(30000e6))
 
 	cloned := sim.CloneState().(*PoolSimulator)
-	limit := pool.AsSwapLimitBig(swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit())))
-	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1e18)},
-		TokenOut:      testUSDC,
-		Limit:         limit,
-	})
+	limit := swaplimit.NewInventory(DexType, swaplimit.ToU256Balances(sim.CalculateLimit()))
+	res, err := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1e18)}, testUSDC, limit)
 	require.NoError(t, err)
 	sim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  pool.TokenAmount{Token: testWETH, Amount: big.NewInt(1e18)},
 		TokenAmountOut: *res.TokenAmountOut,
-		SwapLimitBig:   limit,
+		SwapLimitBig:   pool.AsSwapLimitBig(limit),
 	})
 
 	require.NotEqual(t, sim.GetReserves()[0].String(), cloned.GetReserves()[0].String())

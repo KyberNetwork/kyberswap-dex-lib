@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	orderbook "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/order-book"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // TestPoolSimulator_EndToEnd exercises the real wrapped order-book simulator
@@ -63,10 +64,7 @@ func TestPoolSimulator_EndToEnd(t *testing.T) {
 	require.True(t, meta.IsBid) // swapping FROM token1 (NVDA) matches resting asks -> isBid=true fill()
 
 	// Swap 0.5 token0 (USDG) into token1 (NVDA) -- consumes the bid-tree level.
-	out, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: token0, Amount: big.NewInt(500_000)}, // 0.5 USDG raw
-		TokenOut:      token1,
-	})
+	out, err := testutil.CalcAmountOutNative(sim, pool.TokenAmount{Token: token0, Amount: big.NewInt(500_000)}, token1, nil)
 	require.NoError(t, err)
 	require.Equal(t, token1, out.TokenAmountOut.Token)
 	require.Positive(t, out.TokenAmountOut.Amount.Sign())
