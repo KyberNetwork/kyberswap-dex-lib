@@ -1,12 +1,11 @@
 package twocryptong
 
 import (
-	"time"
-
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 )
@@ -14,7 +13,7 @@ import (
 var ( // FXSwap custom MATH library for their twocrypto-ng pools
 	CustomMaths = []common.Address{
 		common.HexToAddress("0x79839c2D74531A8222C0F555865aAc1834e82e51"), // For YB on ethereum
-		// StableswapMath v0.1.1 (v0.1.0 + "!balance" guard in newton_D), YB WETH v3.0.0 pool
+		// StableswapMath v0.1.1 (v0.1.0 + "!balance" guard in newton_D), YB v3.0.0 pools on ethereum
 		common.HexToAddress("0xBfDdF58Cb6ef84e115fF47c10e49A80B2653EA13"),
 		common.HexToAddress("0xe3AA3639BA550bED6ba5Fb9635bE89f9e35b9745"), // Polygon
 		common.HexToAddress("0x2Bd498ae431dC98694010950fcF8ACd3599f5512"), // Base
@@ -25,6 +24,14 @@ var ( // FXSwap custom MATH library for their twocrypto-ng pools
 
 func UseCustomMath(math common.Address) bool {
 	return lo.Contains(CustomMaths, math)
+}
+
+// PolicyHex is how Extra stores a pool's POLICY: lower-case hex, empty for none (or no view).
+func PolicyHex(policy common.Address) string {
+	if policy == (common.Address{}) {
+		return ""
+	}
+	return hexutil.Encode(policy[:])
 }
 
 // from contracts/main/CurveCryptoMathOptimized3.vy
@@ -936,7 +943,7 @@ func (t *PoolSimulator) _A_gamma_inplace(A, gamma *uint256.Int) {
 	var t1 = t.Extra.FutureAGammaTime
 	A.Set(t.Extra.FutureA)
 	gamma.Set(t.Extra.FutureGamma)
-	var now = time.Now().Unix()
+	var now = nowUnix()
 	if now < t1 {
 		var A0 = t.Extra.InitialA
 		var gamma0 = t.Extra.InitialGamma

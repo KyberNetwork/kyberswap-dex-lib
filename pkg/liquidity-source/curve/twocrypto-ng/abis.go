@@ -8,8 +8,12 @@ import (
 
 var (
 	CurveTwocryptoNGABI abi.ABI
-	YBPolicyABI         abi.ABI
-	YBBankPolicyABI     abi.ABI
+	// YBTwocryptoPolicyABI is the Yield Basis twocrypto policy's views (see TwocryptoPolicyState).
+	YBTwocryptoPolicyABI abi.ABI
+	// YBPolicyABI is YBOraclizedPolicy's views (see PolicyState).
+	YBPolicyABI abi.ABI
+	// YBBankPolicyABI is the Yield Basis bank policy's views, a YBOraclizedPolicy that reads its report from a bank.
+	YBBankPolicyABI abi.ABI
 )
 
 func init() {
@@ -18,6 +22,7 @@ func init() {
 		data []byte
 	}{
 		{&CurveTwocryptoNGABI, curveTwocryptoNGABIBytes},
+		{&YBTwocryptoPolicyABI, ybTwocryptoPolicyABIBytes},
 		{&YBPolicyABI, ybPolicyABIBytes},
 		{&YBBankPolicyABI, ybBankPolicyABIBytes},
 	}
