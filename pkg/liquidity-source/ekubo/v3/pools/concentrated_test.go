@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3/quoting"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
@@ -472,4 +473,71 @@ func TestAddLiquidityCutoffs(t *testing.T) {
 			require.Equal(t, 0, state.ActiveTickIndex)
 		})
 	})
+}
+
+// The fetched state describes liquidity only for ticks in [TickBounds[0], TickBounds[1]): AddLiquidityCutoffs adds all
+// liquidity below the window at TickBounds[0] and removes it at TickBounds[1].
+func TestActiveTickOutsideTickBounds(t *testing.T) {
+	t.Parallel()
+
+	bounds := [2]int32{-227050, -216810}
+	for _, tc := range []struct {
+		activeTick int32
+		outside    bool
+	}{
+		{-227148, true},
+		{-227051, true},
+		{-227050, false},
+		{-227046, false},
+		{-216811, false},
+		{-216810, true},
+		{-216000, true},
+	} {
+		state := NewConcentratedPoolState(nil, nil, bounds, tc.activeTick)
+		require.Equal(t, tc.outside, state.ActiveTickOutsideTickBounds(), "active tick %d", tc.activeTick)
+	}
+
+	// A window clamped to the tick range holds a price at the range's end: no fetch can return a wider one.
+	for _, activeTick := range []int32{math.MinTick, math.MaxTick} {
+		state := NewConcentratedPoolState(nil, nil, [2]int32{math.MinTick, math.MaxTick}, activeTick)
+		require.False(t, state.ActiveTickOutsideTickBounds(), "active tick %d", activeTick)
+	}
+}
+
+// windowPool is a concentrated pool whose state is known on ticks [-1000, 1000] (the tracker's tick bounds), with
+// liquidity L there and none outside it once the cutoffs are added, at tick 0, tick spacing 1, fee 0.
+func windowPool(t *testing.T) *ConcentratedPool {
+	t.Helper()
+	s := NewConcentratedPoolState(NewConcentratedPoolSwapState(big256.U2Pow128.Clone(), uint256.NewInt(1e18), -1),
+		nil, [2]int32{-1000, 1000}, 0)
+	s.AddLiquidityCutoffs()
+	return NewConcentratedPool(NewPoolKey(common.HexToAddress("0x0"), common.HexToAddress("0x1"),
+		NewPoolConfig(common.Address{}, 0, NewConcentratedPoolTypeConfig(1))), s)
+}
+
+// Past the pool's capacity in the known window, a quote stops where the executed swap stops, at SwapInfo's
+// price limit (one tick past the bound): it returns what it consumed, with the rest left over, a gas estimate for
+// that swap and the state at the limit. Before, it walked the price on to the global limit through empty ticks,
+// counting a bitmap lookup per word on the way (hundreds of millions of gas), and left the state there.
+func TestConcentratedQuotePastTheWindowStopsAtThePriceLimit(t *testing.T) {
+	for _, isToken1 := range []bool{false, true} {
+		p := windowPool(t)
+		over, err := p.Quote(uint256.NewInt(1e18), isToken1) // far past the window's capacity
+		require.NoError(t, err)
+		require.True(t, over.ConsumedAmount.Lt(uint256.NewInt(1e18)), "token1 %v: a partial fill must leave input", isToken1)
+		full, err := windowPool(t).Quote(over.ConsumedAmount, isToken1) // exactly what the window holds
+		require.NoError(t, err)
+		require.True(t, full.CalculatedAmount.Eq(over.CalculatedAmount), "token1 %v: the same output", isToken1)
+
+		t.Logf("token1 %v: consumed %v of 1e18, gas %d past the window, %d at capacity", isToken1,
+			over.ConsumedAmount, over.Gas, full.Gas)
+		bound := map[bool]int32{false: -1000 - 1, true: 1000 + 1}[isToken1]
+		limit := math.ToSqrtRatio(bound)
+		after := over.SwapInfo.SwapStateAfter.(*ConcentratedPoolSwapState)
+		require.True(t, after.SqrtRatio.Eq(limit), "token1 %v: the state after is at %v, want the limit %v",
+			isToken1, after.SqrtRatio, limit)
+		require.LessOrEqual(t, over.Gas, full.Gas+quoting.GasCostOfOneExtraTickBitmapSload+
+			quoting.GasCostOfOneExtraConcentratedMathRound, "token1 %v: gas %d against %d at capacity", isToken1,
+			over.Gas, full.Gas)
+	}
 }
