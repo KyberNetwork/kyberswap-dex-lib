@@ -144,11 +144,20 @@ func TestPoolTracker_UndecodedBalanceMarksThePoolEmpty(t *testing.T) {
 	}
 }
 
-// A pair whose getReserves reverts must not panic either. It is marked empty too: failing the task would only
-// retry the same revert until the task is archived.
-func TestPoolTracker_GetReservesRevertsMarksThePoolEmpty(t *testing.T) {
-	got, err := trackOnce(t, []multicallResult{reverted, balanceResult(t, 1000), balanceResult(t, 2500)})
-	require.NoError(t, err)
-	assert.Equal(t, entity.PoolReserves{"0", "0"}, got.Reserves)
-	assert.Equal(t, uint64(12), got.BlockNumber)
+// A pair whose getReserves does not decode must not panic, nor zero a good pair: a UniswapV2 pair's getReserves
+// does not revert, so the failure is the RPC's and passes. The task fails and the stored state stays, as on a
+// failed multicall.
+func TestPoolTracker_UndecodedGetReservesKeepsTheState(t *testing.T) {
+	for name, results := range map[string][]multicallResult{
+		"getReserves reverts":   {reverted, balanceResult(t, 1000), balanceResult(t, 2500)},
+		"getReserves no data":   {noData, balanceResult(t, 1000), balanceResult(t, 2500)},
+		"and a balance reverts": {reverted, reverted, balanceResult(t, 2500)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got, err := trackOnce(t, results)
+			require.ErrorIs(t, err, ErrGetReservesUndecoded)
+			assert.Equal(t, entity.PoolReserves{"900", "1900"}, got.Reserves)
+			assert.Equal(t, uint64(10), got.BlockNumber)
+		})
+	}
 }

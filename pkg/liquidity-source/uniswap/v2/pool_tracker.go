@@ -95,11 +95,13 @@ func (d *PoolTracker) GetNewPoolState(
 			return p, err
 		}
 
-		// A call whose answer does not decode leaves its output nil: a balanceOf of a token with no code (the call
-		// succeeds and returns nothing) or of one that reverts, or the pair's getReserves. The pair cannot be
-		// checked, so it is marked empty as a pair short of its reserves is, rather than failing the task, which
-		// would only retry the same call.
-		if reserveData.Reserve0 == nil || reserveData.Reserve1 == nil || bals[0] == nil || bals[1] == nil ||
+		// A call whose answer does not decode leaves its output nil. A pair's getReserves does not revert, so a
+		// nil there is the RPC's: fail and keep the stored state. A balanceOf of a token with no code (it returns
+		// nothing) or one that reverts stays broken, so the pair is marked empty, as one short of its reserves is.
+		if reserveData.Reserve0 == nil || reserveData.Reserve1 == nil {
+			return p, ErrGetReservesUndecoded
+		}
+		if bals[0] == nil || bals[1] == nil ||
 			bals[0].Cmp(reserveData.Reserve0) < 0 || bals[1].Cmp(reserveData.Reserve1) < 0 {
 			reserveData.Reserve0 = bignumber.ZeroBI
 			reserveData.Reserve1 = bignumber.ZeroBI
