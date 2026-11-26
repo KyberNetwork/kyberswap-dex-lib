@@ -53,13 +53,15 @@ func (r *V21dRPC) Apply(extra *Extra) {
 	extra.DonationProtectionPeriod = uint256.MustFromBig(r.DonationProtectionPeriod)
 }
 
-// v21dCappedStepPools run the later v2.1.0d build, which steps by min(adjustment_step, norm / 5). The earlier
-// build, under the same version string, steps by max(adjustment_step, norm / 5) as v2.0.0 does. Both are
-// verified on Ethereum (eth.blockscout.com): 0x6e5492f8 is the later one (runtime code 23613 bytes); 0x83f24023,
-// 0xd9ff8396 and 0xf1f435b0 are the earlier one (23655 bytes), and their tweak_price differs from the later
-// one's only in that step.
-var v21dCappedStepPools = map[string]struct{}{
-	"0x6e5492f8ea2370844ee098a56dd88e1717e4a9c2": {}, // crvUSD/WETH
+// v21dMaxStepPools run the earlier v2.1.0d build, which steps by max(adjustment_step, norm / 5) as v2.0.0 does;
+// every other v2.1.0d pool runs the later build, which steps by min(adjustment_step, norm / 5). Both share the
+// version string and are told apart by runtime code: of the 19 v2.1.0d pools of the Ethereum factory
+// 0x98ee851a, these three hold the earlier build (23655 bytes) and the other 16 the later one (23613 bytes,
+// 0x6e5492f8 among them, verified on eth.blockscout.com). Their tweak_price differs only in that step.
+var v21dMaxStepPools = map[string]struct{}{
+	"0x83f24023d15d835a213df24fd309c47dab5beb32": {},
+	"0xd9ff8396554a0d18b2cfbec53e1979b7ecce8373": {},
+	"0xf1f435b05d255a5dbde37333c0f61da6f69c6127": {},
 }
 
 func (t *PoolSimulator) isV21d() bool {
@@ -197,7 +199,7 @@ func (t *PoolSimulator) rebalanceV21d(A, gamma *uint256.Int, _xp [NumTokens]uint
 		norm.Sub(U_1e18, &norm)
 	}
 	step := new(uint256.Int).Div(&norm, number.Number_5)
-	if _, capped := v21dCappedStepPools[t.Info.Address]; capped == e.AdjustmentStep.Lt(step) {
+	if _, maxStep := v21dMaxStepPools[t.Info.Address]; maxStep != e.AdjustmentStep.Lt(step) {
 		step.Set(e.AdjustmentStep) // capped: min(adjustment_step, norm / 5); otherwise max
 	}
 	if !norm.Gt(step) {

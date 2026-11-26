@@ -237,8 +237,17 @@ const v21dPoolEntity = `{"address":"0x6e5492f8ea2370844ee098a56dd88e1717e4a9c2",
 // v21dPoolAt is the pool with price_oracle read at the trade's time, which the simulator then uses as it is.
 func v21dPoolAt(t *testing.T, priceOracle string, swapAt int64) *PoolSimulator {
 	t.Helper()
+	return v21dPoolAtAddress(t, "", priceOracle, swapAt)
+}
+
+// v21dPoolAtAddress is v21dPoolAt at another address, or the fixture's own when address is empty.
+func v21dPoolAtAddress(t *testing.T, address, priceOracle string, swapAt int64) *PoolSimulator {
+	t.Helper()
 	var p entity.Pool
 	require.NoError(t, json.Unmarshal([]byte(v21dPoolEntity), &p))
+	if address != "" {
+		p.Address = address
+	}
 	var extra map[string]any
 	require.NoError(t, json.Unmarshal([]byte(p.Extra), &extra))
 	extra["PriceOracle"] = []string{priceOracle}
@@ -288,33 +297,37 @@ func TestPoolV21d_RebalanceMatchesChain(t *testing.T) {
 			priceScale:  "2239317993981237166971",
 		},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			nowUnix = func() int64 { return tc.swapAt }
-			sim := v21dPoolAt(t, tc.priceOracle, tc.swapAt)
-			tokenIn, tokenOut := sim.Info.Tokens[tc.in], sim.Info.Tokens[tc.out]
-			amount, _ := new(big.Int).SetString(tc.tiny, 10)
-			res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amount},
-				TokenOut:      tokenOut,
+		// 0x027b40f5 runs the same later build (runtime code 23613 bytes, as 0x6e5492f8): every v2.1.0d pool but
+		// the three earlier ones steps by the min.
+		for _, address := range []string{"", "0x027b40f5917fcd0eac57d7015e120096a5f92ca9"} {
+			t.Run(tc.name+address, func(t *testing.T) {
+				nowUnix = func() int64 { return tc.swapAt }
+				sim := v21dPoolAtAddress(t, address, tc.priceOracle, tc.swapAt)
+				tokenIn, tokenOut := sim.Info.Tokens[tc.in], sim.Info.Tokens[tc.out]
+				amount, _ := new(big.Int).SetString(tc.tiny, 10)
+				res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amount},
+					TokenOut:      tokenOut,
+				})
+				require.NoError(t, err)
+				after := sim.CloneState().(*PoolSimulator)
+				after.UpdateBalance(pool.UpdateBalanceParams{
+					TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: amount},
+					TokenAmountOut: *res.TokenAmountOut,
+					SwapInfo:       res.SwapInfo,
+				})
+				e := after.Extra
+				assert.Equal(t, tc.priceOracle, e.PriceOracle[0].Dec(), "price_oracle")
+				assert.Equal(t, tc.priceScale, e.PriceScale[0].Dec(), "price_scale")
+				if !tc.postTradeStateIsUntainted {
+					return
+				}
+				assert.Equal(t, tc.xcpProfit, e.XcpProfit.Dec(), "xcp_profit")
+				assert.Equal(t, tc.virtualPrice, e.VirtualPrice.Dec(), "virtual_price")
+				assert.Equal(t, tc.d, e.D.Dec(), "D")
+				assert.Equal(t, tc.lastPrices, e.LastPrices[0].Dec(), "last_prices")
 			})
-			require.NoError(t, err)
-			after := sim.CloneState().(*PoolSimulator)
-			after.UpdateBalance(pool.UpdateBalanceParams{
-				TokenAmountIn:  pool.TokenAmount{Token: tokenIn, Amount: amount},
-				TokenAmountOut: *res.TokenAmountOut,
-				SwapInfo:       res.SwapInfo,
-			})
-			e := after.Extra
-			assert.Equal(t, tc.priceOracle, e.PriceOracle[0].Dec(), "price_oracle")
-			assert.Equal(t, tc.priceScale, e.PriceScale[0].Dec(), "price_scale")
-			if !tc.postTradeStateIsUntainted {
-				return
-			}
-			assert.Equal(t, tc.xcpProfit, e.XcpProfit.Dec(), "xcp_profit")
-			assert.Equal(t, tc.virtualPrice, e.VirtualPrice.Dec(), "virtual_price")
-			assert.Equal(t, tc.d, e.D.Dec(), "D")
-			assert.Equal(t, tc.lastPrices, e.LastPrices[0].Dec(), "last_prices")
-		})
+		}
 	}
 }
 
