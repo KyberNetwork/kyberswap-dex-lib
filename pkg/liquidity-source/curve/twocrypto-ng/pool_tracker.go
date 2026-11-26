@@ -155,8 +155,7 @@ func (t *PoolTracker) getNewPoolState(
 		Target: p.Address,
 		Method: poolMethodPolicy,
 	}, []any{&policy})
-	AddV21dCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, &v21d)
-	AddV3Calls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, PreviousPolicy(p.Extra), &v3)
+	AddVersionCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, p.Extra, &v21d, &v3)
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{

@@ -18,13 +18,15 @@ type V21dRPC struct {
 	DonationProtectionExpiryTs, DonationProtectionPeriod                   *big.Int
 }
 
-// AddV21dCalls adds the reads of version(), last_timestamp and the donation views.
-func AddV21dCalls(add func(*ethrpc.Call, []any), poolAddress string, r *V21dRPC) {
+// addV21dCalls adds the reads of last_timestamp and the donation views and, with withVersion, of version().
+func addV21dCalls(add func(*ethrpc.Call, []any), poolAddress string, r *V21dRPC, withVersion bool) {
+	if withVersion {
+		add(&ethrpc.Call{ABI: CurveTwocryptoNGABI, Target: poolAddress, Method: poolMethodVersion}, []any{&r.Version})
+	}
 	for _, c := range []struct {
 		method string
 		out    any
 	}{
-		{poolMethodVersion, &r.Version},
 		{poolMethodLastTimestamp, &r.LastTimestamp},
 		{poolMethodDonationShares, &r.DonationShares},
 		{poolMethodDonationDuration, &r.DonationDuration},

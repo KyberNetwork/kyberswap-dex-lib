@@ -76,7 +76,7 @@ func (t *PoolTracker) getNewPoolState(
 	d := newRPCData(numTokens, numDepCoins)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
-	addRPCCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, twocryptong.PreviousPolicy(p.Extra), d)
+	addRPCCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, p.Extra, d)
 
 	res, err := calls.TryBlockAndAggregate()
 	if err != nil {
@@ -108,7 +108,7 @@ func newRPCData(numTokens, numDepCoins int) *rpcData {
 	}
 }
 
-func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, previousPolicy string, d *rpcData) {
+func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, storedExtra string, d *rpcData) {
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodD}, []any{&d.d})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodFeeGamma}, []any{&d.feeGamma})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodMidFee}, []any{&d.midFee})
@@ -125,8 +125,7 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, previousPolicy st
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodPackedRebalancingParams}, []any{&d.rebalancingParams})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodMath}, []any{&d.math})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodPolicy}, []any{&d.policy})
-	twocryptong.AddV21dCalls(addFn, poolAddress, &d.v21d)
-	twocryptong.AddV3Calls(addFn, poolAddress, previousPolicy, &d.v3)
+	twocryptong.AddVersionCalls(addFn, poolAddress, storedExtra, &d.v21d, &d.v3)
 	for i := range d.balances {
 		addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
 	}
