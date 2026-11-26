@@ -1,8 +1,6 @@
 package stablemetang
 
 import (
-	"math/big"
-	"sync"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -13,6 +11,7 @@ import (
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // cloneCases are two meta pools from TestUpdateBalance: one on a curve-stable-ng base pool, one on a
@@ -61,68 +60,16 @@ func newMetaAndBase(t *testing.T, base, meta string) (*PoolSimulator, pool.IPool
 	return metaSim, baseSim
 }
 
-func reserveStrings(rs []*big.Int) []string {
-	out := make([]string, len(rs))
-	for i, r := range rs {
-		out[i] = r.String()
-	}
-	return out
-}
-
-// swapOnClone clones p, quotes in -> out on the clone and applies the swap to the clone.
-func swapOnClone(t *testing.T, p pool.IPoolSimulator, in, out, amount string) {
-	clone := p.CloneState()
-	tokenIn := pool.TokenAmount{Token: in, Amount: bignumber.NewBig10(amount)}
-	res, err := clone.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: tokenIn, TokenOut: out})
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	clone.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: tokenIn, TokenAmountOut: *res.TokenAmountOut,
-		Fee: *res.Fee, SwapInfo: res.SwapInfo})
-}
-
-// A swap applied to a clone leaves the original pool, and the base pool it shares with other meta
-// pools, as they were: their reserves (GetReserves) and their quotes.
+// A meta <-> base swap on a clone of a meta pool changes only the clone: the original meta pool and the base pool it
+// shares with other meta pools keep their reserves, also while clones swap on several goroutines.
 func TestUpdateBalanceOnACloneLeavesTheOriginal(t *testing.T) {
 	for _, tc := range cloneCases {
 		t.Run(tc.name, func(t *testing.T) {
 			meta, base := newMetaAndBase(t, tc.base, tc.meta)
-			metaBefore, baseBefore := reserveStrings(meta.GetReserves()), reserveStrings(base.GetReserves())
-			quote := func() *big.Int {
-				res, err := meta.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.amount)}, TokenOut: tc.out})
-				require.NoError(t, err)
-				return res.TokenAmountOut.Amount
-			}
-			quoteBefore := quote()
-
-			swapOnClone(t, meta, tc.in, tc.out, tc.amount)
-
-			require.Equal(t, metaBefore, reserveStrings(meta.GetReserves()), "the meta pool's reserves moved")
-			require.Equal(t, baseBefore, reserveStrings(base.GetReserves()), "the base pool's reserves moved")
-			require.Equal(t, quoteBefore, quote(), "the meta pool's quote moved")
-		})
-	}
-}
-
-// Swaps applied to clones of one pool on two goroutines, as two requests of a router do, share no
-// writes: under -race this test reports none.
-func TestUpdateBalanceOnClonesConcurrently(t *testing.T) {
-	for _, tc := range cloneCases {
-		t.Run(tc.name, func(t *testing.T) {
-			meta, _ := newMetaAndBase(t, tc.base, tc.meta)
-			var wg sync.WaitGroup
-			for range 2 {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					for range 50 {
-						swapOnClone(t, meta, tc.in, tc.out, tc.amount)
-					}
-				}()
-			}
-			wg.Wait()
+			testutil.TestCloneIsolation(t, meta, map[string]testutil.CloneOp{
+				"meta to base coin": testutil.SwapOp(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.amount)}, TokenOut: tc.out}),
+			}, base)
 		})
 	}
 }

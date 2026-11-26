@@ -4,13 +4,13 @@ import (
 	"cmp"
 	"math/big"
 	"slices"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 type binState struct {
@@ -75,9 +75,9 @@ func TestCloneStateIsTypedAndIsolated(t *testing.T) {
 	require.NotEqual(t, r0, rc, "the swaps must move the clone")
 }
 
-// A shared simulator is read while its clones swap, as a price graph reads one simulator from many goroutines and
-// swaps only clones of it. The reads must see the original's reserves throughout, and -race must stay quiet.
-func TestCloneSwapsWhileTheOriginalIsRead(t *testing.T) {
+// Swaps on a clone change only the clone, also while clones swap on several goroutines and the original is read,
+// as a price graph reads one shared simulator and swaps only its clones.
+func TestCloneStateIsolatesSwaps(t *testing.T) {
 	const active = 8388608
 	e18 := bignumber.TenPowInt(18)
 	var bins []Bin
@@ -86,38 +86,11 @@ func TestCloneSwapsWhileTheOriginalIsRead(t *testing.T) {
 		bins = append(bins, Bin{ID: active + i, ReserveX: new(big.Int).Set(e18), ReserveY: new(big.Int)})
 	}
 	slices.SortFunc(bins, func(a, b Bin) int { return cmp.Compare(a.ID, b.ID) })
-	orig := newTestSim(t, withActiveBin(bins, active), active)
-	want, _, _, _ := snapshot(orig)
-
 	amt := new(big.Int).Mul(big.NewInt(2), e18)
-	var wg sync.WaitGroup
-	for range 4 {
-		wg.Add(2)
-		go func() {
-			defer wg.Done()
-			c := orig.CloneState().(*PoolSimulator)
-			for _, in := range []string{"0xa", "0xb"} {
-				res, err := c.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: in, Amount: amt}, TokenOut: otherToken[in]})
-				if err != nil {
-					t.Error(err)
-					return
-				}
-				c.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: pool.TokenAmount{Token: in, Amount: amt},
-					TokenAmountOut: *res.TokenAmountOut, SwapInfo: res.SwapInfo})
-			}
-		}()
-		go func() {
-			defer wg.Done()
-			for range 200 {
-				for i, r := range orig.GetReserves() {
-					if r.String() != want[i] {
-						t.Errorf("reserve %d read %s, want %s", i, r, want[i])
-						return
-					}
-				}
-			}
-		}()
+	swap := func(in string) pool.CalcAmountOutParams {
+		return pool.CalcAmountOutParams{TokenAmountIn: pool.TokenAmount{Token: in, Amount: amt}, TokenOut: otherToken[in]}
 	}
-	wg.Wait()
+	testutil.TestCloneIsolation(t, newTestSim(t, withActiveBin(bins, active), active), map[string]testutil.CloneOp{
+		"x then y": testutil.SwapOp(swap("0xa"), swap("0xb")),
+	})
 }

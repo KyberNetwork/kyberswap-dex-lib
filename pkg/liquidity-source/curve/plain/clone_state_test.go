@@ -2,7 +2,6 @@ package plain
 
 import (
 	"math/big"
-	"sync"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 // cloneTestPool is a base pool of curve-stable-meta-ng pools; a meta <-> base swap applied to a clone of a
@@ -26,17 +26,9 @@ func newClonePool(t *testing.T) *PoolSimulator {
 	return p
 }
 
-func cloneReserveStrings(rs []*big.Int) []string {
-	out := make([]string, len(rs))
-	for i, r := range rs {
-		out[i] = r.String()
-	}
-	return out
-}
-
 // cloneBaseOps are the base-pool operations that write a pool's reserves, each applied to p.
-var cloneBaseOps = map[string]func(t *testing.T, p *PoolSimulator){
-	"ApplyRemoveLiquidityOneCoinU256": func(t *testing.T, p *PoolSimulator) {
+var cloneBaseOps = map[string]func(t testing.TB, p *PoolSimulator){
+	"ApplyRemoveLiquidityOneCoinU256": func(t testing.TB, p *PoolSimulator) {
 		tokenAmount := uint256.MustFromDecimal("1000000000000000000000")
 		var dy, dyFee uint256.Int
 		if err := p.CalculateWithdrawOneCoinU256(tokenAmount, 0, &dy, &dyFee); err != nil {
@@ -47,7 +39,7 @@ var cloneBaseOps = map[string]func(t *testing.T, p *PoolSimulator){
 			t.Error(err)
 		}
 	},
-	"ApplyAddLiquidity": func(t *testing.T, p *PoolSimulator) {
+	"ApplyAddLiquidity": func(t testing.TB, p *PoolSimulator) {
 		n := len(p.GetTokens())
 		amounts, fees := make([]uint256.Int, n), make([]uint256.Int, n)
 		amounts[0].Set(uint256.MustFromDecimal("1000000"))
@@ -60,55 +52,28 @@ var cloneBaseOps = map[string]func(t *testing.T, p *PoolSimulator){
 			t.Error(err)
 		}
 	},
-	"AddLiquidityU256": func(t *testing.T, p *PoolSimulator) {
+	"AddLiquidityU256": func(t testing.TB, p *PoolSimulator) {
 		amounts := make([]uint256.Int, len(p.GetTokens()))
 		amounts[0].Set(uint256.MustFromDecimal("1000000000000000000000"))
 		if _, err := p.AddLiquidityU256(amounts); err != nil {
 			t.Error(err)
 		}
 	},
-	"RemoveLiquidityOneCoinU256": func(t *testing.T, p *PoolSimulator) {
+	"RemoveLiquidityOneCoinU256": func(t testing.TB, p *PoolSimulator) {
 		if _, err := p.RemoveLiquidityOneCoinU256(uint256.MustFromDecimal("1000000000000000000000"), 0); err != nil {
 			t.Error(err)
 		}
 	},
 }
 
-// An operation applied to a clone moves the clone's reserves (GetReserves) and leaves the original's as they were.
-func TestCloneStateLeavesTheOriginalReserves(t *testing.T) {
+// An operation on a clone changes only the clone, also while clones change on several goroutines and the original
+// is read.
+func TestCloneStateIsolatesBaseOps(t *testing.T) {
+	ops := make(map[string]testutil.CloneOp, len(cloneBaseOps))
 	for name, op := range cloneBaseOps {
-		t.Run(name, func(t *testing.T) {
-			orig := newClonePool(t)
-			before := cloneReserveStrings(orig.GetReserves())
-
-			clone := orig.CloneState().(*PoolSimulator)
-			op(t, clone)
-
-			require.NotEqual(t, before, cloneReserveStrings(clone.GetReserves()), "the clone's reserves did not move")
-			require.Equal(t, before, cloneReserveStrings(orig.GetReserves()), "an operation on a clone moved the original's reserves")
-		})
+		ops[name] = func(t testing.TB, sim pool.IPoolSimulator) { op(t, sim.(*PoolSimulator)) }
 	}
-}
-
-// Operations applied to clones of one pool on two goroutines, as two requests of a router do, share no writes:
-// under -race this test reports none.
-func TestCloneStateOperationsOnClonesConcurrently(t *testing.T) {
-	for name, op := range cloneBaseOps {
-		t.Run(name, func(t *testing.T) {
-			orig := newClonePool(t)
-			var wg sync.WaitGroup
-			for range 2 {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					for range 50 {
-						op(t, orig.CloneState().(*PoolSimulator))
-					}
-				}()
-			}
-			wg.Wait()
-		})
-	}
+	testutil.TestCloneIsolation(t, newClonePool(t), ops)
 }
 
 // BenchmarkCloneState measures CloneState alone, as a route finder calls it before each UpdateBalance.
