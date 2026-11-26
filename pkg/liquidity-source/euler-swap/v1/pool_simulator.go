@@ -164,7 +164,8 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	// computeQuote checks the input limit after the LP fee, as the pool's own computeQuote does. The vault
 	// takes the whole input less the protocol fee, so its supply cap applies to that deposit (repaid debt
 	// excluded), and a larger one reverts with E_SupplyCapExceeded.
-	if sellVault.MaxDeposit != nil && new(uint256.Int).Sub(depositAmt, repayAmt).Gt(sellVault.MaxDeposit) {
+	var supplied uint256.Int
+	if sellVault.MaxDeposit != nil && supplied.Sub(depositAmt, repayAmt).Gt(sellVault.MaxDeposit) {
 		return nil, shared.ErrSwapLimitExceeded
 	}
 

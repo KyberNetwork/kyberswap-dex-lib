@@ -91,6 +91,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		balanceIn = p.GetReserves()[1]
 		balanceOut = p.GetReserves()[0]
 	}
+	reserveIn := uint256.MustFromBig(balanceIn)
 
 	var err error
 	// compute new price average
@@ -103,7 +104,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	result, err := getAmountOut(
 		GetAmountParameters{
 			amount:            amountIn,
-			reserveIn:         uint256.MustFromBig(balanceIn),
+			reserveIn:         reserveIn,
 			reserveOut:        uint256.MustFromBig(balanceOut),
 			fictiveReserveIn:  fictiveReserveIn,
 			fictiveReserveOut: fictiveReserveOut,
@@ -124,9 +125,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// reserves.
 	poolFee := new(uint256.Int)
 	if !p.FeeOff {
-		poolFee.Div(new(uint256.Int).Mul(amountIn, p.PairFee.FeesPool), p.PairFee.FeesBase)
+		poolFee.Mul(amountIn, p.PairFee.FeesPool).Div(poolFee, p.PairFee.FeesBase)
 	}
-	newReserveIn := new(uint256.Int).Add(uint256.MustFromBig(balanceIn), amountIn)
+	newReserveIn := new(uint256.Int).Add(reserveIn, amountIn)
 	newReserveIn.Sub(newReserveIn, poolFee)
 	newPriceAverageIn, newPriceAverageOut := priceAverageIn, priceAverageOut
 	newFictiveReserveIn, newFictiveReserveOut := result.newFictiveReserveIn, result.newFictiveReserveOut

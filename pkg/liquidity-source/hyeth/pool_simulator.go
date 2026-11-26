@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -148,10 +149,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		// rounded up.
 		minted := s.calculateTotalFees(amountOut, true)
 		units := s._getTotalIssuanceUnits()
-		used, _ := new(uint256.Int).MulDivOverflow(minted, units, U_1e18)
-		if new(uint256.Int).MulMod(minted, units, U_1e18).Sign() > 0 {
-			used.AddUint64(used, 1)
-		}
+		used := big256.MulDivUp(new(uint256.Int), minted, units, U_1e18)
 		post = SwapInfo{
 			TotalSupply:  new(uint256.Int).Add(s.componentTotalSupply, componentShares),
 			TotalAssets:  new(uint256.Int).Add(s.componentTotalAsset, amountIn),
