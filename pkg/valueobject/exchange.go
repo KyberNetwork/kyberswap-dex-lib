@@ -324,6 +324,7 @@ const (
 	ExchangeSyncSwapV2Stable            = "syncswapv2-stable"
 	ExchangeSynthereum                  = "synthereum"
 	ExchangeSynthetix                   = "synthetix"
+	ExchangeSyntropiaProp               = "syntropia-prop"
 	ExchangeTessera                     = "tessera"
 	ExchangeThenaFusionV3               = "thena-fusion-v3"
 	ExchangeThogProp                    = "thog-prop"
@@ -524,6 +525,7 @@ var PropAMMSourceSet = map[Exchange]struct{}{
 	ExchangeStelaxisProp:       {},
 	ExchangeEfraProp:           {},
 	ExchangeNightlyProp:        {},
+	ExchangeSyntropiaProp:      {},
 }
 
 func IsPropAMMSource[T ~string](exchange T) bool {

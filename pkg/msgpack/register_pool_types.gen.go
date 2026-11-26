@@ -197,6 +197,7 @@ import (
 	pkg_liquiditysource_syncswapv2_classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
 	pkg_liquiditysource_syncswapv2_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	pkg_liquiditysource_synthereum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/synthereum"
+	pkg_liquiditysource_syntropiaprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syntropia-prop"
 	pkg_liquiditysource_tessera "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tessera"
 	pkg_liquiditysource_thogprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/thog-prop"
 	pkg_liquiditysource_tidefiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tidefi-prop"
@@ -510,6 +511,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_classic.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_stable.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_synthereum.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_syntropiaprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_tessera.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_thogprop.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_tidefiprop.PoolSimulator{})

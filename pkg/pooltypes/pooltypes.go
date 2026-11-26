@@ -194,6 +194,7 @@ import (
 	syncswapv2classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
 	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/synthereum"
+	syntropiaprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syntropia-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tessera"
 	thogprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/thog-prop"
 	tidefiprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/tidefi-prop"
@@ -529,6 +530,7 @@ type Types struct {
 	BiconomyProp               string
 	DaikonProp                 string
 	EfraProp                   string
+	SyntropiaProp              string
 	FermiProp                  string
 	Machima                    string
 	MetronomeSwap              string
@@ -805,6 +807,7 @@ var (
 		BiconomyProp:               biconomyprop.DexType,
 		DaikonProp:                 daikonprop.DexType,
 		EfraProp:                   efraprop.DexType,
+		SyntropiaProp:              syntropiaprop.DexType,
 		FermiProp:                  valueobject.ExchangeFermiProp,
 		Machima:                    machima.DexType,
 		MetronomeSwap:              metronomeswap.DexType,

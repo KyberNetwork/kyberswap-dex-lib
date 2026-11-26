@@ -1,0 +1,77 @@
+[
+  {
+    "type": "function",
+    "name": "getOrderbook",
+    "inputs": [
+      {
+        "name": "base",
+        "type": "address"
+      },
+      {
+        "name": "quote",
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "book",
+        "type": "tuple",
+        "components": [
+          {
+            "name": "base",
+            "type": "address"
+          },
+          {
+            "name": "quote",
+            "type": "address"
+          },
+          {
+            "name": "askCumulativeLevels",
+            "type": "tuple[]",
+            "components": [
+              {
+                "name": "amountIn",
+                "type": "uint256"
+              },
+              {
+                "name": "amountOut",
+                "type": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "bidCumulativeLevels",
+            "type": "tuple[]",
+            "components": [
+              {
+                "name": "amountIn",
+                "type": "uint256"
+              },
+              {
+                "name": "amountOut",
+                "type": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "balanceBase",
+            "type": "uint256"
+          },
+          {
+            "name": "balanceQuote",
+            "type": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "blockNumber",
+        "type": "uint256"
+      },
+      {
+        "name": "blockTimestamp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]
