@@ -91,3 +91,38 @@ func TestYieldBasisV3Guards(t *testing.T) {
 	_, err = quoteYB(sim, ybWETH, ybCrvUSD, "1000000000000000000000000")
 	require.ErrorIs(t, err, ErrUnsafeXi)
 }
+
+// v3WBTCPool is Yield Basis WBTC (Twocrypto v3.0.0, native-fee policy) on Ethereum at block 26307080.
+const v3WBTCPool = `{"address":"0x313698667d7fdd6789a9bc70821309ff891e729a","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1793600892,"reserves":["34253607650019964044778625","31224663074"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","symbol":"WBTC","decimals":8,"swappable":true}],"extra":"{\"InitialA\":\"50000\",\"InitialGamma\":\"11111111111\",\"FutureA\":\"50000\",\"FutureGamma\":\"11111111111\",\"FutureAGammaTime\":0,\"D\":\"56575839380905789716926673\",\"PriceScale\":[\"72156952696539490158287\"],\"PriceOracle\":[\"77644190031455962596650\"],\"LastPrices\":[\"77646391836179594649312\"],\"PriceOracleTimestamp\":1793600892,\"MaTime\":\"865\",\"FeeGamma\":\"30000000000000000\",\"MidFee\":\"130000000\",\"OutFee\":\"130000000\",\"LpSupply\":\"104126966628027347437547\",\"XcpProfit\":\"1036450864470785641\",\"VirtualPrice\":\"1011343532348392001\",\"AllowedExtraProfit\":null,\"AdjustmentStep\":\"100000000\",\"UseCustomMath\":true,\"PolicyAddress\":\"0x0436c0648afd66de23f86f23cb42884304743efa\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}","blockNumber":26307080}`
+
+// A native-fee v3.0.0 pool re-solves D on a trade only while it ramps, which v3.0.0's _is_ramping reads as
+// future_A_gamma_time > last_timestamp. A finished ramp leaves the pool quotable.
+func TestV3PreTradeQuotableFollowsIsRamping(t *testing.T) {
+	var ep entity.Pool
+	require.NoError(t, json.Unmarshal([]byte(v3WBTCPool), &ep))
+	for _, tc := range []struct {
+		name               string
+		futureTime, lastTs int64
+		want               bool
+	}{
+		{"never ramped", 0, 0, true},
+		{"never ramped, last trade known", 0, 1793600892, true},
+		{"ramp finished before the last trade", 1793600000, 1793600892, true},
+		{"ramp ends at the last trade", 1793600892, 1793600892, true},
+		{"ramp still running", 1793700000, 1793600892, false},
+		{"ramp scheduled, last trade unknown", 1793600000, 0, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var extra Extra
+			require.NoError(t, json.Unmarshal([]byte(ep.Extra), &extra))
+			extra.FutureAGammaTime, extra.LastTimestamp = tc.futureTime, tc.lastTs
+			b, err := json.Marshal(extra)
+			require.NoError(t, err)
+			p := ep
+			p.Extra = string(b)
+			sim, err := NewPoolSimulator(p)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, sim.v3PreTradeQuotable())
+		})
+	}
+}

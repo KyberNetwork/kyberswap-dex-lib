@@ -129,9 +129,11 @@ func (t *PoolSimulator) v3Native() bool {
 }
 
 // v3PreTradeQuotable reports whether a v3.0.0 pool's first quote is known: the stableswap math, a native-fee
-// policy, and no A/gamma ramp ever scheduled (a ramp makes the pool re-solve D on its next trade).
+// policy, and no A/gamma ramp. v3.0.0 re-solves D on a trade while _is_ramping, future_A_gamma_time >
+// last_timestamp; a pool whose last trade is unknown counts as ramping once a ramp was ever scheduled.
 func (t *PoolSimulator) v3PreTradeQuotable() bool {
-	return t.Extra.UseCustomMath && isNativeFeePolicy(t.Extra.PolicyAddress) && t.Extra.FutureAGammaTime == 0
+	return t.Extra.UseCustomMath && isNativeFeePolicy(t.Extra.PolicyAddress) &&
+		t.Extra.FutureAGammaTime <= t.Extra.LastTimestamp
 }
 
 // v3Refusal returns why a v3.0.0 pool's state is not quoted, or nil.
