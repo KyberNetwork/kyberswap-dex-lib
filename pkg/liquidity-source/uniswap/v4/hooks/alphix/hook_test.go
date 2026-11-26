@@ -162,6 +162,63 @@ func TestBeforeSwap_NoJitWhenNoReserves(t *testing.T) {
 	assert.Equal(t, int64(0), result.DeltaUnspecified.Int64())
 }
 
+// TestBeforeSwap_NoJitWithoutReserves: stored hook state may lack the yield sources' reserves ("0",
+// "1"), as state that predates them does. Such a hook has no JIT position; hasJit read the nil
+// reserves and panicked.
+func TestBeforeSwap_NoJitWithoutReserves(t *testing.T) {
+	t.Parallel()
+
+	hook, ok := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{
+		HookExtra: []byte(`{"f":5000,"l":-8,"u":8}`),
+		Pool:      &entity.Pool{Extra: `{"sqrtPriceX96":"79228162514264337593543950336"}`},
+	})
+	require.True(t, ok)
+	require.NotNil(t, hook.(*Hook).SqrtPriceX96, "the extra must set the JIT price for the test to reach the reserves")
+
+	result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
+		CalcOut:         true,
+		ZeroForOne:      true,
+		AmountSpecified: big.NewInt(1_000_000),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, uniswapv4.FeeAmount(5000), result.SwapFee)
+	assert.Equal(t, int64(0), result.DeltaSpecified.Int64())
+	assert.Equal(t, int64(0), result.DeltaUnspecified.Int64())
+}
+
+// TestBeforeSwap_NoJitWithNullReserves: stored hook state may carry explicit nulls for the reserves
+// and the pool manager balances, or only one of the two reserves. Neither is a JIT position.
+func TestBeforeSwap_NoJitWithNullReserves(t *testing.T) {
+	t.Parallel()
+
+	for name, extra := range map[string]string{
+		"all null":      `{"f":5000,"l":-8,"u":8,"0":null,"1":null,"b":null}`,
+		"token0 only":   `{"f":5000,"l":-8,"u":8,"0":"1000","1":null}`,
+		"token1 only":   `{"f":5000,"l":-8,"u":8,"1":"1000"}`,
+		"null balances": `{"f":5000,"l":-8,"u":8,"0":null,"1":null,"b":[null,null]}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			hook, ok := uniswapv4.GetHook(HookAddresses[0], &uniswapv4.HookParam{
+				HookExtra: []byte(extra),
+				Pool:      &entity.Pool{Extra: `{"sqrtPriceX96":"79228162514264337593543950336"}`},
+			})
+			require.True(t, ok)
+			require.False(t, hook.(*Hook).hasJit())
+
+			result, err := hook.BeforeSwap(&uniswapv4.BeforeSwapParams{
+				CalcOut:         true,
+				ZeroForOne:      true,
+				AmountSpecified: big.NewInt(1_000_000),
+			})
+			require.NoError(t, err)
+			assert.Equal(t, uniswapv4.FeeAmount(5000), result.SwapFee)
+			assert.Equal(t, int64(0), result.DeltaSpecified.Int64())
+			assert.Equal(t, int64(0), result.DeltaUnspecified.Int64())
+		})
+	}
+}
+
 func TestCloneState_DeepCopy(t *testing.T) {
 	t.Parallel()
 
