@@ -252,6 +252,10 @@ func (d *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	// The reserves are binBalanceA and binBalanceB as the pool counts them, in its 18-decimal units, not in
+	// token units: a 6-decimal token's reserve is 10^12 times its amount. Readers convert them with
+	// ScaleToAmount(reserve, decimals), as the TVL calculations that read them do. Storing token units here
+	// would need those readers changed in the same release.
 	p.Reserves = entity.PoolReserves{binBalanceA.String(), binBalanceB.String()}
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
