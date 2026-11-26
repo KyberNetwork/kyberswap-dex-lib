@@ -52,15 +52,9 @@ const (
 	BackupTailWindow = 5
 )
 
-// QuoteAmount is the inAmount of every oracle quote the trackers ask for, whatever the asset or the unit of
-// account. A quote becomes a price per smallest unit (UnitPrice: quote * PriceScale / QuoteAmount), and Euler's
-// oracle quotes are linear in inAmount, so the price does not depend on the amount quoted as long as it is large
-// enough for the quote not to round away. The stored price is floor(PriceScale * price per smallest unit) once
-// QuoteAmount >= PriceScale, so PriceScale bounds its precision and a larger amount buys none: QuoteAmount is
-// PriceScale, 10^18. A fixed amount needs no decimals() read, which would cost a round trip and fail a batch
-// when it fails. It stays below the uint128 maximum (~3.4e38) that Euler's UniswapV3 oracle adapter requires of
-// inAmount, with 20 digits to spare for an adapter that feeds one leg's output into the next (a cross adapter),
-// and it keeps the output of an oracle that scales by 1e18 well inside uint256. It is shared: do not mutate it.
+// QuoteAmount is the inAmount of every oracle quote: 10^18 smallest units, needing no decimals() read. Quotes are
+// linear in inAmount, so the quote is the price per smallest unit times 10^18, floored in the unit of account's
+// decimals. It stays below the uint128 inAmount bound of Euler's UniswapV3 adapter. Do not mutate it.
 var QuoteAmount = bignumber.TenPowInt(18)
 
 var (

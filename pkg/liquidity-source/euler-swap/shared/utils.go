@@ -8,24 +8,15 @@ import (
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-var (
-	sixtyThree = uint256.NewInt(63)
+var sixtyThree = uint256.NewInt(63)
 
-	// PriceScale scales every tracked price (DebtPrice, ValuePrices, VaultValuePrices): a price is
-	// the unit of account per smallest unit of the asset, times PriceScale. The solvency check
-	// compares values priced on one scale, so the factor cancels; it keeps the fraction that an
-	// integer price per smallest unit loses (an 18-decimal asset under $1 in an 18-decimal unit
-	// of account is 0 per unit).
-	PriceScale = big.NewInt(1e18)
-)
-
-// UnitPrice is an oracle quote for quoteAmount of an asset as a price per smallest unit, scaled by
-// PriceScale; 0 for a quote the call did not return.
-func UnitPrice(quote, quoteAmount *big.Int) *big.Int {
-	if quote == nil || quoteAmount == nil || quoteAmount.Sign() == 0 {
+// QuotePrice is a stored price from an oracle quote for QuoteAmount: the quote itself, or 0 for a call that
+// returned none.
+func QuotePrice(quote *big.Int) *big.Int {
+	if quote == nil {
 		return big.NewInt(0)
 	}
-	return new(big.Int).Div(new(big.Int).Mul(quote, PriceScale), quoteAmount)
+	return quote
 }
 
 func ConvertToAssets(shares, totalAssets, totalSupply *big.Int) *big.Int {

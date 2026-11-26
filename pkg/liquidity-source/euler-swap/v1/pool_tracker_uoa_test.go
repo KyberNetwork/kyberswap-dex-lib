@@ -51,7 +51,7 @@ func TestPricesUseTheVaultsUnitOfAccount(t *testing.T) {
 // decimals; the pool lister leaves the tokens' decimals unset) and checks what the tracker asked the node: every
 // oracle quote is for shared.QuoteAmount, and no call reads decimals(), of a pool vault, the controller or a
 // collateral. The prices are as when the quotes were for one whole unit: USDT at $0.99859525 in the 18-decimal USD
-// unit of account is 998595250000000000 (per smallest unit, times PriceScale), as the oracle's getQuotes(1e18, ...)
+// unit of account is 998595250000000000 (per smallest unit, times 1e18), as the oracle's getQuotes(1e18, ...)
 // of the fixture gives. Those getQuotes(1e18, ...) answers
 // are recorded from a node.
 func TestTrackerQuotesTheFixedAmount(t *testing.T) {

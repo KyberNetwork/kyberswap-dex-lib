@@ -446,7 +446,7 @@ func (d *PoolTracker) getPoolData(
 	for i := range uniqueVaultAddresses {
 		for j := range fullVaultList {
 			for k, q := range data.VaultPrices[j][i] {
-				data.VaultPrices[j][i][k] = shared.UnitPrice(q, shared.QuoteAmount)
+				data.VaultPrices[j][i][k] = shared.QuotePrice(q)
 			}
 		}
 		for j, collatAddr := range collaterals {
@@ -455,7 +455,7 @@ func (d *PoolTracker) getPoolData(
 				continue
 			}
 			for k, q := range data.CollatPrices[j][i] {
-				data.CollatPrices[j][i][k] = shared.UnitPrice(q, shared.QuoteAmount)
+				data.CollatPrices[j][i][k] = shared.QuotePrice(q)
 			}
 		}
 	}
