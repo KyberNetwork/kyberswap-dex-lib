@@ -174,8 +174,8 @@ func (t *PoolSimulator) tweakPriceV3(A, gamma *uint256.Int, _xp [NumTokens]uint2
 			return err
 		}
 	}
-	if err := assertBalanceXp(&xp); err != nil {
-		return err
+	if !balanceOK(xp[:]) { // _assert_balance
+		return ErrUnbalanced
 	}
 	policy, err := e.TwocryptoPolicy.afterUpdate(now, &s.LastPrices[0], &s.PriceScale[0], &s.PriceOracle[0])
 	if err != nil {
@@ -334,16 +334,4 @@ func (t *PoolSimulator) burnDonationShares(burn, donationShares *uint256.Int, no
 	s.DonationShares.Set(&newTotal)
 	s.LpSupply.Sub(e.LpSupply, burn)
 	s.LastDonationReleaseTs = now - int64(newElapsed.Uint64())
-}
-
-// assertBalanceXp is v3.0.0's _assert_balance: both scaled balances positive and less than 1000:1.
-func assertBalanceXp(xp *[NumTokens]uint256.Int) error {
-	hi, lo := &xp[0], &xp[1]
-	if hi.Lt(lo) {
-		hi, lo = lo, hi
-	}
-	if lo.IsZero() || !new(uint256.Int).Div(hi, lo).Lt(uint256.NewInt(1000)) {
-		return ErrUnbalanced
-	}
-	return nil
 }

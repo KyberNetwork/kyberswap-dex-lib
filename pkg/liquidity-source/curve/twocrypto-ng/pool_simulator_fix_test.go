@@ -572,3 +572,21 @@ func TestPoolV3_OracleErrorCoversTheReadLag(t *testing.T) {
 	assert.True(t, sim.oracleError(oracle).Gt(new(uint256.Int).Mul(floor, uint256.NewInt(10))),
 		"a 1% gap needs far more than the rounding floor")
 }
+
+// A trade leaving the scaled balances 1000:1 or more reverts in _assert_balance, so the quote is refused, in both
+// directions.
+func TestPoolV3_UnbalancedTradeRefused(t *testing.T) {
+	defer func(f func() int64) { nowUnix = f }(nowUnix)
+	c := loadV3PostTradeCases(t)[0]
+	sim, err := NewPoolSimulator(c.Pool)
+	require.NoError(t, err)
+	require.True(t, sim.v3PostTradeTracked())
+	nowUnix = func() int64 { return c.Now }
+	for dir, mult := range []int64{10, 20} {
+		in := new(big.Int).Mul(sim.Info.Reserves[dir], big.NewInt(mult))
+		_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: c.Pool.Tokens[dir].Address, Amount: in},
+			TokenOut:      c.Pool.Tokens[1-dir].Address})
+		require.ErrorIs(t, err, ErrUnbalanced, "dir %d", dir)
+	}
+}

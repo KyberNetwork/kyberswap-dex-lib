@@ -147,30 +147,6 @@ func (t *PoolSimulator) v3Refusal() error {
 	return nil
 }
 
-// assertBalance is v3.0.0's _assert_balance on the balances a trade leaves, for state without the full v3.0.0
-// fields (exchangeV3 checks exactly otherwise): both positive and less than 1000:1 once scaled by price_scale.
-// The pool checks after moving its admin share of the fee out of balances[j] and, when the trade rebalances, at
-// the new price_scale; neither is modelled here, so a trade within that margin of 1000:1 may pass and revert on
-// chain.
-func (t *PoolSimulator) assertBalance(i, j int, dx, dy *uint256.Int) error {
-	var xp [NumTokens]uint256.Int
-	for k := range NumTokens {
-		xp[k].Set(&t.Reserves[k])
-	}
-	xp[i].Add(&xp[i], dx)
-	xp[j].Sub(&xp[j], dy)
-	xp[0].Mul(&xp[0], &t.precisionMultipliers[0])
-	xp[1].Div(number.SafeMul(number.SafeMul(&xp[1], &t.precisionMultipliers[1]), &t.Extra.PriceScale[0]), Precision)
-	hi, lo := &xp[0], &xp[1]
-	if hi.Lt(lo) {
-		hi, lo = lo, hi
-	}
-	if lo.IsZero() || !new(uint256.Int).Div(hi, lo).Lt(uint256.NewInt(1000)) {
-		return ErrUnbalanced
-	}
-	return nil
-}
-
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	v3 := t.v3Native()
 	if v3 {
@@ -208,8 +184,12 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			err = t.exchangeV3(A, gamma, tokenIndexTo, &amountOut, &fee, &swapInfo)
 		} else {
 			// Without the full v3.0.0 state only the amount out is known: UpdateBalance marks the state after
-			// it as not quotable.
-			err = t.assertBalance(tokenIndexFrom, tokenIndexTo, &amount, &amountOut)
+			// it as not quotable. _assert_balance runs on the balances GetDy leaves; the pool checks after moving
+			// its admin fee out and, on a rebalance, at the new price_scale, so a trade within that margin of
+			// 1000:1 may pass here and revert on chain.
+			if !balanceOK(swapInfo.Xp[:]) {
+				err = ErrUnbalanced
+			}
 		}
 		if err != nil {
 			return nil, err
