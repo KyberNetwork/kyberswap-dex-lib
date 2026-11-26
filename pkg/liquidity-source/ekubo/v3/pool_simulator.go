@@ -44,13 +44,17 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	consumedAmount := quote.ConsumedAmount.ToBig()
+	feeToken := params.TokenAmountIn.Token
+	if _, launch := p.EkuboPool.(*pools.ZeroSeedLaunchPool); launch {
+		feeToken = params.TokenOut
+	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  params.TokenOut,
 			Amount: quote.CalculatedAmount.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
-			Token:  params.TokenAmountIn.Token,
+			Token:  feeToken,
 			Amount: quote.FeesPaid.ToBig(),
 		},
 		RemainingTokenAmountIn: &pool.TokenAmount{

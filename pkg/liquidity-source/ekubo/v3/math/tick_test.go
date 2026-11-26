@@ -74,3 +74,16 @@ func TestAbc(t *testing.T) {
 	require.Equal(t, uint32(1386295), ApproximateNumberOfTickSpacingsCrossed(base, double, 1))
 	require.Equal(t, int32(0), ApproximateSqrtRatioToTick(ToSqrtRatio(0)))
 }
+
+func TestSqrtRatioToTick(t *testing.T) {
+	t.Parallel()
+
+	for _, tick := range []int32{MinTick, MinTick + 1, -19_853_224, -1, 0, 1, 4096, 12_345_678, MaxTick - 1, MaxTick} {
+		ratio := ToSqrtRatio(tick)
+		require.Equal(t, tick, SqrtRatioToTick(ratio))
+		if tick < MaxTick {
+			below := new(uint256.Int).SubUint64(ToSqrtRatio(tick+1), 1)
+			require.Equal(t, tick, SqrtRatioToTick(below))
+		}
+	}
+}
