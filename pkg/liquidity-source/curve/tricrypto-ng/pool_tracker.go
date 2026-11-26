@@ -73,7 +73,7 @@ func (t *PoolTracker) getNewPoolState(
 	var (
 		d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 
-		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply *big.Int
+		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply, rebalancingParams *big.Int
 
 		balances = make([]*big.Int, len(p.Tokens))
 
@@ -138,7 +138,11 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    CurveTricryptoNGABI,
 		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
-	}, []any{&lpSupply})
+	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
+		ABI:    CurveTricryptoNGABI,
+		Target: p.Address,
+		Method: poolMethodPackedRebalancingParams,
+	}, []any{&rebalancingParams})
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
@@ -191,6 +195,13 @@ func (t *PoolTracker) getNewPoolState(
 		AllowedExtraProfit: number.SetFromBig(allowedExtraProfit),
 		AdjustmentStep:     number.SetFromBig(adjustmentStep),
 	}
+	now := time.Now().Unix()
+	if rebalancingParams != nil {
+		if maTime := MaTimeFromRebalancingParams(rebalancingParams); !maTime.IsZero() {
+			extra.MaTime = maTime
+			extra.PriceOracleTimestamp = now
+		}
+	}
 	extra.PriceScale = make([]uint256.Int, len(priceScales))
 	lo.ForEach(priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })
 	extra.PriceOracle = make([]uint256.Int, len(priceOracles))
@@ -210,7 +221,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = now
 	p.Reserves = reserves
 
 	return p, nil

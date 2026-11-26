@@ -2,13 +2,15 @@ package tricryptong
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/holiman/uint256"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
@@ -139,3 +141,19 @@ var (
 	ErrCoinIndexOutOfRange = errors.New("coin index out of range")
 	ErrExchange0Coins      = errors.New("do not exchange 0 coins")
 )
+
+const (
+	// packed_rebalancing_params holds [allowed_extra_profit, adjustment_step, ma_time], 64 bits each.
+	// The EMA uses this ma_time; the ma_time() view reports it multiplied by ln 2.
+	poolMethodPackedRebalancingParams = "packed_rebalancing_params"
+	PoolMethodPackedRebalancingParams = poolMethodPackedRebalancingParams
+)
+
+// MaTimeFromRebalancingParams returns the EMA time constant packed in packed_rebalancing_params.
+func MaTimeFromRebalancingParams(packed *big.Int) *uint256.Int {
+	var maTime uint256.Int
+	maTime.SetFromBig(packed)
+	return maTime.And(&maTime, maTimeMask)
+}
+
+var maTimeMask = new(uint256.Int).SetUint64(1<<64 - 1)
