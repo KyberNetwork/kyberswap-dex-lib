@@ -22,7 +22,14 @@ import (
 
 const multicallABIJSON = `[{"name":"tryBlockAndAggregate","type":"function","stateMutability":"payable",
 "inputs":[{"name":"requireSuccess","type":"bool"},{"name":"calls","type":"tuple[]","components":[{"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],
-"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"blockHash","type":"bytes32"},{"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]}]`
+"outputs":[{"name":"blockNumber","type":"uint256"},{"name":"blockHash","type":"bytes32"},{"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]},
+{"name":"getCurrentBlockTimestamp","type":"function","stateMutability":"view","inputs":[],"outputs":[{"name":"timestamp","type":"uint256"}]}]`
+
+// Block and Timestamp are the block the stub's multicalls report and its block.timestamp.
+const (
+	Block     = 12345
+	Timestamp = 1_700_000_000
+)
 
 // Handler answers one call: ok=false makes the call revert.
 type Handler func(target common.Address, data []byte) (ret []byte, ok bool)
@@ -32,6 +39,10 @@ type Stub struct {
 	// Roundtrips counts eth_call requests; CallsPerBatch records the size of each multicall.
 	Roundtrips    atomic.Int64
 	CallsPerBatch []int
+	// TimestampReads counts getCurrentBlockTimestamp reads, inside a multicall or alone, and TimestampBlocks
+	// the block tag of each one read alone.
+	TimestampReads  atomic.Int64
+	TimestampBlocks []string
 }
 
 // New starts a stub whose multicalls are answered by h.
@@ -61,6 +72,18 @@ func New(t *testing.T, h Handler) *Stub {
 			if len(msg.Data) == 0 {
 				msg.Data = msg.Input
 			}
+			tsMethod := mcABI.Methods["getCurrentBlockTimestamp"]
+			tsOut, _ := tsMethod.Outputs.Pack(big.NewInt(Timestamp))
+			if len(msg.Data) >= 4 && string(msg.Data[:4]) == string(tsMethod.ID) {
+				s.TimestampReads.Add(1)
+				var tag string
+				if len(req.Params) > 1 {
+					_ = json.Unmarshal(req.Params[1], &tag)
+				}
+				s.TimestampBlocks = append(s.TimestampBlocks, tag)
+				_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": hexutil.Encode(tsOut)})
+				return
+			}
 			in, err := mcallInputs(mcABI, msg.Data)
 			require.NoError(t, err)
 			s.CallsPerBatch = append(s.CallsPerBatch, len(in))
@@ -70,10 +93,15 @@ func New(t *testing.T, h Handler) *Stub {
 			}
 			items := make([]item, len(in))
 			for i, c := range in {
+				if len(c.CallData) >= 4 && string(c.CallData[:4]) == string(tsMethod.ID) {
+					s.TimestampReads.Add(1)
+					items[i] = item{true, tsOut}
+					continue
+				}
 				ret, ok := h(c.Target, c.CallData)
 				items[i] = item{ok, ret}
 			}
-			out, err := mcABI.Methods["tryBlockAndAggregate"].Outputs.Pack(big.NewInt(12345), [32]byte{1}, items)
+			out, err := mcABI.Methods["tryBlockAndAggregate"].Outputs.Pack(big.NewInt(Block), [32]byte{1}, items)
 			require.NoError(t, err)
 			result = hexutil.Encode(out)
 		}

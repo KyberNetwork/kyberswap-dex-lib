@@ -38,6 +38,9 @@ func NewPoolTracker(
 		"dexType": tricryptong.DexType,
 	})
 
+	if err := config.ValidateMulticallAddress(); err != nil {
+		return nil, err
+	}
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
@@ -77,21 +80,25 @@ func (t *PoolTracker) getNewPoolState(
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
 	addRPCCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, d)
+	t.config.AddBlockTimestampCall(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, &d.blockTimestamp)
 
-	if res, err := calls.TryBlockAndAggregate(); err != nil {
+	res, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
-	} else if res.BlockNumber != nil {
+	}
+	if res.BlockNumber != nil {
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
-	return buildPoolState(lg, p, d)
+	return buildPoolState(ctx, t, lg, p, d, res.BlockNumber, overrides)
 }
 
 type rpcData struct {
 	d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 	xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply, rebalancingParams      *big.Int
 	balances, priceScales, priceOracles, lastPrices                                               []*big.Int
+	blockTimestamp                                                                                *big.Int
 }
 
 func newRPCData(numTokens, numDepCoins int) *rpcData {
@@ -128,7 +135,8 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData
 	}
 }
 
-func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, error) {
+func buildPoolState(ctx context.Context, t *PoolTracker, lg logger.Logger, p entity.Pool, d *rpcData,
+	block *big.Int, overrides map[common.Address]gethclient.OverrideAccount) (entity.Pool, error) {
 	var extra = tricryptong.Extra{
 		InitialA:           number.SetFromBig(new(big.Int).Rsh(d.initialAGamma, 128)),
 		InitialGamma:       new(uint256.Int).And(number.SetFromBig(d.initialAGamma), tricryptong.PriceMask),
@@ -149,8 +157,13 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 	now := time.Now().Unix()
 	if d.rebalancingParams != nil {
 		if maTime := tricryptong.MaTimeFromRebalancingParams(d.rebalancingParams); !maTime.IsZero() {
+			readAt, err := shared.BlockTimestamp(ctx, t.ethrpcClient, overrides, block, d.blockTimestamp)
+			if err != nil {
+				lg.WithFields(logger.Fields{"error": err}).Error("failed to read the block timestamp")
+				return entity.Pool{}, err
+			}
 			extra.MaTime = maTime
-			extra.PriceOracleTimestamp = now
+			extra.PriceOracleTimestamp = readAt
 		}
 	}
 	extra.PriceScale = make([]uint256.Int, len(d.priceScales))

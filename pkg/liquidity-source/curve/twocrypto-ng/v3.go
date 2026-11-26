@@ -14,9 +14,6 @@ var (
 	// v3OracleBandMargin is the least share of price_oracle by which a policy target must clear the oracle band's
 	// edges when the oracle is carried from a view read rather than from the pool's own cache (see oracleError).
 	v3OracleBandMargin = uint256.NewInt(1e6)
-	// v3OracleReadLagSec bounds how far the trackers' PriceOracleTimestamp, the wall clock after the read, can be
-	// past the timestamp of the block the price_oracle() view was read at.
-	v3OracleReadLagSec = uint256.NewInt(30)
 )
 
 // chainNow is the swap's block timestamp: the wall clock, but never before a time the tracked state holds. A
@@ -32,25 +29,10 @@ func (t *PoolSimulator) chainNow() int64 {
 }
 
 // oracleError bounds how far oracle, carried forward from the price_oracle() view, can be from the pool's own
-// value. The view was read at a block up to v3OracleReadLagSec before PriceOracleTimestamp, so the carry starts
-// late by that much and falls short of capped last_prices by up to lag / ma_time of the gap, plus rounding.
+// value. The trackers store the timestamp of the block the view was read at, so the carry starts where the
+// pool's would: the two differ only by rounding, the carry composing the EMA in two steps where the pool does one.
 func (t *PoolSimulator) oracleError(oracle *uint256.Int) *uint256.Int {
-	e := &t.Extra
-	capped := new(uint256.Int).Mul(&e.PriceScale[0], number.Number_2)
-	if e.LastPrices[0].Lt(capped) {
-		capped.Set(&e.LastPrices[0])
-	}
-	if floor := new(uint256.Int).Rsh(&e.PriceScale[0], 1); capped.Lt(floor) {
-		capped.Set(floor)
-	}
-	var gap uint256.Int
-	if capped.Gt(oracle) {
-		gap.Sub(capped, oracle)
-	} else {
-		gap.Sub(oracle, capped)
-	}
-	gap.Div(gap.Mul(&gap, v3OracleReadLagSec), e.MaTime)
-	return gap.Add(&gap, new(uint256.Int).Div(oracle, v3OracleBandMargin))
+	return new(uint256.Int).Div(oracle, v3OracleBandMargin)
 }
 
 // v3PostTradeTracked reports whether the tracker stored all v3.0.0 state tweak_price reads, so the state after a

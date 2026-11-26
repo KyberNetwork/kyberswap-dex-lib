@@ -38,6 +38,9 @@ func NewPoolTracker(
 		"dexType": twocryptong.DexType,
 	})
 
+	if err := config.ValidateMulticallAddress(); err != nil {
+		return nil, err
+	}
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
@@ -77,6 +80,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
 	addRPCCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, p.Extra, d)
+	t.config.AddBlockTimestampCall(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, &d.blockTimestamp)
 
 	res, err := calls.TryBlockAndAggregate()
 	if err != nil {
@@ -97,6 +101,7 @@ type rpcData struct {
 	v21d                                                                                          twocryptong.V21dRPC
 	v3                                                                                            twocryptong.V3RPC
 	balances, priceScales, priceOracles, lastPrices                                               []*big.Int
+	blockTimestamp                                                                                *big.Int
 }
 
 func newRPCData(numTokens, numDepCoins int) *rpcData {
@@ -160,8 +165,13 @@ func buildPoolState(ctx context.Context, t *PoolTracker, lg logger.Logger, p ent
 	now := time.Now().Unix()
 	if d.rebalancingParams != nil {
 		if maTime := twocryptong.MaTimeFromRebalancingParams(d.rebalancingParams); !maTime.IsZero() {
+			readAt, err := shared.BlockTimestamp(ctx, t.ethrpcClient, overrides, block, d.blockTimestamp)
+			if err != nil {
+				lg.WithFields(logger.Fields{"error": err}).Error("failed to read the block timestamp")
+				return entity.Pool{}, err
+			}
 			extra.MaTime = maTime
-			extra.PriceOracleTimestamp = now
+			extra.PriceOracleTimestamp = readAt
 		}
 	}
 	if d.policy != (common.Address{}) {

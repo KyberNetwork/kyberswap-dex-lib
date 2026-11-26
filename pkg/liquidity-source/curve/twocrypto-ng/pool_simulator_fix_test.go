@@ -563,27 +563,22 @@ func TestPoolV3_ClockBehindTheChain(t *testing.T) {
 	assert.Equal(t, want.Extra.TwocryptoPolicy.SlowEma.Dec(), sim.Extra.TwocryptoPolicy.SlowEma.Dec())
 }
 
-// The margin for an oracle carried from a view read grows with the gap the carry closes: up to
-// v3OracleReadLagSec / ma_time of it, on top of the 1e-6 rounding floor.
-func TestPoolV3_OracleErrorCoversTheReadLag(t *testing.T) {
+// The trackers store the read block's timestamp, so the margin for an oracle carried from a view read is the
+// rounding floor alone, whatever gap the carry closes.
+func TestPoolV3_OracleErrorIsTheRoundingFloor(t *testing.T) {
 	c := loadV3PostTradeCases(t)[1]
 	sim, err := NewPoolSimulator(c.Pool)
 	require.NoError(t, err)
 	e := &sim.Extra
 	oracle := new(uint256.Int).Set(&e.PriceScale[0])
 	floor := new(uint256.Int).Div(oracle, v3OracleBandMargin)
-
-	e.LastPrices = []uint256.Int{*oracle}
-	assert.Equal(t, floor.Dec(), sim.oracleError(oracle).Dec(), "no gap: the rounding floor")
-
 	var onePct uint256.Int
 	onePct.Div(oracle, uint256.NewInt(100))
-	e.LastPrices = []uint256.Int{*new(uint256.Int).Add(oracle, &onePct)}
-	want := new(uint256.Int).Mul(&onePct, v3OracleReadLagSec)
-	want.Div(want, e.MaTime).Add(want, floor)
-	assert.Equal(t, want.Dec(), sim.oracleError(oracle).Dec())
-	assert.True(t, sim.oracleError(oracle).Gt(new(uint256.Int).Mul(floor, uint256.NewInt(10))),
-		"a 1% gap needs far more than the rounding floor")
+	for name, last := range map[string]*uint256.Int{"no gap": oracle,
+		"a 1% gap": new(uint256.Int).Add(oracle, &onePct)} {
+		e.LastPrices = []uint256.Int{*last}
+		assert.Equal(t, floor.Dec(), sim.oracleError(oracle).Dec(), name)
+	}
 }
 
 // A trade leaving the scaled balances 1000:1 or more reverts in _assert_balance, so the quote is refused, in both

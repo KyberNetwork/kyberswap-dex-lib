@@ -54,6 +54,7 @@ func (t *PoolTracker) lazycall(
 	r := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
 	req := poolpkg.LazyRequest{Request: r}
 	addRPCCalls(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, p.Address, p.Extra, d)
+	t.config.AddBlockTimestampCall(func(c *ethrpc.Call, o []any) { req.AddCall(c, o) }, &d.blockTimestamp)
 
 	return &req, func(blockNumber *big.Int) (entity.Pool, error) {
 		if blockNumber != nil {

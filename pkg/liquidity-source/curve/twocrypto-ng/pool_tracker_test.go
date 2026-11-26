@@ -1,6 +1,7 @@
 package twocryptong_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"net/http/httptest"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -26,6 +28,7 @@ import (
 	twocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng/lazy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 const tryBlockAndAggregateABI = `[{"name":"tryBlockAndAggregate","type":"function","stateMutability":"nonpayable",
@@ -33,6 +36,12 @@ const tryBlockAndAggregateABI = `[{"name":"tryBlockAndAggregate","type":"functio
 {"name":"target","type":"address"},{"name":"callData","type":"bytes"}]}],
 "outputs":[{"name":"blockNumber","type":"uint256"},{"name":"blockHash","type":"bytes32"},
 {"name":"returnData","type":"tuple[]","components":[{"name":"success","type":"bool"},{"name":"returnData","type":"bytes"}]}]}]`
+
+// stubBlockTimestamp is the block.timestamp of the stub's block 12; timestampReads counts the reads of it made
+// outside the batch.
+const stubBlockTimestamp = 1_795_000_000
+
+var timestampReads atomic.Int64
 
 type multicallResult struct {
 	Success    bool
@@ -64,6 +73,17 @@ func poolServer(t *testing.T, value func(method string) any, reverts ...string) 
 		if len(data) == 0 {
 			data = msg.Input
 		}
+		w.Header().Set("Content-Type", "application/json")
+		if ts := abi.Multicall3ABI.Methods["getCurrentBlockTimestamp"]; bytes.Equal(data[:4], ts.ID) {
+			var tag string
+			require.NoError(t, json.Unmarshal(req.Params[1], &tag))
+			require.Equal(t, "0xc", tag, "the block timestamp is read at the batch's block")
+			timestampReads.Add(1)
+			out, err := ts.Outputs.Pack(big.NewInt(stubBlockTimestamp))
+			require.NoError(t, err)
+			_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": hexutil.Encode(out)})
+			return
+		}
 		args, err := method.Inputs.Unpack(data[4:])
 		require.NoError(t, err)
 		calls := args[1].([]struct {
@@ -72,6 +92,12 @@ func poolServer(t *testing.T, value func(method string) any, reverts ...string) 
 		})
 		results := make([]multicallResult, len(calls))
 		for i, c := range calls {
+			if ts := abi.Multicall3ABI.Methods["getCurrentBlockTimestamp"]; bytes.Equal(c.CallData[:4], ts.ID) {
+				out, err := ts.Outputs.Pack(big.NewInt(stubBlockTimestamp))
+				require.NoError(t, err)
+				results[i] = multicallResult{Success: true, ReturnData: out}
+				continue
+			}
 			m, err := twocryptong.CurveTwocryptoNGABI.MethodById(c.CallData[:4])
 			if err != nil {
 				m, err = twocryptong.YBTwocryptoPolicyABI.MethodById(c.CallData[:4])
@@ -130,14 +156,34 @@ type tracker interface {
 }
 
 func trackers(t *testing.T, url string) map[string]tracker {
+	return trackersWith(t, url, &shared.Config{DexID: twocryptong.DexType})
+}
+
+// trackersWith is trackers with cfg, the lazy tracker also run as a batch (LazyNewPoolState).
+func trackersWith(t *testing.T, url string, cfg *shared.Config) map[string]tracker {
 	t.Helper()
 	client := ethrpc.New(url).SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
-	cfg := &shared.Config{DexID: twocryptong.DexType}
 	main, err := twocryptong.NewPoolTracker(cfg, client)
 	require.NoError(t, err)
 	lz, err := lazy.NewPoolTracker(cfg, client)
 	require.NoError(t, err)
-	return map[string]tracker{"tracker": main, "lazy tracker": lz}
+	return map[string]tracker{"tracker": main, "lazy tracker": lz, "lazy batch": lazyBatch{lz}}
+}
+
+// lazyBatch refreshes through LazyNewPoolState, as a batching consumer does.
+type lazyBatch struct{ lz *lazy.PoolTracker }
+
+func (b lazyBatch) GetNewPoolState(ctx context.Context, p entity.Pool,
+	params pool.GetNewPoolStateParams) (entity.Pool, error) {
+	req, apply, err := b.lz.LazyNewPoolState(ctx, p, params)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+	res, err := req.(*pool.LazyRequest).TryBlockAndAggregate()
+	if err != nil {
+		return entity.Pool{}, err
+	}
+	return apply(res.BlockNumber)
 }
 
 // track runs tr once and returns the Extra it stored, the pool, and the time window it ran in.
@@ -160,7 +206,8 @@ func track(t *testing.T, tr tracker) (twocryptong.Extra, entity.Pool, int64, int
 }
 
 // The trackers store the EMA's time constant from packed_rebalancing_params (not the ma_time() view)
-// and the time they read price_oracle, which is also the pool's timestamp.
+// and the timestamp of the block they read price_oracle at, read in a second call pinned to that block
+// when the config names no multicall.
 func TestPoolTrackers_StorePriceOracleReadTimeAndMaTime(t *testing.T) {
 	srv := poolServer(t, viewValues(packedRebalancingParams(1e8, 1e11, 866)))
 	defer srv.Close()
@@ -169,9 +216,9 @@ func TestPoolTrackers_StorePriceOracleReadTimeAndMaTime(t *testing.T) {
 			extra, got, before, after := track(t, tr)
 			require.NotNil(t, extra.MaTime)
 			assert.Equal(t, uint64(866), extra.MaTime.Uint64())
-			assert.GreaterOrEqual(t, extra.PriceOracleTimestamp, before)
-			assert.LessOrEqual(t, extra.PriceOracleTimestamp, after)
-			assert.Equal(t, got.Timestamp, extra.PriceOracleTimestamp)
+			assert.EqualValues(t, stubBlockTimestamp, extra.PriceOracleTimestamp, "the read block's timestamp")
+			assert.GreaterOrEqual(t, got.Timestamp, before, "the pool's timestamp is still the refresh time")
+			assert.LessOrEqual(t, got.Timestamp, after)
 			assert.Equal(t, uint64(12), got.BlockNumber)
 			assert.Equal(t, uint64(1e18), extra.AllowedExtraProfit.Uint64(), "allowed_extra_profit still comes from its own view")
 		})
@@ -635,4 +682,36 @@ func TestPoolV3_OldStateQuotesDoNotPanic(t *testing.T) {
 			})
 		}
 	}
+}
+
+// With multicall_address the block timestamp is read in the refresh's own batch: no second call.
+func TestPoolTrackers_ReadTheBlockTimestampInTheBatch(t *testing.T) {
+	srv := poolServer(t, viewValues(packedRebalancingParams(1e8, 1e11, 866)))
+	defer srv.Close()
+	cfg := &shared.Config{DexID: twocryptong.DexType, MulticallAddress: "0xca11bde05977b3631167028862be2a173976ca11"}
+	for name, tr := range trackersWith(t, srv.URL, cfg) {
+		t.Run(name, func(t *testing.T) {
+			timestampReads.Store(0)
+			extra, _, _, _ := track(t, tr)
+			assert.EqualValues(t, stubBlockTimestamp, extra.PriceOracleTimestamp)
+			assert.Zero(t, timestampReads.Load(), "no read outside the batch")
+		})
+	}
+	timestampReads.Store(0)
+	for name, tr := range trackers(t, srv.URL) {
+		t.Run("no multicall/"+name, func(t *testing.T) {
+			before := timestampReads.Load()
+			track(t, tr)
+			assert.Equal(t, before+1, timestampReads.Load(), "one read pinned to the batch's block")
+		})
+	}
+}
+
+// A malformed multicall_address fails the trackers' construction.
+func TestPoolTrackers_RejectAMalformedMulticallAddress(t *testing.T) {
+	cfg := &shared.Config{DexID: twocryptong.DexType, MulticallAddress: "0x12"}
+	_, err := twocryptong.NewPoolTracker(cfg, ethrpc.New("http://unused"))
+	require.Error(t, err)
+	_, err = lazy.NewPoolTracker(cfg, ethrpc.New("http://unused"))
+	require.Error(t, err)
 }

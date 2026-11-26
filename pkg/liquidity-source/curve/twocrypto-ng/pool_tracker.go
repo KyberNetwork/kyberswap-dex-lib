@@ -37,6 +37,9 @@ func NewPoolTracker(
 		"dexType": DexType,
 	})
 
+	if err := config.ValidateMulticallAddress(); err != nil {
+		return nil, err
+	}
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
@@ -87,6 +90,8 @@ func (t *PoolTracker) getNewPoolState(
 		priceScales  = make([]*big.Int, numDepCoins)
 		priceOracles = make([]*big.Int, numDepCoins)
 		lastPrices   = make([]*big.Int, numDepCoins)
+
+		blockTimestamp *big.Int
 	)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
@@ -174,6 +179,7 @@ func (t *PoolTracker) getNewPoolState(
 			Method: poolMethodLastPrices,
 		}, []any{&lastPrices[i]})
 	}
+	t.config.AddBlockTimestampCall(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, &blockTimestamp)
 	var block *big.Int
 	if res, err := calls.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
@@ -207,8 +213,13 @@ func (t *PoolTracker) getNewPoolState(
 	now := time.Now().Unix()
 	if rebalancingParams != nil {
 		if maTime := MaTimeFromRebalancingParams(rebalancingParams); !maTime.IsZero() {
+			readAt, err := shared.BlockTimestamp(ctx, t.ethrpcClient, overrides, block, blockTimestamp)
+			if err != nil {
+				lg.WithFields(logger.Fields{"error": err}).Error("failed to read the block timestamp")
+				return entity.Pool{}, err
+			}
 			extra.MaTime = maTime
-			extra.PriceOracleTimestamp = now
+			extra.PriceOracleTimestamp = readAt
 		}
 	}
 	if policy != (common.Address{}) {
