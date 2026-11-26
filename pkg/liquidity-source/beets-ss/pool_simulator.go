@@ -2,6 +2,7 @@ package beets_ss
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -153,6 +154,7 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves) // UpdateBalance assigns into its slots
 	cloned.totalAssets = p.totalAssets.Clone()
 	cloned.totalSupply = p.totalSupply.Clone()
 	return &cloned
