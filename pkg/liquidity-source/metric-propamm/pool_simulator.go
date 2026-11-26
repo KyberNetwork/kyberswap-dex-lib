@@ -143,7 +143,7 @@ func consumeBins(bins []Bin, start, amountIn, amountOut *big.Int) ([]Bin, *big.I
 		filled := new(big.Int).Sub(amountOut, prevVolume)
 		price := new(big.Int).Sub(bin.Price, prevPrice)
 		price.Mul(price, filled)
-		price.Quo(price, inBin)
+		price.Div(price, inBin) // floor, as getRateLegacy
 		price.Add(price, prevPrice)
 
 		left := make([]Bin, len(bins)-i)

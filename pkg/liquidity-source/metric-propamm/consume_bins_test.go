@@ -104,7 +104,7 @@ func TestUpdateBalanceMovesTheLegacyStartPrice(t *testing.T) {
 	})
 
 	want := new(big.Int).Sub(first.Price, initBid)
-	want.Mul(want, out).Quo(want, first.CumulativeVolume).Add(want, initBid)
+	want.Mul(want, out).Div(want, first.CumulativeVolume).Add(want, initBid) // floored, as getRateLegacy
 	require.Equal(t, want.String(), c.extra.InitBid.String(), "the bid side starts where the fill ended")
 	require.NotEqual(t, initBid.String(), c.extra.InitBid.String())
 	require.Equal(t, initAsk.String(), c.extra.InitAsk.String(), "the other side is unchanged")
@@ -133,4 +133,12 @@ func TestUpdateBalanceMovesTheLegacyAskStartPrice(t *testing.T) {
 	require.Equal(t, want.String(), s.extra.InitAsk.String(), "the ask side starts where the fill ended")
 	require.NotEqual(t, initAsk.String(), s.extra.InitAsk.String())
 	require.Equal(t, initBid.String(), s.extra.InitBid.String(), "the other side is unchanged")
+}
+
+// On the bid side prices fall, so the interpolation divides a negative difference. It floors, as getRateLegacy
+// does: 25 of 100 from 100 toward 90 is 97.5, so 97 (truncation would give 98, 1 wei above the walk).
+func TestConsumeBinsFloorsOnTheBidSide(t *testing.T) {
+	bins := []Bin{{BinIdx: 1, Price: big.NewInt(90), CumulativeVolume: big.NewInt(100)}}
+	_, start := consumeBins(bins, big.NewInt(100), big.NewInt(250), big.NewInt(25))
+	require.Equal(t, "97", start.String())
 }
