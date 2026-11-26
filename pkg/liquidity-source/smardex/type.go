@@ -3,6 +3,7 @@ package smardex
 import (
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -27,6 +28,10 @@ type SmardexPair struct {
 	// FeeOff is set when the factory has no feeTo. The pair then keeps the pool fee in its reserves instead of
 	// adding it to feeToAmount. Stored state without it is read as fee on, which every factory is today.
 	FeeOff bool `json:",omitempty"`
+
+	// Factory is the pair's factory, read once in a refresh's batch and carried after: the factory the pool list
+	// comes from is not always the pairs' (on Ethereum it lists the pairs of 0x7753f36e).
+	Factory common.Address `json:",omitzero"`
 }
 
 type PairFeeResult struct {
