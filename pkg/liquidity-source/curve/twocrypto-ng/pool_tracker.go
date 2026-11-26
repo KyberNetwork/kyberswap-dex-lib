@@ -37,9 +37,6 @@ func NewPoolTracker(
 		"dexType": DexType,
 	})
 
-	if err := config.ValidateMulticallAddress(); err != nil {
-		return nil, err
-	}
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,

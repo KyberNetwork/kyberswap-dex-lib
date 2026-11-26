@@ -38,9 +38,6 @@ func NewPoolTracker(
 		"dexType": tricryptong.DexType,
 	})
 
-	if err := config.ValidateMulticallAddress(); err != nil {
-		return nil, err
-	}
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,

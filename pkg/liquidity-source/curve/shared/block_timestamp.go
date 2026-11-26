@@ -15,14 +15,6 @@ import (
 // ErrNoReadBlock means a refresh has neither a block timestamp from its batch nor a block to read it at.
 var ErrNoReadBlock = errors.New("no block to read the block timestamp at")
 
-// ValidateMulticallAddress checks the optional multicall_address.
-func (c *Config) ValidateMulticallAddress() error {
-	if c.MulticallAddress != "" && !common.IsHexAddress(c.MulticallAddress) {
-		return errors.New("invalid multicall_address: " + c.MulticallAddress)
-	}
-	return nil
-}
-
 // AddBlockTimestampCall adds Multicall3's getCurrentBlockTimestamp() to a refresh's batch when the config names
 // the multicall, so the timestamp is the block.timestamp of the batch's own block. Without one it adds nothing
 // and BlockTimestamp reads it at the batch's block.

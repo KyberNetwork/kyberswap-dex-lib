@@ -9,14 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestValidateMulticallAddress(t *testing.T) {
-	for addr, ok := range map[string]bool{"": true, "0xca11bde05977b3631167028862be2a173976ca11": true,
-		"0x12": false, "multicall": false} {
-		err := (&Config{MulticallAddress: addr}).ValidateMulticallAddress()
-		require.Equal(t, ok, err == nil, addr)
-	}
-}
-
 func TestAddBlockTimestampCall(t *testing.T) {
 	var calls []*ethrpc.Call
 	add := func(c *ethrpc.Call, _ []any) { calls = append(calls, c) }

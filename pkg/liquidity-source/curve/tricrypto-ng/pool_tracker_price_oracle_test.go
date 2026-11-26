@@ -259,12 +259,3 @@ func TestPoolTrackers_ReadTheBlockTimestampInTheBatch(t *testing.T) {
 		})
 	}
 }
-
-// A malformed multicall_address fails the trackers' construction.
-func TestPoolTrackers_RejectAMalformedMulticallAddress(t *testing.T) {
-	cfg := &shared.Config{DexID: tricryptong.DexType, MulticallAddress: "0x12"}
-	_, err := tricryptong.NewPoolTracker(cfg, ethrpc.New("http://unused"))
-	require.Error(t, err)
-	_, err = lazy.NewPoolTracker(cfg, ethrpc.New("http://unused"))
-	require.Error(t, err)
-}
