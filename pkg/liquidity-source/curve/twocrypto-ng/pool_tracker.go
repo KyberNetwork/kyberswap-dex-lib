@@ -133,10 +133,6 @@ func (t *PoolTracker) getNewPoolState(
 	}, []any{&virtualPrice}).AddCall(&ethrpc.Call{
 		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
-		Method: poolMethodAllowedExtraProfit,
-	}, []any{&allowedExtraProfit}).AddCall(&ethrpc.Call{
-		ABI:    CurveTwocryptoNGABI,
-		Target: p.Address,
 		Method: poolMethodAdjustmentStep,
 	}, []any{&adjustmentStep}).AddCall(&ethrpc.Call{
 		ABI:    CurveTwocryptoNGABI,
@@ -150,12 +146,9 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
 		Method: poolMethodMath,
-	}, []any{&math}).AddCall(&ethrpc.Call{
-		ABI:    CurveTwocryptoNGABI,
-		Target: p.Address,
-		Method: poolMethodPolicy,
-	}, []any{&policy})
-	AddVersionCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, p.Extra, &v21d, &v3)
+	}, []any{&math})
+	AddVersionCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, p.Extra, &v21d, &v3,
+		&policy, &allowedExtraProfit)
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{

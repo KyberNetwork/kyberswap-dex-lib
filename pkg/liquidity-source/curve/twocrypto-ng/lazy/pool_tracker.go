@@ -119,13 +119,11 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress, storedExtra strin
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodInitialAGamma}, []any{&d.initialAGamma})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodXcpProfit}, []any{&d.xcpProfit})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodVirtualPrice}, []any{&d.virtualPrice})
-	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodAllowedExtraProfit}, []any{&d.allowedExtraProfit})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodAdjustmentStep}, []any{&d.adjustmentStep})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodPackedRebalancingParams}, []any{&d.rebalancingParams})
 	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodMath}, []any{&d.math})
-	addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodPolicy}, []any{&d.policy})
-	twocryptong.AddVersionCalls(addFn, poolAddress, storedExtra, &d.v21d, &d.v3)
+	twocryptong.AddVersionCalls(addFn, poolAddress, storedExtra, &d.v21d, &d.v3, &d.policy, &d.allowedExtraProfit)
 	for i := range d.balances {
 		addFn(&ethrpc.Call{ABI: twocryptong.CurveTwocryptoNGABI, Target: poolAddress, Method: twocryptong.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
 	}

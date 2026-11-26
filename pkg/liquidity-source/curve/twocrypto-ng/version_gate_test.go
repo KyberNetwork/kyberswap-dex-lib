@@ -22,7 +22,10 @@ var (
 	// v21dOnlyViews are the v2.1.0d views a v2.0.0 pool lacks; v3OnlyViews are the v3.0.0 views a v2.x pool lacks.
 	v21dOnlyViews = map[string]bool{"last_timestamp": true, "donation_shares": true, "donation_duration": true,
 		"last_donation_release_ts": true, "donation_protection_expiry_ts": true, "donation_protection_period": true}
-	v3OnlyViews = map[string]bool{"lp_xcp_profit": true, "reserved_profit_fraction": true, "admin_fee": true}
+	v3OnlyViews = map[string]bool{"lp_xcp_profit": true, "reserved_profit_fraction": true, "admin_fee": true,
+		"POLICY": true}
+	// preV3Views are the views v3.0.0 dropped.
+	preV3Views = map[string]bool{"allowed_extra_profit": true}
 )
 
 // versionCounter counts the pool calls the stub serves, by method, and how many of them revert.
@@ -42,7 +45,8 @@ func versionHandler(version string, c *versionCounter) rpcstub.Handler {
 		c.calls.Add(1)
 		c.byMethod[m.Name]++
 		lacks := (version == "v2.0.0" && (v21dOnlyViews[m.Name] || v3OnlyViews[m.Name])) ||
-			(version == twocryptong.VersionV21d && v3OnlyViews[m.Name])
+			(version == twocryptong.VersionV21d && v3OnlyViews[m.Name]) ||
+			(version == twocryptong.VersionV3 && preV3Views[m.Name])
 		if lacks {
 			c.reverts.Add(1)
 			return nil, false
@@ -90,8 +94,10 @@ var versionTrackers = map[string]refreshFn{
 	},
 }
 
-// baseCalls is the version-independent read of a 2-coin pool: 16 views, 2 balances, 3 price views.
-const baseCalls = 21
+// baseCalls is the version-independent read of a 2-coin pool: 14 views, 2 balances, 3 price views. Every version
+// reads one of policy() (v3.0.0) and allowed_extra_profit() (the others) on top, and a pool of no stored version
+// both.
+const baseCalls = 19
 
 func withExtra(extra string) entity.Pool {
 	p := stubEntityPool()
@@ -106,12 +112,12 @@ func TestVersionGateCallCounts(t *testing.T) {
 		name, stored, poolVersion string
 		want                      int
 	}{
-		{"empty", "", "v2.0.0", baseCalls + 1 + 6 + 3},
-		{"no version", `{"D":"1"}`, twocryptong.VersionV21d, baseCalls + 1 + 6 + 3},
-		{"v2.0.0", `{"Version":"v2.0.0"}`, "v2.0.0", baseCalls},
-		{"v2.1.0d", `{"Version":"v2.1.0d"}`, twocryptong.VersionV21d, baseCalls + 6},
-		{"v3.0.0", `{"Version":"v3.0.0"}`, twocryptong.VersionV3, baseCalls + 6 + 3},
-		{"other", `{"Version":"v9.9.9"}`, "v9.9.9", baseCalls},
+		{"empty", "", "v2.0.0", baseCalls + 2 + 1 + 6 + 3},
+		{"no version", `{"D":"1"}`, twocryptong.VersionV21d, baseCalls + 2 + 1 + 6 + 3},
+		{"v2.0.0", `{"Version":"v2.0.0"}`, "v2.0.0", baseCalls + 1},
+		{"v2.1.0d", `{"Version":"v2.1.0d"}`, twocryptong.VersionV21d, baseCalls + 1 + 6},
+		{"v3.0.0", `{"Version":"v3.0.0"}`, twocryptong.VersionV3, baseCalls + 1 + 6 + 3},
+		{"other", `{"Version":"v9.9.9"}`, "v9.9.9", baseCalls + 1},
 	} {
 		for name, refresh := range versionTrackers {
 			t.Run(name+"/"+tc.name, func(t *testing.T) {
@@ -134,20 +140,25 @@ func TestVersionGateCallCounts(t *testing.T) {
 	}
 }
 
-// A v2.0.0 pool, after the refresh that stores its version, issues no call that reverts.
-func TestVersionGateV2NoRevertsAfterBootstrap(t *testing.T) {
-	for name, refresh := range versionTrackers {
-		t.Run(name, func(t *testing.T) {
-			c := &versionCounter{byMethod: map[string]int{}}
-			s := rpcstub.New(t, versionHandler("v2.0.0", c))
-			p := refresh(t, s, stubEntityPool())
-			require.EqualValues(t, 9, c.reverts.Load(), "bootstrap probes every version's views")
-			c.calls.Store(0)
-			c.reverts.Store(0)
-			refresh(t, s, p)
-			require.EqualValues(t, baseCalls, c.calls.Load())
-			require.Zero(t, c.reverts.Load())
-		})
+// A pool of any version, after the refresh that stores its version, issues no call that reverts: v2.x no
+// policy(), v3.0.0 no allowed_extra_profit().
+func TestVersionGateNoRevertsAfterBootstrap(t *testing.T) {
+	for _, tc := range []struct {
+		version          string
+		bootstrapReverts int64
+	}{{"v2.0.0", 10}, {twocryptong.VersionV21d, 4}, {twocryptong.VersionV3, 1}} {
+		for name, refresh := range versionTrackers {
+			t.Run(name+"/"+tc.version, func(t *testing.T) {
+				c := &versionCounter{byMethod: map[string]int{}}
+				s := rpcstub.New(t, versionHandler(tc.version, c))
+				p := refresh(t, s, stubEntityPool())
+				require.EqualValues(t, tc.bootstrapReverts, c.reverts.Load(), "bootstrap probes every version's views")
+				c.calls.Store(0)
+				c.reverts.Store(0)
+				refresh(t, s, p)
+				require.Zero(t, c.reverts.Load())
+			})
+		}
 	}
 }
 
