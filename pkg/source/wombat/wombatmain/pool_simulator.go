@@ -2,6 +2,7 @@ package wombatmain
 
 import (
 	"fmt"
+	"maps"
 	"math/big"
 
 	"github.com/KyberNetwork/logger"
@@ -97,6 +98,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			newToAssetCash:   newToAssetCash,
 		},
 	}, nil
+}
+
+// CloneState copies the asset map: UpdateBalance stores new Asset values into it, with new Cash values.
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.assets = maps.Clone(p.assets)
+	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
