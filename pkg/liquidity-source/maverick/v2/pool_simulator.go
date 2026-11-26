@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
@@ -149,7 +150,11 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
-	cloned.state = p.state.Clone(false)
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves) // UpdateBalance assigns into its slots
+	// UpdateBalance replaces the state's maps and deep-copies them before it moves bins, so the clone only needs a
+	// state struct of its own.
+	state := *p.state
+	cloned.state = &state
 	return &cloned
 }
 
@@ -167,6 +172,11 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.state.ActiveTick = newState.activeTick
 	p.state.Bins = newState.bins
 	p.state.Ticks = newState.ticks
+	if startingTick != p.state.ActiveTick {
+		// moveBins writes into the bins and ticks. The quote that made newState shares them with the pool it
+		// quoted on, so the move must run on copies of them.
+		p.state = p.state.Clone(false)
+	}
 
 	// Move bins based on tick changes
 	moveBins(p.state, startingTick, p.state.ActiveTick, p.state.LastTwaD8, p.state.LastTwaD8)
