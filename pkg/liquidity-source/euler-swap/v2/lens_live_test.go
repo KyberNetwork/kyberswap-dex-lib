@@ -1,17 +1,14 @@
 package v2
 
 import (
-	"context"
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/shared"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -37,7 +34,6 @@ func TestLiveBatchMatchesSinglePool(t *testing.T) {
 	pools, err := updater.initPools(ctx, addresses)
 	require.NoError(t, err)
 	require.NotEmpty(t, pools)
-	fillDecimals(t, ctx, client, pools)
 
 	tracker, err := NewPoolTracker(&cfg, client)
 	require.NoError(t, err)
@@ -70,31 +66,6 @@ func TestLiveBatchMatchesSinglePool(t *testing.T) {
 		len(pools), block, singleRequests, batchRequests)
 }
 
-// fillDecimals sets each token's decimals, which the lister leaves for later and the tracker's
-// quote amounts are scaled by.
-func fillDecimals(t *testing.T, ctx context.Context, client *ethrpc.Client, pools []entity.Pool) {
-	t.Helper()
-	decimals := map[string]*uint8{}
-	req := client.NewRequest().SetContext(ctx)
-	for _, p := range pools {
-		for _, tok := range p.Tokens {
-			if _, ok := decimals[tok.Address]; ok {
-				continue
-			}
-			d := new(uint8)
-			decimals[tok.Address] = d
-			req.AddCall(&ethrpc.Call{ABI: abi.Erc20ABI, Target: tok.Address, Method: abi.Erc20DecimalsMethod}, []any{d})
-		}
-	}
-	_, err := req.Aggregate()
-	require.NoError(t, err)
-	for _, p := range pools {
-		for _, tok := range p.Tokens {
-			tok.Decimals = *decimals[tok.Address]
-		}
-	}
-}
-
 // TestLiveLensSplitsUnderALowGasCap: under a gas cap below what all of Ethereum's pools need
 // together (15 pools fit 8M and take 3 calls at 5M, in October 2026), the batch is split, and the
 // split read returns exactly what one uncapped call does.
@@ -112,7 +83,6 @@ func TestLiveLensSplitsUnderALowGasCap(t *testing.T) {
 	require.NoError(t, err)
 	pools, err := updater.initPools(ctx, addresses)
 	require.NoError(t, err)
-	fillDecimals(t, ctx, client, pools)
 
 	inputs := make([]poolInput, 0, len(pools))
 	for _, p := range pools {

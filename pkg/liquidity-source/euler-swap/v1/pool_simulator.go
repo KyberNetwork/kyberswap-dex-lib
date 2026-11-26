@@ -161,6 +161,13 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	depositAmt, repayAmt, feeAmt, isSellVaultControlled := depositAssets(
 		amtIn, p.Fee, sellVault.Debt, p.ProtocolFee, p.ProtocolFeeRecipient, sellVault.IsControllerEnabled)
 
+	// computeQuote checks the input limit after the LP fee, as the pool's own computeQuote does. The vault
+	// takes the whole input less the protocol fee, so its supply cap applies to that deposit (repaid debt
+	// excluded), and a larger one reverts with E_SupplyCapExceeded.
+	if sellVault.MaxDeposit != nil && new(uint256.Int).Sub(depositAmt, repayAmt).Gt(sellVault.MaxDeposit) {
+		return nil, shared.ErrSwapLimitExceeded
+	}
+
 	newCollat := uint256.NewInt(0) // new sell token collateral (tokenIn) after swap
 	if strings.EqualFold(debtVaultAddr, sellVaultAddr) {
 		if depositAmt.Lt(debt) { // partial repayment of controller vault
@@ -189,6 +196,11 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	collatVal := p.collateralValue.Clone()
 	if debt.Sign() > 0 {
 		debtVault := p.Vaults[debtVaultIdx]
+		if debtVault.DebtPrice == nil || debtVault.DebtPrice.IsZero() {
+			// A liability the oracle did not price: the vault would price it, so the check cannot
+			// pass on a value of 0.
+			return nil, shared.ErrInsolvency
+		}
 		valuePrices, ltvs := debtVault.ValuePrices, debtVault.LTVs
 
 		var liabilityVal, tmp uint256.Int

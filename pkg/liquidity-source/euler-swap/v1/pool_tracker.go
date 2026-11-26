@@ -21,7 +21,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -79,12 +78,10 @@ func (d *PoolTracker) getNewPoolState(
 		{
 			VaultAddress: staticExtra.Vault0,
 			AssetAddress: p.Tokens[0].Address,
-			QuoteAmount:  bignumber.TenPowInt(p.Tokens[0].Decimals),
 		},
 		{
 			VaultAddress: staticExtra.Vault1,
 			AssetAddress: p.Tokens[1].Address,
-			QuoteAmount:  bignumber.TenPowInt(p.Tokens[1].Decimals),
 		},
 	}
 
@@ -202,14 +199,10 @@ func (d *PoolTracker) getPoolData(
 	}
 
 	var (
-		controllerDecimals       uint8
-		controllerAsset          common.Address
-		collatTotalAssets        = make([]*big.Int, len(collaterals))
-		collatTotalSupplies      = make([]*big.Int, len(collaterals))
-		collateralDecimals       = make([]uint8, len(collaterals))
-		collateralAssets         = make([]common.Address, len(collaterals))
-		collateralOracles        = make([]common.Address, len(collaterals))
-		collateralUnitOfAccounts = make([]common.Address, len(collaterals))
+		controllerAsset     common.Address
+		collatTotalAssets   = make([]*big.Int, len(collaterals))
+		collatTotalSupplies = make([]*big.Int, len(collaterals))
+		collateralAssets    = make([]common.Address, len(collaterals))
 	)
 	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
 	if len(controllers) > 0 {
@@ -227,10 +220,6 @@ func (d *PoolTracker) getPoolData(
 			Method: shared.VaultMethodDebtOf,
 			Params: []any{eulerAcctAddr},
 		}, []any{&vaults[2].Debt}).AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: data.Controller,
-			Method: shared.VaultMethodDecimals,
-		}, []any{&controllerDecimals}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: data.Controller,
 			Method: shared.VaultMethodAsset,
@@ -270,20 +259,8 @@ func (d *PoolTracker) getPoolData(
 		}, []any{&collatTotalSupplies[i]}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: collateralStr,
-			Method: shared.VaultMethodDecimals,
-		}, []any{&collateralDecimals[i]}).AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: collateralStr,
 			Method: shared.VaultMethodAsset,
-		}, []any{&collateralAssets[i]}).AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: collateralStr,
-			Method: shared.VaultMethodOracle,
-		}, []any{&collateralOracles[i]}).AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: collateralStr,
-			Method: shared.VaultMethodUnitOfAccount,
-		}, []any{&collateralUnitOfAccounts[i]})
+		}, []any{&collateralAssets[i]})
 	}
 
 	if len(req.Calls) > 0 {
@@ -294,11 +271,9 @@ func (d *PoolTracker) getPoolData(
 
 	if data.Controller != "" {
 		vaultList[2].AssetAddress = hexutil.Encode(controllerAsset[:])
-		vaultList[2].QuoteAmount = bignumber.TenPowInt(controllerDecimals)
 	}
 
 	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
-	collatQuoteAmts := make([]*big.Int, len(collaterals))
 	data.CollatPrices = make([][3][2]*big.Int, len(collaterals))
 	data.CollatLtvs = make([][3]uint16, len(collaterals))
 
@@ -313,7 +288,7 @@ func (d *PoolTracker) getPoolData(
 				ABI:    routerABI,
 				Target: oracleStr,
 				Method: shared.RouterMethodGetQuotes,
-				Params: []any{otherV.QuoteAmount, common.HexToAddress(otherV.AssetAddress), unitOfAccounts[j]},
+				Params: []any{shared.QuoteAmount, common.HexToAddress(otherV.AssetAddress), unitOfAccounts[i]},
 			}, []any{&data.VaultPrices[j][i]})
 			if vaultList[i].VaultAddress != vaultList[j].VaultAddress {
 				req.AddCall(&ethrpc.Call{
@@ -328,12 +303,11 @@ func (d *PoolTracker) getPoolData(
 			if idx := slices.Index(vaultAddrs, collateral); idx >= 0 {
 				continue
 			}
-			collatQuoteAmts[j] = bignumber.TenPowInt(collateralDecimals[j])
 			req.AddCall(&ethrpc.Call{
 				ABI:    routerABI,
 				Target: oracleStr,
 				Method: shared.RouterMethodGetQuotes,
-				Params: []any{collatQuoteAmts[j], collateralAssets[j], collateralUnitOfAccounts[j]},
+				Params: []any{shared.QuoteAmount, collateralAssets[j], unitOfAccounts[i]},
 			}, []any{&data.CollatPrices[j][i]}).AddCall(&ethrpc.Call{
 				ABI:    vaultABI,
 				Target: vaultList[i].VaultAddress,
@@ -347,17 +321,14 @@ func (d *PoolTracker) getPoolData(
 		return nil, nil, errors.WithMessage(err, "3rd rt")
 	}
 
-	for i, v := range vaults {
+	for i := range vaults {
 		if i < 2 {
-			v.EulerAccountBalance = shared.ConvertToAssets(v.EulerAccountBalance, v.TotalAssets, v.TotalSupply)
+			vaults[i].EulerAccountBalance = shared.ConvertToAssets(vaults[i].EulerAccountBalance, vaults[i].TotalAssets,
+				vaults[i].TotalSupply)
 		}
-		for j, otherV := range vaultList {
+		for j := range vaultList {
 			for k, q := range data.VaultPrices[j][i] {
-				if q != nil {
-					q.Div(q, otherV.QuoteAmount)
-				} else {
-					data.VaultPrices[j][i][k] = big.NewInt(0)
-				}
+				data.VaultPrices[j][i][k] = shared.UnitPrice(q, shared.QuoteAmount)
 			}
 		}
 		for j, collateral := range collaterals {
@@ -366,11 +337,7 @@ func (d *PoolTracker) getPoolData(
 				continue
 			}
 			for k, q := range data.CollatPrices[j][i] {
-				if q != nil {
-					q.Div(q, collatQuoteAmts[j])
-				} else {
-					data.CollatPrices[j][i][k] = big.NewInt(0)
-				}
+				data.CollatPrices[j][i][k] = shared.UnitPrice(q, shared.QuoteAmount)
 			}
 		}
 	}

@@ -26,7 +26,6 @@ interface IEVault {
     function balanceOf(address account) external view;
     function oracle() external view returns (address);
     function unitOfAccount() external view returns (address);
-    function decimals() external view returns (uint8);
     function asset() external view returns (address);
     function LTVBorrow(address collateral) external view;
 }
@@ -49,25 +48,23 @@ interface IEulerRouter {
 ///
 /// This lens makes the same calls, in the same order, for every pool, and returns each call's raw
 /// `(success, returnData)` grouped by round, exactly what `tryAggregate` would have returned. It
-/// decodes only what it needs to build the next round (addresses, decimals) and leaves every value
+/// decodes only what it needs to build the next round (addresses) and leaves every value
 /// the pool state is made of to the caller, which replays its own round construction over these
 /// results. The business logic therefore stays in one place, the tracker; this contract only removes
 /// the round trips.
 ///
 /// Decoding follows go-ethereum's rules wherever the next round depends on it, so the calls built
 /// here are the ones the tracker would build from the same data: an address takes the low 20 bytes
-/// of a word of at least 32 bytes, a uint8 larger than 255 is a decode failure (and stays 0), and a
-/// malformed address[] reads as empty. A failed or malformed read never reverts the whole call.
+/// of a word of at least 32 bytes, and a malformed address[] reads as empty. A failed or malformed read never reverts the whole call.
 contract EulerSwapV2Lens {
     /// @notice One pool to read. `vaults` is the tracker's deduplicated vault list, in its order,
-    /// with the asset and quote amount (10 ** decimals) of each.
+    /// with the asset of each.
     struct PoolInput {
         address pool;
         address eulerAccount;
         address evc;
         address[] vaults;
         address[] vaultAssets;
-        uint256[] quoteAmounts;
     }
 
     /// @notice One call's outcome, as Multicall's tryAggregate reports it.
@@ -85,7 +82,7 @@ contract EulerSwapV2Lens {
         Result[] round4;
     }
 
-    /// @notice `vaults`, `vaultAssets` and `quoteAmounts` differ in length.
+    /// @notice `vaults` and `vaultAssets` differ in length.
     error MismatchedVaultInput();
 
     /// @notice The call ran out of gas for the next read. Recording that read as an ordinary failure,
@@ -98,6 +95,13 @@ contract EulerSwapV2Lens {
     /// included, came to ~0.55M on Ethereum), and bounded so a callee that burns everything it is
     /// given (an INVALID opcode, a failing precompile) costs one failed read rather than the batch.
     uint256 internal constant READ_GAS = 2_000_000;
+
+    /// @notice The inAmount of every oracle quote: the tracker's shared.QuoteAmount, which its replay divides
+    /// each quote by. Euler's oracle quotes are linear in inAmount, so any amount large enough not to round the
+    /// price away gives the same price per smallest unit; the tracker stores prices scaled by 1e18, which bounds
+    /// their precision, so 1e18 is enough and needs no asset decimals. It is far below uint128's maximum, which
+    /// the UniswapV3 oracle adapter requires of inAmount.
+    uint256 internal constant QUOTE_AMOUNT = 1e18;
 
     /// @dev Headroom for copying a read's result back and moving on to the next.
     uint256 private constant READ_OVERHEAD = 20_000;
@@ -129,7 +133,6 @@ contract EulerSwapV2Lens {
     struct Vaults {
         address[] addr;
         address[] asset;
-        uint256[] quote;
         address[] oracle;
         address[] unit;
     }
@@ -138,7 +141,7 @@ contract EulerSwapV2Lens {
         uint256 n = p.vaults.length;
         // Malformed input is the caller's bug, not one pool's state: fail the call.
         // forge-lint: disable-next-line(require-revert-in-loop)
-        require(p.vaultAssets.length == n && p.quoteAmounts.length == n, MismatchedVaultInput());
+        require(p.vaultAssets.length == n, MismatchedVaultInput());
 
         // Round 1: the pool, the account's controllers and collaterals, and eleven reads per vault.
         out.round1 = new Result[](5 + 11 * n);
@@ -171,20 +174,18 @@ contract EulerSwapV2Lens {
         Vaults memory vs = _vaults(p, out.round1, n + (addController ? 1 : 0));
         if (addController) {
             address c = controllers[0];
-            out.round2 = new Result[](5);
+            out.round2 = new Result[](4);
             out.round2[0] = _read(c, abi.encodeCall(IEVault.debtOf, (p.eulerAccount)));
-            out.round2[1] = _read(c, abi.encodeCall(IEVault.decimals, ()));
-            out.round2[2] = _read(c, abi.encodeCall(IEVault.asset, ()));
-            out.round2[3] = _read(c, abi.encodeCall(IEVault.oracle, ()));
-            out.round2[4] = _read(c, abi.encodeCall(IEVault.unitOfAccount, ()));
+            out.round2[1] = _read(c, abi.encodeCall(IEVault.asset, ()));
+            out.round2[2] = _read(c, abi.encodeCall(IEVault.oracle, ()));
+            out.round2[3] = _read(c, abi.encodeCall(IEVault.unitOfAccount, ()));
             vs.addr[n] = c;
-            vs.asset[n] = _address(out.round2[2]);
-            vs.quote[n] = _tenPow(_uint8(out.round2[1]));
-            vs.oracle[n] = _address(out.round2[3]);
-            vs.unit[n] = _address(out.round2[4]);
+            vs.asset[n] = _address(out.round2[1]);
+            vs.oracle[n] = _address(out.round2[2]);
+            vs.unit[n] = _address(out.round2[3]);
         }
 
-        // Round 3: five reads per collateral that is not already a vault.
+        // Round 3: four reads per collateral that is not already a vault.
         uint256 total = vs.addr.length;
         bool[] memory isVault = new bool[](collaterals.length);
         uint256 external_ = 0;
@@ -192,8 +193,7 @@ contract EulerSwapV2Lens {
             isVault[j] = _contains(vs.addr, total, collaterals[j]);
             if (!isVault[j]) ++external_;
         }
-        out.round3 = new Result[](5 * external_);
-        uint256[] memory collatQuote = new uint256[](collaterals.length);
+        out.round3 = new Result[](4 * external_);
         address[] memory collatAsset = new address[](collaterals.length);
         uint256 r = 0;
         for (uint256 j; j < collaterals.length; ++j) {
@@ -202,16 +202,14 @@ contract EulerSwapV2Lens {
             out.round3[r] = _read(c, abi.encodeCall(IEVault.balanceOf, (p.eulerAccount)));
             out.round3[r + 1] = _read(c, abi.encodeCall(IEVault.totalAssets, ()));
             out.round3[r + 2] = _read(c, abi.encodeCall(IEVault.totalSupply, ()));
-            out.round3[r + 3] = _read(c, abi.encodeCall(IEVault.decimals, ()));
-            out.round3[r + 4] = _read(c, abi.encodeCall(IEVault.asset, ()));
-            collatQuote[j] = _tenPow(_uint8(out.round3[r + 3]));
-            collatAsset[j] = _address(out.round3[r + 4]);
-            r += 5;
+            out.round3[r + 3] = _read(c, abi.encodeCall(IEVault.asset, ()));
+            collatAsset[j] = _address(out.round3[r + 3]);
+            r += 4;
         }
 
         // Round 4: for every vault with an oracle, a quote and an LTV against every vault, then
         // against every collateral that is not a vault.
-        out.round4 = _round4(vs, total, collaterals, isVault, collatQuote, collatAsset);
+        out.round4 = _round4(vs, total, collaterals, isVault, collatAsset);
     }
 
     function _round4(
@@ -219,7 +217,6 @@ contract EulerSwapV2Lens {
         uint256 total,
         address[] memory collaterals,
         bool[] memory isVault,
-        uint256[] memory collatQuote,
         address[] memory collatAsset
     ) private view returns (Result[] memory out) {
         uint256 count = 0;
@@ -237,13 +234,13 @@ contract EulerSwapV2Lens {
             address oracle = vs.oracle[i];
             if (oracle == address(0)) continue;
             for (uint256 j; j < total; ++j) {
-                out[r++] = _read(oracle, abi.encodeCall(IEulerRouter.getQuotes, (vs.quote[j], vs.asset[j], vs.unit[i])));
+                out[r++] = _read(oracle, abi.encodeCall(IEulerRouter.getQuotes, (QUOTE_AMOUNT, vs.asset[j], vs.unit[i])));
                 if (i != j) out[r++] = _read(vs.addr[i], abi.encodeCall(IEVault.LTVBorrow, (vs.addr[j])));
             }
             for (uint256 j; j < collaterals.length; ++j) {
                 if (isVault[j]) continue;
                 out[r++] =
-                    _read(oracle, abi.encodeCall(IEulerRouter.getQuotes, (collatQuote[j], collatAsset[j], vs.unit[i])));
+                    _read(oracle, abi.encodeCall(IEulerRouter.getQuotes, (QUOTE_AMOUNT, collatAsset[j], vs.unit[i])));
                 out[r++] = _read(vs.addr[i], abi.encodeCall(IEVault.LTVBorrow, (collaterals[j])));
             }
         }
@@ -254,13 +251,11 @@ contract EulerSwapV2Lens {
     function _vaults(PoolInput memory p, Result[] memory round1, uint256 size) private pure returns (Vaults memory vs) {
         vs.addr = new address[](size);
         vs.asset = new address[](size);
-        vs.quote = new uint256[](size);
         vs.oracle = new address[](size);
         vs.unit = new address[](size);
         for (uint256 i; i < p.vaults.length; ++i) {
             vs.addr[i] = p.vaults[i];
             vs.asset[i] = p.vaultAssets[i];
-            vs.quote[i] = p.quoteAmounts[i];
             vs.oracle[i] = _address(round1[5 + 11 * i + 8]);
             vs.unit[i] = _address(round1[5 + 11 * i + 9]);
         }
@@ -296,25 +291,6 @@ contract EulerSwapV2Lens {
             // and encodes it as the full word.
             a := and(mload(add(d, 0x20)), 0xffffffffffffffffffffffffffffffffffffffff)
         }
-    }
-
-    /// @dev go-ethereum rejects a uint8 word above 255, leaving the output at zero.
-    function _uint8(Result memory r) private pure returns (uint8) {
-        if (!r.success || r.returnData.length < 32) return 0;
-        uint256 w;
-        bytes memory d = r.returnData;
-        assembly ("memory-safe") {
-            w := mload(add(d, 0x20))
-        }
-        // forge-lint: disable-next-line(unsafe-typecast): w was just checked to fit.
-        return w > type(uint8).max ? 0 : uint8(w);
-    }
-
-    /// @dev 10 ** d. Above 10 ** 77 a uint256 overflows, where the tracker's big.Int would not; no
-    /// real token reports decimals anywhere near that, so saturate rather than revert the batch.
-    function _tenPow(uint8 d) private pure returns (uint256) {
-        if (d > 77) return type(uint256).max;
-        return 10 ** uint256(d);
     }
 
     /// @dev A returned address[], decoded with go-ethereum's bounds checks; empty when the call
