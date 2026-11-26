@@ -2,6 +2,7 @@ package netstaking
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -426,4 +427,90 @@ func TestNewPoolSimulator_NoWrap(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, big.NewInt(1_000_000_000), res.TokenAmountOut.Amount)
+}
+
+// TestCalcAmountOut_ConcurrentSharedSimulator runs CalcAmountOut from many
+// goroutines on one simulator, as the router does with a shared pool set.
+// Each result must match the value computed on a private simulator; run with
+// -race to catch writes to shared receiver state.
+func TestCalcAmountOut_ConcurrentSharedSimulator(t *testing.T) {
+	pairs := [][2]string{
+		{testNETAddress, testSNETAddress},
+		{testSNETAddress, testNETAddress},
+		{testSNETAddress, testWSNETAddress},
+		{testWSNETAddress, testSNETAddress},
+		{testNETAddress, testWSNETAddress},
+		{testWSNETAddress, testNETAddress},
+	}
+	type job struct {
+		in, out string
+		amt     *big.Int
+		want    *big.Int
+	}
+	var jobs []job
+	for i := range 64 {
+		p := pairs[i%len(pairs)]
+		amt := new(big.Int).Mul(big.NewInt(int64(1000+i*7919)), big.NewInt(1e6))
+		res, err := newSimulator(t, indexLive).CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: p[0], Amount: amt},
+			TokenOut:      p[1],
+		})
+		require.NoError(t, err)
+		jobs = append(jobs, job{p[0], p[1], amt, res.TokenAmountOut.Amount})
+	}
+
+	shared := newSimulator(t, indexLive)
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range 50 {
+				for _, j := range jobs {
+					res, err := shared.CalcAmountOut(pool.CalcAmountOutParams{
+						TokenAmountIn: pool.TokenAmount{Token: j.in, Amount: j.amt},
+						TokenOut:      j.out,
+					})
+					if !assert.NoError(t, err) {
+						return
+					}
+					if !assert.Equal(t, j.want.String(), res.TokenAmountOut.Amount.String(), "%s->%s", j.in, j.out) {
+						return
+					}
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+// Quotes against the wrapper's own math, written here in math/big apart from the simulator: wsNET is an Olympus
+// wsOHM fork, whose wrap is sOHMTowOHM(a) = a * 1e18 / index and unwrap wOHMTosOHM(a) = a * index / 1e18, and stake and
+// unstake are 1:1. These do not come from the simulator.
+func TestCalcAmountOut_MatchesWsOHMMath(t *testing.T) {
+	t.Parallel()
+	sim := newSimulator(t, indexLive)
+	index, wad := indexLive.ToBig(), big.NewInt(1e18)
+	wrap := func(a *big.Int) *big.Int { return new(big.Int).Div(new(big.Int).Mul(a, wad), index) }
+	unwrap := func(a *big.Int) *big.Int { return new(big.Int).Div(new(big.Int).Mul(a, index), wad) }
+	for _, tc := range []struct {
+		in, out string
+		amount  int64
+		want    func(*big.Int) *big.Int
+	}{
+		{testSNETAddress, testWSNETAddress, 123_456_789_012, wrap},
+		{testWSNETAddress, testSNETAddress, 987_654_321_098_765_432, unwrap},
+		{testNETAddress, testWSNETAddress, 1_000_000_007, wrap},
+		{testWSNETAddress, testNETAddress, 31_415_926_535_897, unwrap},
+		{testNETAddress, testSNETAddress, 555_555_555, func(a *big.Int) *big.Int { return a }},
+	} {
+		amount := big.NewInt(tc.amount)
+		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: amount},
+			TokenOut:      tc.out,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, tc.want(amount).String(), res.TokenAmountOut.Amount.String(), "%s -> %s, %d", tc.in, tc.out,
+			tc.amount)
+	}
 }
