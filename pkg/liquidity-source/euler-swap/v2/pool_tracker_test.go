@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -47,10 +46,8 @@ func TestPinnedReadStaysAtThePin(t *testing.T) {
 // answers. A vault without an oracle gets no price calls; the tracker used to grow each collateral's price row only up
 // to the last vault with one, and indexed past its end (index out of range) when a later vault had none.
 //
-// Set EULER_RECORD_RPC to a node at that block to record missing calls into the fixture.
 func TestTrackVaultWithoutOracle(t *testing.T) {
-	srv := rpcreplay.New(t, "testdata/ethereum-26340400-0x0225eac3.json", os.Getenv("EULER_RECORD_RPC"))
-	defer srv.Save()
+	srv := rpcreplay.New(t, "testdata/ethereum-26340400-0x0225eac3.json")
 	ctx := context.Background()
 	client := srv.Client()
 	cfg := shared.Config{DexID: DexType}
@@ -149,7 +146,7 @@ func TestGetPoolDataQuotesTheFixedAmount(t *testing.T) {
 // recorded. Not every fixture entry is: see the commit message. Neither the
 // single read nor the batch read asks a vault for its decimals.
 func TestPricesQuoteTheFixedAmount(t *testing.T) {
-	srv := rpcreplay.New(t, "testdata/ethereum-26340400-0x0225eac3.json", "")
+	srv := rpcreplay.New(t, "testdata/ethereum-26340400-0x0225eac3.json")
 	ctx := context.Background()
 	cfg := shared.Config{DexID: DexType}
 	pools, err := NewPoolsListUpdater(&cfg, srv.Client()).initPools(ctx,

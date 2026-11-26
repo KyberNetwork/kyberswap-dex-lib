@@ -3,7 +3,6 @@ package v1
 import (
 	"context"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -20,10 +19,8 @@ import (
 // none here), so a swap of more than that reverts with E_SupplyCapExceeded on a fork. The simulator, like the pool's
 // own computeQuote, checked the in-limit against the input less the fee, and quoted inputs up to 9997254931.
 //
-// Set EULER_RECORD_RPC to a node at that block to record missing calls into the fixture.
 func TestDepositStaysUnderTheSupplyCap(t *testing.T) {
-	srv := rpcreplay.New(t, "testdata/unichain-63466002-0x880c2a0b.json", os.Getenv("EULER_RECORD_RPC"))
-	defer srv.Save()
+	srv := rpcreplay.New(t, "testdata/unichain-63466002-0x880c2a0b.json")
 	ctx := context.Background()
 	client := srv.Client()
 	cfg := shared.Config{DexID: DexType}

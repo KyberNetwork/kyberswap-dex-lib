@@ -3,7 +3,6 @@ package v2
 import (
 	"context"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -21,10 +20,8 @@ import (
 // The simulator counted the cbETH deposit as collateral at the WETH vault's LTV and quoted these swaps. Swaps that
 // need no new borrow still quote what the pool's computeQuote gives.
 //
-// Set EULER_RECORD_RPC to a node at that block to record missing calls into the fixture.
 func TestDepositIntoAVaultNotEnabledAsCollateral(t *testing.T) {
-	srv := rpcreplay.New(t, "testdata/base-55170698-0x4687e171.json", os.Getenv("EULER_RECORD_RPC"))
-	defer srv.Save()
+	srv := rpcreplay.New(t, "testdata/base-55170698-0x4687e171.json")
 	ctx := context.Background()
 	cfg := shared.Config{DexID: DexType}
 	pools, err := NewPoolsListUpdater(&cfg, srv.Client()).initPools(ctx,

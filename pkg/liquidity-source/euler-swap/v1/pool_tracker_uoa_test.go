@@ -3,7 +3,6 @@ package v1
 import (
 	"context"
 	"encoding/hex"
-	"os"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -21,10 +20,8 @@ import (
 // vault's oracle quoted EUL in EUL, returned the amount itself (1e18), and the tracker stored it as EUL's value in
 // USD. That oracle cannot price EUL in USD (PriceOracle_NotSupported), so the price must stay 0.
 //
-// Set EULER_RECORD_RPC to a node at that block to record missing calls into the fixture.
 func TestPricesUseTheVaultsUnitOfAccount(t *testing.T) {
-	srv := rpcreplay.New(t, "testdata/ethereum-26375800-0xce8d8fd2.json", os.Getenv("EULER_RECORD_RPC"))
-	defer srv.Save()
+	srv := rpcreplay.New(t, "testdata/ethereum-26375800-0xce8d8fd2.json")
 	ctx := context.Background()
 	client := srv.Client()
 	cfg := shared.Config{DexID: DexType}
@@ -55,7 +52,7 @@ func TestPricesUseTheVaultsUnitOfAccount(t *testing.T) {
 // of the fixture gives. Those getQuotes(1e18, ...) answers
 // are recorded from a node.
 func TestTrackerQuotesTheFixedAmount(t *testing.T) {
-	srv := rpcreplay.New(t, "testdata/bsc-131600018-0xcc1713f8.json", "")
+	srv := rpcreplay.New(t, "testdata/bsc-131600018-0xcc1713f8.json")
 	ctx := context.Background()
 	client := srv.Client()
 	cfg := shared.Config{DexID: DexType}

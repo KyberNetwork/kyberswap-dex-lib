@@ -3,7 +3,6 @@ package v1
 import (
 	"context"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -447,14 +446,12 @@ func TestMergeSwaps(t *testing.T) {
 // a swap only if it leaves the account healthy: a USDC repayment of 3 or more, or a 100 USDT deposit. The expected
 // amounts are the chain's computeQuote, which those swaps received.
 //
-// Set EULER_RECORD_RPC to a node at that block to record missing calls into the fixture.
 func TestAccountLiquidityMatchesChain(t *testing.T) {
 	const (
 		usdt = "0x55d398326f99059ff775485246999027b3197955"
 		usdc = "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
 	)
-	srv := rpcreplay.New(t, "testdata/bsc-131600018-0xcc1713f8.json", os.Getenv("EULER_RECORD_RPC"))
-	defer srv.Save()
+	srv := rpcreplay.New(t, "testdata/bsc-131600018-0xcc1713f8.json")
 	ctx := context.Background()
 	client := srv.Client()
 	cfg := shared.Config{DexID: DexType}
