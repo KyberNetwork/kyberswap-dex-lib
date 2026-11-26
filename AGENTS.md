@@ -19,7 +19,7 @@ exchanges.
 │   ├── msgpack/                # Simulator serialization registration and generated bindings
 │   ├── swaplimit/              # Shared-inventory limit tracking
 │   ├── util/                   # Math, ABI, test helper packages
-│   │── valueobject/            # Chain, exchange, address, and token constants
+│   └── valueobject/            # Chain, exchange, address, and token constants
 ├── go.mod / go.sum             # Go module definition
 └── AGENTS.md                   # Agent instructions for this repository
 ```
@@ -40,14 +40,14 @@ pkg/liquidity-source/<dex>/
 └── *_test.go                   # Math, simulator, tracker, lister, and verification tests
 ```
 
-## DEX Integration & Best Practices
+## DEX Integration
 
 ### Protocol Exploration
 
 - Confirm contracts are real and callable.
 - Verify source facts against deployed behavior. Explorer source is preferred, docs and repos are hints.
 - Identify the pool discovery mechanism.
-- Identify the exact swap calculation logic, including pricing, fees, rounding, operation order, etc.
+- Identify the exact swap calculation logic, including pricing, fees, rounding, and operation order.
 - Identify shared inventory/vault behavior early.
 - Check native token support.
 - Decide whether to reuse an existing integration or create a new one.
@@ -91,7 +91,7 @@ Suffixes:
 - Batch independent reads via multicall when the chain and ABI support it.
 - Pin all multicalls to the same block when a refresh needs multiple multicalls to keep pool state consistent.
 - Store mutable state in `Extra`, immutable state in `StaticExtra`.
-- Track all pool state required by the simulator for `CalcAmountOut` and `UpdateBalance`, including every flag/check used by the on-chain swap path (e.g. paused, swapEnabled, caps/limits, etc.) so the simulator can reject swaps that would revert on-chain.
+- Track all pool state required by the simulator for `CalcAmountOut`, `CalcAmountIn`, and `UpdateBalance`, including every flag/check used by the on-chain swap path (e.g. paused, swapEnabled, caps/limits), so the simulator can reject swaps that would revert on-chain.
 - For a stateful on-chain DEX, propagate a valid refresh snapshot block to `entity.Pool.BlockNumber` and return it directly from `GetMetaInfo` with `json:"blockNumber"`.
 - Use the block from `Aggregate`, `TryBlockAndAggregate`, an existing `GetBlockNumber`, or established event-log state. Pin dependent reads to that block.
 - Do not change `Call`/`TryAggregate` merely to get a block number. Verify revert tolerance, `msg.sender`, overrides, pinning, and protocol behavior first; use pool-service/RPC fixtures and targeted tests when uncertain.
@@ -111,16 +111,43 @@ Suffixes:
 - If a swap does not consume the full input amount, the remaining amount must be returned.
 - Gas estimation should reflect the actual swap execution cost.
 - Use `uint256.Int`/`int256.Int` for all simulator math and pool state. New `big.Int` code there is not accepted: the router calls `CalcAmountOut` thousands of times per route, and `big.Int` is 100x+ slower with far more allocations. `big.Int` is fine only at the edges (ABI/RPC decoding in trackers); convert before storing. Reuse helpers in `pkg/util` (`big256`, `int256`, ...) instead of reimplementing.
-- Test integration correctness, including pricing, limits, and protocol constraints. Port all relevant on-chain or documented math test cases.
 
-**Optional capabilities**: 
+**Optional capabilities**:
 - Implement `CalculateLimit()` and support `pool.SwapLimit` when the protocol has shared inventory/vault behavior.
-- `IPoolExactOutSimulator`: Implement `CalcAmountIn` only when the protocol supports exact-out swaps.
-- `IPoolSupportNativeSwap`: Implement `SupportsNativeSwap()` when the protocol supports native token.
+- Implement `SupportsNativeSwap()` when the protocol supports native token.
 
 **Required for PROP and ORDER BOOK sources**: every proprietary AMM (`-prop`, pmm/RFQ-style) and every order book (`-ob`, clob) source must honour `pool.FactoryParams.Opts.StaleCheck` (`pkg/source/pool/factory.go`) in its factory. When true, reject pools whose data is older than the source's max age; when false, never reject on age. Route finding sets it true, but the liquidity indexer runs with `StaleCheck=false`, so every stale gate (pool age, quote expiry, timestamp) must be skipped when it is false. Reference: `pkg/liquidity-source/kuru-ob/pool_simulator.go` (`lo.Ternary(params.Opts.StaleCheck, orderbook.MaxAge, math.MaxInt64)`).
 
-### Test data size
+#### Exact-Out Quotes - CalcAmountIn
+
+Implement `CalcAmountIn` (`pool.IPoolExactOutSimulator`) for every source. It must be the inverse
+of `CalcAmountOut`. Registering the simulator factory exposes it in `pool.CanCalcAmountIn` automatically.
+
+- Given `TokenAmountOut`, return the minimal `TokenAmountIn` such that `CalcAmountOut` covers it, plus `Fee` and `Gas`. Exact-in fees and rounding apply; do not add an exact-out branch the chain does not have.
+- Keep it pure like `CalcAmountOut`: no state mutation on success or failure.
+- When liquidity or a limit caps the fill, return the unfilled part in `RemainingTokenAmountOut`; `nil` or zero means fully filled. Honour `Limit` when the pool uses swap limits.
+
+Every implementation must pass `testutil.TestCalcAmountIn`. Build a real `poolSim` from an
+`entity.Pool` fixture and call the helper, as in `pkg/liquidity-source/brownfi/v2/pool_simulator_test.go`:
+
+```go
+func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
+	testutil.TestCalcAmountIn(t, poolSim)
+}
+```
+
+The helper quotes every `CanSwapFrom` pair, derives amounts from `CalcAmountOut`, retries partial
+fills, and asserts the round trip. Pass a smaller run count only for a slow simulator
+(`testutil.TestCalcAmountIn(t, poolSim, 16)`).
+
+### Testing
+
+- Cover pricing, limits, and protocol constraints; port on-chain or documented math cases.
+- Pin exact-in values with `testutil.TestCalcAmountOut(t, poolSim, map[idxIn]map[idxOut]map[amtIn]expectedOut)`; an empty expected value means the call must error.
+- Build test simulators from real `entity.Pool` fixtures. Keep fixtures small and current.
+
+#### Test data size
 
 This repo is a dependency of several other backend services, so bloated `testdata/` is a cost
 paid on every downstream `go get`. Keep fixtures targeted, not exhaustive grid/block dumps, and
