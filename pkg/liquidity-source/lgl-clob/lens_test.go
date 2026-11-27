@@ -2,6 +2,7 @@ package lglclob
 
 import (
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -14,8 +15,8 @@ import (
 )
 
 // testdata/lens_base.hex is what Lens reverted with for base's WETH/USDC pool
-// 0x6a69…7298b at block 52279003, measuring, and lens_base_book.hex the same
-// without measuring.
+// 0x6a6951db3bb99f76a8ccb9f8a8399b613666298b at block 52279003, measuring, and
+// lens_base_book.hex the same without measuring.
 func loadBaseState(t *testing.T) []byte {
 	t.Helper()
 	return loadLensAnswer(t, "testdata/lens_base.hex")
@@ -60,6 +61,10 @@ func TestDecodeState_LiveBase(t *testing.T) {
 		Asks: levelsOf([2]uint64{260750, 7670}, [2]uint64{260756, 19175}, [2]uint64{260763, 115046},
 			[2]uint64{260774, 205016}, [2]uint64{284242, 22779}),
 	}, state.book)
+	// The pool has a quoter, which quotes its best bid at 260739, but a sell
+	// there fills the book's 260790, so base is not configured as QuoterFills.
+	assert.True(t, state.hasQuoter)
+	assert.Equal(t, uint64(260739), state.quoterBook().Bids.ArrayPrices[0].Uint64())
 
 	assert.Equal(t, &MakerQuoteGas{
 		Bids: &LevelGas{First: 229_336, Next: 54_936},
@@ -81,6 +86,52 @@ func TestDecodeState_BookOnly(t *testing.T) {
 	assert.Equal(t, [4]quote{}, state.quotes)
 }
 
+// testdata/lens_monad_book.hex is what Lens reverted with for monad's cbBTC/WMON
+// pool 0x012e06b56eee881603e47748931dc38efabf54ef at block 125910244, without
+// measuring. Its book shows the market maker's bids from 5885320 and a resting
+// bid at 1, but the pool's quoter posts the market maker's bids 0.3% lower, from
+// 5867660, which is what a sell fills on chain.
+func TestDecodeState_QuoterBook(t *testing.T) {
+	t.Parallel()
+
+	state, err := decodeState(loadLensAnswer(t, "testdata/lens_monad_book.hex"))
+	require.NoError(t, err)
+	assert.Equal(t, uint64(125_910_244), state.block)
+	assert.True(t, state.hasQuoter)
+	assert.Equal(t, uint64(5885320), state.book.Bids.ArrayPrices[0].Uint64(), "the book as the helper shows it")
+	assert.Equal(t, OrderBook{
+		Bids: levelsOf([2]uint64{5867660, 2177771}, [2]uint64{5867430, 2177856}, [2]uint64{5867310, 6533703},
+			[2]uint64{5866960, 9801139}, [2]uint64{5814850, 1098774}, [2]uint64{1, 100000000}),
+		Asks: levelsOf([2]uint64{5914230, 3104029}, [2]uint64{5914480, 3104029}, [2]uint64{5914590, 9312089},
+			[2]uint64{5914950, 13968134}, [2]uint64{5967460, 1552014}),
+	}, state.quoterBook())
+
+	assert.Equal(t, OrderBook{}, (&lensState{}).quoterBook(), "a pool without a quoter keeps its book")
+}
+
+func TestFillable(t *testing.T) {
+	t.Parallel()
+
+	// The market maker shows 100 at 10 and 50 at 9, and a resting order 7 at 9.
+	shown := levelsOf([2]uint64{10, 100}, [2]uint64{9, 57}, [2]uint64{5, 20})
+	maker := levelsOf([2]uint64{10, 100}, [2]uint64{9, 50})
+	quoter := levelsOf([2]uint64{9, 110}, [2]uint64{8, 55})
+
+	assert.Equal(t, levelsOf([2]uint64{9, 7}, [2]uint64{9, 110}, [2]uint64{8, 55}, [2]uint64{5, 20}),
+		fillable(shown, &maker, &quoter, true), "the quoter's levels take the market maker's, resting orders stay")
+	assert.Equal(t, levelsOf([2]uint64{9, 7}, [2]uint64{5, 20}), fillable(shown, &maker, nil, true),
+		"a side the quoter could not quote has none of the market maker's levels")
+	assert.Equal(t, shown, fillable(shown, nil, &quoter, true),
+		"a side the market maker could not quote is kept as shown")
+
+	asks := levelsOf([2]uint64{10, 100}, [2]uint64{12, 20})
+	askMaker := levelsOf([2]uint64{10, 100})
+	askQuoter := levelsOf([2]uint64{11, 100})
+	assert.Equal(t, levelsOf([2]uint64{11, 100}, [2]uint64{12, 20}), fillable(asks, &askMaker, &askQuoter, false),
+		"asks stay lowest first")
+	assert.Equal(t, uint64(100), shown.ArrayShares[0].Uint64(), "the shown book is not changed")
+}
+
 // Anything but Lens's own answer must fail, rather than read as a pool, and a
 // revert without data is a book Lens could not read.
 func TestDecodeState_Rejects(t *testing.T) {
@@ -99,6 +150,24 @@ func TestDecodeState_Rejects(t *testing.T) {
 		"a level cut short": data[:len(data)-1],
 		"a byte left over":  append(append([]byte{}, data...), 0),
 		"the header alone":  data[:lensHeader],
+	} {
+		_, err := decodeState(broken)
+		assert.ErrorIs(t, err, ErrUnexpectedLensRevert, name)
+	}
+
+	// An empty book is followed by whether the pool has a quoter, and a quoter
+	// by its four quotes.
+	emptyBook := slices.Concat([]byte(lensTag), make([]byte, lensHeader-len(lensTag)+2))
+	_, err = decodeState(slices.Concat(emptyBook, []byte{0}))
+	assert.NoError(t, err, "a pool without a quoter")
+	_, err = decodeState(slices.Concat(emptyBook, []byte{1, quoteFailed, quoteFailed, quoteFailed, quoteFailed}))
+	assert.NoError(t, err, "a quoter whose quotes all failed")
+	for name, broken := range map[string][]byte{
+		"no quoter byte":       emptyBook,
+		"an unknown byte":      slices.Concat(emptyBook, []byte{2}),
+		"a quoter cut short":   slices.Concat(emptyBook, []byte{1, quoteFailed, quoteFailed, quoteFailed}),
+		"a quote left over":    slices.Concat(emptyBook, []byte{1, 0, 0, 0, 0, 0}),
+		"a quote level halved": slices.Concat(emptyBook, []byte{1, 1, 0, 0, 0}, make([]byte, lensLevel/2)),
 	} {
 		_, err := decodeState(broken)
 		assert.ErrorIs(t, err, ErrUnexpectedLensRevert, name)

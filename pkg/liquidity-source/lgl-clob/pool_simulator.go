@@ -164,6 +164,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 		priceLimit = big256.MulDivDown(&executedValue, priceLimit, big256.UBasisPoint, uPriceLimitMultiplier)
 	}
 	priceLimit = round(priceLimit, priceLimitPrecision, isBuy)
+	if priceLimit.IsZero() { // a sell down to a bid at price 1 rounds to 0, which the pool rejects
+		priceLimit.SetOne()
+	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut:         &pool.TokenAmount{Token: tokenOut, Amount: executedAmountOut.ToBig()},
@@ -318,6 +321,9 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		priceLimit = big256.MulDivDown(&executedValue, priceLimit, big256.UBasisPoint, uPriceLimitMultiplier)
 	}
 	priceLimit = round(priceLimit, priceLimitPrecision, isBuy)
+	if priceLimit.IsZero() { // a sell down to a bid at price 1 rounds to 0, which the pool rejects
+		priceLimit.SetOne()
+	}
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn:           &pool.TokenAmount{Token: tokenIn, Amount: amtIn.ToBig()},

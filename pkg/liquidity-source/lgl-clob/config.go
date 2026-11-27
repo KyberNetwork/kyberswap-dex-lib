@@ -17,4 +17,8 @@ type Config struct {
 	ChainId       valueobject.ChainID `mapstructure:"chain_id" json:"chain_id,omitempty"`
 	HTTPConfig    HTTPConfig          `mapstructure:"http_config" json:"http_config"`
 	HelperAddress string              `mapstructure:"helper_address" json:"helper_address,omitempty"`
+	// QuoterFills is set where a pool with a quoter has it price the levels its
+	// market maker posts for an order, so an order fills what the quoter quotes
+	// rather than the book the helper shows. Pools elsewhere fill their book.
+	QuoterFills bool `mapstructure:"quoter_fills" json:"quoter_fills,omitempty"`
 }
