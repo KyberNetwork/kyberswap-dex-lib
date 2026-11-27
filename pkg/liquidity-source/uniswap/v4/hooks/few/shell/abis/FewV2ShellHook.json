@@ -1,0 +1,9 @@
+[
+  {"type":"function","name":"registeredRouteFor","stateMutability":"view",
+   "inputs":[{"name":"poolId","type":"bytes32"}],
+   "outputs":[{"name":"few0","type":"address"},{"name":"few1","type":"address"},{"name":"pair","type":"address"}]},
+  {"type":"function","name":"paused","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"bool"}]},
+  {"type":"function","name":"token0","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"address"}]},
+  {"type":"function","name":"getReserves","stateMutability":"view","inputs":[],
+   "outputs":[{"name":"reserve0","type":"uint112"},{"name":"reserve1","type":"uint112"},{"name":"blockTimestampLast","type":"uint32"}]}
+]

@@ -109,6 +109,19 @@ func DirectionalSwapFee(p *entity.Pool, zeroForOne bool) FeeAmount {
 	return CalculateSwapFee(directionalProtocolFee(uint32(extra.Fees&0xffffff), false), FeeAmount(extra.Fees>>24))
 }
 
+// PoolProtocolFee is the protocol fee slot0 charges a swap of the tracked pool in the given direction, in
+// hundredths of a bip (ProtocolFeeLibrary.getZeroForOneFee / getOneForZeroFee), from Extra.pF. 0 while the protocol
+// fee is off. A hook that charges a multiple of the protocol fee reads it here instead of re-reading slot0.
+func PoolProtocolFee(p *entity.Pool, zeroForOne bool) FeeAmount {
+	var extra struct {
+		Fees uint64 `json:"pF"`
+	}
+	if p == nil || p.Extra == "" || json.Unmarshal([]byte(p.Extra), &extra) != nil {
+		return 0
+	}
+	return directionalProtocolFee(uint32(extra.Fees&0xffffff), zeroForOne)
+}
+
 // directionalProtocolFee is ProtocolFeeLibrary.getZeroForOneFee / getOneForZeroFee.
 func directionalProtocolFee(protocolFee uint32, zeroForOne bool) FeeAmount {
 	if zeroForOne {
