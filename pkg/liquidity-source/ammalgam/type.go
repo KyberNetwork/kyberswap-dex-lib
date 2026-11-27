@@ -6,7 +6,7 @@ import "github.com/holiman/uint256"
 type Extra struct {
 	ReferenceReserves    [2]uint256.Int `json:"referenceReserves"`
 	MissingAssets        [2]uint256.Int `json:"missingAssets"`
-	LastUpdateTimestamp  uint32         `json:"lastUpdateTimestamp"`
+	LastLendingTimestamp uint32         `json:"lastLendingTimestamp,omitempty"`
 	LastRefreshTimestamp int64          `json:"lastRefreshTimestamp,omitempty"`
 }
 

@@ -12,18 +12,19 @@ var (
 	maxReserve112                  = uint256.MustFromHex("0xffffffffffffffffffffffffffff")
 	q64                            = uint256.MustFromHex("0x10000000000000000")
 	bips                           = uint256.NewInt(10_000)
-	nTimes100                      = uint256.NewInt(2000)
-	nQ64                           = uint256.MustFromHex("0x140000000000000000")
-	nQ64Times100                   = uint256.MustFromHex("0x7d00000000000000000")
+	nTimes100                      = uint256.NewInt(4000)
+	nQ64                           = uint256.MustFromHex("0x280000000000000000")
+	nQ64Times100                   = uint256.MustFromHex("0xfa00000000000000000")
 	minKeepQ64                     = new(uint256.Int).Sub(bipsQ64, minFeeQ64)
 	maxKeepQ64                     = uint256.MustFromHex("0x7d00000000000000000") // 20 * 100 * Q64
-	linearOutDelta                 = uint256.MustFromHex("0x3200000000000000000") // 800 * Q64
+	linearOutDelta                 = uint256.MustFromHex("0x6400000000000000000") // 1600 * Q64
 	maxFeeSquaredQ64               = uint256.MustFromHex("0x6400000000000000000") // 1600 * Q64
 	boundaryNumerator              = uint256.NewInt(2400)
-	boundaryDenominator            = uint256.NewInt(4400)
-	discriminantFactor             = uint256.NewInt(8000)
-	crossingQuadraticDivisor       = uint256.NewInt(4000)
-	crossingDiscriminantBaseFactor = uint256.NewInt(12500)
+	boundaryDenominator            = uint256.NewInt(6400)
+	discriminantFactor             = uint256.NewInt(16000)
+	crossingQuadraticDivisor       = uint256.NewInt(8000)
+	crossingDiscriminantBaseFactor = uint256.NewInt(6250)
+	linearOutDenominatorTimes100   = uint256.NewInt(2000)
 	maxFeeMultiplier               = uint256.NewInt(5)
 	maxFeeCorrection               = uint256.NewInt(4)
 	quadraticInnerBaseQ64          = uint256.MustFromHex("0x320000000000000000") // 50 * Q64
@@ -301,30 +302,30 @@ func estimateCrossing(costQ64, reserveIn, reference *uint256.Int) (uint256.Int, 
 			}
 		}
 	}
-	twiceReference, err := mulChecked(two, reference)
-	if err != nil {
-		return zero, err
-	}
-	limit, err := addChecked(&reserveDiff, &twiceReference)
+	limit, err := addChecked(&reserveDiff, reference)
 	if err != nil {
 		return zero, err
 	}
 	fallback := estimate.IsZero() || lte(&estimate, &reserveDiff) || estimate.Gt(&limit)
 	if fallback {
-		linearBase, err := ceilDiv(&costBips, nTimes100)
+		linearBase, err := ceilDiv(&costBips, linearOutDenominatorTimes100)
 		if err != nil {
 			return zero, err
 		}
-		maxFeeBase, err := subChecked(&twiceReference, reserveIn)
+		reserveDiffOffset, err := mulChecked(maxFeeCorrection, &reserveDiff)
 		if err != nil {
 			return zero, err
 		}
-		maxFeeOffset, err := mulChecked(maxFeeCorrection, &maxFeeBase)
+		referenceOffset, err := mulChecked(two, reference)
 		if err != nil {
 			return zero, err
 		}
-		if linearBase.Gt(&maxFeeOffset) {
-			return subChecked(&linearBase, &maxFeeOffset)
+		totalOffset, err := addChecked(&reserveDiffOffset, &referenceOffset)
+		if err != nil {
+			return zero, err
+		}
+		if linearBase.Gt(&totalOffset) {
+			return subChecked(&linearBase, &totalOffset)
 		}
 		return addChecked(&limit, one)
 	}
@@ -427,22 +428,30 @@ func estimateNonCrossing(target *uint256.Int, p *exactOutPool) (uint256.Int, err
 		}
 	}
 	var useLinear bool
-	twiceReference, err := mulChecked(&p.referenceReserveIn, two)
+	actualReserveDiff, err := subChecked(&p.reserveIn, &p.referenceReserveIn)
 	if err != nil {
 		return zero, err
 	}
-	if gte(&adjReserveIn, &twiceReference) {
+	adjustedReserveDiff, err := subChecked(&adjReserveIn, &p.referenceReserveIn)
+	if err != nil {
+		return zero, err
+	}
+	twiceActualDiff, err := mulChecked(two, &actualReserveDiff)
+	if err != nil {
+		return zero, err
+	}
+	twiceAdjustedDiff, err := mulChecked(two, &adjustedReserveDiff)
+	if err != nil {
+		return zero, err
+	}
+	if gte(&twiceAdjustedDiff, &p.referenceReserveIn) || gte(&twiceActualDiff, &p.referenceReserveIn) {
 		useLinear = true
-	} else if !p.reserveIn.Eq(&p.referenceReserveIn) && p.reserveIn.Lt(&twiceReference) {
-		twiceReference, err := mulChecked(&p.referenceReserveIn, two)
+	} else if !p.reserveIn.Eq(&p.referenceReserveIn) {
+		twiceDiff, err := mulChecked(two, &actualReserveDiff)
 		if err != nil {
 			return zero, err
 		}
-		boundaryBase, err := subChecked(&twiceReference, &p.reserveIn)
-		if err != nil {
-			return zero, err
-		}
-		boundaryInput, err := mulChecked(two, &boundaryBase)
+		boundaryInput, err := subChecked(&p.referenceReserveIn, &twiceDiff)
 		if err != nil {
 			return zero, err
 		}
@@ -544,7 +553,7 @@ func fallbackEstimate(reserveIn, reserveOut, amountOut, reference *uint256.Int) 
 	if err != nil {
 		return zero, err
 	}
-	correction, err := mulChecked(maxFeeCorrection, reference)
+	correction, err := mulChecked(two, reference)
 	if err != nil {
 		return zero, err
 	}
@@ -591,7 +600,7 @@ func wouldOverflowQuadratic(currentReserveIn, referenceReserveIn, amountOut, cur
 	if err != nil {
 		return false, err
 	}
-	inner, err := mulChecked(twenty, &reserveDiff)
+	inner, err := mulChecked(forty, &reserveDiff)
 	if err != nil {
 		return false, err
 	}
@@ -655,7 +664,7 @@ func calculateSwapAmountInQuadraticFee(amountOut, currentReserveIn, referenceRes
 	if err != nil {
 		return zero, err
 	}
-	inner, err := mulChecked(twenty, &reserveDiff)
+	inner, err := mulChecked(forty, &reserveDiff)
 	if err != nil {
 		return zero, err
 	}
@@ -961,11 +970,9 @@ func exactOutBinarySearch(low, high, target *uint256.Int, p *exactOutPool) (uint
 	if err != nil {
 		return zero, err
 	}
-	// Core caps the wide search at 60 based on its expected estimator error.
-	// Exact-output is an off-chain routing facility here, and executable pair
-	// reserves are uint112, so 112 iterations is the actual hard upper bound.
-	// Keeping that bound avoids rejecting valid exact-in executions when a
-	// heavily depleted pool's estimate is farther away than core anticipated.
+	// Core's estimator expects at most 60 rounds. The off-chain exact-out API
+	// must still return the minimum executable input for every uint112 pool
+	// state, including deep-depletion ranges wider than that estimate allows.
 	maxIterations := uint64(112)
 	if distance.Cmp(uint256.NewInt(1<<20)) <= 0 {
 		maxIterations = 20
