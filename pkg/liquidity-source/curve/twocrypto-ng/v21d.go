@@ -57,13 +57,17 @@ func (r *V21dRPC) Apply(extra *Extra) {
 
 // v21dMaxStepPools run the earlier v2.1.0d build, which steps by max(adjustment_step, norm / 5) as v2.0.0 does;
 // every other v2.1.0d pool runs the later build, which steps by min(adjustment_step, norm / 5). Both share the
-// version string and are told apart by runtime code: of the 19 v2.1.0d pools of the Ethereum factory
-// 0x98ee851a, these three hold the earlier build (23655 bytes) and the other 16 the later one (23613 bytes,
-// 0x6e5492f8 among them, verified on eth.blockscout.com). Their tweak_price differs only in that step.
+// version string and are told apart by runtime code: the earlier build is 23655 bytes, the later 23613. A scan of
+// every chain's factory-twocrypto pools (2026-11-27) found the earlier build on Ethereum (3 of its 19 v2.1.0d
+// pools; 0x6e5492f8 is a later one, verified on eth.blockscout.com) and BSC (2 of 11) only; base, polygon and
+// gnosis hold later-build pools alone. The factories deploy the later build, so new pools step by the min. Their
+// tweak_price differs only in that step. Pool addresses differ across chains, so one map holds every chain.
 var v21dMaxStepPools = map[string]struct{}{
-	"0x83f24023d15d835a213df24fd309c47dab5beb32": {},
-	"0xd9ff8396554a0d18b2cfbec53e1979b7ecce8373": {},
-	"0xf1f435b05d255a5dbde37333c0f61da6f69c6127": {},
+	"0x83f24023d15d835a213df24fd309c47dab5beb32": {}, // ethereum
+	"0xd9ff8396554a0d18b2cfbec53e1979b7ecce8373": {}, // ethereum
+	"0xf1f435b05d255a5dbde37333c0f61da6f69c6127": {}, // ethereum
+	"0x8c65cec3847ad99bdc02621bdbc89f2ace56934b": {}, // bsc
+	"0xe4251b067c541f12c5032198884306b66122e44e": {}, // bsc
 }
 
 func (t *PoolSimulator) isV21d() bool {
