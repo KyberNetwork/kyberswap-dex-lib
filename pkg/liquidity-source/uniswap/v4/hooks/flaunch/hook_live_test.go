@@ -38,6 +38,31 @@ func TestTrack_Live(t *testing.T) {
 	assert.JSONEq(t, `{"f":100}`, string(extra))
 }
 
+// TestTrack_Live_V160 runs the same decode against the v1.6.0 PositionManager (CREATE3 parity on
+// Base, Arbitrum, Robinhood and Ethereum) and a live Base pool on it, coin
+// 0x8E7e6d5e10CF4406FEF62A41E411F1dA3e104696 paired with native ETH (fee 0, tickSpacing 60).
+// v1.6.0 caps swapFee at 10% and stops reverting on fee-calculator failures, but the
+// getPoolFeeDistribution / dispatcher surface Track reads is unchanged.
+func TestTrack_Live_V160(t *testing.T) {
+	t.Parallel()
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing in CI environment")
+	}
+	rpcClient := ethrpc.New("https://mainnet.base.org").
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+
+	h := &Hook{Hook: &uniswapv4.BaseHook{}}
+	extra, err := h.Track(context.Background(), &uniswapv4.HookParam{
+		RpcClient:   rpcClient,
+		HookAddress: common.HexToAddress("0x54bEDD41AfDf57722518cF6Dd826a70d81e9a5DC"),
+		Pool:        &entity.Pool{Address: "0x336dcfd7a14da3083635ad739715d9ad588312df07b647e806789ebbcde816a9"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, uint32(DefaultSwapFee), h.SwapFee, "v1.6.0 pool runs the protocol-default 1% swapFee")
+	assert.False(t, h.GateEnabled, "v1.6.0 pool is on the dispatcher's default calculator, no spend gate")
+	assert.JSONEq(t, `{"f":100}`, string(extra))
+}
+
 // The v1.0 PositionManager predates the dispatcher: its feeCalculator has no poolCalculator, so
 // Track must still return the pool's fee and simply report no gate.
 func TestTrack_Live_PreDispatcherGeneration(t *testing.T) {
