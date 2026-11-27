@@ -6,6 +6,8 @@ import (
 
 // Port of VolatileFeeCalculation.sol, RelativeMoveLibrary.sol and the fee path of VolatilePairHook.sol
 // (impl 0x1ddbf7215be4f8a7623b9b1b0255c6e1e3f6c000). All *E6 values are uint24 on-chain, held as uint32.
+// ChangingFeeHook runs the same libraries and the same _loadTopOfBlockState and _getFee; it only clamps the fee it
+// charges once more, at 20,000 (Hook.maxFee in hook.go), so the clamps here stay at 999,998.
 
 const (
 	oneE6    = 1_000_000
