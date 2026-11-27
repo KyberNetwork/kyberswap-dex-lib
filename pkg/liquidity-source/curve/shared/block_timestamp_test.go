@@ -14,9 +14,7 @@ func TestAddBlockTimestampCall(t *testing.T) {
 	add := func(c *ethrpc.Call, _ []any) { calls = append(calls, c) }
 	var ts *big.Int
 	(&Config{}).AddBlockTimestampCall(add, &ts)
-	require.Len(t, calls, 1, "no multicall_address: the canonical Multicall3")
-	require.Equal(t, DefaultMulticall3, calls[0].Target)
-	calls = nil
+	require.Empty(t, calls, "no multicall, no call")
 	(&Config{MulticallAddress: "0xca11bde05977b3631167028862be2a173976ca11"}).AddBlockTimestampCall(add, &ts)
 	require.Len(t, calls, 1)
 	require.Equal(t, ethrpc.MethodGetCurrentBlockTimestamp, calls[0].Method)
