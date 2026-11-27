@@ -2,6 +2,7 @@ package liquiditybookv20
 
 import (
 	"math/big"
+	"slices"
 	"sort"
 	"strings"
 
@@ -167,10 +168,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// update total reserves
 	for idx, reserve := range p.Info.Reserves {
 		if strings.EqualFold(p.Info.Tokens[idx], params.TokenAmountIn.Token) {
-			p.Info.Reserves[idx].Add(reserve, params.TokenAmountIn.Amount)
+			p.Info.Reserves[idx] = new(big.Int).Add(reserve, params.TokenAmountIn.Amount)
 		}
 		if strings.EqualFold(p.Info.Tokens[idx], params.TokenAmountOut.Token) {
-			p.Info.Reserves[idx].Sub(reserve, params.TokenAmountOut.Amount)
+			p.Info.Reserves[idx] = new(big.Int).Sub(reserve, params.TokenAmountOut.Amount)
 		}
 	}
 
@@ -223,6 +224,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return newBins[i].ID < newBins[j].ID
 	})
 	p.bins = newBins
+}
+
+// CloneState is a typed copy. UpdateBalance never writes a big.Int in place: it assigns new reserves and a new
+// slice of bins of new big.Ints, so the clone shares them safely and only needs its own Reserves slice.
+// feeParams and activeBinID are values. Without CloneState, the generic clone fallback cloned this simulator
+// with go-clone's Slowly, which stores pointers without GC write barriers.
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	return &cloned
 }
 
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) any {

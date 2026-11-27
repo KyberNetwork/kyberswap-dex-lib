@@ -72,10 +72,12 @@ func (t *PoolTracker) getNewPoolState(
 
 	var (
 		math, policy common.Address
+		v21d         V21dRPC
+		v3           V3RPC
 
 		d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 
-		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply *big.Int
+		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply, rebalancingParams *big.Int
 
 		balances = make([]*big.Int, len(p.Tokens))
 
@@ -85,6 +87,8 @@ func (t *PoolTracker) getNewPoolState(
 		priceScales  = make([]*big.Int, numDepCoins)
 		priceOracles = make([]*big.Int, numDepCoins)
 		lastPrices   = make([]*big.Int, numDepCoins)
+
+		blockTimestamp *big.Int
 	)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
@@ -131,10 +135,6 @@ func (t *PoolTracker) getNewPoolState(
 	}, []any{&virtualPrice}).AddCall(&ethrpc.Call{
 		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
-		Method: poolMethodAllowedExtraProfit,
-	}, []any{&allowedExtraProfit}).AddCall(&ethrpc.Call{
-		ABI:    CurveTwocryptoNGABI,
-		Target: p.Address,
 		Method: poolMethodAdjustmentStep,
 	}, []any{&adjustmentStep}).AddCall(&ethrpc.Call{
 		ABI:    CurveTwocryptoNGABI,
@@ -143,12 +143,14 @@ func (t *PoolTracker) getNewPoolState(
 	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
 		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
-		Method: poolMethodMath,
-	}, []any{&math}).AddCall(&ethrpc.Call{
+		Method: poolMethodPackedRebalancingParams,
+	}, []any{&rebalancingParams}).AddCall(&ethrpc.Call{
 		ABI:    CurveTwocryptoNGABI,
 		Target: p.Address,
-		Method: poolMethodPolicy,
-	}, []any{&policy})
+		Method: poolMethodMath,
+	}, []any{&math})
+	AddVersionCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, p.Extra, &v21d, &v3,
+		&policy, &allowedExtraProfit)
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
@@ -174,6 +176,7 @@ func (t *PoolTracker) getNewPoolState(
 			Method: poolMethodLastPrices,
 		}, []any{&lastPrices[i]})
 	}
+	t.config.AddBlockTimestampCall(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, &blockTimestamp)
 	var block *big.Int
 	if res, err := calls.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
@@ -200,6 +203,21 @@ func (t *PoolTracker) getNewPoolState(
 		AllowedExtraProfit: number.SetFromBig(allowedExtraProfit),
 		AdjustmentStep:     number.SetFromBig(adjustmentStep),
 		UseCustomMath:      UseCustomMath(math),
+		PolicyAddress:      PolicyHex(policy),
+	}
+	v21d.Apply(&extra)
+	v3.Apply(&extra, rebalancingParams)
+	now := time.Now().Unix()
+	if rebalancingParams != nil {
+		if maTime := MaTimeFromRebalancingParams(rebalancingParams); !maTime.IsZero() {
+			// A failed read skips the oracle carry (no stamp, no MaTime) rather than the refresh.
+			if readAt, err := shared.BlockTimestamp(ctx, t.ethrpcClient, overrides, block, blockTimestamp); err != nil {
+				lg.WithFields(logger.Fields{"error": err}).Warn("failed to read the block timestamp, oracle carry skipped")
+			} else {
+				extra.MaTime = maTime
+				extra.PriceOracleTimestamp = readAt
+			}
+		}
 	}
 	if policy != (common.Address{}) {
 		var err error
@@ -227,7 +245,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = now
 	p.Reserves = reserves
 
 	return p, nil

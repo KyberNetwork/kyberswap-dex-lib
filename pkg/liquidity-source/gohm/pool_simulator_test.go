@@ -2,6 +2,7 @@ package gohm
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/holiman/uint256"
@@ -347,4 +348,83 @@ func TestCalcAmountOut_NoCap_SOHMtoGOHM(t *testing.T) {
 		TokenOut:      testGOHMAddress,
 	})
 	assert.NoError(t, err, "sOHM->gOHM must not be blocked by reserve cap")
+}
+
+// TestCalcAmountOut_ConcurrentSharedSimulator runs CalcAmountOut from many
+// goroutines on one simulator, as the router does with a shared pool set.
+// Each result must match the value computed on a private simulator; run with
+// -race to catch writes to shared receiver state.
+func TestCalcAmountOut_ConcurrentSharedSimulator(t *testing.T) {
+	pairs := [][2]string{
+		{testOHMAddress, testSOHMAddress},
+		{testSOHMAddress, testOHMAddress},
+		{testOHMAddress, testGOHMAddress},
+		{testGOHMAddress, testOHMAddress},
+		{testSOHMAddress, testGOHMAddress},
+		{testGOHMAddress, testSOHMAddress},
+	}
+	type job struct {
+		in, out string
+		amt     *big.Int
+		want    *big.Int
+	}
+	var jobs []job
+	for i := range 64 {
+		p := pairs[i%len(pairs)]
+		amt := new(big.Int).Mul(big.NewInt(int64(1000+i*7919)), big.NewInt(1e6))
+		res, err := newSimulator(t, indexAt25147546, 0).CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: p[0], Amount: amt},
+			TokenOut:      p[1],
+		})
+		require.NoError(t, err)
+		jobs = append(jobs, job{p[0], p[1], amt, res.TokenAmountOut.Amount})
+	}
+
+	shared := newSimulator(t, indexAt25147546, 0)
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range 50 {
+				for _, j := range jobs {
+					res, err := shared.CalcAmountOut(pool.CalcAmountOutParams{
+						TokenAmountIn: pool.TokenAmount{Token: j.in, Amount: j.amt},
+						TokenOut:      j.out,
+					})
+					if !assert.NoError(t, err) {
+						return
+					}
+					if !assert.Equal(t, j.want.String(), res.TokenAmountOut.Amount.String(), "%s->%s", j.in, j.out) {
+						return
+					}
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+// Quotes against the chain: gOHM.balanceTo and balanceFrom at block 25147546 (eth_call, 2026-11-25), the views the
+// staking contract calls for wrap/stake-to-gOHM and unwrap/unstake-from-gOHM. These do not come from the
+// simulator.
+func TestCalcAmountOut_MatchesChainAt25147546(t *testing.T) {
+	t.Parallel()
+	sim := newSimulator(t, indexAt25147546, 0)
+	for _, tc := range []struct {
+		in, out, amount, want string
+	}{
+		{testOHMAddress, testGOHMAddress, "1000000000", "3714178953870682"},       // balanceTo(1e9)
+		{testSOHMAddress, testGOHMAddress, "123456789012", "458540607460823685"},  // balanceTo(123456789012)
+		{testGOHMAddress, testOHMAddress, "1000000000000000000", "269238508004"},  // balanceFrom(1e18)
+		{testGOHMAddress, testSOHMAddress, "3141592653589793238", "845837718808"}, // balanceFrom(3141592653589793238)
+	} {
+		amount, _ := new(big.Int).SetString(tc.amount, 10)
+		res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: amount},
+			TokenOut:      tc.out,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, tc.want, res.TokenAmountOut.Amount.String(), "%s -> %s, %s", tc.in, tc.out, tc.amount)
+	}
 }

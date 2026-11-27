@@ -3,6 +3,7 @@ package smardex
 import (
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -23,6 +24,14 @@ type SmardexPair struct {
 
 	// fee for FEE_POOL
 	FeeToAmount FeeToAmount
+
+	// FeeOff is set when the factory has no feeTo. The pair then keeps the pool fee in its reserves instead of
+	// adding it to feeToAmount. Stored state without it is read as fee on, which every factory is today.
+	FeeOff bool `json:",omitempty"`
+
+	// Factory is the pair's factory, read once in a refresh's batch and carried after: the factory the pool list
+	// comes from is not always the pairs' (on Ethereum it lists the pairs of 0x7753f36e).
+	Factory common.Address `json:",omitzero"`
 }
 
 type PairFeeResult struct {
@@ -95,13 +104,14 @@ type GetAmountResult struct {
 	newFictiveReserveOut *uint256.Int
 }
 
+// SwapInfo holds the pool's state after a swap, in token order.
 type SwapInfo struct {
-	newReserveIn              *uint256.Int
-	newReserveOut             *uint256.Int
-	newFictiveReserveIn       *uint256.Int
-	newFictiveReserveOut      *uint256.Int
-	newPriceAverageIn         *uint256.Int
-	newPriceAverageOut        *uint256.Int
+	newReserve0               *uint256.Int
+	newReserve1               *uint256.Int
+	newFictiveReserve0        *uint256.Int
+	newFictiveReserve1        *uint256.Int
+	newPriceAverage0          *uint256.Int
+	newPriceAverage1          *uint256.Int
 	priceAverageLastTimestamp *uint256.Int
 	feeToAmount0              *uint256.Int
 	feeToAmount1              *uint256.Int

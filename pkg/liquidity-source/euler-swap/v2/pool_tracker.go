@@ -3,6 +3,7 @@ package v2
 import (
 	"context"
 	"math/big"
+	"slices"
 	"strings"
 	"time"
 
@@ -21,7 +22,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap/v2/hooks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -103,26 +103,22 @@ func poolVaults(p entity.Pool) (StaticExtra, []shared.VaultInfo, error) {
 		{
 			VaultAddress: staticExtra.SupplyVault0,
 			AssetAddress: p.Tokens[0].Address,
-			QuoteAmount:  bignumber.TenPowInt(p.Tokens[0].Decimals),
 		},
 		{
 			VaultAddress: staticExtra.SupplyVault1,
 			AssetAddress: p.Tokens[1].Address,
-			QuoteAmount:  bignumber.TenPowInt(p.Tokens[1].Decimals),
 		},
 	}
 	if staticExtra.BorrowVault0 != "" && staticExtra.BorrowVault0 != staticExtra.SupplyVault0 && staticExtra.BorrowVault0 != valueobject.ZeroAddress {
 		vaults = append(vaults, shared.VaultInfo{
 			VaultAddress: staticExtra.BorrowVault0,
 			AssetAddress: p.Tokens[0].Address,
-			QuoteAmount:  bignumber.TenPowInt(p.Tokens[0].Decimals),
 		})
 	}
 	if staticExtra.BorrowVault1 != "" && staticExtra.BorrowVault1 != staticExtra.SupplyVault1 && staticExtra.BorrowVault1 != valueobject.ZeroAddress {
 		vaults = append(vaults, shared.VaultInfo{
 			VaultAddress: staticExtra.BorrowVault1,
 			AssetAddress: p.Tokens[1].Address,
-			QuoteAmount:  bignumber.TenPowInt(p.Tokens[1].Decimals),
 		})
 	}
 
@@ -274,11 +270,9 @@ func (d *PoolTracker) getPoolData(
 	}
 
 	var (
-		controllerDecimals  uint8
 		controllerAsset     common.Address
 		collatTotalAssets   = make([]*big.Int, len(collaterals))
 		collatTotalSupplies = make([]*big.Int, len(collaterals))
-		collateralDecimals  = make([]uint8, len(collaterals))
 		collateralAssets    = make([]common.Address, len(collaterals))
 	)
 
@@ -309,10 +303,6 @@ func (d *PoolTracker) getPoolData(
 			}, []any{&vaults[idx].Debt}).AddCall(&ethrpc.Call{
 				ABI:    vaultABI,
 				Target: data.Controller,
-				Method: shared.VaultMethodDecimals,
-			}, []any{&controllerDecimals}).AddCall(&ethrpc.Call{
-				ABI:    vaultABI,
-				Target: data.Controller,
 				Method: shared.VaultMethodAsset,
 			}, []any{&controllerAsset}).AddCall(&ethrpc.Call{
 				ABI:    vaultABI,
@@ -334,6 +324,7 @@ func (d *PoolTracker) getPoolData(
 	data.UniqueVaultAddresses = uniqueVaultAddresses
 	data.Vaults = vaults
 
+	data.Collaterals = collaterals
 	data.CollatAmounts = make([]*big.Int, len(collaterals))
 	fullVaultList := lo.Map(uniqueVaultAddresses, func(addr string, _ int) shared.VaultInfo {
 		if v, ok := lo.Find(vaultList, func(v shared.VaultInfo) bool {
@@ -344,7 +335,6 @@ func (d *PoolTracker) getPoolData(
 		return shared.VaultInfo{
 			VaultAddress: addr,
 			AssetAddress: hexutil.Encode(controllerAsset[:]),
-			QuoteAmount:  bignumber.TenPowInt(controllerDecimals),
 		}
 	})
 
@@ -379,10 +369,6 @@ func (d *PoolTracker) getPoolData(
 		}, []any{&collatTotalSupplies[i]}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: collateralStr,
-			Method: shared.VaultMethodDecimals,
-		}, []any{&collateralDecimals[i]}).AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: collateralStr,
 			Method: shared.VaultMethodAsset,
 		}, []any{&collateralAssets[i]})
 	}
@@ -394,7 +380,6 @@ func (d *PoolTracker) getPoolData(
 	}
 
 	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(blockNumber)
-	collatQuoteAmts := make([]*big.Int, len(collaterals))
 	// One entry per vault, controller included, whether or not the vault has an oracle: the
 	// post-processing below visits every vault.
 	data.CollatPrices = lo.Times(len(collaterals), func(_ int) [][2]*big.Int {
@@ -422,7 +407,7 @@ func (d *PoolTracker) getPoolData(
 				ABI:    routerABI,
 				Target: oracleStr,
 				Method: shared.RouterMethodGetQuotes,
-				Params: []any{otherV.QuoteAmount, common.HexToAddress(otherV.AssetAddress), unitOfAccounts[i]},
+				Params: []any{shared.QuoteAmount, common.HexToAddress(otherV.AssetAddress), unitOfAccounts[i]},
 			}, []any{&data.VaultPrices[j][i]})
 
 			if uniqueVaultAddresses[i] != otherV.VaultAddress {
@@ -440,12 +425,11 @@ func (d *PoolTracker) getPoolData(
 				data.CollatLtvs[j][i] = data.VaultLtvs[idx][i]
 				continue
 			}
-			collatQuoteAmts[j] = bignumber.TenPowInt(collateralDecimals[j])
 			req.AddCall(&ethrpc.Call{
 				ABI:    routerABI,
 				Target: oracleStr,
 				Method: shared.RouterMethodGetQuotes,
-				Params: []any{collatQuoteAmts[j], collateralAssets[j], unitOfAccounts[i]},
+				Params: []any{shared.QuoteAmount, collateralAssets[j], unitOfAccounts[i]},
 			}, []any{&data.CollatPrices[j][i]}).AddCall(&ethrpc.Call{
 				ABI:    vaultABI,
 				Target: uniqueVaultAddresses[i],
@@ -460,13 +444,9 @@ func (d *PoolTracker) getPoolData(
 	}
 
 	for i := range uniqueVaultAddresses {
-		for j, v := range fullVaultList {
+		for j := range fullVaultList {
 			for k, q := range data.VaultPrices[j][i] {
-				if q != nil {
-					data.VaultPrices[j][i][k] = new(big.Int).Div(q, v.QuoteAmount)
-				} else {
-					data.VaultPrices[j][i][k] = big.NewInt(0)
-				}
+				data.VaultPrices[j][i][k] = shared.QuotePrice(q)
 			}
 		}
 		for j, collatAddr := range collaterals {
@@ -475,11 +455,7 @@ func (d *PoolTracker) getPoolData(
 				continue
 			}
 			for k, q := range data.CollatPrices[j][i] {
-				if q != nil {
-					data.CollatPrices[j][i][k] = new(big.Int).Div(q, collatQuoteAmts[j])
-				} else {
-					data.CollatPrices[j][i][k] = big.NewInt(0)
-				}
+				data.CollatPrices[j][i][k] = shared.QuotePrice(q)
 			}
 		}
 	}
@@ -519,6 +495,8 @@ func (d *PoolTracker) updatePool(
 	idx0 := uniqueVaultAddrMap[strings.ToLower(staticExtra.SupplyVault0)]
 	idx1 := uniqueVaultAddrMap[strings.ToLower(staticExtra.SupplyVault1)]
 
+	isCollateral0 := slices.Contains(data.Collaterals, common.HexToAddress(staticExtra.SupplyVault0))
+	isCollateral1 := slices.Contains(data.Collaterals, common.HexToAddress(staticExtra.SupplyVault1))
 	vaultMap := make(map[string]*shared.VaultState, len(data.Vaults))
 	for idx, v := range data.Vaults {
 		addr := strings.ToLower(data.UniqueVaultAddresses[idx])
@@ -542,9 +520,12 @@ func (d *PoolTracker) updatePool(
 				uint256.MustFromBig(data.VaultPrices[idx1][idx][0]),
 			}
 			state.LTVs = lo.Map(data.CollatLtvs, func(l []uint16, _ int) uint64 { return uint64(l[idx]) })
+			// The debt vault counts a supply vault only when the account enabled it as collateral: a deposit
+			// into any other vault adds nothing, and a swap that borrows against it reverts with
+			// E_AccountLiquidity.
 			state.VaultLTVs = [2]uint64{
-				uint64(data.VaultLtvs[idx0][idx]),
-				uint64(data.VaultLtvs[idx1][idx]),
+				lo.Ternary(isCollateral0, uint64(data.VaultLtvs[idx0][idx]), 0),
+				lo.Ternary(isCollateral1, uint64(data.VaultLtvs[idx1][idx]), 0),
 			}
 		}
 		vaultMap[addr] = state

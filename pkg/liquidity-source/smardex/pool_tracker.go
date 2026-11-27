@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -126,6 +127,22 @@ func (u *PoolTracker) getNewPoolState(
 		Method: pairGetPriceAverageMethod,
 	}, []any{&priceAverage})
 
+	// The pair adds the pool fee to feeToAmount only while its factory has a feeTo. The factory is read once, in
+	// this batch, and stored; with it known, its feeTo is read in the batch instead. Until then, and when a read
+	// fails, the fee stays on.
+	var prev SmardexPair
+	_ = json.Unmarshal([]byte(p.Extra), &prev)
+	factory, feeTo := prev.Factory, common.Address{}
+	feeToCall, factoryCall := -1, -1
+	if factory == (common.Address{}) {
+		factoryCall = len(rpcRequest.Calls)
+		rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairFactoryMethod}, []any{&factory})
+	} else {
+		feeToCall = len(rpcRequest.Calls)
+		rpcRequest.AddCall(&ethrpc.Call{ABI: factoryABI, Target: factory.Hex(), Method: factoryFeeToMethod},
+			[]any{&feeTo})
+	}
+
 	resp, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -157,6 +174,8 @@ func (u *PoolTracker) getNewPoolState(
 			Fees0: uint256.MustFromBig(feeToAmount.Fees0),
 			Fees1: uint256.MustFromBig(feeToAmount.Fees1),
 		},
+		FeeOff:  feeToCall >= 0 && ok(resp, feeToCall) && feeTo == (common.Address{}),
+		Factory: lo.Ternary(factoryCall < 0 || ok(resp, factoryCall), factory, common.Address{}),
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -173,4 +192,9 @@ func (u *PoolTracker) getNewPoolState(
 
 	return p, nil
 
+}
+
+// ok reports whether call i of resp succeeded.
+func ok(resp *ethrpc.Response, i int) bool {
+	return resp != nil && i < len(resp.Result) && resp.Result[i]
 }

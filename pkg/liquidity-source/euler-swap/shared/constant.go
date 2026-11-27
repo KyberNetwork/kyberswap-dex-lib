@@ -7,6 +7,7 @@ import (
 	"github.com/holiman/uint256"
 
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 const (
@@ -33,7 +34,6 @@ const (
 	VaultMethodOracle          = "oracle"
 	VaultMethodUnitOfAccount   = "unitOfAccount"
 	VaultMethodAsset           = "asset"
-	VaultMethodDecimals        = "decimals"
 	VaultMethodLTVBorrow       = "LTVBorrow"
 
 	EvcMethodIsAccountOperatorAuthorized = "isAccountOperatorAuthorized"
@@ -51,6 +51,11 @@ const (
 	// skipped - not a full historical scan, so it only needs to look at the tail.
 	BackupTailWindow = 5
 )
+
+// QuoteAmount is the inAmount of every oracle quote: 10^18 smallest units, needing no decimals() read. Quotes are
+// linear in inAmount, so the quote is the price per smallest unit times 10^18, floored in the unit of account's
+// decimals. It stays below the uint128 inAmount bound of Euler's UniswapV3 adapter. Do not mutate it.
+var QuoteAmount = bignumber.TenPowInt(18)
 
 var (
 	BufferSwapLimit = uint256.NewInt(9990) // 99.90%

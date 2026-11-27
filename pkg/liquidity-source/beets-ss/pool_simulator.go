@@ -2,6 +2,7 @@ package beets_ss
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -151,10 +152,11 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	}
 }
 
+// CloneState copies the reserves slice, whose slots UpdateBalance assigns. totalAssets and totalSupply are shared:
+// UpdateBalance assigns new uint256s to them and never writes one in place.
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
-	cloned.totalAssets = p.totalAssets.Clone()
-	cloned.totalSupply = p.totalSupply.Clone()
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves) // UpdateBalance assigns into its slots
 	return &cloned
 }
 

@@ -1,8 +1,9 @@
 package smardex
 
 import (
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 /**
@@ -39,12 +40,12 @@ func getUpdatedPriceAverage(fictiveReserveIn *uint256.Int, fictiveReserveOut *ui
 		}
 
 		newPriceAverageIn = fictiveReserveIn.Clone()
+		newPriceAverageOut = new(uint256.Int).Sub(MAX_BLOCK_DIFF_SECONDS, timeDiff)
+		newPriceAverageOut.Mul(newPriceAverageOut, priceAverageOut).Mul(newPriceAverageOut, newPriceAverageIn).
+			Div(newPriceAverageOut, priceAverageIn)
 		var temp uint256.Int
-		temp.Sub(MAX_BLOCK_DIFF_SECONDS, timeDiff)
-		temp.Mul(&temp, priceAverageOut).Mul(&temp, newPriceAverageIn).Div(&temp, priceAverageIn)
-		newPriceAverageOut = new(uint256.Int).Set(&temp)
-		temp.MulDivOverflow(timeDiff, fictiveReserveOut, MAX_BLOCK_DIFF_SECONDS)
-		newPriceAverageOut.Add(newPriceAverageOut, &temp)
+		temp.Mul(timeDiff, fictiveReserveOut)
+		newPriceAverageOut.Add(newPriceAverageOut, &temp).Div(newPriceAverageOut, MAX_BLOCK_DIFF_SECONDS)
 	}
 
 	return
@@ -122,7 +123,7 @@ func getAmountOut(param GetAmountParameters) (*GetAmountResult, error) {
 	param.amount = new(uint256.Int).Sub(param.amount, firstAmountInNoFees)
 
 	// if we need a second trade
-	if firstAmountIn.Lt(amountInWithFees) && firstAmountInNoFees.Lt(param.amount) {
+	if firstAmountIn.Lt(amountInWithFees) {
 		// in the second trade ALWAYS recompute fictive reserves
 		newFictiveReserveIn, newFictiveReserveOut = computeFictiveReserves(newReserveIn, newReserveOut,
 			newFictiveReserveIn, newFictiveReserveOut)

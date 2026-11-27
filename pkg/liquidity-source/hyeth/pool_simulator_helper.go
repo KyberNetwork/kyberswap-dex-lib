@@ -50,16 +50,16 @@ func (s *PoolSimulator) previewRedeem(shares *uint256.Int) (*uint256.Int, error)
 	CalcAmountOut before calling issueExactSetFromETH
 */
 
-func (s *PoolSimulator) issueSetFromETH(_quantity *uint256.Int) (*uint256.Int, error) {
+func (s *PoolSimulator) issueSetFromETH(_quantity *uint256.Int) (*uint256.Int, *uint256.Int, error) {
 	componentShares, err := s.deposit(_quantity)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return s.getRequiredAmountSetToken(componentShares), nil
+	return s.getRequiredAmountSetToken(componentShares), componentShares, nil
 }
 
 func (s *PoolSimulator) getRequiredAmountSetToken(componentShares *uint256.Int) *uint256.Int {
-	equityUnit := new(uint256.Int).Set(s._getTotalIssuanceUnitsFromBalances())
+	equityUnit := s._getTotalIssuanceUnitsFromBalances()
 	// uint256 _quantityAfterFee = (componentShares * 10 ** 18) / uint256(cumulativeEquity);
 	quantityAfterFee := new(uint256.Int).Div(
 		new(uint256.Int).Mul(componentShares, U_1e18),
@@ -80,14 +80,14 @@ func (s *PoolSimulator) getRequiredAmountSetToken(componentShares *uint256.Int) 
  *
  * @param _amountSetToken   Amount of SetToken to redeem
  */
-func (s *PoolSimulator) redeemSetForETH(amountSetToken *uint256.Int) (*uint256.Int, error) {
+func (s *PoolSimulator) redeemSetForETH(amountSetToken *uint256.Int) (*uint256.Int, *uint256.Int, error) {
 	position := s.getRequiredComponentRedemptionUnits(amountSetToken)
 	// FlashMintHyETHV3.sol#L512
 	assetAmount, err := s.redeem(position)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return s._swapExactTokenForEth(s.component, assetAmount), nil
+	return s._swapExactTokenForEth(s.component, assetAmount), position, nil
 }
 
 /**
@@ -133,7 +133,7 @@ func (s *PoolSimulator) calculateTotalFees(_quantity *uint256.Int, _isIssue bool
  * @param _isIssue          Whether Sets are being issued or redeemed (rounding process)
  */
 func (s *PoolSimulator) _calculateRequiredComponentIssuanceUnits(_quantity *uint256.Int, _ bool) *uint256.Int {
-	equityUnit := new(uint256.Int).Set(s._getTotalIssuanceUnits())
+	equityUnit := s._getTotalIssuanceUnits()
 	totalEquityUnit := equityUnit.Mul(equityUnit, _quantity).Div(equityUnit, U_1e18)
 	return totalEquityUnit
 }
@@ -144,7 +144,8 @@ func (s *PoolSimulator) _calculateRequiredComponentIssuanceUnits(_quantity *uint
 *
  */
 func (s *PoolSimulator) _getTotalIssuanceUnits() *uint256.Int {
-	equityUnit := s.defaultPositionRealUnit
+	// Copy: the simulator is shared across quotes, so the sum must not be built in its field.
+	equityUnit := new(uint256.Int).Set(s.defaultPositionRealUnit)
 	for _, externalPositionRealUnit := range s.externalPositionRealUnits {
 		if externalPositionRealUnit.Sign() > 0 {
 			equityUnit.Add(equityUnit, externalPositionRealUnit)
@@ -176,4 +177,23 @@ func (s *PoolSimulator) _getTotalIssuanceUnitsFromBalances() *uint256.Int {
  */
 func (s *PoolSimulator) _swapExactTokenForEth(_ common.Address, _amountIn *uint256.Int) *uint256.Int {
 	return _amountIn
+}
+
+// addSaturating is a + b, capped at the largest uint256. The tracker stores the largest value for a
+// vault without a deposit limit, and a redeem must not wrap it to a small one.
+func addSaturating(a, b *uint256.Int) *uint256.Int {
+	sum, overflow := new(uint256.Int).AddOverflow(a, b)
+	if overflow {
+		return new(uint256.Int).Set(number.MaxU256)
+	}
+	return sum
+}
+
+// subSaturating is a - b, or 0 when b is larger.
+func subSaturating(a, b *uint256.Int) *uint256.Int {
+	diff, underflow := new(uint256.Int).SubOverflow(a, b)
+	if underflow {
+		return new(uint256.Int)
+	}
+	return diff
 }

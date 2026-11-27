@@ -77,21 +77,25 @@ func (t *PoolTracker) getNewPoolState(
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy)
 	addRPCCalls(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, p.Address, d)
+	t.config.AddBlockTimestampCall(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, &d.blockTimestamp)
 
-	if res, err := calls.TryBlockAndAggregate(); err != nil {
+	res, err := calls.TryBlockAndAggregate()
+	if err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
-	} else if res.BlockNumber != nil {
+	}
+	if res.BlockNumber != nil {
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
-	return buildPoolState(lg, p, d)
+	return buildPoolState(ctx, t, lg, p, d, res.BlockNumber, overrides)
 }
 
 type rpcData struct {
 	d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
-	xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply                         *big.Int
-	balances, priceScales, priceOracles, lastPrices                                                []*big.Int
+	xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply, rebalancingParams      *big.Int
+	balances, priceScales, priceOracles, lastPrices                                               []*big.Int
+	blockTimestamp                                                                                *big.Int
 }
 
 func newRPCData(numTokens, numDepCoins int) *rpcData {
@@ -117,6 +121,7 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData
 	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodAllowedExtraProfit}, []any{&d.allowedExtraProfit})
 	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodAdjustmentStep}, []any{&d.adjustmentStep})
 	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: shared.ERC20MethodTotalSupply}, []any{&d.lpSupply})
+	addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodPackedRebalancingParams}, []any{&d.rebalancingParams})
 	for i := range d.balances {
 		addFn(&ethrpc.Call{ABI: tricryptong.CurveTricryptoNGABI, Target: poolAddress, Method: tricryptong.PoolMethodBalances, Params: []any{big.NewInt(int64(i))}}, []any{&d.balances[i]})
 	}
@@ -127,7 +132,8 @@ func addRPCCalls(addFn func(*ethrpc.Call, []any), poolAddress string, d *rpcData
 	}
 }
 
-func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, error) {
+func buildPoolState(ctx context.Context, t *PoolTracker, lg logger.Logger, p entity.Pool, d *rpcData,
+	block *big.Int, overrides map[common.Address]gethclient.OverrideAccount) (entity.Pool, error) {
 	var extra = tricryptong.Extra{
 		InitialA:           number.SetFromBig(new(big.Int).Rsh(d.initialAGamma, 128)),
 		InitialGamma:       new(uint256.Int).And(number.SetFromBig(d.initialAGamma), tricryptong.PriceMask),
@@ -144,6 +150,18 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 		VirtualPrice:       number.SetFromBig(d.virtualPrice),
 		AllowedExtraProfit: number.SetFromBig(d.allowedExtraProfit),
 		AdjustmentStep:     number.SetFromBig(d.adjustmentStep),
+	}
+	now := time.Now().Unix()
+	if d.rebalancingParams != nil {
+		if maTime := tricryptong.MaTimeFromRebalancingParams(d.rebalancingParams); !maTime.IsZero() {
+			// A failed read skips the oracle carry (no stamp, no MaTime) rather than the refresh.
+			if readAt, err := shared.BlockTimestamp(ctx, t.ethrpcClient, overrides, block, d.blockTimestamp); err != nil {
+				lg.WithFields(logger.Fields{"error": err}).Warn("failed to read the block timestamp, oracle carry skipped")
+			} else {
+				extra.MaTime = maTime
+				extra.PriceOracleTimestamp = readAt
+			}
+		}
 	}
 	extra.PriceScale = make([]uint256.Int, len(d.priceScales))
 	lo.ForEach(d.priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })
@@ -164,7 +182,7 @@ func buildPoolState(lg logger.Logger, p entity.Pool, d *rpcData) (entity.Pool, e
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = now
 	p.Reserves = reserves
 
 	return p, nil

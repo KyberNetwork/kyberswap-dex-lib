@@ -34,6 +34,9 @@ type (
 		ChainID     valueobject.ChainID `mapstructure:"chain_id" json:"chain_id,omitempty"`
 		HTTPConfig  HTTPConfig          `mapstructure:"http_config" json:"http_config"`
 		DataSources []CurveDataSource   `mapstructure:"data_sources" json:"data_sources,omitempty"`
+		// MulticallAddress is Multicall3, used to read the block timestamp in a refresh's own batch. Optional:
+		// without it the timestamp is read in a second call pinned to the same block.
+		MulticallAddress string `mapstructure:"multicall_address" json:"multicall_address,omitempty"`
 
 		FetchPoolsMinDuration durationjson.Duration `mapstructure:"fetch_pools_min_duration" json:"fetch_pools_min_duration"`
 	}

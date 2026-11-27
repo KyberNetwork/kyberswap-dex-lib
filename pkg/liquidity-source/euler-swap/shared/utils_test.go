@@ -77,3 +77,18 @@ func TestConvertToAssets(t *testing.T) {
 		})
 	}
 }
+
+// A quote for QuoteAmount is the stored price as it is; a call that returned none stores 0.
+func TestQuotePrice(t *testing.T) {
+	t.Parallel()
+	q := big.NewInt(998480000000000000) // BSC USDT at $0.99848 in an 18-decimal USD unit of account
+	require.Same(t, q, QuotePrice(q))
+	require.Zero(t, QuotePrice(nil).Sign())
+}
+
+// QuoteAmount is 10^18, needs no decimals, and stays below the uint128 inAmount bound of Euler's UniswapV3 adapter.
+func TestQuoteAmount(t *testing.T) {
+	t.Parallel()
+	require.Equal(t, "1000000000000000000", QuoteAmount.String())
+	require.Equal(t, -1, QuoteAmount.Cmp(new(big.Int).Lsh(big.NewInt(1), 128)))
+}

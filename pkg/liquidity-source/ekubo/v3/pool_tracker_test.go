@@ -3,6 +3,10 @@ package ekubov3
 import (
 	"context"
 	"encoding/binary"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -424,4 +428,166 @@ func TestPoolTracker_SkipsLogsAlreadyIncludedInState(t *testing.T) {
 		require.Equal(t, "0", liquidityOf(t, p))
 		require.EqualValues(t, withdrawnBlock, p.BlockNumber)
 	})
+}
+
+// Ethereum USDe/sUSDe pool 0x0fcb46a4…4990 (tick spacing 10, no extension), as tracked at
+// block 26283908: tick -227046 inside the fetched tick window [-227050, -216810].
+const (
+	tickWindowPoolAddress     = "0x0fcb46a418903bca6840ea3801dc09b2f46b5f423450e5772fb1c9a0af3d4990"
+	tickWindowPoolBlockNumber = 26283908
+	tickWindowPoolExtra       = `{"sqrtRatio":"303764564999549016502112032689601118208","liquidity":"8153170015316476136074403","activeTickIndex":0,"sortedTicks":[{"number":-227050,"liquidityDelta":"8153170015316476136074403"},{"number":-227030,"liquidityDelta":"-2662"},{"number":-226880,"liquidityDelta":"-756961236783954980362751"},{"number":-226730,"liquidityDelta":"-1569"},{"number":-226580,"liquidityDelta":"-6812651131055594823264187"},{"number":-224430,"liquidityDelta":"-583557647476926332443234"},{"number":-216810,"liquidityDelta":"0"}],"tickBounds":[-227050,-216810],"activeTick":-227046}`
+	tickWindowPoolStaticExtra = `{"core":"0x00000000000014aa86c5d3c41765bb24e11bd701","extensionType":1,"poolKey":{"token0":"0x4c9edd5852cd905f086c759e8383e09bff1e68b3","token1":"0x9d39a5de30e57443bff2a8307a4256c8797a3497","config":{"fee":922337203685478,"typeConfig":{"tickSpacing":10},"extension":"0x0000000000000000000000000000000000000000"}}}`
+
+	// Swapped logs of that pool on Core. Block 26285633 (tx 0xe8774c9183b1ca377bf58bd31cbfd5034eaff96f14c418b3734360bd8985cee4) moves the tick to -227148, below the window;
+	// block 26288407 (tx 0xd8980983d760a8ba335d6bbeb6e81da6159927448bc8ad5f57bdf803e4432cf5) moves it to -227115.
+	tickWindowSwapLeavingWindow         = "0xd26f20001a72a18c002b00e6710000d68700ce000fcb46a418903bca6840ea3801dc09b2f46b5f423450e5772fb1c9a0af3d499000000000000000194024622e052ef4f1ffffffffffffffebe1589be6233c9d377920fc68a551b81d9397bb70fffc88b4000000000006be803b6f003d3d552ca3"
+	tickWindowSwapInsideRefetchedWindow = "0xc3ba641e5ee7441c4d60b76d04e6e3876973dd140fcb46a418903bca6840ea3801dc09b2f46b5f423450e5772fb1c9a0af3d4990fffffffffffffff7e2f433911b258b540000000000000006771b52347ced96c8792139c2599d9bd0ab900578fffc88d5000000000006be803b6f003d3d552ca3"
+
+	// Multicall aggregate result of QuoteDataFetcher.getQuoteData([pool], 2) at block 26285633, recorded through
+	// an anvil fork of Ethereum at that block. It returns tick -227148 and the window [-232268, -222028].
+	tickWindowQuoteDataAt26285633 = "0x0000000000000000000000000000000000000000000000000000000001911641000000000000000000000000000000000000000000000000000000" +
+		"000000004000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000" +
+		"000000000000000020000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000" +
+		"000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000" +
+		"0000000000000000000000000000000020fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc88b40000000000000000000000" +
+		"0000000000000000007920fc68a551b81d9397bb7000000000000000000000000000000000000000000006be803b6f003d3d552ca3ffffffffffffff" +
+		"fffffffffffffffffffffffffffffffffffffffffffffc74b4fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc9cb4000000" +
+		"00000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000" +
+		"07fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc7f52000000000000000000000000000000000000000000007b92b9348f" +
+		"56b5429a62fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc88940000000000000000000000000000000000000000000642" +
+		"ed823a70e688129241fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc892affffffffffffffffffffffffffffffffffffff" +
+		"fffffffffffffffffffffff59afffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc89c0ffffffffffffffffffffffffffffff" +
+		"ffffffffffffff5fb50c93c1828bfe2601fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc8a56ffffffffffffffffffffff" +
+		"fffffffffffffffffffffffffffffffffffffff9dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc8aecffffffffffffff" +
+		"fffffffffffffffffffffffffffffa5d5d7131cd96ebef5845fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc9352ffffff" +
+		"ffffffffffffffffffffffffffffffffffffff846d46cb70a94abd659e"
+)
+
+// quoteDataReplayServer answers every eth_call with the recorded QuoteDataFetcher result and counts the calls.
+func quoteDataReplayServer(t *testing.T, result string) (*httptest.Server, *atomic.Int32) {
+	t.Helper()
+
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ID     json.RawMessage `json:"id"`
+			Method string          `json:"method"`
+		}
+		body, err := io.ReadAll(r.Body)
+		if err == nil {
+			err = json.Unmarshal(body, &req)
+		}
+		if err != nil || req.Method != "eth_call" {
+			t.Errorf("unexpected RPC request %s: %v", body, err)
+			http.Error(w, "unexpected request", http.StatusBadRequest)
+			return
+		}
+		calls.Add(1)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":` + string(req.ID) + `,"result":"` + result + `"}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	return srv, &calls
+}
+
+// The tracker kept the tick window fetched at pool creation or at the last RPC fallback. Swapped logs moved the
+// active tick out of it, and the stale window then set the price limit of swaps toward the price on the wrong side
+// of the current price, so they reverted on chain with SqrtRatioLimitWrongDirection. The tracker must refetch the
+// pool once a log leaves the active tick outside the window.
+//
+// Not parallel: GetNewPoolState logs through klog, whose global logger is set lazily on first use without
+// synchronization (kutils v0.4.2 klog.Log). TestPoolTracker_SkipsLogsAlreadyIncludedInState is parallel, and a
+// second parallel test reaching that first use races with it under -race.
+func TestPoolTracker_RefetchesWhenActiveTickLeavesTickWindow(t *testing.T) {
+	srv, rpcCalls := quoteDataReplayServer(t, tickWindowQuoteDataAt26285633)
+	tracker := NewPoolTracker(MainnetConfig, ethrpc.New(srv.URL).
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")))
+
+	swapped := func(blockNumber uint64, data string) types.Log {
+		return types.Log{Address: MainnetConfig.Core, Data: common.FromHex(data), BlockNumber: blockNumber}
+	}
+	update := func(t *testing.T, p entity.Pool, logs ...types.Log) entity.Pool {
+		p, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{Logs: logs})
+		require.NoError(t, err)
+		return p
+	}
+	stateOf := func(t *testing.T, p entity.Pool) *pools.ConcentratedPoolState {
+		var state pools.ConcentratedPoolState
+		require.NoError(t, json.Unmarshal([]byte(p.Extra), &state))
+		return &state
+	}
+
+	p := entity.Pool{
+		Address:     tickWindowPoolAddress,
+		Extra:       tickWindowPoolExtra,
+		StaticExtra: tickWindowPoolStaticExtra,
+		BlockNumber: tickWindowPoolBlockNumber,
+	}
+	require.EqualValues(t, [2]int32{-227050, -216810}, stateOf(t, p).TickBounds)
+
+	p = update(t, p, swapped(26285633, tickWindowSwapLeavingWindow))
+
+	state := stateOf(t, p)
+	require.EqualValues(t, 1, rpcCalls.Load(), "a swap that leaves the tick window must refetch the pool")
+	require.EqualValues(t, -227148, state.ActiveTick)
+	require.EqualValues(t, [2]int32{-232268, -222028}, state.TickBounds)
+	require.EqualValues(t, 26285633, p.BlockNumber)
+
+	// The symptom: a USDe -> sUSDe quote moves the price down, so its price limit must lie below the current price.
+	var staticExtra StaticExtra
+	require.NoError(t, json.Unmarshal([]byte(p.StaticExtra), &staticExtra))
+	ekuboPool, err := unmarshalPool([]byte(p.Extra), &staticExtra)
+	require.NoError(t, err)
+	quote, err := ekuboPool.Quote(uint256.MustFromDecimal("1000000000000000000000"), false)
+	require.NoError(t, err)
+	require.True(t, math.FloatSqrtRatioToFixed(quote.SwapInfo.PriceLimit).Lt(state.SqrtRatio),
+		"price limit of a price-decreasing swap is above the current price")
+
+	t.Run("a swap that stays inside the refetched window does not refetch", func(t *testing.T) {
+		p := update(t, p, swapped(26288407, tickWindowSwapInsideRefetchedWindow))
+
+		state := stateOf(t, p)
+		require.EqualValues(t, 1, rpcCalls.Load())
+		require.EqualValues(t, -227115, state.ActiveTick)
+		require.EqualValues(t, [2]int32{-232268, -222028}, state.TickBounds)
+		require.EqualValues(t, 26288407, p.BlockNumber)
+	})
+}
+
+// Every pool type that quotes from a fetched tick window is checked, including a ve33 pool wrapping one; full range
+// pools have no window.
+func TestActiveTickOutsideTickBoundsPoolTypes(t *testing.T) {
+	t.Parallel()
+
+	token0, token1 := common.HexToAddress("0x1"), common.HexToAddress("0x2")
+	concentratedKey := pools.NewPoolKey(token0, token1,
+		pools.NewPoolConfig(common.Address{}, 0, pools.NewConcentratedPoolTypeConfig(10)))
+	fullRangeKey := pools.NewPoolKey(token0, token1,
+		pools.NewPoolConfig(common.Address{}, 0, pools.NewFullRangePoolTypeConfig()))
+
+	concentratedState := func(activeTick int32) *pools.ConcentratedPoolState {
+		return pools.NewConcentratedPoolState(nil, nil, [2]int32{-227050, -216810}, activeTick)
+	}
+	timedState := pools.NewTimedPoolState(pools.NewTimedPoolSwapState(new(uint256.Int), new(uint256.Int), 0), nil)
+	fullRange := pools.NewFullRangePool(fullRangeKey,
+		pools.NewFullRangePoolState(pools.NewFullRangePoolSwapState(new(uint256.Int)), new(uint256.Int)))
+
+	for _, activeTick := range []int32{-227148, -227046} {
+		outside := activeTick == -227148
+		for name, p := range map[string]pools.Pool{
+			"concentrated": pools.NewConcentratedPool(concentratedKey, concentratedState(activeTick)),
+			"mev capture":  pools.NewMevCapturePool(concentratedKey, concentratedState(activeTick)),
+			"boosted fees": pools.NewBoostedFeesPool(concentratedKey,
+				pools.NewBoostedFeesPoolState(concentratedState(activeTick), timedState)),
+			"ve33 concentrated": pools.NewVe33Pool(pools.NewConcentratedPool(concentratedKey,
+				concentratedState(activeTick)), 0),
+		} {
+			require.Equal(t, outside, activeTickOutsideTickBounds(p), "%s at tick %d", name, activeTick)
+		}
+	}
+
+	require.False(t, activeTickOutsideTickBounds(fullRange))
+	require.False(t, activeTickOutsideTickBounds(pools.NewVe33Pool(fullRange, 0)))
 }

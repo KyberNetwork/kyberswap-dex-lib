@@ -6,15 +6,16 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	tokentax "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2/token-tax"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 )
 
 type (
@@ -94,7 +95,14 @@ func (d *PoolTracker) GetNewPoolState(
 			return p, err
 		}
 
-		if bals[0].Cmp(reserveData.Reserve0) < 0 || bals[1].Cmp(reserveData.Reserve1) < 0 {
+		// A call whose answer does not decode leaves its output nil. A pair's getReserves does not revert, so a
+		// nil there is the RPC's: fail and keep the stored state. A balanceOf of a token with no code (it returns
+		// nothing) or one that reverts stays broken, so the pair is marked empty, as one short of its reserves is.
+		if reserveData.Reserve0 == nil || reserveData.Reserve1 == nil {
+			return p, ErrGetReservesUndecoded
+		}
+		if bals[0] == nil || bals[1] == nil ||
+			bals[0].Cmp(reserveData.Reserve0) < 0 || bals[1].Cmp(reserveData.Reserve1) < 0 {
 			reserveData.Reserve0 = bignumber.ZeroBI
 			reserveData.Reserve1 = bignumber.ZeroBI
 		}

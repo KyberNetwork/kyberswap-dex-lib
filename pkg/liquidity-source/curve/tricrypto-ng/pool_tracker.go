@@ -73,7 +73,7 @@ func (t *PoolTracker) getNewPoolState(
 	var (
 		d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 
-		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply *big.Int
+		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply, rebalancingParams *big.Int
 
 		balances = make([]*big.Int, len(p.Tokens))
 
@@ -83,6 +83,8 @@ func (t *PoolTracker) getNewPoolState(
 		priceScales  = make([]*big.Int, numDepCoins)
 		priceOracles = make([]*big.Int, numDepCoins)
 		lastPrices   = make([]*big.Int, numDepCoins)
+
+		blockTimestamp *big.Int
 	)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetFrom(shared.AddrDummy).
@@ -138,7 +140,11 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    CurveTricryptoNGABI,
 		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
-	}, []any{&lpSupply})
+	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
+		ABI:    CurveTricryptoNGABI,
+		Target: p.Address,
+		Method: poolMethodPackedRebalancingParams,
+	}, []any{&rebalancingParams})
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
@@ -167,10 +173,13 @@ func (t *PoolTracker) getNewPoolState(
 			Params: []any{big.NewInt(int64(i))},
 		}, []any{&lastPrices[i]})
 	}
+	t.config.AddBlockTimestampCall(func(c *ethrpc.Call, o []any) { calls.AddCall(c, o) }, &blockTimestamp)
+	var block *big.Int
 	if res, err := calls.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
 	} else if res.BlockNumber != nil {
+		block = res.BlockNumber
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
@@ -191,6 +200,18 @@ func (t *PoolTracker) getNewPoolState(
 		AllowedExtraProfit: number.SetFromBig(allowedExtraProfit),
 		AdjustmentStep:     number.SetFromBig(adjustmentStep),
 	}
+	now := time.Now().Unix()
+	if rebalancingParams != nil {
+		if maTime := MaTimeFromRebalancingParams(rebalancingParams); !maTime.IsZero() {
+			// A failed read skips the oracle carry (no stamp, no MaTime) rather than the refresh.
+			if readAt, err := shared.BlockTimestamp(ctx, t.ethrpcClient, overrides, block, blockTimestamp); err != nil {
+				lg.WithFields(logger.Fields{"error": err}).Warn("failed to read the block timestamp, oracle carry skipped")
+			} else {
+				extra.MaTime = maTime
+				extra.PriceOracleTimestamp = readAt
+			}
+		}
+	}
 	extra.PriceScale = make([]uint256.Int, len(priceScales))
 	lo.ForEach(priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })
 	extra.PriceOracle = make([]uint256.Int, len(priceOracles))
@@ -210,7 +231,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = now
 	p.Reserves = reserves
 
 	return p, nil

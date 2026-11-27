@@ -54,7 +54,10 @@ func (d *PoolTracker) getNewPoolStates(ctx context.Context, pools []entity.Pool,
 			continue
 		}
 		plans = append(plans, planned{idx: i, staticExtra: staticExtra, vaults: vaults})
-		inputs = append(inputs, lensInput(p.Address, staticExtra, vaults))
+	}
+
+	for k := range plans {
+		inputs = append(inputs, lensInput(pools[plans[k].idx].Address, plans[k].staticExtra, plans[k].vaults))
 	}
 
 	blockNumber, reads, err := d.readLens(ctx, inputs, block, 0)

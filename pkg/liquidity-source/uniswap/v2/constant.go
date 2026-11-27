@@ -47,4 +47,6 @@ var (
 	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
 	ErrInvalidK                 = errors.New("K")
 	ErrUint112Overflow          = errors.New("OVERFLOW")
+	// ErrGetReservesUndecoded fails a refresh whose getReserves answer does not decode, keeping the stored state.
+	ErrGetReservesUndecoded = errors.New("getReserves did not decode")
 )

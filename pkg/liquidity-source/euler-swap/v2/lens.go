@@ -23,14 +23,13 @@ var lensJSON []byte
 var lens = ephemeral.MustLoad("EulerSwapV2Lens", lensJSON)
 
 // poolInput is one pool for the lens. Vaults is the tracker's deduplicated vault list, in its
-// order, with each vault's asset and quote amount (10^decimals).
+// order, with each vault's asset. The lens quotes every asset for shared.QuoteAmount.
 type poolInput struct {
 	Pool         common.Address
 	EulerAccount common.Address
 	Evc          common.Address
 	Vaults       []common.Address
 	VaultAssets  []common.Address
-	QuoteAmounts []*big.Int
 }
 
 // callResult is one call's outcome, as a multicall's tryAggregate reports it.
@@ -107,7 +106,7 @@ func (d *PoolTracker) readLens(ctx context.Context, inputs []poolInput, block *b
 // lensTooLarge reports a call that needs fewer pools: the lens ran short of gas for its next read,
 // the call reverted with nothing, which is how nodes report running out of gas, or its call data
 // passed the 49152 bytes a node takes as init code (EIP-3860), which it refuses before running it,
-// as it does a batch of more than ~83 pools of two vaults.
+// as it does a batch of more than ~110 pools of two vaults.
 func lensTooLarge(err error) bool {
 	return errors.Is(err, ephemeral.ErrNoRevertData) || ephemeral.IsContractError(err, "GasExhausted") ||
 		strings.Contains(strings.ToLower(err.Error()), "initcode size")
@@ -124,7 +123,6 @@ func lensInput(poolAddress string, staticExtra StaticExtra, vaults []shared.Vaul
 	for _, v := range uniqueVaults(vaults) {
 		input.Vaults = append(input.Vaults, common.HexToAddress(v.VaultAddress))
 		input.VaultAssets = append(input.VaultAssets, common.HexToAddress(v.AssetAddress))
-		input.QuoteAmounts = append(input.QuoteAmounts, v.QuoteAmount)
 	}
 	return input
 }

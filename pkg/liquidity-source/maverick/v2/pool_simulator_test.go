@@ -8,10 +8,12 @@ import (
 
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -316,6 +318,124 @@ func TestDebugSwap_MAV_WETH(t *testing.T) {
 	} else {
 		fmt.Printf("✅ MATCH: Result matches expected value\n")
 	}
+}
+
+// The ezETH/WETH pool 0x707e…f171 holds about 0.0526 WETH, all within a few ticks of its active tick. Production
+// routes put 6.5-9.8 ezETH into it. The pool consumes about 0.0556 ezETH and the executed swap (tickLimit =
+// int32.max) then walks empty ticks until it runs out of gas.
+func loadEzEthWeth(t *testing.T) (*PoolSimulator, entity.Pool) {
+	t.Helper()
+	data, err := os.ReadFile("./data/ezeth_weth_707e.json")
+	require.NoError(t, err)
+	var ep entity.Pool
+	require.NoError(t, json.Unmarshal(data, &ep))
+	sim, err := NewPoolSimulator(ep)
+	require.NoError(t, err)
+	return sim, ep
+}
+
+func quoteOut(t *testing.T, sim *PoolSimulator, tokenIn, tokenOut string, amountIn *big.Int) *pool.CalcAmountOutResult {
+	t.Helper()
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+	return res
+}
+
+// fillable is the part of amountIn the pool's liquidity can take: the largest amount up to it whose swap
+// completes, found by bisection.
+func fillable(t *testing.T, sim *PoolSimulator, zeroForOne bool, amountIn *big.Int, decimals uint8) *big.Int {
+	t.Helper()
+	return ScaleToAmount(fillableScaled(t, sim.state, zeroForOne,
+		scaleFromAmount(uint256.MustFromBig(amountIn), decimals)), decimals).ToBig()
+}
+
+// fillableScaled is the largest scaled input up to limit whose swap on state completes.
+func fillableScaled(t *testing.T, state *MaverickPoolState, zeroForOne bool, limit *uint256.Int) *uint256.Int {
+	t.Helper()
+	fills := func(amount *uint256.Int) bool {
+		_, _, err := swap(state.Clone(true), amount, zeroForOne, false)
+		if err != nil {
+			require.ErrorIs(t, err, ErrInsufficientLiquidity)
+		}
+		return err == nil
+	}
+	if fills(limit) {
+		return limit.Clone()
+	}
+	low, high := uint256.NewInt(0), limit.Clone() // fills(low), !fills(high)
+	one := uint256.NewInt(1)
+	for new(uint256.Int).Sub(high, low).Gt(one) {
+		mid := new(uint256.Int).Add(low, high)
+		mid.Rsh(mid, 1)
+		if fills(mid) {
+			low = mid
+		} else {
+			high = mid
+		}
+	}
+	return low
+}
+
+// Past the liquidity the quote can reach, the swap is refused: the executor's tickLimit is int32.max, so the
+// unused input would walk empty ticks until the transaction runs out of gas, and the router does not act on a
+// remaining amount. The amount the pool can take still quotes as a full fill.
+func TestCalcAmountOut_PastCapacityIsRefused(t *testing.T) {
+	t.Parallel()
+	sim, ep := loadEzEthWeth(t)
+	ezEth, weth := ep.Tokens[0].Address, ep.Tokens[1].Address
+
+	for _, tc := range []struct {
+		name            string
+		tokenIn, tokOut string
+		amountIn        string
+	}{
+		{"ezETH in, 6.55 (production's chunk)", ezEth, weth, "6550000000000000000"},
+		{"ezETH in, 9.83", ezEth, weth, "9825761805897544000"},
+		{"WETH in, 1.0", weth, ezEth, "1000000000000000000"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			amountIn := bignumber.NewBig10(tc.amountIn)
+			_, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tc.tokenIn, Amount: amountIn},
+				TokenOut:      tc.tokOut,
+			})
+			require.ErrorIs(t, err, ErrInsufficientLiquidity)
+
+			in := sim.GetTokenIndex(tc.tokenIn)
+			consumed := fillable(t, sim, in == 0, amountIn, sim.decimals[in])
+			require.Positive(t, consumed.Sign())
+			require.Negative(t, consumed.Cmp(amountIn))
+			res := quoteOut(t, sim, tc.tokenIn, tc.tokOut, consumed)
+			require.Positive(t, res.TokenAmountOut.Amount.Sign())
+			require.Nil(t, res.RemainingTokenAmountIn)
+		})
+	}
+}
+
+func TestCalcAmountOut_WithinCapacityUnchanged(t *testing.T) {
+	t.Parallel()
+	sim, ep := loadEzEthWeth(t)
+	ezEth, weth := ep.Tokens[0].Address, ep.Tokens[1].Address
+
+	res := quoteOut(t, sim, ezEth, weth, big.NewInt(1e16)) // 0.01 ezETH, well within capacity
+	require.Nil(t, res.RemainingTokenAmountIn)
+	require.Positive(t, res.TokenAmountOut.Amount.Sign())
+}
+
+func TestCalcAmountIn_PastCapacityIsRefused(t *testing.T) {
+	t.Parallel()
+	sim, ep := loadEzEthWeth(t)
+	ezEth, weth := ep.Tokens[0].Address, ep.Tokens[1].Address
+
+	want := bignumber.NewBig10("1000000000000000000") // 1 WETH out; the pool holds about 0.0526
+	_, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: weth, Amount: want},
+		TokenIn:        ezEth,
+	})
+	require.ErrorIs(t, err, ErrInsufficientLiquidity)
 }
 
 func TestSwapInsufficientLiquidity(t *testing.T) {

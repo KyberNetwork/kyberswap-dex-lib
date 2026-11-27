@@ -9,7 +9,6 @@ import (
 type VaultInfo struct {
 	VaultAddress string
 	AssetAddress string
-	QuoteAmount  *big.Int
 }
 
 type ReserveRPC struct {
