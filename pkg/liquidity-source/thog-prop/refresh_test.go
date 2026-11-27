@@ -243,7 +243,7 @@ func TestTrackerUsesOneAtomicCallAndRetriesWholeRead(t *testing.T) {
 }
 
 func TestMulticallReaderReadsOneStateAtLatest(t *testing.T) {
-	for _, file := range []string{"execution-model3.json.gz", "deployed-stored-multipliers.json.gz"} {
+	for _, file := range []string{"execution-model3.json.gz", "deployed-stored-multipliers.json.gz", "deployed-18.json.gz"} {
 		t.Run(file, func(t *testing.T) { testMulticallReadsSnapshot(t, file) })
 	}
 }
@@ -353,7 +353,7 @@ func testMulticallReadsSnapshot(t *testing.T, file string) {
 			case "first_read":
 				tokens, want = nil, 2 // one batch to learn the pool's list, one to read it
 			case "relisted":
-				tokens, want = slices.Clone(listed[1:]), 2 // a stale list is replaced by the pool's
+				tokens, want = slices.Clone(listed[:len(listed)-1]), 2 // the pool appended a token
 			}
 			state, timestamp, err := tracker.readSnapshot(context.Background(), proxy, tokens)
 			require.Equal(t, want, calls.Load())
@@ -377,7 +377,7 @@ func testMulticallReadsSnapshot(t *testing.T, file string) {
 // No token address is compiled into the adapter: the pool's stored multiplier
 // alone decides which listed tokens are share-based.
 func TestShareBasedTokensComeFromStoredMultipliers(t *testing.T) {
-	for _, file := range []string{"execution-model3.json.gz", "deployed-model3.json.gz", "one-block-model3.json.gz", "deployed-stored-multipliers.json.gz"} {
+	for _, file := range []string{"execution-model3.json.gz", "deployed-model3.json.gz", "one-block-model3.json.gz", "deployed-stored-multipliers.json.gz", "deployed-18.json.gz"} {
 		for _, sample := range fixture(t, file).Snapshots {
 			s := stateFrom(t, sample)
 			for i, token := range s.Tokens {

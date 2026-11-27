@@ -11,10 +11,11 @@ The files here are excerpts chosen by `select_fixtures.py`: both directions of a
 stablecoin pair, a cross-category pair, ordinary/share-based pairs and a pair of
 share-based tokens. Each file records the SHA-256 of its source and the original
 case indices. Set `THOGAMM_FIXTURES` to a directory holding the complete sets to
-run the tests against all 61,920 cases.
+run the tests against all 65,592 cases.
 
 | File | Cases | Recorded from |
 | --- | ---: | --- |
+| `deployed-18.json.gz` | 408 | Mainnet block 125783579. Quotes, marginal prices and limits for ANTx against each of the other 17 tokens in both directions. |
 | `deployed-stored-multipliers.json.gz` | 312 | Mainnet block 122916130: 17 tokens, 9 share-based. Read-only quotes, marginal prices and limits. |
 | `execution-model3.json.gz` | 1,692 | Settlement on a local Monad fork: exact-input swaps and ERC-7815 buys, at each gas-price threshold, with and without a warm AuctionHandler, for prices updated in the same and in an earlier block, with unit and non-unit share multipliers. |
 | `one-block-model3.json.gz` | 320 | Mainnet state of block 117211724, quoted one block later, at the maximum price age and at the first block past it. |

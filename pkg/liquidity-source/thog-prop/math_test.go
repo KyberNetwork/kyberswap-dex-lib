@@ -315,3 +315,27 @@ func TestStoredMultiplierSeventeenTokenParity(t *testing.T) {
 	require.Len(t, f.Snapshots[0].ShareBalances, 9)
 	checkReadOnly(t, "deployed-stored-multipliers.json.gz")
 }
+
+func TestANTxContractParity(t *testing.T) {
+	const file = "deployed-18.json.gz"
+	s := stateFrom(t, fixture(t, file).Snapshots[0])
+	require.Len(t, s.Tokens, 18)
+	const antx = 17
+	require.Equal(t, "0x909369940f22dc1c143ac78753a33f41597138b1", s.Tokens[antx].Address)
+	require.True(t, s.shareBased(antx))
+	require.Equal(t, u(0), s.field(tokenField(antx, tokenVolumeRate)))
+
+	sim, err := NewPoolSimulator(entityFrom(t, s))
+	require.NoError(t, err)
+	usdc, stock := s.Tokens[0].Address, s.Tokens[antx].Address
+	for _, route := range []pool.CalcAmountOutParams{
+		{TokenAmountIn: pool.TokenAmount{Token: usdc, Amount: big.NewInt(1_000_000)}, TokenOut: stock},
+		{TokenAmountIn: pool.TokenAmount{Token: stock, Amount: big.NewInt(10_000_000_000_000_000)}, TokenOut: usdc},
+	} {
+		require.Contains(t, sim.CanSwapTo(route.TokenAmountIn.Token), route.TokenOut)
+		out, err := sim.quoteAtCapture(route)
+		require.NoError(t, err)
+		require.Positive(t, out.TokenAmountOut.Amount.Sign())
+	}
+	checkReadOnly(t, file)
+}

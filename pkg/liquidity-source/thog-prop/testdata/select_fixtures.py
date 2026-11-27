@@ -15,7 +15,7 @@ destination = Path(__file__).resolve().parent
 # Both directions: same-category stablecoins, cross-category ordinary tokens,
 # ordinary/xStock, and xStock/xStock. The one-block corpus covers all live pairs.
 pairs = {(0, 1), (1, 0), (0, 7), (7, 0), (0, 8), (8, 0), (8, 9), (9, 8)}
-names = sys.argv[2:] or ['deployed-v8', 'boundaries-v8', 'execution-model3', 'deployed-model3', 'one-block-model3', 'deployed-stored-multipliers']
+names = sys.argv[2:] or ['deployed-v8', 'boundaries-v8', 'execution-model3', 'deployed-model3', 'one-block-model3', 'deployed-stored-multipliers', 'deployed-18']
 for name in names:
     path = source / (name + '.json.gz')
     original = path.read_bytes()
@@ -29,6 +29,8 @@ for name in names:
             # and ordinary-token controls. Keep raw outputs and source indices.
             selected_pairs = {(0, i) for i in range(8, 17)} | {(i, 0) for i in range(8, 17)}
             selected_pairs |= {(0, 1), (1, 0), (0, 4), (4, 0), (13, 14), (14, 13), (15, 16), (16, 15)}
+        if name == 'deployed-18':
+            selected_pairs = {(i, 17) for i in range(17)} | {(17, i) for i in range(17)}
         chosen = {i for i, c in enumerate(cases)
                   if name == 'one-block-model3' or (c['inputIndex'], c['outputIndex']) in selected_pairs}
         if name == 'execution-model3':
