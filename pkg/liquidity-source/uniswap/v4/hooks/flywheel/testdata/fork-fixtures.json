@@ -1,0 +1,673 @@
+{
+  "chainId": 4663,
+  "forkBlock": 89688156,
+  "forkBlockHash": "0x1c18497130627da12ecd16a94a6781405ed6f6e83a747e01bb89a81f3d17d9a0",
+  "upstream": "https://rpc.mainnet.chain.robinhood.com",
+  "mainnetTransactions": 0,
+  "runtimeHashes": {
+    "factory": "0xf13c03e7e89d4e81938fcdc1e326f267a07e134e1acb42edb1a149a6c4cc5ef9",
+    "hook": "0x245c12989e00f00130f20121e29ff62989cfcdd2cf503446ae7652efe730abdb",
+    "manager": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626",
+    "quoter": "0xd707b1da8cb165e5ea35a3b4450d971eb562ec171e23492aa117036b78a868f6",
+    "router": "0x2ce6aaaf9f4151f5e1cbf774668772f17f532ae11b15e9284fd0a072a8b0fbde",
+    "view": "0x7d9c591e0956fd89d98feb4ffcfe8bf1f7a62bd485edd979fa21d104b49878a6"
+  },
+  "factory": "0xF05A26e92E27b8F0385f6895F5507Db26A2F4b8d",
+  "hook": "0x992118dE23b4eBE9F527dacbbb7D8D4bBbf8E044",
+  "manager": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+  "quoter": "0x8dc178efb8111bb0973dd9d722ebeff267c98f94",
+  "router": "0x8876789976decbfcbbbe364623c63652db8c0904",
+  "reads": 1,
+  "fixtures": [
+    {
+      "label": "weth-buy",
+      "pool": {
+        "address": "0x7a05e879037453a4f5f665e00c3fe9f360759b7b2daeff5919a546d6a511c429",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688157,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x311e8e9eadc4719784fd8e62a70b7db9b8cda3f7",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "162537100576177",
+          "99987835624935333307773840909"
+        ],
+        "extra": "{\"liquidity\":365514774916937598336609,\"sqrtPriceX96\":21673138909753097809329891006591776,\"tick\":250397,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":365514774916937598336609,\"liquidityNet\":365514774916937598336609},{\"index\":250400,\"liquidityGross\":365514774916937598336609,\"liquidityNet\":-365514774916937598336609}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "tokenIn": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+      "tokenOut": "0x311e8e9eadc4719784fd8e62a70b7db9b8cda3f7",
+      "amountIn": "1000000000000",
+      "amountOut": "71838188023675785258593",
+      "fee": "2993257834319824385774",
+      "graduatedBefore": false,
+      "graduatedAfter": false,
+      "postPool": {
+        "address": "0x7a05e879037453a4f5f665e00c3fe9f360759b7b2daeff5919a546d6a511c429",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688160,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x311e8e9eadc4719784fd8e62a70b7db9b8cda3f7",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "163537100576177",
+          "99987760793489475312164196542"
+        ],
+        "extra": "{\"liquidity\":365514774916937598336609,\"sqrtPriceX96\":21673122689456791149918220315794537,\"tick\":250397,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":365514774916937598336609,\"liquidityNet\":365514774916937598336609},{\"index\":250400,\"liquidityGross\":365514774916937598336609,\"liquidityNet\":-365514774916937598336609}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "nextAmountOut": "71838080495566574989074",
+      "gasUsed": "211223",
+      "quoterGas": "72477",
+      "afterSwapGas": 32849,
+      "localTransaction": "0x3432bdc29714681b662ccc1ac77211010314983cfeb883aca8dd27c3066b2b60"
+    },
+    {
+      "label": "weth-sell",
+      "pool": {
+        "address": "0x7a05e879037453a4f5f665e00c3fe9f360759b7b2daeff5919a546d6a511c429",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688160,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x311e8e9eadc4719784fd8e62a70b7db9b8cda3f7",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "163537100576177",
+          "99987760793489475312164196542"
+        ],
+        "extra": "{\"liquidity\":365514774916937598336609,\"sqrtPriceX96\":21673122689456791149918220315794537,\"tick\":250397,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":365514774916937598336609,\"liquidityNet\":365514774916937598336609},{\"index\":250400,\"liquidityGross\":365514774916937598336609,\"liquidityNet\":-365514774916937598336609}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "tokenIn": "0x311e8e9eadc4719784fd8e62a70b7db9b8cda3f7",
+      "tokenOut": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+      "amountIn": "35919094011837892629296",
+      "amountOut": "460800179330",
+      "fee": "19200007472",
+      "graduatedBefore": false,
+      "graduatedAfter": false,
+      "postPool": {
+        "address": "0x7a05e879037453a4f5f665e00c3fe9f360759b7b2daeff5919a546d6a511c429",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688163,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x311e8e9eadc4719784fd8e62a70b7db9b8cda3f7",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "163057100389375",
+          "99987796712583487150056825838"
+        ],
+        "extra": "{\"liquidity\":365514774916937598336609,\"sqrtPriceX96\":21673130475199018346435822247305960,\"tick\":250397,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":365514774916937598336609,\"liquidityNet\":365514774916937598336609},{\"index\":250400,\"liquidityGross\":365514774916937598336609,\"liquidityNet\":-365514774916937598336609}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "nextAmountOut": "460799848259",
+      "gasUsed": "197702",
+      "quoterGas": "77510",
+      "afterSwapGas": 37975,
+      "localTransaction": "0x5810c38e694eb9c8d8afb03e81773c295e72ae04979171bd0fb4c58c15ec245e"
+    },
+    {
+      "label": "usdg-buy",
+      "pool": {
+        "address": "0x220266193e3e39f2cea2ed7eba33fabcaad1e419021d1c2699e180b381fa47cd",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688163,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x5af1b667311a94959b17cbf9fd8a65d96cb8cdbb",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+            "decimals": 6,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "99999666675191604322053209481",
+          "10999"
+        ],
+        "extra": "{\"liquidity\":18166104147673631584,\"sqrtPriceX96\":14392718491130712715,\"tick\":-448600,\"tickSpacing\":200,\"ticks\":[{\"index\":-448600,\"liquidityGross\":18166104147673631584,\"liquidityNet\":18166104147673631584},{\"index\":887200,\"liquidityGross\":18166104147673631584,\"liquidityNet\":-18166104147673631584}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "tokenIn": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+      "tokenOut": "0x5af1b667311a94959b17cbf9fd8a65d96cb8cdbb",
+      "amountIn": "1000",
+      "amountOut": "29090059316664864437853",
+      "fee": "1212085804861036018243",
+      "graduatedBefore": false,
+      "graduatedAfter": false,
+      "postPool": {
+        "address": "0x220266193e3e39f2cea2ed7eba33fabcaad1e419021d1c2699e180b381fa47cd",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688166,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x5af1b667311a94959b17cbf9fd8a65d96cb8cdbb",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+            "decimals": 6,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "99999636373046482796152753384",
+          "11999"
+        ],
+        "extra": "{\"liquidity\":18166104147673631584,\"sqrtPriceX96\":14392722852449015759,\"tick\":-448600,\"tickSpacing\":200,\"ticks\":[{\"index\":-448600,\"liquidityGross\":18166104147673631584,\"liquidityNet\":18166104147673631584},{\"index\":887200,\"liquidityGross\":18166104147673631584,\"liquidityNet\":-18166104147673631584}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "nextAmountOut": "29090041686787461766310",
+      "gasUsed": "177402",
+      "quoterGas": "72067",
+      "afterSwapGas": 32957,
+      "localTransaction": "0xf11b261e4d85775b77e706eceaccc8faad511a2e56512e4524c17e6c52264c4c"
+    },
+    {
+      "label": "usdg-sell",
+      "pool": {
+        "address": "0x220266193e3e39f2cea2ed7eba33fabcaad1e419021d1c2699e180b381fa47cd",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688166,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x5af1b667311a94959b17cbf9fd8a65d96cb8cdbb",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+            "decimals": 6,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "99999636373046482796152753384",
+          "11999"
+        ],
+        "extra": "{\"liquidity\":18166104147673631584,\"sqrtPriceX96\":14392722852449015759,\"tick\":-448600,\"tickSpacing\":200,\"ticks\":[{\"index\":-448600,\"liquidityGross\":18166104147673631584,\"liquidityNet\":18166104147673631584},{\"index\":887200,\"liquidityGross\":18166104147673631584,\"liquidityNet\":-18166104147673631584}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "tokenIn": "0x5af1b667311a94959b17cbf9fd8a65d96cb8cdbb",
+      "tokenOut": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+      "amountIn": "14545029658332432218926",
+      "amountOut": "461",
+      "fee": "19",
+      "graduatedBefore": false,
+      "graduatedAfter": false,
+      "postPool": {
+        "address": "0x220266193e3e39f2cea2ed7eba33fabcaad1e419021d1c2699e180b381fa47cd",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688169,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x5af1b667311a94959b17cbf9fd8a65d96cb8cdbb",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+            "decimals": 6,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "99999650918076141122382891828",
+          "11519"
+        ],
+        "extra": "{\"liquidity\":18166104147673631584,\"sqrtPriceX96\":14392720759015900433,\"tick\":-448600,\"tickSpacing\":200,\"ticks\":[{\"index\":-448600,\"liquidityGross\":18166104147673631584,\"liquidityNet\":18166104147673631584},{\"index\":887200,\"liquidityGross\":18166104147673631584,\"liquidityNet\":-18166104147673631584}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "nextAmountOut": "460",
+      "gasUsed": "227397",
+      "quoterGas": "128812",
+      "afterSwapGas": 89306,
+      "localTransaction": "0x75568b37488942912d877c039a93135d65a48a44dcde1a0346c860e3e1df63c4"
+    },
+    {
+      "label": "cashcat-buy",
+      "pool": {
+        "address": "0xba02b2ce5bf13b2c7769ebfb989ccd6f28511d04a2d029abf8d680dcb6b96755",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688169,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x020bfc650a365f8bb26819deaabf3e21291018b4",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x737345a546021b8447af5e3082c10c12a8e2f27a",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "8012820512820512",
+          "99999970488617972728707676625"
+        ],
+        "extra": "{\"liquidity\":52107215881422555491377881,\"sqrtPriceX96\":152048306156355811986773424723120,\"tick\":151199,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":52107215881422555491377881,\"liquidityNet\":52107215881422555491377881},{\"index\":151200,\"liquidityGross\":52107215881422555491377881,\"liquidityNet\":-52107215881422555491377881}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "tokenIn": "0x020bfc650a365f8bb26819deaabf3e21291018b4",
+      "tokenOut": "0x737345a546021b8447af5e3082c10c12a8e2f27a",
+      "amountIn": "100000000000000",
+      "amountOut": "353569860146743517501",
+      "fee": "14732077506114313229",
+      "graduatedBefore": false,
+      "graduatedAfter": false,
+      "postPool": {
+        "address": "0xba02b2ce5bf13b2c7769ebfb989ccd6f28511d04a2d029abf8d680dcb6b96755",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688172,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x020bfc650a365f8bb26819deaabf3e21291018b4",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x737345a546021b8447af5e3082c10c12a8e2f27a",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "8112820512820512",
+          "99999970120316035075849845895"
+        ],
+        "extra": "{\"liquidity\":52107215881422555491377881,\"sqrtPriceX96\":152048305596358788981704646956627,\"tick\":151199,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":52107215881422555491377881,\"liquidityNet\":52107215881422555491377881},{\"index\":151200,\"liquidityGross\":52107215881422555491377881,\"liquidityNet\":-52107215881422555491377881}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "nextAmountOut": "353569857542333466743",
+      "gasUsed": "185503",
+      "quoterGas": "72417",
+      "afterSwapGas": 32849,
+      "localTransaction": "0x54e0db782452cf2f2b30ee54d513a777b270b89f83e7f26f3263cbefc6601450"
+    },
+    {
+      "label": "cashcat-sell",
+      "pool": {
+        "address": "0xba02b2ce5bf13b2c7769ebfb989ccd6f28511d04a2d029abf8d680dcb6b96755",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688172,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x020bfc650a365f8bb26819deaabf3e21291018b4",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x737345a546021b8447af5e3082c10c12a8e2f27a",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "8112820512820512",
+          "99999970120316035075849845895"
+        ],
+        "extra": "{\"liquidity\":52107215881422555491377881,\"sqrtPriceX96\":152048305596358788981704646956627,\"tick\":151199,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":52107215881422555491377881,\"liquidityNet\":52107215881422555491377881},{\"index\":151200,\"liquidityGross\":52107215881422555491377881,\"liquidityNet\":-52107215881422555491377881}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "tokenIn": "0x737345a546021b8447af5e3082c10c12a8e2f27a",
+      "tokenOut": "0x020bfc650a365f8bb26819deaabf3e21291018b4",
+      "amountIn": "176784930073371758750",
+      "amountOut": "46080000088251",
+      "fee": "1920000003677",
+      "graduatedBefore": false,
+      "graduatedAfter": false,
+      "postPool": {
+        "address": "0xba02b2ce5bf13b2c7769ebfb989ccd6f28511d04a2d029abf8d680dcb6b96755",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688175,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x020bfc650a365f8bb26819deaabf3e21291018b4",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0x737345a546021b8447af5e3082c10c12a8e2f27a",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "8064820512728584",
+          "99999970297100965149221604645"
+        ],
+        "extra": "{\"liquidity\":52107215881422555491377881,\"sqrtPriceX96\":152048305865157360024137660283503,\"tick\":151199,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":52107215881422555491377881,\"liquidityNet\":52107215881422555491377881},{\"index\":151200,\"liquidityGross\":52107215881422555491377881,\"liquidityNet\":-52107215881422555491377881}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "nextAmountOut": "46079999925326",
+      "gasUsed": "241934",
+      "quoterGas": "128714",
+      "afterSwapGas": 89275,
+      "localTransaction": "0x9c94556d31589bc445d7236284736a3c18d721f334619885df0e19abdf90db4f"
+    },
+    {
+      "label": "first-buy",
+      "pool": {
+        "address": "0xf8b6532690434c505d814fb34e136c0801f14ee8733b670c8bfabb73ac665781",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688176,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "0",
+          "99999999999999999999999784154"
+        ],
+        "extra": "{\"liquidity\":0,\"sqrtPriceX96\":24932902260564625575815087136221213,\"tick\":253200,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":317765503936444470252381},{\"index\":253200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":-317765503936444470252381}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "tokenIn": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+      "tokenOut": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+      "amountIn": "1000000000000",
+      "amountOut": "95073023294185554073581",
+      "fee": "3961375970591064753065",
+      "graduatedBefore": false,
+      "graduatedAfter": false,
+      "postPool": {
+        "address": "0xf8b6532690434c505d814fb34e136c0801f14ee8733b670c8bfabb73ac665781",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688179,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "999999999999",
+          "99999900965600735223380957507"
+        ],
+        "extra": "{\"liquidity\":317765503936444470252381,\"sqrtPriceX96\":24932877568414652551728560651796128,\"tick\":253199,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":317765503936444470252381},{\"index\":253200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":-317765503936444470252381}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "nextAmountOut": "95072834984377081045555",
+      "gasUsed": "264773",
+      "quoterGas": "105328",
+      "afterSwapGas": 32913,
+      "localTransaction": "0xb4b6fef9dc5a8a09b8f0ac02fcc51a65d0c3646d8868e4d5035c8985b16f5920"
+    },
+    {
+      "label": "single-buy-graduation",
+      "pool": {
+        "address": "0xf8b6532690434c505d814fb34e136c0801f14ee8733b670c8bfabb73ac665781",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688179,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "999999999999",
+          "99999900965600735223380957507"
+        ],
+        "extra": "{\"liquidity\":317765503936444470252381,\"sqrtPriceX96\":24932877568414652551728560651796128,\"tick\":253199,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":317765503936444470252381},{\"index\":253200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":-317765503936444470252381}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "tokenIn": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+      "tokenOut": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+      "amountIn": "4000000000000000000",
+      "amountOut": "76650453182939672697321115348",
+      "fee": "3193768882622486362388379806",
+      "graduatedBefore": false,
+      "graduatedAfter": true,
+      "postPool": {
+        "address": "0xf8b6532690434c505d814fb34e136c0801f14ee8733b670c8bfabb73ac665781",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688182,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "4000000999999999999",
+          "20155678900038576163671462353"
+        ],
+        "extra": "{\"liquidity\":317765503936444470252381,\"sqrtPriceX96\":5025395720099865415232660456847532,\"tick\":221164,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":317765503936444470252381},{\"index\":253200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":-317765503936444470252381}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "nextAmountOut": "8590449862129042718221395528",
+      "gasUsed": "198833",
+      "quoterGas": "77152",
+      "afterSwapGas": 38437,
+      "localTransaction": "0x32e47c63454ce72b7344c4e01b78261ed03f8b3e2a93255eec828509b3f5b806"
+    },
+    {
+      "label": "graduated-sell",
+      "pool": {
+        "address": "0xf8b6532690434c505d814fb34e136c0801f14ee8733b670c8bfabb73ac665781",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688182,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "4000000999999999999",
+          "20155678900038576163671462353"
+        ],
+        "extra": "{\"liquidity\":317765503936444470252381,\"sqrtPriceX96\":5025395720099865415232660456847532,\"tick\":221164,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":317765503936444470252381},{\"index\":253200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":-317765503936444470252381}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "tokenIn": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+      "tokenOut": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+      "amountIn": "7665045318293967269732111534",
+      "amountOut": "1325054056920180531",
+      "fee": "55210585705007522",
+      "graduatedBefore": true,
+      "graduatedAfter": true,
+      "postPool": {
+        "address": "0xf8b6532690434c505d814fb34e136c0801f14ee8733b670c8bfabb73ac665781",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688185,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "2619736357374811946",
+          "27820724218332543433403573887"
+        ],
+        "extra": "{\"liquidity\":317765503936444470252381,\"sqrtPriceX96\":6936513977538084980336266875362308,\"tick\":227610,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":317765503936444470252381},{\"index\":253200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":-317765503936444470252381}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "nextAmountOut": "752621809959924540",
+      "gasUsed": "222991",
+      "quoterGas": "102752",
+      "afterSwapGas": 63153,
+      "localTransaction": "0xb4c49f5835a60e626efd59d897b0498390b9b826d346da2570bd52edbbb2a4d1"
+    },
+    {
+      "label": "graduated-buy",
+      "pool": {
+        "address": "0xf8b6532690434c505d814fb34e136c0801f14ee8733b670c8bfabb73ac665781",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688185,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "2619736357374811946",
+          "27820724218332543433403573887"
+        ],
+        "extra": "{\"liquidity\":317765503936444470252381,\"sqrtPriceX96\":6936513977538084980336266875362308,\"tick\":227610,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":317765503936444470252381},{\"index\":253200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":-317765503936444470252381}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "tokenIn": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+      "tokenOut": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+      "amountIn": "10000000000000000",
+      "amountOut": "73383710855220148488870762",
+      "fee": "3057654618967506187036281",
+      "graduatedBefore": true,
+      "graduatedAfter": true,
+      "postPool": {
+        "address": "0xf8b6532690434c505d814fb34e136c0801f14ee8733b670c8bfabb73ac665781",
+        "type": "uniswap-v4",
+        "exchange": "uniswap-v4",
+        "blockNumber": 89688188,
+        "swapFee": 0,
+        "tokens": [
+          {
+            "address": "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+            "decimals": 18,
+            "swappable": true
+          },
+          {
+            "address": "0xddfe12e5c09eae9c7756a49f021c648c2a4bdeb0",
+            "decimals": 18,
+            "swappable": true
+          }
+        ],
+        "reserves": [
+          "2629736357374811946",
+          "27744282852858355778727666844"
+        ],
+        "extra": "{\"liquidity\":317765503936444470252381,\"sqrtPriceX96\":6917454926597764779366967067326623,\"tick\":227555,\"tickSpacing\":200,\"ticks\":[{\"index\":-887200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":317765503936444470252381},{\"index\":253200,\"liquidityGross\":317765503936444470252381,\"liquidityNet\":-317765503936444470252381}]}",
+        "staticExtra": "{\"0x0\":[false,false],\"fee\":0,\"tS\":200,\"hooks\":\"0x992118de23b4ebe9f527dacbbb7d8d4bbbf8e044\",\"uR\":\"0x8876789976decbfcbbbe364623c63652db8c0904\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"}"
+      },
+      "nextAmountOut": "72981551643418922962296455",
+      "gasUsed": "185148",
+      "quoterGas": "63491",
+      "afterSwapGas": 23827,
+      "localTransaction": "0x31554610a816f85ac87954fa13d6050920f79e788379c58f0ba8ed9ea61c9f16"
+    }
+  ]
+}
