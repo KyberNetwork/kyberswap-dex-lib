@@ -43,8 +43,9 @@ const stubBlockTimestamp = 1_795_000_000
 
 var timestampReads atomic.Int64
 
-// failTimestampReads makes the stub's block timestamp reads outside the batch return an RPC error.
-var failTimestampReads atomic.Bool
+// failTimestampReads makes the stub's block timestamp reads outside the batch return an RPC error, and
+// failBatchTimestamp makes the one inside the batch revert (a chain without the multicall at that address).
+var failTimestampReads, failBatchTimestamp atomic.Bool
 
 type multicallResult struct {
 	Success    bool
@@ -101,6 +102,10 @@ func poolServer(t *testing.T, value func(method string) any, reverts ...string) 
 		results := make([]multicallResult, len(calls))
 		for i, c := range calls {
 			if ts := abi.Multicall3ABI.Methods["getCurrentBlockTimestamp"]; bytes.Equal(c.CallData[:4], ts.ID) {
+				if failBatchTimestamp.Load() {
+					results[i] = multicallResult{}
+					continue
+				}
 				out, err := ts.Outputs.Pack(big.NewInt(stubBlockTimestamp))
 				require.NoError(t, err)
 				results[i] = multicallResult{Success: true, ReturnData: out}
@@ -707,10 +712,11 @@ func TestPoolTrackers_ReadTheBlockTimestampInTheBatch(t *testing.T) {
 	}
 	timestampReads.Store(0)
 	for name, tr := range trackers(t, srv.URL) {
-		t.Run("no multicall/"+name, func(t *testing.T) {
+		t.Run("no multicall_address/"+name, func(t *testing.T) {
 			before := timestampReads.Load()
-			track(t, tr)
-			assert.Equal(t, before+1, timestampReads.Load(), "one read pinned to the batch's block")
+			extra, _, _, _ := track(t, tr)
+			assert.EqualValues(t, stubBlockTimestamp, extra.PriceOracleTimestamp)
+			assert.Equal(t, before, timestampReads.Load(), "the canonical Multicall3 in the batch: no read outside it")
 		})
 	}
 }
@@ -721,7 +727,9 @@ func TestPoolTrackers_FailedBlockTimestampReadSkipsTheCarry(t *testing.T) {
 	srv := poolServer(t, viewValues(packedRebalancingParams(1e8, 1e11, 866)))
 	defer srv.Close()
 	failTimestampReads.Store(true)
+	failBatchTimestamp.Store(true)
 	defer failTimestampReads.Store(false)
+	defer failBatchTimestamp.Store(false)
 	for name, tr := range trackers(t, srv.URL) {
 		t.Run(name, func(t *testing.T) {
 			before := timestampReads.Load()
@@ -731,6 +739,22 @@ func TestPoolTrackers_FailedBlockTimestampReadSkipsTheCarry(t *testing.T) {
 			assert.Nil(t, extra.MaTime)
 			assert.Equal(t, uint64(12), got.BlockNumber)
 			assert.Equal(t, uint64(1e18), extra.AllowedExtraProfit.Uint64(), "the rest of the refresh is kept")
+		})
+	}
+}
+
+// When the batch's timestamp call reverts (no Multicall3 at the canonical address), it is read once at the block.
+func TestPoolTrackers_BatchTimestampRevertFallsBackToOneRead(t *testing.T) {
+	srv := poolServer(t, viewValues(packedRebalancingParams(1e8, 1e11, 866)))
+	defer srv.Close()
+	failBatchTimestamp.Store(true)
+	defer failBatchTimestamp.Store(false)
+	for name, tr := range trackers(t, srv.URL) {
+		t.Run(name, func(t *testing.T) {
+			before := timestampReads.Load()
+			extra, _, _, _ := track(t, tr)
+			assert.EqualValues(t, stubBlockTimestamp, extra.PriceOracleTimestamp)
+			assert.Equal(t, before+1, timestampReads.Load(), "one read pinned to the batch's block")
 		})
 	}
 }
