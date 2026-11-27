@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
@@ -13,22 +14,23 @@ import (
 )
 
 func TestProductionHookFactoryLookup(t *testing.T) {
+	address := productionHookAddress
 	raw, err := json.Marshal(Snapshot{State: fixtureState(), BlockNumber: 123})
 	require.NoError(t, err)
-	hook, ok := uniswapv4.GetHook(productionHookAddress, &uniswapv4.HookParam{
+	hook, ok := uniswapv4.GetHook(address, &uniswapv4.HookParam{
 		Cfg: &uniswapv4.Config{ChainID: valueobject.ChainIDMonad}, HookExtra: raw,
 	})
 	require.True(t, ok)
 	h, ok := hook.(*Hook)
 	require.True(t, ok)
-	require.Equal(t, productionHookAddress, h.address)
+	require.Equal(t, address, h.address)
 	require.Equal(t, valueobject.ExchangeUniswapV4TickerDualPool, h.GetExchange())
 	require.True(t, h.AllowEmptyTicks())
 	result, err := h.BeforeSwap(&uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1001)})
 	require.NoError(t, err)
 	require.Equal(t, "984", result.SwapInfo.(Quote).NetOutput.Dec())
 
-	malformed, ok := uniswapv4.GetHook(productionHookAddress, &uniswapv4.HookParam{
+	malformed, ok := uniswapv4.GetHook(address, &uniswapv4.HookParam{
 		Cfg: &uniswapv4.Config{ChainID: valueobject.ChainIDMonad}, HookExtra: []byte("{"),
 	})
 	require.True(t, ok)
@@ -48,4 +50,9 @@ func TestProductionHookRejectsMissingOrWrongChain(t *testing.T) {
 		_, err = hook.Track(context.Background(), params)
 		require.ErrorIs(t, err, ErrInvalidState, "reject unsupported chain before any RPC")
 	}
+}
+
+func TestLegacyHookIsNotRegistered(t *testing.T) {
+	_, ok := uniswapv4.GetHook(common.HexToAddress("0x047ea2f55148b7601fdde0d28588b55c09192ac4"), &uniswapv4.HookParam{})
+	require.False(t, ok)
 }

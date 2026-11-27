@@ -18,16 +18,7 @@ import (
 
 func localSimulator(t *testing.T, snapshots ...Snapshot) *uniswapv4.PoolSimulator {
 	t.Helper()
-	address := common.HexToAddress("0x0000000000000000000000000000000000012ac4")
-	previous, exists := uniswapv4.HookFactories[address]
-	uniswapv4.RegisterHooksFactory(NewHook, address)
-	t.Cleanup(func() {
-		if exists {
-			uniswapv4.HookFactories[address] = previous
-		} else {
-			delete(uniswapv4.HookFactories, address)
-		}
-	})
+	address := productionHookAddress
 	seed := Snapshot{State: fixtureState(), BlockNumber: 1}
 	if len(snapshots) > 0 {
 		seed = snapshots[0]
@@ -112,7 +103,7 @@ func TestMalformedSnapshotRemainsRejectedAfterMsgpack(t *testing.T) {
 		raw, err := json.Marshal(Snapshot{State: fixtureState(), BlockNumber: 1})
 		require.NoError(t, err)
 		raw = append(raw[:len(raw)-1], []byte(malformed)...)
-		h := NewHook(&uniswapv4.HookParam{HookExtra: raw}).(*Hook)
+		h := NewHook(&uniswapv4.HookParam{HookAddress: productionHookAddress, Cfg: &uniswapv4.Config{ChainID: valueobject.ChainIDMonad}, HookExtra: raw}).(*Hook)
 		params := &uniswapv4.BeforeSwapParams{CalcOut: true, ZeroForOne: true, AmountSpecified: big.NewInt(1001)}
 		_, err = h.BeforeSwap(params)
 		require.Error(t, err)

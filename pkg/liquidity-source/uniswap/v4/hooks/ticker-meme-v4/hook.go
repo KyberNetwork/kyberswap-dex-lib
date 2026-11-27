@@ -1,4 +1,4 @@
-// Package tickermemev4 registers Ticker's proxy with the existing Pons fee handler.
+// Package tickermemev4 registers Ticker's immutable Monad deployment with the existing Pons fee handler.
 package tickermemev4
 
 import (
