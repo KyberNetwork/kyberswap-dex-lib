@@ -225,6 +225,14 @@ type HookFactory func(param *HookParam) Hook
 
 var HookFactories = map[common.Address]HookFactory{}
 
+// deniedHooks are never quoted, even by the fallback factory: GetHook reports them
+// unsupported, so their swap-permission pools fail with shared.ErrUnsupportedHook.
+var deniedHooks = map[common.Address]struct{}{
+	// Few v2 shell hooks (ethereum)
+	common.HexToAddress("0xbebc5239e446bc78b46654ad943b0fc19a31e088"): {},
+	common.HexToAddress("0xb39aa0fea3d8940c1106059460934ccfb0212088"): {},
+}
+
 // fallbackHookFactory is called when a hook address is not in HookFactories.
 // It is set by SetFallbackHookFactory (typically from the auto package init).
 var fallbackHookFactory HookFactory
@@ -256,6 +264,9 @@ func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) 
 		param = &HookParam{}
 	}
 	param.HookAddress = hookAddress
+	if _, denied := deniedHooks[hookAddress]; denied {
+		return (*BaseHook)(nil), false
+	}
 	hookFactory, ok := HookFactories[hookAddress]
 	if ok && hookFactory != nil {
 		hook = hookFactory(param)
