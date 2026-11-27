@@ -366,6 +366,7 @@ const (
 	ExchangeUniswapV4GlueHook           = "uniswap-v4-gluehook"
 	ExchangeUniswapV4HyFiProp           = "uniswap-v4-hyfiprop"
 	ExchangeUniswapV4Inverse            = "uniswap-v4-inverse"
+	ExchangeUniswapV4Kalos              = "uniswap-v4-kalos"
 	ExchangeUniswapV4Kem                = "uniswap-v4-kem"
 	ExchangeUniswapV4Livo               = "uniswap-v4-livo"
 	ExchangeUniswapV4LotFlow            = "uniswap-v4-lotflow"

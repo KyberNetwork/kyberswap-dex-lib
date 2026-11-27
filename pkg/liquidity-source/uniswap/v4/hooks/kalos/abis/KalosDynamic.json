@@ -1,0 +1,74 @@
+[
+  {
+    "type": "function",
+    "name": "featuresOff",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
+  {
+    "type": "function",
+    "name": "poolConfig",
+    "stateMutability": "view",
+    "inputs": [{ "name": "id", "type": "bytes32" }],
+    "outputs": [
+      { "name": "registered", "type": "bool" },
+      { "name": "kind", "type": "uint8" },
+      { "name": "feeSide", "type": "uint8" },
+      { "name": "preset", "type": "uint8" },
+      { "name": "kalosShareBps", "type": "uint16" },
+      { "name": "launchToken", "type": "address" },
+      { "name": "bookFrozen", "type": "bool" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "feeParams",
+    "stateMutability": "view",
+    "inputs": [{ "name": "id", "type": "bytes32" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          { "name": "minFeeZeroForOne", "type": "uint24" },
+          { "name": "maxFeeZeroForOne", "type": "uint24" },
+          { "name": "minFeeOneForZero", "type": "uint24" },
+          { "name": "maxFeeOneForZero", "type": "uint24" },
+          { "name": "dynamic", "type": "bool" },
+          { "name": "directional", "type": "bool" },
+          { "name": "filterPeriod", "type": "uint16" },
+          { "name": "decayPeriod", "type": "uint16" },
+          { "name": "reductionFactor", "type": "uint16" },
+          { "name": "variableFeeControl", "type": "uint24" },
+          { "name": "maxVolatilityAccumulator", "type": "uint24" },
+          { "name": "resetPeriod", "type": "uint16" },
+          { "name": "resetTickFilter", "type": "uint24" },
+          { "name": "sameMomentSeconds", "type": "uint8" }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "feeState",
+    "stateMutability": "view",
+    "inputs": [{ "name": "id", "type": "bytes32" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          { "name": "referenceTick", "type": "int24" },
+          { "name": "lastTick", "type": "int24" },
+          { "name": "peak", "type": "int24" },
+          { "name": "volatilityReference", "type": "uint24" },
+          { "name": "lastSwap", "type": "uint40" },
+          { "name": "resetTime", "type": "uint40" },
+          { "name": "moveTime", "type": "uint40" },
+          { "name": "peakTime", "type": "uint40" }
+        ]
+      }
+    ]
+  }
+]

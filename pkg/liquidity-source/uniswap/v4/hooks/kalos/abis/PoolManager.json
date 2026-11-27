@@ -1,0 +1,9 @@
+[
+  {
+    "type": "function",
+    "name": "extsload",
+    "stateMutability": "view",
+    "inputs": [{ "name": "slot", "type": "bytes32" }],
+    "outputs": [{ "name": "", "type": "bytes32" }]
+  }
+]
