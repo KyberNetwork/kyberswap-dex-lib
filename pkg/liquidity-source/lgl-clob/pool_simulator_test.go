@@ -760,3 +760,61 @@ func TestPoolSimulator_SharedMakerLimit(t *testing.T) {
 	// A pool without a market maker is not limited by one.
 	assert.NoError(t, sell(plain, "12000000000000000000000"))
 }
+
+// TestPoolSimulator_QuotesTheFill sells 33028 cbBTC sats to monad's cbBTC/WMON
+// pool at block 125910244, as Lens read it in testdata/lens_monad_book.hex. On
+// chain that sell fills at the quoter's best bid of 5867660 for
+// 1937776947720000000000 WMON, where the book's own best bid of 5885320 would
+// quote 1943609109251040000000, 0.3% more than the pool pays. Monad is
+// configured as QuoterFills, so the tracker keeps the quoter's book.
+func TestPoolSimulator_QuotesTheFill(t *testing.T) {
+	t.Parallel()
+
+	state, err := decodeState(loadLensAnswer(t, "testdata/lens_monad_book.hex"))
+	require.NoError(t, err)
+	book := state.quoterBook()
+	extra, err := json.Marshal(Extra{OrderBook: book})
+	require.NoError(t, err)
+	// The reserves are what the tracker sums of the book.
+	var reserveX, reserveY uint256.Int
+	for i, shares := range book.Bids.ArrayShares {
+		reserveY.Add(&reserveY, new(uint256.Int).Mul(shares, book.Bids.ArrayPrices[i]))
+	}
+	for _, shares := range book.Asks.ArrayShares {
+		reserveX.Add(&reserveX, shares)
+	}
+	reserveY.Mul(&reserveY, uint256.NewInt(1e10))
+
+	const cbBTC, wmon = "0xd18b7ec58cdf4876f6afebd3ed1730e4ce10414b", "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"
+	sim, err := NewPoolSimulator(entity.Pool{
+		Address:     "0x012e06b56eee881603e47748931dc38efabf54ef",
+		Exchange:    valueobject.ExchangeHanji,
+		Type:        DexType,
+		SwapFee:     0.0001,
+		Reserves:    entity.PoolReserves{reserveX.Dec(), reserveY.Dec()},
+		Tokens:      []*entity.PoolToken{{Address: cbBTC, Decimals: 8}, {Address: wmon, Decimals: 18}},
+		Extra:       string(extra),
+		StaticExtra: `{"sX":"1","sY":"10000000000","n":true}`,
+	})
+	require.NoError(t, err)
+
+	res, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: cbBTC, Amount: big.NewInt(33028)},
+		TokenOut:      wmon,
+	})
+	require.NoError(t, err)
+	// The pool rounds its fee up in units of 1e10 WMON wei, so the fill is at most one of them below the quote.
+	filled := bignumber.NewBig10("1937776947720000000000")
+	over := new(big.Int).Sub(res.TokenAmountOut.Amount, filled)
+	assert.True(t, over.Sign() >= 0 && over.Cmp(big.NewInt(1e10)) < 0, "quoted %s, filled %s",
+		res.TokenAmountOut.Amount, filled)
+
+	// The deepest bid rests at 1, and the pool rejects a sell's price limit of 0.
+	assert.Equal(t, uint64(1), res.SwapInfo.(SwapInfo).PriceLimit.Uint64())
+	in, err := sim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{Token: wmon, Amount: filled},
+		TokenIn:        cbBTC,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, uint64(1), in.SwapInfo.(SwapInfo).PriceLimit.Uint64())
+}

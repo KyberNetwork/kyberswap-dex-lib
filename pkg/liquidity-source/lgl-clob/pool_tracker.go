@@ -55,8 +55,13 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	book := state.book
+	if t.config.QuoterFills {
+		book = state.quoterBook()
+	}
+
 	// The market maker and its quote are measured now and then, and kept in between.
-	extra := Extra{OrderBook: state.book, MakerQuoteGas: last.MakerQuoteGas, MeasuredAt: last.MeasuredAt,
+	extra := Extra{OrderBook: book, MakerQuoteGas: last.MakerQuoteGas, MeasuredAt: last.MeasuredAt,
 		Maker: last.Maker}
 	if measure {
 		extra.MakerQuoteGas, extra.MeasuredAt, extra.Maker = state.makerQuoteGas(), now.Unix(), ""
@@ -83,11 +88,11 @@ func (t *PoolTracker) GetNewPoolState(
 	var staticExtra StaticExtra
 	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 	var reserveX, reserveY uint256.Int
-	for i, share := range state.book.Bids.ArrayShares {
-		reserveY.Add(&reserveY, reserveX.Mul(share, state.book.Bids.ArrayPrices[i]))
+	for i, share := range book.Bids.ArrayShares {
+		reserveY.Add(&reserveY, reserveX.Mul(share, book.Bids.ArrayPrices[i]))
 	}
 	reserveX.Clear()
-	for _, share := range state.book.Asks.ArrayShares {
+	for _, share := range book.Asks.ArrayShares {
 		reserveX.Add(&reserveX, share)
 	}
 

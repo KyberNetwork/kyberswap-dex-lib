@@ -10,8 +10,14 @@ pragma solidity 0.8.25;
 /// The state is packed, in this order, the tag "Lens", the block number in 8 bytes, 1 when the pool has a market
 /// maker, then for a sell at one level, a sell at two, a buy at one and a buy at two the quote's gas in 4 bytes and
 /// the levels it quoted in 1, zero for a quote not made or that failed, then the bids and the asks, each a byte
-/// counting its levels followed by every level's price in 9 bytes and shares in 16. A revert without data means the
-/// book could not be read.
+/// counting its levels followed by every level's price in 9 bytes and shares in 16, then a byte, 1 when the pool
+/// quotes its market maker through a quoter, followed by what the market maker quotes and then what the quoter quotes,
+/// each of the bids and then the asks for any quantity, as a side is packed or the byte 0xff alone for a quote that
+/// failed, and 0 followed by nothing for a pool without one. A revert without data means the book could not be read.
+///
+/// The book shows the market maker's own quote. Where a pool with a quoter has the quoter price the levels the market
+/// maker posts for an order, an order fills what the quoter quotes, and elsewhere it fills the book. The quotes are
+/// read last, in place.
 ///
 /// The book is read in a probe that reverts, so the storage it warms is cold again for the market maker's quotes,
 /// as it is for a real order. Each side is quoted at half its first level, and at its first level and half its
@@ -60,6 +66,69 @@ contract Lens {
                 length := sub(cursor, dst)
             }
 
+            // The word target answers selector with, and whether it answered one.
+            function word(target, selector) -> ok, value {
+                mstore(0, shl(224, selector))
+                ok := staticcall(gas(), target, 0, 4, 0, 32)
+                ok := and(ok, eq(returndatasize(), 32))
+                value := mload(0)
+            }
+
+            // Packs at cursor the levels target quotes for a side of market at any quantity, as readBook packs a side,
+            // or the byte 0xff alone when the quote fails or answers otherwise, and returns where it ended. The quote
+            // is called from past cursor, and answers abi.encode(uint256[] prices, uint256[] shares).
+            function packQuote(target, market, buy, cursor) -> next {
+                let buf := add(cursor, 32)
+                mstore(buf, shl(224, 0x24675a09))
+                mstore(add(buf, 4), market)
+                mstore(add(buf, 36), buy)
+                mstore(add(buf, 68), 0xffffffffffffffffffffffffffffffff)
+                mstore(add(buf, 100), 0xffffffffffffffffffffffffffffffff)
+                mstore(add(buf, 132), 1)
+                if buy { mstore(add(buf, 132), 0xffffffffffffffffff) }
+                mstore8(cursor, 0xff)
+                next := add(cursor, 1)
+                if iszero(staticcall(gas(), target, buf, 164, 0, 0)) { leave }
+                let size := returndatasize()
+                if lt(size, 128) { leave }
+                returndatacopy(0, 0, 64)
+                let prices := mload(0)
+                let shares := mload(32)
+                if or(gt(prices, sub(size, 32)), gt(shares, sub(size, 32))) { leave }
+                returndatacopy(0, prices, 32)
+                let n := mload(0)
+                returndatacopy(0, shares, 32)
+                if or(gt(n, 254), iszero(eq(n, mload(0)))) { leave }
+                let end := mul(add(n, 1), 32)
+                if or(gt(add(prices, end), size), gt(add(shares, end), size)) { leave }
+                mstore8(cursor, n)
+                for { let i := 0 } lt(i, n) { i := add(i, 1) } {
+                    let at := add(32, mul(i, 32))
+                    returndatacopy(0, add(prices, at), 32)
+                    mstore(next, shl(184, mload(0)))
+                    returndatacopy(0, add(shares, at), 32)
+                    mstore(add(next, 9), shl(128, mload(0)))
+                    next := add(next, 25)
+                }
+            }
+
+            // Packs at cursor whether pool quotes its market maker through a quoter and, when it does, what each of
+            // them quotes, and returns where it ended.
+            function readQuotes(p, cursor) -> next {
+                mstore8(cursor, 0)
+                next := add(cursor, 1)
+                let quoterOk, quoter := word(p, 0xf8bed25f)
+                if iszero(and(quoterOk, iszero(iszero(quoter)))) { leave }
+                let marketOk, market := word(p, 0xb6903418)
+                let makerOk, maker := word(p, 0x938c5132)
+                if iszero(and(marketOk, makerOk)) { leave }
+                mstore8(cursor, 1)
+                next := packQuote(maker, market, 0, next)
+                next := packQuote(maker, market, 1, next)
+                next := packQuote(quoter, market, 0, next)
+                next := packQuote(quoter, market, 1, next)
+            }
+
             // Runs the probe with its five arguments, and leaves what it reverted with as return data.
             function run(c, cLen, at, a0, a1, a2, a3, a4) {
                 mstore(at, a0)
@@ -80,7 +149,7 @@ contract Lens {
             if iszero(mload(add(args, 96))) {
                 // The arguments are read, so their memory holds the helper's calls.
                 let bookLen := readBook(helper, pool, mload(add(args, 64)), args, add(out, 33))
-                revert(out, add(33, bookLen))
+                revert(out, sub(readQuotes(pool, add(add(out, 33), bookLen)), out))
             }
 
             run(code, codeLen, probeArgs, pool, helper, mload(add(args, 64)), 0, 0)
@@ -137,7 +206,7 @@ contract Lens {
 
             // The book follows the header, copied last as the header's 32-byte writes reach past it.
             for { let i := 0 } lt(i, bookLen) { i := add(i, 32) } { mstore(add(add(out, 33), i), mload(add(book, i))) }
-            revert(out, add(33, bookLen))
+            revert(out, sub(readQuotes(pool, add(add(out, 33), bookLen)), out))
         }
     }
 }
