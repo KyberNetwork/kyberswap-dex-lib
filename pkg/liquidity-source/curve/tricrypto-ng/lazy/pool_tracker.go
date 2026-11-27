@@ -154,13 +154,13 @@ func buildPoolState(ctx context.Context, t *PoolTracker, lg logger.Logger, p ent
 	now := time.Now().Unix()
 	if d.rebalancingParams != nil {
 		if maTime := tricryptong.MaTimeFromRebalancingParams(d.rebalancingParams); !maTime.IsZero() {
-			readAt, err := shared.BlockTimestamp(ctx, t.ethrpcClient, overrides, block, d.blockTimestamp)
-			if err != nil {
-				lg.WithFields(logger.Fields{"error": err}).Error("failed to read the block timestamp")
-				return entity.Pool{}, err
+			// A failed read skips the oracle carry (no stamp, no MaTime) rather than the refresh.
+			if readAt, err := shared.BlockTimestamp(ctx, t.ethrpcClient, overrides, block, d.blockTimestamp); err != nil {
+				lg.WithFields(logger.Fields{"error": err}).Warn("failed to read the block timestamp, oracle carry skipped")
+			} else {
+				extra.MaTime = maTime
+				extra.PriceOracleTimestamp = readAt
 			}
-			extra.MaTime = maTime
-			extra.PriceOracleTimestamp = readAt
 		}
 	}
 	extra.PriceScale = make([]uint256.Int, len(d.priceScales))

@@ -43,6 +43,9 @@ const stubBlockTimestamp = 1_795_000_000
 
 var timestampReads atomic.Int64
 
+// failTimestampReads makes the stub's block timestamp reads outside the batch return an RPC error.
+var failTimestampReads atomic.Bool
+
 type multicallResult struct {
 	Success    bool
 	ReturnData []byte
@@ -79,6 +82,11 @@ func poolServer(t *testing.T, value func(method string) any, reverts ...string) 
 			require.NoError(t, json.Unmarshal(req.Params[1], &tag))
 			require.Equal(t, "0xc", tag, "the block timestamp is read at the batch's block")
 			timestampReads.Add(1)
+			if failTimestampReads.Load() {
+				_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID,
+					"error": map[string]any{"code": -32000, "message": "header not found"}})
+				return
+			}
 			out, err := ts.Outputs.Pack(big.NewInt(stubBlockTimestamp))
 			require.NoError(t, err)
 			_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": req.ID, "result": hexutil.Encode(out)})
@@ -703,6 +711,26 @@ func TestPoolTrackers_ReadTheBlockTimestampInTheBatch(t *testing.T) {
 			before := timestampReads.Load()
 			track(t, tr)
 			assert.Equal(t, before+1, timestampReads.Load(), "one read pinned to the batch's block")
+		})
+	}
+}
+
+// A failed block timestamp read outside the batch does not fail the refresh: the pool keeps its fresh state and
+// the oracle carry is skipped (no stamp, no MaTime), as before the stamp was read.
+func TestPoolTrackers_FailedBlockTimestampReadSkipsTheCarry(t *testing.T) {
+	srv := poolServer(t, viewValues(packedRebalancingParams(1e8, 1e11, 866)))
+	defer srv.Close()
+	failTimestampReads.Store(true)
+	defer failTimestampReads.Store(false)
+	for name, tr := range trackers(t, srv.URL) {
+		t.Run(name, func(t *testing.T) {
+			before := timestampReads.Load()
+			extra, got, _, _ := track(t, tr)
+			assert.Equal(t, before+1, timestampReads.Load(), "the read was tried")
+			assert.Zero(t, extra.PriceOracleTimestamp)
+			assert.Nil(t, extra.MaTime)
+			assert.Equal(t, uint64(12), got.BlockNumber)
+			assert.Equal(t, uint64(1e18), extra.AllowedExtraProfit.Uint64(), "the rest of the refresh is kept")
 		})
 	}
 }
