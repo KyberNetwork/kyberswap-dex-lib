@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -93,6 +94,20 @@ func (h *Hook) AllowEmptyTicks() bool { return true }
 
 // TracksActivity: hX holds only chain state, so a change bumps Timestamp and BlockNumber.
 func (h *Hook) TracksActivity() {}
+
+// LivenessInterval makes the tracker stamp Extra "lv" with the time it last read the state: when the state changed,
+// or when an unchanged state has stood trackInterval. "lv" lives outside hX, so hX keeps only chain state (see
+// TracksActivity), and a quiet pool keeps identical Extra bytes between two stamps. NextTrackAt reads that stamp.
+func (h *Hook) LivenessInterval() time.Duration { return trackInterval }
+
+// NextTrackAt is the unix time the pool is tracked again with no event: one trackInterval after the last read, which
+// "lv" holds (param.TrackedAt). The pair, the PoolManager's balances and the wrappers' backing move with trades that
+// emit no event for the v4 pool, so without it a shell pool, which pool-service drops from the schedule while this
+// returns 0, would wait for the next PoolManager event. A pool with no "lv" yet returns trackInterval seconds, a time
+// long past, so it is tracked at once and then stamped. No RPC.
+func (h *Hook) NextTrackAt(param *uniswapv4.HookParam) int64 {
+	return param.TrackedAt + int64(trackInterval/time.Second)
+}
 
 // SqrtPriceLimit is the widest limit a router can pass. The hook rejects limit >= the FewV2 pair's price for
 // zeroForOne (limit <= for oneForZero) and limit <= MIN_SQRT_PRICE (limit >= MAX), then checks the pair's price after
@@ -324,4 +339,7 @@ func direction(zeroForOne bool) int {
 }
 
 var _ uniswapv4.Hook = (*Hook)(nil)
+var _ uniswapv4.HookWithSchedule = (*Hook)(nil)
+var _ uniswapv4.HookWithLiveness = (*Hook)(nil)
+var _ uniswapv4.HookTracksActivity = (*Hook)(nil)
 var _ uniswapv4.HookPriceLimitProvider = (*Hook)(nil)
