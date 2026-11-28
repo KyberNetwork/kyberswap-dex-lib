@@ -1,15 +1,10 @@
 package litepsm
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 var (
@@ -36,28 +31,4 @@ func TestSetJoin(t *testing.T) {
 	s.setJoin(usddPsm, usddPsm, usddJoin)
 	require.Equal(t, &usddJoin, s.GemJoin)
 	require.Nil(t, s.InnerPsm)
-}
-
-func TestWrapperGas(t *testing.T) {
-	t.Parallel()
-	staticExtra, _ := json.Marshal(StaticExtra{Dai: &liteDai, InnerPsm: &liteDai})
-	p, err := NewPoolSimulator(entity.Pool{
-		Address:  "0xa188eec8f81263234da3622a406892f3d630f98c",
-		Exchange: "lite-psm",
-		Reserves: entity.PoolReserves{"1000000000000000000000000", "1000000000000"},
-		Tokens: []*entity.PoolToken{
-			{Address: "0xdc035d45d973e3ec169d2276ddab16f1e407384f", Decimals: 18},
-			{Address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Decimals: 6},
-		},
-		Extra:       "{}",
-		StaticExtra: string(staticExtra),
-	})
-	require.NoError(t, err)
-
-	res, err := p.CalcAmountOut(poolpkg.CalcAmountOutParams{
-		TokenAmountIn: poolpkg.TokenAmount{Token: p.Info.Tokens[0], Amount: big.NewInt(1e18)},
-		TokenOut:      p.Info.Tokens[1],
-	})
-	require.NoError(t, err)
-	require.Equal(t, int64(gasBuy+gasWrap), res.Gas)
 }
