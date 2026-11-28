@@ -712,3 +712,109 @@ func TestChargeNeverOverAMeasuredFill(t *testing.T) {
 	t.Logf("%d of the rows after another pool; %d of them charged more than 100,000 under their net", afterRows,
 		afterFar)
 }
+
+// deployedBuild is the EverlongHook build Ethereum runs, measured there on Morpho Blue, Aave V3 and Aave V4's Core and
+// Prime Hubs (venue kinds 16 and 17).
+const deployedBuild = "0x8d897c2c0b01a40ec5dcab9c6e159df3360ba495fe22cbfad8edf9e8406f7d55"
+
+// Ethereum routes Aave V4's Core and Prime Hubs beside Morpho Blue and Aave V3, from the cells of the build measured
+// on them: each of its kinds has, on each side, a cell for every path a fill of it took, with a custody cell, and a
+// second-fill charge. A build that was not measured on an Aave V4 venue has no cells of those kinds, so its pools
+// with one are not routed, and the Aave V4 kinds no fill borrowed on have none for any build.
+func TestTheTableRoutesEthereumsAaveV4Kinds(t *testing.T) {
+	require.Equal(t, []uint8{0, 1, 16, 17}, chainKinds[valueobject.ChainIDEthereum])
+	require.True(t, slices.ContainsFunc(gasFamilies, func(f HookFamily) bool { return f.CodeHash == deployedBuild }))
+	for _, kind := range chainKinds[valueobject.ChainIDEthereum] {
+		for _, sale := range []bool{true, false} {
+			cs := cellsOf(deployedBuild, valueobject.ChainIDEthereum, kind, sale)
+			require.NotEmpty(t, cs, "kind %d sale %v", kind, sale)
+			require.True(t, slices.ContainsFunc(cs, func(c Cell) bool { return c.Path == 0 }), "kind %d sale %v", kind, sale)
+			for _, c := range cs {
+				require.Positive(t, c.Gas)
+				require.Zero(t, c.Gas%1_000, "a base is rounded down to 1,000")
+			}
+			second, ok := secondOf(deployedBuild, valueobject.ChainIDEthereum, kind, sale)
+			require.True(t, ok, "kind %d sale %v", kind, sale)
+			require.Positive(t, second)
+		}
+		// a sale borrows, first and owing, and a buy repays: no path of the kind is left to another's cell
+		paths := func(sale bool) (bits uint8) {
+			for _, c := range cellsOf(deployedBuild, valueobject.ChainIDEthereum, kind, sale) {
+				bits |= c.Path
+			}
+			return bits
+		}
+		require.Equal(t, pathOut|pathFirst|pathOwing, paths(true), "kind %d", kind)
+		require.Equal(t, pathOut|pathRepay, paths(false), "kind %d", kind)
+	}
+	for _, kind := range []uint8{16, 17} {
+		for _, sale := range []bool{true, false} {
+			require.Empty(t, cellsOf(measuredBuild, valueobject.ChainIDEthereum, kind, sale), "kind %d", kind)
+		}
+	}
+	for _, kind := range []uint8{18, 19, 20, 21, 22, 23} {
+		require.Empty(t, cellsOf(deployedBuild, valueobject.ChainIDEthereum, kind, true), "kind %d", kind)
+		require.NotContains(t, chainKinds[valueobject.ChainIDEthereum], kind)
+	}
+}
+
+// The build Ethereum runs is charged at most the net gas measured of its fills there: the least fill paid from
+// custody with its input untouched before the pool pulled it, and the least fill in a route's form of each class
+// at its state's reads, as TestTheTableChargesACustodyFillAtMostItsGas and TestTheTableChargesARouteFillAtMostItsGas
+// hold the builds before it.
+func TestTheTableChargesTheBuildEthereumRunsAtMostItsGas(t *testing.T) {
+	q, zero := uint256.NewInt(1_000), uint256.NewInt(0)
+	for _, f := range []measuredFill{
+		{"Ethereum Morpho Blue sale", deployedBuild, valueobject.ChainIDEthereum, 0, true, 216_050},
+		{"Ethereum Morpho Blue buy", deployedBuild, valueobject.ChainIDEthereum, 0, false, 215_692},
+		{"Ethereum Aave V3 sale", deployedBuild, valueobject.ChainIDEthereum, 1, true, 216_216},
+		{"Ethereum Aave V3 buy", deployedBuild, valueobject.ChainIDEthereum, 1, false, 206_102},
+		{"Ethereum Aave V4 Core Hub sale", deployedBuild, valueobject.ChainIDEthereum, 16, true, 216_216},
+		{"Ethereum Aave V4 Core Hub buy", deployedBuild, valueobject.ChainIDEthereum, 16, false, 206_102},
+		{"Ethereum Aave V4 Prime Hub sale", deployedBuild, valueobject.ChainIDEthereum, 17, true, 212_730},
+		{"Ethereum Aave V4 Prime Hub buy", deployedBuild, valueobject.ChainIDEthereum, 17, false, 191_271},
+	} {
+		cells := cellsOf(f.family, f.chain, f.kind, f.sale)
+		require.NotEmpty(t, cells, f.name)
+		g := chargeOf(t, Ladder{Cells: cells, Held: q}, q, false)
+		require.LessOrEqual(t, g, f.net, "%s: charged %d", f.name, g)
+	}
+	reads := map[string]Ladder{
+		"custody":      {Held: q},
+		"first borrow": {Held: zero, Freed: zero, OwedOut: owedNone, OwedIn: owedNone},
+		"owing borrow": {Held: zero, Freed: zero, OwedOut: owedSome, OwedIn: owedNone},
+		"repay":        {Held: q, OwedIn: owedSome, Repay: true},
+	}
+	for _, f := range []struct {
+		measuredFill
+		class string
+	}{
+		{measuredFill{"Ethereum Morpho Blue sale, custody", deployedBuild, valueobject.ChainIDEthereum, 0, true, 192_650}, "custody"},
+		{measuredFill{"Ethereum Morpho Blue sale, first borrow", deployedBuild, valueobject.ChainIDEthereum, 0, true, 470_422}, "first borrow"},
+		{measuredFill{"Ethereum Morpho Blue sale, owing borrow", deployedBuild, valueobject.ChainIDEthereum, 0, true, 397_244}, "owing borrow"},
+		{measuredFill{"Ethereum Morpho Blue buy, custody", deployedBuild, valueobject.ChainIDEthereum, 0, false, 190_292}, "custody"},
+		{measuredFill{"Ethereum Morpho Blue buy, repay", deployedBuild, valueobject.ChainIDEthereum, 0, false, 314_439}, "repay"},
+		{measuredFill{"Ethereum Aave V3 sale, custody", deployedBuild, valueobject.ChainIDEthereum, 1, true, 192_816}, "custody"},
+		{measuredFill{"Ethereum Aave V3 sale, first borrow", deployedBuild, valueobject.ChainIDEthereum, 1, true, 980_271}, "first borrow"},
+		{measuredFill{"Ethereum Aave V3 sale, owing borrow", deployedBuild, valueobject.ChainIDEthereum, 1, true, 777_810}, "owing borrow"},
+		{measuredFill{"Ethereum Aave V3 buy, custody", deployedBuild, valueobject.ChainIDEthereum, 1, false, 180_702}, "custody"},
+		{measuredFill{"Ethereum Aave V3 buy, repay", deployedBuild, valueobject.ChainIDEthereum, 1, false, 497_575}, "repay"},
+		{measuredFill{"Ethereum Aave V4 Core Hub sale, custody", deployedBuild, valueobject.ChainIDEthereum, 16, true, 192_816}, "custody"},
+		{measuredFill{"Ethereum Aave V4 Core Hub sale, first borrow", deployedBuild, valueobject.ChainIDEthereum, 16, true, 995_187}, "first borrow"},
+		{measuredFill{"Ethereum Aave V4 Core Hub sale, owing borrow", deployedBuild, valueobject.ChainIDEthereum, 16, true, 825_959}, "owing borrow"},
+		{measuredFill{"Ethereum Aave V4 Core Hub buy, custody", deployedBuild, valueobject.ChainIDEthereum, 16, false, 180_702}, "custody"},
+		{measuredFill{"Ethereum Aave V4 Core Hub buy, repay", deployedBuild, valueobject.ChainIDEthereum, 16, false, 562_547}, "repay"},
+		{measuredFill{"Ethereum Aave V4 Prime Hub sale, custody", deployedBuild, valueobject.ChainIDEthereum, 17, true, 189_330}, "custody"},
+		{measuredFill{"Ethereum Aave V4 Prime Hub sale, first borrow", deployedBuild, valueobject.ChainIDEthereum, 17, true, 963_339}, "first borrow"},
+		{measuredFill{"Ethereum Aave V4 Prime Hub sale, owing borrow", deployedBuild, valueobject.ChainIDEthereum, 17, true, 813_877}, "owing borrow"},
+		{measuredFill{"Ethereum Aave V4 Prime Hub buy, custody", deployedBuild, valueobject.ChainIDEthereum, 17, false, 176_371}, "custody"},
+		{measuredFill{"Ethereum Aave V4 Prime Hub buy, repay", deployedBuild, valueobject.ChainIDEthereum, 17, false, 554_373}, "repay"},
+	} {
+		l, ok := reads[f.class]
+		require.True(t, ok, f.class)
+		l.Cells = cellsOf(f.family, f.chain, f.kind, f.sale)
+		require.NotEmpty(t, l.Cells, f.name)
+		g := chargeOf(t, l, q, false)
+		require.LessOrEqual(t, g, f.net, "%s: charged %d", f.name, g)
+	}
+}

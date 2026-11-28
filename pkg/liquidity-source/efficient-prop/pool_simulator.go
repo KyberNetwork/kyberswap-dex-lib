@@ -1,0 +1,512 @@
+package efficientprop
+
+import (
+	"math"
+	"math/big"
+	"strings"
+	"time"
+
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ladder"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+)
+
+// PoolSimulator quotes one listing door from the ladders its tracker sampled at one block (curve).
+type PoolSimulator struct {
+	pool.Pool
+
+	curves [2]curve
+	// custody is what the listing's pool holds of each token: it pays every listing of that pool.
+	custody [2]uint256.Int
+	// filled marks a direction that took a fill in this route: the fill moved the side's fill memory, rounded up to
+	// the listing's board unit, so a later fill walks from further up. used is how far, in base units of the
+	// direction's input: each of the route's fills rounded up to unit, the side's board unit. A later fill is priced
+	// from the ladder shifted by used where the state says what the ladder proves of one (repeat, Extra.Repeat's
+	// kind), and not quoted where it says nothing, nor on a listing with a credit mode.
+	filled [2]bool
+	used   [2]uint256.Int
+	unit   [2]uint256.Int
+	repeat [2]uint8
+	// fills is how many fills of the route each direction has taken, and outUnit the unit its pool debits the output
+	// token in (10^max(0, decimals - 6), FLAMMLane.unitOf): the pool books each fill's payout rounded up to it, so
+	// n + 1 fills that end at the ladder's top are debited up to n units more than the one fill the refresh sampled
+	// (curve.quoteAfter)
+	fills   [2]uint8
+	outUnit [2]uint256.Int
+
+	staticExtra StaticExtra
+	tipCapWei   uint64
+	// gas is each direction's (0: token0 in, 1: token1 in), by the fill mode, by whether the listing is past its pool's
+	// hook pair, by whether its fill reads a price source or an asset module, and by whether its input is the base or
+	// the quote token (gasOf); on a listing with a credit mode, its fills' inside the custody (Credit)
+	gas [2]int64
+	// credit is whether the listing has a credit mode (Extra.Credit): a fill at or past its ladder's first routed point
+	// is a route, charged routeGas and paid past the custody, and a fill in either direction ends both, since a fill
+	// moves the custody and a route the pool's debt, which every later quote of either side reads (poolKey)
+	credit   bool
+	routeGas [2]int64
+	// routeLimit is, per direction, the gas limit its config states for a route fill, 0 where it states none
+	routeLimit [2]int64
+	// noneHeld is, per token, whether the pool held none of it at the state's block (Extra.NoneHeld): a fill with it
+	// in is charged gasFirstOfInput more, until a fill of the route pays the pool some
+	noneHeld [2]bool
+	// validUntil is the last unix second a fill quoted from the state may land, the end of the sampled window
+	// (Extra.ValidUntil); route finding (staleCheck) quotes no fill that lands after it, a fill landing allowance
+	// seconds after its quote.
+	validUntil uint64
+	allowance  uint64
+	// validUntilMs and allowanceMs are the same in milliseconds (Extra.ValidUntilMs, AllowanceMs) where the state has
+	// them, else zero: validAt then reads the second figures.
+	validUntilMs uint64
+	allowanceMs  uint64
+	staleCheck   bool
+}
+
+var (
+	_ = pool.RegisterFactory(DexType, NewPoolSimulator)
+	// Listings of one pool pay out of the same custody: share the limit across them, keyed by pool and token.
+	_ = pool.RegisterUseSwapLimit(DexType)
+)
+
+// poolOpen is every listing's value of its pool's route key (poolKey): a fill of the pool's in a route takes 1 off it,
+// and a credit route all of it. A route is quoted only on a pool no fill of the route has touched (the key still
+// poolOpen), and once one is taken, no listing of the pool is quoted again in that route (the key 0): a route borrows
+// or repays, which moves what every listing of the pool fills (a cheap fill of a token the pool owes is refused, and
+// a mode-2 bid routes, until a flush).
+var poolOpen = new(big.Int).Lsh(big.NewInt(1), 62)
+
+// SwapInfo is a fill's class: whether it is a credit route, and where its listing's config states one, the gas limit
+// a route fill needs. The limit is not the charge: Gas is the least route fill's, which a route through the pool's
+// dearer lending venue spends more than, and GasLimit covers that one.
+type SwapInfo struct {
+	Routed   bool  `json:"routed,omitempty"`
+	GasLimit int64 `json:"gasLimit,omitempty"`
+}
+
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	ep := params.EntityPool
+	if params.Opts.StaleCheck && time.Since(time.Unix(ep.Timestamp, 0)) > maxAge {
+		return nil, ladder.ErrStale
+	}
+	if len(ep.Tokens) != 2 || len(ep.Reserves) != 2 {
+		return nil, ErrInvalidState
+	}
+	var extra Extra
+	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
+		return nil, err
+	}
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(ep.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+	if staticExtra.Mode != modeDoor && staticExtra.Mode != modeFront {
+		return nil, ErrInvalidState
+	}
+	// a listing's gas: its own figures where its front's config names them (Extra.Gas), its credit figures where it
+	// has a credit mode (below), else its class's
+	baseIn, quoteIn, ok := gasOf(staticExtra.Mode, extra.Print, extra.Guarded, extra.Past)
+	if extra.Builder {
+		baseIn, quoteIn, ok = gasOfBuilder(staticExtra.Mode, extra.Print, extra.Guarded, extra.Past, extra.NoAsset,
+			extra.AssetQuote)
+	}
+	if g := extra.Gas; g != nil {
+		if g[0] <= 0 || g[1] <= 0 {
+			return nil, ErrInvalidState
+		}
+		baseIn, quoteIn, ok = g[0], g[1], true
+	}
+	// a class with no figure in the listing's mode: the tracker quotes no such listing, so a state with a ladder of
+	// one is not the tracker's (a credit listing's ladders ride in Credit, at its configured figures)
+	if !ok && (len(extra.Ladders[0]) > 0 || len(extra.Ladders[1]) > 0) {
+		return nil, ErrInvalidState
+	}
+
+	ladders := extra.ladders()
+	if params.Opts.StaleCheck && (len(ladders[0]) > 0 || len(ladders[1]) > 0) &&
+		!extra.validAt(uint64(time.Now().UnixMilli())) {
+		return nil, ladder.ErrStale
+	}
+
+	s := &PoolSimulator{
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:     ep.Address,
+			Exchange:    ep.Exchange,
+			Type:        ep.Type,
+			Tokens:      lo.Map(ep.Tokens, func(t *entity.PoolToken, _ int) string { return t.Address }),
+			Reserves:    make([]*big.Int, 2),
+			BlockNumber: ep.BlockNumber,
+		}},
+		staticExtra:  staticExtra,
+		tipCapWei:    extra.TipCapWei,
+		gas:          [2]int64{baseIn, quoteIn},
+		validUntil:   extra.ValidUntil,
+		allowance:    extra.Allowance,
+		validUntilMs: extra.ValidUntilMs,
+		allowanceMs:  extra.AllowanceMs,
+		staleCheck:   params.Opts.StaleCheck,
+		noneHeld:     [2]bool{extra.NoneHeld&1 != 0, extra.NoneHeld&2 != 0},
+	}
+	if extra.BaseToken1 {
+		s.gas = [2]int64{quoteIn, baseIn}
+	}
+	var from [2]int
+	for i := range 2 {
+		from[i] = len(ladders[i])
+	}
+	if c := extra.Credit; c != nil {
+		// a listing with a credit mode is quoted with each class at its configured figure, its ladders in Credit alone
+		if extra.CreditMode == 0 || len(extra.Ladders[0]) > 0 || len(extra.Ladders[1]) > 0 {
+			return nil, ErrInvalidState
+		}
+		for i := range 2 {
+			// a side with no route figure holds no routed point
+			routes := c.From[i] >= 0 && c.From[i] < len(c.Ladders[i])
+			if c.Gas[i][0] <= 0 || c.Gas[i][1] < 0 || c.Gas[i][1] == 0 && routes {
+				return nil, ErrInvalidState
+			}
+		}
+		s.credit, from = true, c.From
+		s.gas, s.routeGas = [2]int64{c.Gas[0][0], c.Gas[1][0]}, [2]int64{c.Gas[0][1], c.Gas[1][1]}
+		if c.Limit != nil {
+			// a limit covers the gas it is for
+			for i := range 2 {
+				if c.Limit[i] != 0 && c.Limit[i] < c.Gas[i][1] {
+					return nil, ErrInvalidState
+				}
+			}
+			s.routeLimit = *c.Limit
+		}
+	} else if extra.CreditMode != 0 && (len(extra.Ladders[0]) > 0 || len(extra.Ladders[1]) > 0) {
+		return nil, ErrInvalidState
+	}
+	if r := extra.Repeat; r != nil {
+		// never on a listing with a credit mode: a fill moves its pool's custody and debt, which its route's output
+		// reads, so it takes one fill a route whatever the state says
+		for i := range 2 {
+			if r.Kind[i] > repeatOwn || r.Unit[i] > maxBoardExp || s.credit {
+				return nil, ErrInvalidState
+			}
+			s.repeat[i] = r.Kind[i]
+			s.unit[i].Exp(uint256.NewInt(10), uint256.NewInt(uint64(r.Unit[i])))
+		}
+	}
+	for i := range 2 {
+		// the unit the pool books the token paid out of this direction in
+		s.outUnit[i].Exp(uint256.NewInt(10), uint256.NewInt(uint64(max(int(ep.Tokens[1-i].Decimals)-6, 0))))
+	}
+	for i := range 2 {
+		c, err := newCurve(ladders[i], from[i])
+		if err != nil {
+			return nil, err
+		}
+		s.curves[i] = c
+		if err := s.custody[i].SetFromDecimal(ep.Reserves[i]); err != nil {
+			return nil, ErrInvalidState
+		}
+		s.Info.Reserves[i] = s.custody[i].ToBig()
+	}
+	return s, nil
+}
+
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	in, out := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenOut)
+	if in < 0 || out < 0 || in == out {
+		return nil, ladder.ErrInvalidToken
+	}
+	if s.staleCheck && !s.validAtMs(uint64(time.Now().UnixMilli())) {
+		return nil, ladder.ErrStale
+	}
+	if s.filled[in] && s.repeat[in] == 0 {
+		return nil, ErrSecondFill
+	}
+	if params.TokenAmountIn.Amount == nil || params.TokenAmountIn.Amount.Sign() <= 0 {
+		return nil, ladder.ErrZeroAmountIn
+	}
+	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
+	if overflow {
+		return nil, ladder.ErrAmountInTooLarge
+	}
+
+	var amountOut uint256.Int
+	if s.filled[in] {
+		// the remaining depth: the ladder past what the route's fills took
+		own := s.repeat[in] == repeatOwn
+		if err := s.curves[in].quoteAfter(&s.used[in], amountIn, own, s.poolSlack(in), &amountOut); err != nil {
+			return nil, err
+		}
+	} else if err := s.curves[in].quote(amountIn, &amountOut); err != nil {
+		return nil, err
+	}
+	if amountOut.IsZero() {
+		return nil, ladder.ErrNoQuote
+	}
+	// a route pays past the custody (it may borrow the token it pays): its reach is its ladder's, sampled on the
+	// custody as the refresh found it, so it is quoted only on a pool no fill of the route has touched
+	routed := s.credit && s.curves[in].routes(amountIn)
+	if !routed && amountOut.Gt(&s.custody[out]) {
+		return nil, ladder.ErrInsufficientLiquidity
+	}
+	outBig := amountOut.ToBig()
+	if limit := params.Limit; limit != nil {
+		open := limit.GetLimit(s.poolKey())
+		if routed && (open == nil || open.Cmp(poolOpen) != 0) || open != nil && open.Sign() <= 0 {
+			return nil, pool.ErrNotEnoughInventory
+		}
+		if l := limit.GetLimit(s.limitKey(out)); !routed && (l == nil || outBig.Cmp(l) > 0) {
+			return nil, pool.ErrNotEnoughInventory
+		}
+	}
+
+	gas, info := s.gas[in], SwapInfo{Routed: routed}
+	if routed {
+		gas, info.GasLimit = s.routeGas[in], s.routeLimit[in]
+	}
+	// the pool's first write of the input: charged once a route, so not where a fill of another listing of the pool
+	// has paid it the token in this route already (the shared first-write key, closed)
+	first := s.noneHeld[in]
+	if first && params.Limit != nil {
+		if l := params.Limit.GetLimit(s.firstKey(in)); l != nil && l.Sign() <= 0 {
+			first = false
+		}
+	}
+	if first {
+		gas += gasFirstOfInput
+	}
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: outBig},
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: new(big.Int)},
+		Gas:            gas,
+		SwapInfo:       info,
+	}, nil
+}
+
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	in, out := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
+	if in < 0 || out < 0 || in == out {
+		return
+	}
+	amountIn, inOverflow := uint256.FromBig(params.TokenAmountIn.Amount)
+	amountOut, outOverflow := uint256.FromBig(params.TokenAmountOut.Amount)
+	if inOverflow || outOverflow {
+		return
+	}
+	s.filled[in], s.noneHeld[in] = true, false
+	if s.credit {
+		s.filled[out] = true
+	}
+	if s.fills[in] < math.MaxUint8 {
+		s.fills[in]++
+	}
+	if s.repeat[in] != 0 {
+		// the front's fill memory rises by the input rounded up to the board unit (PropAMMFront._evaluate)
+		var units, rem uint256.Int
+		units.DivMod(amountIn, &s.unit[in], &rem)
+		if !rem.IsZero() {
+			units.AddUint64(&units, 1)
+		}
+		if _, overflow := units.MulOverflow(&units, &s.unit[in]); overflow {
+			units.SetAllOne()
+		}
+		if _, overflow := s.used[in].AddOverflow(&s.used[in], &units); overflow {
+			s.used[in].SetAllOne()
+		}
+	}
+	if _, overflow := s.custody[in].AddOverflow(&s.custody[in], amountIn); overflow {
+		s.custody[in].SetAllOne()
+	}
+	if amountOut.Gt(&s.custody[out]) {
+		s.custody[out].Clear()
+	} else {
+		s.custody[out].Sub(&s.custody[out], amountOut)
+	}
+	s.Info.Reserves = []*big.Int{s.custody[0].ToBig(), s.custody[1].ToBig()}
+
+	if limit := params.SwapLimit; limit != nil {
+		_, _, _ = limit.UpdateLimit(s.limitKey(out), s.limitKey(in),
+			params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
+		// the fill paid the pool the input: no later fill of the route, of any listing of the pool, writes its balance
+		// of it from zero
+		if l := limit.GetLimit(s.firstKey(in)); l != nil && l.Sign() > 0 {
+			_, _, _ = limit.UpdateLimit(s.firstKey(in), s.firstKey(in), l, new(big.Int))
+		}
+		// the fill touched the pool: no route of it is quoted after it, and after a route nothing of it is
+		if open := limit.GetLimit(s.poolKey()); open != nil && open.Sign() > 0 {
+			taken := big.NewInt(1)
+			if s.routedFill(params.SwapInfo, in, amountIn) {
+				taken = new(big.Int).Set(open)
+			}
+			_, _, _ = limit.UpdateLimit(s.poolKey(), s.poolKey(), taken, new(big.Int))
+		}
+	}
+}
+
+// poolSlack is how far under its last output the ladder must answer at the end of direction in's next fill: n units of
+// the output token for the n fills before it, and 2 more for a steady ladder's slack. The pool debits each fill's
+// payout rounded up to its bucket unit, and the top fill the refresh sampled passed, so the level is at least the top
+// over the unit, rounded up: n + 1 fills that end under the top by that much round up at most n units more than the
+// one, and the bucket holds them.
+func (s *PoolSimulator) poolSlack(in int) *uint256.Int {
+	var slack uint256.Int
+	slack.SetUint64(uint64(s.fills[in]))
+	slack.Mul(&slack, &s.outUnit[in])
+	return slack.AddUint64(&slack, 2)
+}
+
+// routedFill is whether a fill of amountIn in direction in, which UpdateBalance applies, was a route: its SwapInfo's
+// class, or where it carries none, on a listing with a credit mode, the class of its size on the ladder.
+func (s *PoolSimulator) routedFill(info any, in int, amountIn *uint256.Int) bool {
+	switch si := info.(type) {
+	case SwapInfo:
+		return si.Routed
+	case *SwapInfo:
+		if si != nil {
+			return si.Routed
+		}
+	}
+	return s.credit && s.curves[in].routes(amountIn)
+}
+
+// validAt reports whether a fill quoted in unix second now, landing within the allowance, lands within the sampled
+// window, where the sampled word and depth certainly stand.
+func (s *PoolSimulator) validAt(now uint64) bool {
+	return s.validAtMs(now * 1000)
+}
+
+// validAtMs is validAt for a quote at unix millisecond now (Extra.validAt).
+func (s *PoolSimulator) validAtMs(now uint64) bool {
+	return Extra{ValidUntil: s.validUntil, Allowance: s.allowance, ValidUntilMs: s.validUntilMs,
+		AllowanceMs: s.allowanceMs}.validAt(now)
+}
+
+// CloneState copies what UpdateBalance writes: the custody, filled and used arrays are values, and Info.Reserves is
+// replaced whole. The curves never change after construction, so clones share them.
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.Info.Reserves = []*big.Int{new(big.Int).Set(s.Info.Reserves[0]), new(big.Int).Set(s.Info.Reserves[1])}
+	return &cloned
+}
+
+// CalculateLimit is, for each token, what the ladder paying it out proves its pool pays at the refresh from its
+// custody: its last point's output inside the custody (a credit listing's last custody point), no more than the pool
+// holds (none where no ladder pays it). It is keyed by pool and token, so the listings of one pool share it, the larger
+// of theirs standing (the default merge): a pool's room for a token (its balance less any fee owed, its outflow
+// bucket, its cap) is shared by its listings and may be under its balance, and each ladder's top is a fill the room
+// took at the refresh. A route's reach past the custody is its own listing's (CalcAmountOut). Beside them, the pool's
+// route key at poolOpen, which every listing of the pool reports alike, and for each token the pool holds none of, its
+// first-write key at 1: open until a fill of the route pays the pool that token.
+func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	limits := make(map[string]*big.Int, 5)
+	for out := range 2 {
+		var l uint256.Int
+		if c := &s.curves[1-out]; c.from > 0 {
+			l.Set(&c.y[c.from-1])
+		}
+		if l.Gt(&s.custody[out]) {
+			l.Set(&s.custody[out])
+		}
+		limits[s.limitKey(out)] = l.ToBig()
+		if s.noneHeld[out] {
+			limits[s.firstKey(out)] = big.NewInt(1)
+		}
+	}
+	limits[s.poolKey()] = new(big.Int).Set(poolOpen)
+	return limits
+}
+
+func (s *PoolSimulator) limitKey(i int) string {
+	return strings.ToLower(s.staticExtra.Custody) + ":" + s.Info.Tokens[i]
+}
+
+// firstKey is the key of the pool's first write of token i, shared by its listings: 1 while the pool holds none of the
+// token and no fill of the route has paid it some, so the write from zero (gasFirstOfInput) is charged once a route.
+func (s *PoolSimulator) firstKey(i int) string {
+	return s.limitKey(i) + ":first"
+}
+
+// poolKey is the pool's route key, shared by its listings: poolOpen until a fill of the route touches the pool.
+func (s *PoolSimulator) poolKey() string {
+	return strings.ToLower(s.staticExtra.Custody) + ":route"
+}
+
+// GetMetaInfo names what the executor data is built from, abi.encode(door, front, listing, mode), and the contract
+// the adapter may approve: the door in the door's mode, the front in the front's.
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
+	approval := s.Info.Address
+	if s.staticExtra.Mode == modeFront {
+		approval = strings.ToLower(s.staticExtra.Front)
+	}
+	return PoolMeta{
+		BlockNumber:     s.Info.BlockNumber,
+		Door:            s.Info.Address,
+		Front:           strings.ToLower(s.staticExtra.Front),
+		Listing:         s.staticExtra.Listing,
+		Mode:            s.staticExtra.Mode,
+		ApprovalAddress: approval,
+		TipCapWei:       s.tipCapWei,
+	}
+}
+
+// gasOf is a fill's gas with the base in and with the quote in, by the pool's fill mode, whether the listing's fill
+// reads a price source or an asset module (print), whether a source it reads is guarded (guarded), and whether its
+// pair is past its pool's hook pair (past); ok is false for a mode the adapter does not take.
+func gasOf(mode uint8, print, guarded, past bool) (baseIn, quoteIn int64, ok bool) {
+	switch {
+	case mode == modeFront && !past:
+		baseIn, quoteIn = gasWordFrontBaseIn, gasWordFrontQuoteIn
+	case mode == modeFront:
+		baseIn, quoteIn = gasWordFrontBaseInPast, gasWordFrontQuoteInPast
+	case mode == modeDoor && !past:
+		baseIn, quoteIn = gasWordDoorBaseIn, gasWordDoorQuoteIn
+	case mode == modeDoor:
+		baseIn, quoteIn = gasWordDoorBaseInPast, gasWordDoorQuoteInPast
+	default:
+		return 0, 0, false
+	}
+	switch {
+	case guarded && !past && mode == modeFront:
+		baseIn, quoteIn = gasGuardedFrontBaseIn, gasGuardedFrontQuoteIn
+	case guarded && !past:
+		baseIn, quoteIn = gasGuardedDoorBaseIn, gasGuardedDoorQuoteIn
+	case guarded && mode == modeFront:
+		baseIn, quoteIn = baseIn+gasGuardedFrontBaseInDiff, quoteIn+gasGuardedFrontQuoteInDiff
+	case guarded:
+		baseIn, quoteIn = baseIn+gasGuardedDoorBaseInDiff, quoteIn+gasGuardedDoorQuoteInDiff
+	case print:
+		baseIn, quoteIn = baseIn+gasPrintBaseIn, quoteIn+gasPrintQuoteIn
+	}
+	return baseIn, quoteIn, true
+}
+
+// gasOfBuilder is the class figures of a listing read through /state, measured on Ethereum (the tracker quotes no class
+// figure on a chain whose build was not measured, builderClock.classGas), by its fill mode, whether its
+// fill reads a price source (print), whether its pair is past its pool's hook pair (past) and, past it, whether
+// neither of its tokens is the pool's asset (noAsset). A class has a figure only where it was measured on the deployed
+// build, each the least first fill over the pairs measured (constant.go): a listing that reads a price source, on the
+// hook pair, past it with the pool's asset its base, or past it with neither token the asset. ok is false for every
+// other class, whose listings are quoted only with figures of their own (Front.ListingGas): a listing that reads no
+// price source (WORD or NONE), one past the hook pair whose quote is the pool's asset (assetQuote), and one bound to
+// a guarded entry, which is never quoted there (its sources are price contracts, never guarded).
+func gasOfBuilder(mode uint8, print, guarded, past, noAsset, assetQuote bool) (baseIn, quoteIn int64, ok bool) {
+	if guarded || !print {
+		return 0, 0, false
+	}
+	switch {
+	case mode == modeFront && !past:
+		return gasEthFrontPrintBaseIn, gasEthFrontPrintQuoteIn, true
+	case mode == modeFront && noAsset:
+		return gasEthFrontPrintBaseInPastNoAsset, gasEthFrontPrintQuoteInPastNoAsset, true
+	case mode == modeFront && !assetQuote:
+		return gasEthFrontPrintAssetInPast, gasEthFrontPrintOtherInPast, true
+	case mode == modeDoor && !past:
+		return gasEthPrintBaseIn, gasEthPrintQuoteIn, true
+	case mode == modeDoor && noAsset:
+		return gasEthPrintBaseInPastNoAsset, gasEthPrintQuoteInPastNoAsset, true
+	case mode == modeDoor && !assetQuote:
+		return gasEthPrintAssetInPast, gasEthPrintOtherInPast, true
+	}
+	return 0, 0, false
+}

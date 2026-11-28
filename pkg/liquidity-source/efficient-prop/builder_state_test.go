@@ -1,0 +1,1212 @@
+package efficientprop
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"maps"
+	"math/big"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/titan"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+)
+
+// create3Child is the account a CREATE3 deployment of salt id by deployer lands at: the proxy at CREATE2(deployer, id,
+// the proxy's creation code hash), then that proxy's first CREATE. A builder build's price contract of source id is
+// its front's child (the front's own address for the fill's call).
+func create3Child(deployer common.Address, id uint32) common.Address {
+	h := common.HexToHash("0x21c35dbe1b344a2488cf3321d6ce542f8e9f305544ff09e4993a62319a497c1f")
+	proxy := crypto.CreateAddress2(deployer, common.BigToHash(big.NewInt(int64(id))), h[:])
+	return crypto.CreateAddress(proxy, 1)
+}
+
+// stateEntry is one /state entry: each account's slots its update writes.
+type stateEntry map[common.Address]map[common.Hash]common.Hash
+
+// setEntries makes the map's target block number at slot's second (no slot where slot is 0), with the entries named.
+func (s *stateServer) setEntries(slot, number uint64, entries map[string]stateEntry) {
+	m := map[string]any{"blockNumber": hexutil.EncodeUint64(number)}
+	if slot != 0 {
+		m["slot"] = slot
+	}
+	for key, e := range entries {
+		so := map[string]any{}
+		for a, slots := range e {
+			sd := map[string]string{}
+			for k, v := range slots {
+				sd[k.Hex()] = v.Hex()
+			}
+			so[a.Hex()] = map[string]any{"stateDiff": sd, "balance": "0x0", "nonce": "0x1"}
+		}
+		m[key] = map[string]any{"stateOverride": so}
+	}
+	s.mu.Lock()
+	s.m = m
+	s.mu.Unlock()
+}
+
+// printIDs are the print listing's primary and backup source ids, each a builder build's price contract.
+var printIDs = [2]uint32{9, 10}
+
+// printSlots are a price contract's two slots as its update writes them.
+var printSlots = map[common.Hash]common.Hash{{}: common.HexToHash("0x4001"),
+	common.BigToHash(big.NewInt(1)): common.HexToHash("0x4002")}
+
+// cellSlots is the listing's quote contract's pair slot 0 quote word as its update for block target writes it, with
+// extra set in its
+// unused bits so two answers' entries can be told apart.
+func cellSlots(target uint64, carry bool, extra uint) map[common.Hash]common.Hash {
+	w := deskSlot0(target, carry)
+	if extra != 0 {
+		w.SetBit(w, int(extra), 1)
+	}
+	return map[common.Hash]common.Hash{quoteKey(0): common.BigToHash(w)}
+}
+
+// printChain is ethChain's listing 1 bound PRINT to a primary and a backup price contract of the builder build, reading
+// its backup where onBackup, the source it reads guarded where guarded.
+func printChain(onBackup, guarded bool) *fakeChain {
+	chain := ethChain()
+	l := chain.listings[1]
+	l.view.Scopes = 0 // PRINT
+	l.sourceIds = new(big.Int).SetUint64(uint64(printIDs[0]) | uint64(printIDs[1])<<32)
+	for k, id := range printIDs {
+		e := new(big.Int).SetBytes(create3Child(testFront, id).Bytes())
+		e.Or(e, new(big.Int).Lsh(big.NewInt(8), 240))
+		if guarded && k == 0 {
+			e.SetBit(e, 247, 1)
+		}
+		chain.sources[id] = e
+	}
+	// a builder build's live source word: the id it reads (bits 0-31), its window and, on the backup, bit 244
+	live := new(big.Int).SetUint64(uint64(printIDs[0]))
+	if onBackup {
+		live.SetUint64(uint64(printIDs[1])).SetBit(live, 244, 1)
+	}
+	live.Or(live, new(big.Int).Lsh(big.NewInt(8), 240))
+	if guarded {
+		live.SetBit(live, 247, 1)
+	}
+	l.price = live
+	return chain
+}
+
+// printConfig is ethConfig approving both of printChain's price contracts.
+func printConfig(urls ...string) *Config {
+	cfg := ethConfig(urls[0])
+	cfg.Fronts[0].Titan.URLs = urls
+	for _, id := range printIDs {
+		a := create3Child(testFront, id)
+		cfg.Fronts[0].ApprovedSources = append(cfg.Fronts[0].ApprovedSources, hexutil.Encode(a[:]))
+	}
+	return cfg
+}
+
+// targetCalls are the calls the node ran in block number under a state override.
+func targetCalls(n *node, number uint64) []sent {
+	var out []sent
+	for _, c := range n.calls() {
+		if c.number == number && c.state != nil {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// A builder build's price contract of a source is the front's CREATE3 child of the source's id, as the front calls it.
+func TestPriceContractIsTheFrontsCreate3Child(t *testing.T) {
+	for id, want := range map[uint32]string{
+		1: "0xF166e802fb1994929b522f1ca5410a5f5BD1A366",
+		2: "0xCa143657998DbeFb3AC6bb78342B8Cf3Db04dee8",
+		3: "0xb9e048a763b0A6e57c8dEA7F53559b39B6c58949",
+		4: "0x8f8F0f5c14F11024DBa87D3737Dd1c403F7d8D9b",
+	} {
+		assert.Equal(t, common.HexToAddress(want), priceContract(testFront, id), "source %d", id)
+		assert.Equal(t, common.HexToAddress(want), create3Child(testFront, id), "source %d", id)
+	}
+}
+
+// A listing that reads a print (PRINT or SESSION) is quoted only where the answer holds the entry of the price contract
+// it reads in the target block, its live source (the primary, or the backup once the primary is darkened): without
+// it the door would be sampled on the head's print, which is not the one the fill reads.
+func TestBuilderPrintListingNeedsItsPriceContractsEntry(t *testing.T) {
+	for _, c := range []struct {
+		name     string
+		onBackup bool
+		holds    []uint32
+		quoted   bool
+	}{
+		{"the primary's entry, on the primary", false, []uint32{9}, true},
+		{"both entries, on the primary", false, []uint32{9, 10}, true},
+		{"no price contract's entry", false, nil, false},
+		{"the backup's alone, on the primary", false, []uint32{10}, false},
+		{"the backup's, on the backup", true, []uint32{10}, true},
+		{"the primary's alone, on the backup", true, []uint32{9}, false},
+	} {
+		chain := printChain(c.onBackup, false)
+		n := builderNode(t, chain, 1234)
+		st := newStateServer(t)
+		e := stateEntry{testCellA: cellSlots(1235, false, 0)}
+		for _, id := range c.holds {
+			e[create3Child(testFront, id)] = printSlots
+		}
+		st.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"a": e})
+		cfg := printConfig(st.URL)
+		got := ethTrack(t, n, cfg, ethListed(t, n, cfg))
+		if !c.quoted {
+			unserved(t, got, c.name)
+			continue
+		}
+		ex := extraOf(t, got)
+		assert.NotEmpty(t, ex.Ladders[0], c.name)
+		assert.NotEmpty(t, ex.Ladders[1], c.name)
+	}
+}
+
+// Only the accounts a listing reads ride on its calls: its quote contract and its bound price contracts. Every other
+// account of the answer, another listing's quote contract, the front or a token among them, is dropped.
+func TestBuilderAppliesOnlyTheAccountsItReads(t *testing.T) {
+	chain := printChain(false, false)
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	stranger := map[common.Hash]common.Hash{{}: common.HexToHash("0x1")}
+	st.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{
+		"a": {testCellA: cellSlots(1235, false, 0), create3Child(testFront, 9): printSlots, testFront: stranger},
+		"b": {testCellB: cellSlots(1235, false, 0), testUSDC: stranger, create3Child(testFront, 3): printSlots},
+	})
+	cfg := printConfig(st.URL)
+	got := ethTrack(t, n, cfg, ethListed(t, n, cfg))
+	require.NotEmpty(t, extraOf(t, got).Ladders[0])
+	calls := targetCalls(n, 1235)
+	require.NotEmpty(t, calls)
+	read := map[common.Address]bool{testCellA: true, create3Child(testFront, 9): true, create3Child(testFront, 10): true}
+	for _, c := range calls {
+		assert.Contains(t, c.state, testCellA)
+		assert.Contains(t, c.state, create3Child(testFront, 9))
+		for a := range c.state {
+			assert.True(t, read[a], "an account the listing does not read rides on its call: %s", a.Hex())
+		}
+	}
+}
+
+// A quote contract's entry and its price contracts' come from one answer: of the answers for the highest block, the
+// first in the configured url order that holds them all. Slots of one account are never mixed across answers, and a
+// later url's answer is taken over an earlier one only where the earlier lacks an entry the listing needs, whole.
+func TestBuilderTakesAListingsEntriesFromOneAnswer(t *testing.T) {
+	pc := create3Child(testFront, 9)
+	full := func(extra uint) stateEntry {
+		return stateEntry{testCellA: cellSlots(1235, false, extra), pc: printSlots}
+	}
+
+	// the first url answers last, within the merge window: its answer is still the one read
+	chain := printChain(false, false)
+	n := builderNode(t, chain, 1234)
+	first, second := newStateServer(t), newStateServer(t)
+	first.delay = 100 * time.Millisecond
+	first.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"x": full(100)})
+	second.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"x": full(101)})
+	cfg := printConfig(first.URL, second.URL)
+	got := ethTrack(t, n, cfg, ethListed(t, n, cfg))
+	require.NotEmpty(t, extraOf(t, got).Ladders[0])
+	want := cellSlots(1235, false, 100)[quoteKey(0)]
+	for _, c := range targetCalls(n, 1235) {
+		assert.Equal(t, want, c.state[testCellA][quoteKey(0)], "the first url's entry")
+	}
+
+	// the first url's answer lacks the price contract's entry: the second url's is read whole, never the first's quote
+	// contract beside the second's price contract
+	chain = printChain(false, false)
+	n = builderNode(t, chain, 1234)
+	first, second = newStateServer(t), newStateServer(t)
+	first.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"x": {testCellA: cellSlots(1235, false, 100)}})
+	first.delay = 100 * time.Millisecond // url 0 answers last: the window is still open for the second url's answer
+	second.delay = 50 * time.Millisecond
+	second.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"x": full(101)})
+	cfg = printConfig(first.URL, second.URL)
+	got = ethTrack(t, n, cfg, ethListed(t, n, cfg))
+	require.NotEmpty(t, extraOf(t, got).Ladders[0])
+	want = cellSlots(1235, false, 101)[quoteKey(0)]
+	for _, c := range targetCalls(n, 1235) {
+		assert.Equal(t, want, c.state[testCellA][quoteKey(0)], "the second url's entry, whole")
+		assert.Contains(t, c.state, pc)
+	}
+
+	// two entries of one answer that give the quote contract's slot two values: the account is left out, and the
+	// listing with it
+	chain = printChain(false, false)
+	n = builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	st.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"x": full(100), "y": full(101)})
+	cfg = printConfig(st.URL)
+	unserved(t, ethTrack(t, n, cfg, ethListed(t, n, cfg)), "one answer, two values of a slot")
+}
+
+// Two entries of one answer that give an account the same slots but a different balance or nonce split it: the
+// balance and nonce are left out (the head's stand). A desk contract's listing, whose own words are slots, is still
+// served (the contract takes no value and creates nothing, and no fill reads its balance); a price contract a listing
+// needs is not taken from a split answer (TestBuilderPrintListingNeedsItsPriceContractsEntry's neighbours).
+func TestBuilderDeskContractServedWhereItsBalanceOrNonceSplits(t *testing.T) {
+	for name, second := range map[string][2]string{
+		"balance": {"0x1", "0x1"},
+		"nonce":   {"0x0", "0x2"},
+		"neither": {"0x0", "0x1"},
+	} {
+		chain := ethChain()
+		n := builderNode(t, chain, 1234)
+		st := newStateServer(t)
+		slots := map[string]string{quoteKey(0).Hex(): common.BigToHash(deskSlot0(1235, false)).Hex()}
+		entry := func(balance, nonce string) map[string]any {
+			return map[string]any{"stateOverride": map[string]any{testCellA.Hex(): map[string]any{
+				"stateDiff": slots, "balance": balance, "nonce": nonce}}}
+		}
+		st.mu.Lock()
+		st.m = map[string]any{"slot": slotAfter(n.time), "blockNumber": hexutil.EncodeUint64(1235),
+			"x": entry("0x0", "0x1"), "y": entry(second[0], second[1])}
+		st.mu.Unlock()
+		cfg := ethConfig(st.URL)
+		got := ethTrack(t, n, cfg, ethListed(t, n, cfg))
+		assert.NotEmpty(t, extraOf(t, got).Ladders[0], "the desk contract's balance or nonce split: %s", name)
+	}
+}
+
+// The merge window starts at the first answer that holds an account, as Kyber's titan client's does, not at the first
+// answer: an empty answer from a fast url does not cut off a slower url's answer with the entries, which is kept.
+func TestBuilderWaitsPastAnEmptyAnswer(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	empty, slow := newStateServer(t), newStateServer(t)
+	empty.set(slotAfter(n.time), 1235, nil)
+	slow.delay = titan.DefaultMergeWindow + 150*time.Millisecond
+	slow.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := ethConfig(empty.URL)
+	cfg.Fronts[0].Titan.URLs = []string{empty.URL, slow.URL}
+	got := ethTrack(t, n, cfg, ethListed(t, n, cfg))
+	assert.NotEmpty(t, extraOf(t, got).Ladders[0], "the slower url's answer, after the empty one")
+	assert.Equal(t, int64(1), slow.hits.Load())
+}
+
+// A url that hangs holds the fetch for the merge window at most once another url has answered with an account, and
+// for the timeout at most where none has (the one that answered is empty).
+func TestBuilderStateFetchBoundsAHangingHost(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	hang := newStateServer(t)
+	hang.delay = 3 * time.Second
+	hang.set(slotAfter(n.time), 1235, nil)
+	for _, c := range []struct {
+		name  string
+		cells map[common.Address]*big.Int
+		limit time.Duration
+		held  int
+	}{
+		{"an answer with an account: the window", map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)},
+			titan.DefaultMergeWindow + 200*time.Millisecond, 1},
+		{"an empty answer: the timeout", nil, 600*time.Millisecond + 200*time.Millisecond, 1},
+	} {
+		fast := newStateServer(t)
+		fast.set(slotAfter(n.time), 1235, c.cells)
+		cfg := ethConfig(fast.URL)
+		cfg.Fronts[0].Titan.URLs = []string{hang.URL, fast.URL}
+		cfg.Fronts[0].Titan.Timeout = 600 * time.Millisecond
+		tr := ethTracker(t, n, cfg, time.Now())
+		start := time.Now()
+		answers := tr.stateAnswers(context.Background(), &cfg.Fronts[0])
+		elapsed := time.Since(start)
+		assert.Less(t, elapsed, c.limit, c.name)
+		require.Len(t, answers, c.held, c.name)
+		assert.Equal(t, 1, answers[0].rank, c.name)
+		if c.cells == nil {
+			assert.GreaterOrEqual(t, elapsed, 600*time.Millisecond, "%s: waits the timeout", c.name)
+			assert.Empty(t, answers[0].accounts)
+		}
+	}
+}
+
+// A /state url that fails is logged, at most once a minute per url, its key-bearing parts (userinfo and query) left
+// out of every field, the error's text included; a url whose call the merge window cancels has not failed and is not
+// logged, nor is a url that answers. The listing is still read from the answers that came.
+func TestBuilderLogsAFailedURLOnceAMinute(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	good, slow := newStateServer(t), newStateServer(t)
+	good.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	slow.delay = titan.DefaultMergeWindow + 500*time.Millisecond
+	slow.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	dead := newStateServer(t)
+	dead.Close()
+	deadURL := strings.Replace(dead.URL, "http://", "http://keyuser:keypass@", 1) + "/v1/1/state?key=SECRETKEY"
+	cfg := ethConfig(good.URL)
+	cfg.Fronts[0].Titan.URLs = []string{deadURL, good.URL, slow.URL}
+	p := ethListed(t, n, cfg)
+
+	var mu sync.Mutex
+	logged := map[string]int{}
+	tr := ethTracker(t, n, cfg, time.Unix(1_800_000_000, 0))
+	tr.warn = func(url string, err error) {
+		require.Error(t, err)
+		keyless(t, url, err)
+		mu.Lock()
+		logged[url]++
+		mu.Unlock()
+	}
+	count := func() map[string]int {
+		mu.Lock()
+		defer mu.Unlock()
+		return maps.Clone(logged)
+	}
+	shown := strings.TrimPrefix(dead.URL, "http://")
+	for k, at := range []int64{0, 30, 59, 60, 90, 125} {
+		tr.now = func() time.Time { return time.Unix(1_800_000_000+at, 0) }
+		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.NotEmpty(t, extraOf(t, got).Ladders[0], "read from the url that answered")
+		want := map[int]int{0: 1, 1: 1, 2: 1, 3: 2, 4: 2, 5: 3}[k]
+		assert.Equal(t, map[string]int{"http://" + shown + "/v1/1/state": want}, count(), "after %d s", at)
+	}
+	time.Sleep(slow.delay)
+	assert.Len(t, count(), 1, "the url the window cancelled is not logged")
+}
+
+// The once-a-minute limit is per url: two urls failing together are each logged once, so a second dead url is not
+// hidden while the first keeps failing.
+func TestBuilderLimitsTheFailedURLLogPerURL(t *testing.T) {
+	tr := &PoolTracker{now: func() time.Time { return time.Unix(1_800_000_000, 0) }}
+	logged := map[string]int{}
+	tr.warn = func(url string, _ error) { logged[url]++ }
+	for range 3 {
+		tr.stateFailed("http://a/v1/1/state", errors.New("down"))
+		tr.stateFailed("http://b/v1/1/state", errors.New("down"))
+	}
+	assert.Equal(t, map[string]int{"http://a/v1/1/state": 1, "http://b/v1/1/state": 1}, logged)
+	tr.now = func() time.Time { return time.Unix(1_800_000_060, 0) }
+	tr.stateFailed("http://b/v1/1/state", errors.New("down"))
+	assert.Equal(t, map[string]int{"http://a/v1/1/state": 1, "http://b/v1/1/state": 2}, logged, "a minute on")
+}
+
+// keyless fails t where a logged url or error names a key-bearing part of the tests' urls: their username, password or
+// query.
+func keyless(t *testing.T, url string, err error) {
+	t.Helper()
+	for _, secret := range []string{"keyuser", "keypass", "SECRETKEY", "key="} {
+		assert.NotContains(t, url, secret, "the logged url")
+		assert.NotContains(t, err.Error(), secret, "the logged error")
+	}
+}
+
+// A /state url that does not dial (one that does not parse, or a websocket url that does not connect) is logged by the
+// tracker as it starts, its userinfo and query left out of the url and of the error, and left out of the reads; the
+// urls that dial are read.
+func TestBuilderLogsAURLThatDoesNotDialWithoutItsKey(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	good := newStateServer(t)
+	good.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	dead := newStateServer(t)
+	dead.Close()
+	unparsed := "http://keyuser:keypass@127.0.0.1:port/v1/1/state?key=SECRETKEY"
+	unreached := strings.Replace(dead.URL, "http://", "ws://keyuser:keypass@", 1) + "/v1/1/state?key=SECRETKEY"
+	cfg := ethConfig(good.URL)
+	cfg.Fronts[0].Titan.URLs = []string{unparsed, unreached, good.URL}
+	var logged []string
+	tr, err := newPoolTracker(cfg, n.client(), func(url string, err error) {
+		require.Error(t, err)
+		t.Logf("logged url=%s error=%v", url, err)
+		keyless(t, url, err)
+		logged = append(logged, url)
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"<a /state url that does not parse>",
+		"ws://" + strings.TrimPrefix(dead.URL, "http://") + "/v1/1/state"}, logged)
+	require.Len(t, tr.titan[cfg.Fronts[0].Address], 1, "the url that dialled")
+	tr.now = func() time.Time { return time.Unix(1_800_000_000, 0) }
+	got, err := tr.GetNewPoolState(context.Background(), ethListed(t, n, cfg), pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	assert.NotEmpty(t, extraOf(t, got).Ladders[0], "read from the url that dialled")
+}
+
+// Only the target block: a map is read only where its block is the head's next. One further ahead (a node a block or
+// more behind the api) quotes nothing, even beside an answer for the head's next block or at the head's next slot, and
+// so does an answer with no slot, whose time cannot be derived; the next refresh reads the next answer as usual.
+func TestBuilderQuotesOnlyTheHeadsNextBlock(t *testing.T) {
+	chain := printChain(false, false)
+	n := builderNode(t, chain, 1234)
+	pc := create3Child(testFront, 9)
+	entry := func(target uint64) map[string]stateEntry {
+		return map[string]stateEntry{"a": {testCellA: cellSlots(target, false, 0), pc: printSlots}}
+	}
+
+	st := newStateServer(t)
+	st.setEntries(slotAfter(n.time)+1, 1236, entry(1236))
+	cfg := printConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	unserved(t, ethTrack(t, n, cfg, p), "a map two blocks ahead")
+	assert.Empty(t, quotesAfter(n, 0), "no door asked")
+
+	lagging := newStateServer(t)
+	lagging.setEntries(slotAfter(n.time), 1235, entry(1235))
+	cfg = printConfig(lagging.URL, st.URL)
+	unserved(t, ethTrack(t, n, cfg, p), "the highest block is two ahead")
+
+	// the head's next slot, but a block two ahead: the block is checked on its own, not only through the slot
+	misnumbered := newStateServer(t)
+	misnumbered.setEntries(slotAfter(n.time), 1236, entry(1236))
+	cfg = printConfig(misnumbered.URL)
+	unserved(t, ethTrack(t, n, cfg, p), "the head's next slot naming a block two ahead")
+
+	// no slot: the answer's time is not derived from another account's slots
+	noSlot := newStateServer(t)
+	e := entry(1235)
+	stamp := new(big.Int).Lsh(new(big.Int).SetUint64(n.time+5), 224)
+	e["other"] = stateEntry{testCellB: {{}: common.BigToHash(stamp)}}
+	noSlot.setEntries(0, 1235, e)
+	cfg = printConfig(noSlot.URL)
+	unserved(t, ethTrack(t, n, cfg, p), "an answer with no slot")
+
+	// the next poll reads the head's next block as usual
+	st.setEntries(slotAfter(n.time), 1235, entry(1235))
+	cfg = printConfig(st.URL)
+	assert.NotEmpty(t, extraOf(t, ethTrack(t, n, cfg, p)).Ladders[0], "the next answer for the head's next block")
+}
+
+// A map whose second is the head's own is not ahead of it: nothing is quoted.
+func TestBuilderQuotesNothingOnAMapAtTheHeadsSecond(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	slot := slotAfter(n.time)
+	n.time = slotTime(slot)
+	st := newStateServer(t)
+	st.set(slot, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := ethConfig(st.URL)
+	unserved(t, ethTrack(t, n, cfg, ethListed(t, n, cfg)), "the map's second is the head's")
+}
+
+// The slot must be the next slot: an answer is read only where its slot is the head's slot plus one, so its second is
+// the head's plus 12 s. A later slot, whether a missed slot or an answer ahead of the wall clock, quotes nothing for
+// that refresh. It does not back off: the next refresh comes a second later as for any unquoted state, and reads the
+// next answer as usual.
+func TestBuilderQuotesOnlyTheNextSlot(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	head := (n.time - beaconGenesis) / slotSeconds
+	require.Equal(t, slotTime(head), n.time, "the head on the beacon grid")
+	st := newStateServer(t)
+	cfg := ethConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	for _, later := range []uint64{2, 3, 6} {
+		st.set(head+later, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+		before := len(n.calls())
+		got := ethTrack(t, n, cfg, p)
+		unserved(t, got, "a slot later than the head's next")
+		assert.Empty(t, quotesAfter(n, before), "slot +%d: no door asked", later)
+		now := slotTime(head) + 3
+		assert.Equal(t, int64(now+1), ethTracker(t, n, cfg, time.Unix(int64(now), 0)).NextUpdateAt(got),
+			"slot +%d: the next refresh a second on, no back-off", later)
+	}
+
+	// the next poll's answer names the head's next slot: quoted, valid to its second less the allowance
+	st.set(head+1, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	e := extraOf(t, ethTrack(t, n, cfg, p))
+	require.NotEmpty(t, e.Ladders[0], "the head's next slot")
+	assert.Equal(t, slotTime(head+1)-1, e.ValidUntil)
+
+	// a carried word from a later slot is no more read: nothing is quoted past the true target block
+	carry := carryChain(2 | 8)
+	n = builderNode(t, carry, 1234)
+	head = (n.time - beaconGenesis) / slotSeconds
+	st.set(head+2, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, true)})
+	cfg = ethConfig(st.URL)
+	unserved(t, ethTrack(t, n, cfg, ethListed(t, n, cfg)), "a carried word, a slot later")
+}
+
+// The word carries where any of its carry bits (4-7) is set, not bit 4 alone.
+func TestBuilderReadsEveryCarryBitOfTheWord(t *testing.T) {
+	chain := carryChain(2 | 8)
+	chain.listings[1].carryBit = 6
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	slot := slotAfter(n.time)
+	st.set(slot, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, true)})
+	cfg := ethConfig(st.URL)
+	before := len(n.calls())
+	e := extraOf(t, ethTrack(t, n, cfg, ethListed(t, n, cfg)))
+	next := 0
+	for _, q := range quotesAfter(n, before) {
+		if q.number == 1236 {
+			next++
+		}
+	}
+	assert.Positive(t, next, "the carried block sampled")
+	assert.Equal(t, slotTime(slot)+12-1, e.ValidUntil)
+}
+
+// The listing's desk is read twice, at the head and in the pinned read: where they differ (the head moved between the
+// reads), nothing is quoted.
+func TestBuilderQuotesNothingWhereTheDeskMovedBetweenReads(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	st.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := ethConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	n.respondState = func(to common.Address, data []byte, at, number uint64, sub int64,
+		state stateDiffs) (bool, []byte) {
+		ok, ret := chain.builderRespond(to, data, at, number, sub, state)
+		if m, err := frontABI.MethodById(data[:4]); err == nil && m.Name == "doorView" && number == 1235 && ok {
+			vals, err := m.Outputs.Unpack(ret)
+			require.NoError(t, err)
+			var out doorViewOut
+			require.NoError(t, m.Outputs.Copy(&out, vals))
+			out.View.Desk = 8
+			return true, packOut(frontABI, "doorView", out.View)
+		}
+		return ok, ret
+	}
+	unserved(t, ethTrack(t, n, cfg, p), "another desk in the pinned read")
+}
+
+// Where the listing and the word both carry but the carried block refuses every size (the word's life ends before it),
+// the target block's ladder stands, valid to that block's second less the allowance.
+func TestBuilderKeepsTheTargetBlockWhereTheCarriedBlockRefusesAll(t *testing.T) {
+	chain := carryChain(2 | 8)
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	slot := slotAfter(n.time)
+	target := slotTime(slot)
+	st.set(slot, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, true)})
+	chain.listings[1].shrinkAt, chain.listings[1].shrinkTo = target+12, 0
+	cfg := ethConfig(st.URL)
+	e := extraOf(t, ethTrack(t, n, cfg, ethListed(t, n, cfg)))
+	assert.Equal(t, target-1, e.ValidUntil, "the target block alone")
+	for dir := range 2 {
+		require.NotEmpty(t, e.Ladders[dir], "direction %d", dir)
+		for _, pt := range e.Ladders[dir] {
+			want, err := chain.quoteAt(chain.listings[1], dir, pt[0].ToBig(), target, 1235)
+			require.NoError(t, err)
+			assert.Equal(t, want, pt[1].ToBig(), "the target block's output")
+		}
+	}
+}
+
+// Ethereum's sources are price contracts, never guarded: a listing bound to a guarded entry is not quoted on chain 1.
+func TestBuilderQuotesNothingOnAGuardedEntry(t *testing.T) {
+	chain := printChain(false, true)
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	st.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{
+		"a": {testCellA: cellSlots(1235, false, 0), create3Child(testFront, 9): printSlots}})
+	cfg := printConfig(st.URL)
+	unserved(t, ethTrack(t, n, cfg, ethListed(t, n, cfg)), "a guarded entry on chain 1")
+}
+
+// The listings of one front refreshed together share one /state fetch a url: a second listing's refresh inside the
+// share window reads the first's answers, and one after it fetches again.
+func TestBuilderListingsRefreshedTogetherShareOneStateFetch(t *testing.T) {
+	chain := sharedChain()
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	a, b := wordsOf(slotA, 1235, 0, false, false), wordsOf(slotB, 1235, 0, false, false)
+	st.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"a": {cellOf(7): a}, "b": {cellOf(7): b}})
+	cfg := ethConfig(st.URL)
+	u, err := NewPoolsListUpdater(cfg, n.client())
+	require.NoError(t, err)
+	pools, _, err := u.GetNewPools(context.Background(), nil)
+	require.NoError(t, err)
+	require.Len(t, pools, 2)
+	now := time.Now()
+	tr := ethTracker(t, n, cfg, now)
+	tr.now = func() time.Time { return now }
+	refresh := func() {
+		for _, p := range pools {
+			p.Tokens[0].Decimals, p.Tokens[1].Decimals = 18, 6
+			got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+			require.NoError(t, err)
+			require.NotEmpty(t, extraOf(t, got).Ladders[0], p.Address)
+		}
+	}
+	probes := func() int { return n.requestCounts()["eth_getBlockByNumber"] }
+	refresh()
+	assert.Equal(t, int64(1), st.hits.Load(), "both listings read one fetch")
+	assert.Equal(t, 1, probes(), "and ask the node for the head once")
+	now = now.Add(stateShareWindow - time.Millisecond)
+	refresh()
+	assert.Equal(t, int64(1), st.hits.Load(), "inside the share window")
+	assert.Equal(t, 1, probes(), "the head's probe shared too")
+	now = now.Add(time.Millisecond)
+	refresh()
+	assert.Equal(t, int64(2), st.hits.Load(), "the window over: fetched again")
+	assert.Equal(t, 2, probes(), "and probed again, once for both listings")
+}
+
+// A head probe that fails is not shared: the next caller probes again, and with the node answering it is cached.
+func TestBuilderFailedHeadProbeIsNotShared(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	cfg := ethConfig("http://127.0.0.1:1")
+	tr := ethTracker(t, n, cfg, time.Now())
+	f := &cfg.Fronts[0]
+	n.mu.Lock()
+	n.noBlocks = true
+	n.mu.Unlock()
+	_, ok := tr.headProbe(context.Background(), f)
+	assert.False(t, ok)
+	_, ok = tr.headProbe(context.Background(), f)
+	assert.False(t, ok)
+	n.mu.Lock()
+	n.noBlocks = false
+	n.mu.Unlock()
+	id, ok := tr.headProbe(context.Background(), f)
+	require.True(t, ok, "probed again after the failures")
+	assert.Equal(t, uint64(1234), id.number.Uint64())
+	_, _ = tr.headProbe(context.Background(), f)
+	assert.Equal(t, 3, n.requestCounts()["eth_getBlockByNumber"], "two failures and one probe, the last shared")
+}
+
+// A listing not quoted for a standing reason (its desk not approved) is idle: its state says so and its next refresh
+// is asked for idleRefreshEvery on, on a builder chain and on a chain read at the head. One with no ladder for its
+// block alone (no answer yet) is not idle and is read again a second on, as a quoted one is.
+func TestIdleListingIsRefreshedLessOften(t *testing.T) {
+	chain := ethChain()
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	st.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := ethConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	now := time.Unix(int64(n.time)+1, 0)
+	next := func(cfg *Config) (Extra, int64) {
+		tr := ethTracker(t, n, cfg, now)
+		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		return extraOf(t, got), tr.NextUpdateAt(got) - now.Unix()
+	}
+	e, in := next(cfg)
+	require.NotEmpty(t, e.Ladders[0])
+	assert.False(t, e.Idle)
+	assert.Equal(t, int64(refreshEvery/time.Second), in, "quoted")
+
+	unapproved := ethConfig(st.URL)
+	unapproved.ApprovedDesks = nil
+	e, in = next(unapproved)
+	assert.Empty(t, e.Ladders[0])
+	assert.True(t, e.Idle)
+	assert.Equal(t, int64(idleRefreshEvery/time.Second), in, "its desk not approved")
+
+	st.set(slotAfter(n.time), 1235, nil)
+	e, in = next(cfg)
+	assert.Empty(t, e.Ladders[0])
+	assert.False(t, e.Idle, "no answer for the next block yet: its next is a block away")
+	assert.Equal(t, int64(refreshEvery/time.Second), in)
+
+	// read at the head
+	base := trackedChain()
+	bn := base.node(t, 1234)
+	bp := listed(t, bn)
+	none := testConfig()
+	none.ApprovedDesks = nil
+	tr, err := NewPoolTracker(none, bn.client())
+	require.NoError(t, err)
+	got, err := tr.GetNewPoolState(context.Background(), bp, pool.GetNewPoolStateParams{})
+	require.NoError(t, err)
+	assert.True(t, extraOf(t, got).Idle)
+	assert.Equal(t, got.Timestamp+int64(idleRefreshEvery/time.Second), tr.NextUpdateAt(got))
+	quoted := track(t, bn, bp)
+	assert.False(t, extraOf(t, quoted).Idle)
+	assert.Equal(t, quoted.Timestamp+int64(refreshEvery/time.Second), tr.NextUpdateAt(quoted))
+}
+
+// A refresh of one quoted listing that reads a price source, on Ethereum, costs the node a fixed number of requests:
+// this pins what the README states, for a listing bound to a primary and a backup price contract. The /state answer
+// is read apart (an HTTP POST of its own, not the node's).
+func TestBuilderRefreshNodeLoad(t *testing.T) {
+	for _, c := range []struct {
+		name      string
+		carry     bool
+		ethCall   int
+		storageAt int
+	}{{"the word does not carry", false, 5, 7}, {"the word carries", true, 6, 7}} {
+		chain := printChain(false, false)
+		if c.carry {
+			chain.listings[1].view.Scopes |= 8 // a carry life, which the word's carry bit then makes one
+		}
+		n := builderNode(t, chain, 1234)
+		st := newStateServer(t)
+		st.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"a": {
+			testCellA: cellSlots(1235, c.carry, 0), create3Child(testFront, printIDs[0]): printSlots}})
+		cfg := printConfig(st.URL)
+		p := ethListed(t, n, cfg)
+		tr := ethTracker(t, n, cfg, time.Now())
+		before := n.requestCounts()
+		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		require.NotEmpty(t, extraOf(t, got).Ladders[0], c.name)
+		after := n.requestCounts()
+		assert.Equal(t, c.ethCall, after["eth_call"]-before["eth_call"], "%s: eth_call", c.name)
+		assert.Equal(t, c.storageAt, after["eth_getStorageAt"]-before["eth_getStorageAt"], "%s: eth_getStorageAt",
+			c.name)
+		assert.Equal(t, before["eth_getCode"], after["eth_getCode"], "%s: eth_getCode", c.name)
+	}
+}
+
+// A top-level member of a /state answer that is not an object (the builder's `timestamp` number, a string, an array,
+// null), or an object naming no stateOverride, is passed over and costs the answer nothing: the listing is still
+// covered. An object whose stateOverride cannot be read whole still makes the answer malformed.
+func TestBuilderPassesOverTopLevelMembersThatAreNoEntry(t *testing.T) {
+	for _, c := range []struct {
+		name    string
+		member  any
+		covered bool
+	}{
+		{"a number timestamp", 1_800_000_000, true},
+		{"a string", "x", true},
+		{"an array", []any{1, 2}, true},
+		{"null", nil, true},
+		{"an object with no stateOverride", map[string]any{"other": 1}, true},
+		{"a stateOverride that is broken", map[string]any{"stateOverride": "x"}, false},
+		{"a stateOverride account that is broken", map[string]any{"stateOverride": map[string]any{
+			testCellA.Hex(): map[string]any{"stateDiff": map[string]string{}, "nonce": 1}}}, false},
+	} {
+		chain := ethChain()
+		n := builderNode(t, chain, 1234)
+		st := newStateServer(t)
+		st.set(slotAfter(n.time), 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+		st.mu.Lock()
+		st.m["timestamp"] = c.member
+		st.mu.Unlock()
+		cfg := ethConfig(st.URL)
+		got := ethTrack(t, n, cfg, ethListed(t, n, cfg))
+		if c.covered {
+			assert.NotEmpty(t, extraOf(t, got).Ladders[0], c.name)
+		} else {
+			unserved(t, got, c.name)
+		}
+	}
+}
+
+// One tracker refreshing one listing: at a new head the refresh costs what it did, at the same head under a new
+// override the override's calls alone, and at the same head under the same override nothing but the head's hash. A
+// head the chain replaced at the same height (another hash) is read again whole.
+func TestBuilderHeadCacheSavesTheNodeCalls(t *testing.T) {
+	chain := printChain(false, false)
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	slot := slotAfter(n.time)
+	entries := func(price uint64) map[string]stateEntry {
+		slots := map[common.Hash]common.Hash{}
+		for k, v := range printSlots {
+			slots[k] = v
+		}
+		slots[common.Hash{}] = common.BigToHash(new(big.Int).SetUint64(price))
+		return map[string]stateEntry{"a": {testCellA: cellSlots(1235, false, 0),
+			create3Child(testFront, printIDs[0]): slots}}
+	}
+	st.setEntries(slot, 1235, entries(0x4001))
+	cfg := printConfig(st.URL)
+	p := ethListed(t, n, cfg)
+	now := time.Now()
+	tr := ethTracker(t, n, cfg, now)
+	tr.now = func() time.Time { return now }
+	// each refresh is a share window after the one before, so the head is probed and the /state answers fetched again
+	tick := func() { now = now.Add(stateShareWindow) }
+	refresh := func() (entity.Pool, map[string]int) {
+		before := n.requestCounts()
+		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		after := n.requestCounts()
+		d := map[string]int{}
+		for _, m := range []string{"eth_call", "eth_getStorageAt", "eth_getBlockByNumber"} {
+			d[m] = after[m] - before[m]
+		}
+		return got, d
+	}
+	first, d := refresh()
+	require.NotEmpty(t, extraOf(t, first).Ladders[0])
+	assert.Equal(t, map[string]int{"eth_call": 5, "eth_getStorageAt": 7, "eth_getBlockByNumber": 1}, d,
+		"a new head (its first refresh also reads the code hashes)")
+
+	again, d := refresh()
+	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 0}, d,
+		"inside the share window: no node call at all")
+	tick()
+	_, d = refresh()
+	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"the same head, the same override, a window on")
+	assert.Equal(t, first.Extra, again.Extra)
+	assert.Equal(t, first.Reserves, again.Reserves)
+	assert.Equal(t, first.Timestamp, again.Timestamp)
+
+	// a new override: the maker's word changes at the same head
+	st.setEntries(slot, 1235, entries(0x4002))
+	tick()
+	_, d = refresh()
+	assert.Equal(t, map[string]int{"eth_call": 1, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"the same head, a new override: the pinned read asked ahead in the head read")
+	tick()
+	_, d = refresh()
+	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"the new override again")
+
+	// the chain's head at the same height is another block: every read again
+	n.mu.Lock()
+	n.reorg = 1
+	n.mu.Unlock()
+	_, d = refresh()
+	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 0}, d,
+		"the replaced head not yet seen: the shared probe's")
+	tick()
+	_, d = refresh()
+	assert.Equal(t, map[string]int{"eth_call": 2, "eth_getStorageAt": 3, "eth_getBlockByNumber": 1}, d,
+		"a head replaced at the same height, seen by the next probe: its facts in one batch, the binding known, and "+
+			"the pinned read asked ahead in the head read")
+
+	// the held result is served only while its desk's approval is what it was
+	tick()
+	held, d := refresh()
+	assert.Equal(t, 0, d["eth_call"])
+	require.NotEmpty(t, extraOf(t, held).Ladders[0])
+	tr.desks.static = map[common.Address]struct{}{}
+	revoked, _ := refresh()
+	unserved(t, revoked, "the desk is no longer approved")
+}
+
+// headRig is one tracker refreshing printChain's listing 1 on a /state server, its clock a share window on at each
+// refresh, so each refresh probes the head and fetches the answers again.
+type headRig struct {
+	t     *testing.T
+	chain *fakeChain
+	n     *node
+	st    *stateServer
+	cfg   *Config
+	tr    *PoolTracker
+	p     entity.Pool
+	now   time.Time
+}
+
+func newHeadRig(t *testing.T) *headRig {
+	chain := printChain(false, false)
+	n := builderNode(t, chain, 1234)
+	st := newStateServer(t)
+	cfg := printConfig(st.URL)
+	r := &headRig{t: t, chain: chain, n: n, st: st, cfg: cfg, p: ethListed(t, n, cfg), now: time.Now()}
+	r.tr = ethTracker(t, n, cfg, r.now)
+	r.tr.now = func() time.Time { return r.now }
+	return r
+}
+
+// answer makes the /state server's answer for block 1235 write the listing's quote word at pair slot i, the maker's
+// post-th post of it (bit 100+post set in its unused bits, so each post is another word).
+func (r *headRig) answer(i uint8, post uint) {
+	w := quoteWordAt(1235, 0, false, false)
+	w.SetBit(w, int(100+post), 1)
+	r.st.setEntries(slotAfter(r.n.time), 1235, map[string]stateEntry{"a": {
+		cellOf(7): {quoteKey(i): common.BigToHash(w)}, create3Child(testFront, printIDs[0]): printSlots}})
+}
+
+// refresh refreshes the listing from its last state and counts the node's requests it made.
+func (r *headRig) refresh() map[string]int {
+	r.t.Helper()
+	r.now = r.now.Add(stateShareWindow)
+	before := r.n.requestCounts()
+	got, err := r.tr.GetNewPoolState(context.Background(), r.p, pool.GetNewPoolStateParams{})
+	require.NoError(r.t, err)
+	r.p = got
+	after := r.n.requestCounts()
+	d := map[string]int{}
+	for _, m := range []string{"eth_call", "eth_getStorageAt", "eth_getBlockByNumber"} {
+		d[m] = after[m] - before[m]
+	}
+	return d
+}
+
+func (r *headRig) newHead() {
+	r.n.mu.Lock()
+	r.n.reorg++
+	r.n.mu.Unlock()
+}
+
+// fresh is the state a tracker that holds nothing of the listing reads from p at the rig's head and answer: no facts,
+// no binding and no sizes asked ahead.
+func (r *headRig) fresh(p entity.Pool) entity.Pool {
+	r.t.Helper()
+	tr := ethTracker(r.t, r.n, r.cfg, r.now)
+	got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+	require.NoError(r.t, err)
+	return got
+}
+
+// samePriced asserts that got is the state want is: its ladders, reserves, block and time.
+func samePriced(t *testing.T, want, got entity.Pool, msg string) {
+	t.Helper()
+	require.NotEmpty(t, extraOf(t, want).Ladders[0], msg)
+	assert.Equal(t, want.Extra, got.Extra, msg)
+	assert.Equal(t, want.Reserves, got.Reserves, msg)
+	assert.Equal(t, want.BlockNumber, got.BlockNumber, msg)
+	assert.Equal(t, want.Timestamp, got.Timestamp, msg)
+}
+
+// A refresh whose answer covers the listing asks the door, in its head read, at the sizes the listing's last quoted
+// refresh named for it: where every size it then needs was asked there, its pinned read is taken from those answers,
+// and the state is the one a tracker that asked nothing ahead reads. Where a size it needs was not asked ahead, it reads
+// the pinned read as it would, and the state is the same.
+func TestBuilderPrefetchedReadIsTheReadItSaves(t *testing.T) {
+	r := newHeadRig(t)
+	r.answer(0, 1)
+	r.refresh()
+	last := r.p
+	require.NotEmpty(t, extraOf(t, last).Ladders[0])
+
+	r.answer(0, 2)
+	d := r.refresh()
+	assert.Equal(t, map[string]int{"eth_call": 1, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"a new override: the pinned read asked ahead in the head read")
+	samePriced(t, r.fresh(last), r.p, "asked ahead, the state a read after the head read gives")
+
+	// a size the refresh needs that was not asked ahead: the pinned read is read
+	e := r.tr.cache.m[common.HexToAddress(r.p.Address)]
+	e.mu.Lock()
+	require.NotNil(t, e.next)
+	e.next = &nextAsk{sizes: [2][]*big.Int{e.next.sizes[0][1:], e.next.sizes[1]}, plan: e.next.plan,
+		view: e.next.view}
+	e.mu.Unlock()
+	last = r.p
+	r.answer(0, 3)
+	d = r.refresh()
+	assert.Equal(t, map[string]int{"eth_call": 2, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"a size not asked ahead: the pinned read read after the head read")
+	samePriced(t, r.fresh(last), r.p, "not asked ahead, the same state")
+}
+
+// A refresh no answer covers writes no ladder, and the refresh that next quotes the listing draws its sizes from the
+// last state that held one: the ladder it last had, not the first refresh's sweep. So the sizes its last quoted refresh
+// named are the ones it needs, and its pinned read is asked ahead at a new head too; its state is the one read from
+// that last state.
+func TestBuilderSizesFollowTheLastLadderAcrossAHeadWithNoAnswer(t *testing.T) {
+	r := newHeadRig(t)
+	r.answer(0, 1)
+	r.refresh()
+	last := r.p
+	require.NotEmpty(t, extraOf(t, last).Ladders[0])
+
+	r.newHead()
+	r.st.setEntries(0, 1234, nil)
+	r.refresh()
+	require.Empty(t, extraOf(t, r.p).Ladders[0], "no answer: no ladder")
+
+	r.answer(0, 2)
+	d := r.refresh()
+	assert.Equal(t, map[string]int{"eth_call": 1, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, d,
+		"the answer at the same head: the facts held, the pinned read asked ahead")
+	samePriced(t, r.fresh(last), r.p, "the sizes of the last ladder")
+}
+
+// On BNB Chain the window samples the target block a second late too: the head read asks that sample beside it, in
+// the same batch, with the pinned read in its multicall, and the state is the one a tracker that asked nothing ahead
+// reads.
+func TestBNBPrefetchAsksTheLateSampleWithTheHeadRead(t *testing.T) {
+	chain := bnbChain()
+	now := uint64(time.Now().Unix())
+	n := bnbNode(t, chain, 1234, now*1000+700, true, nil)
+	st := newStateServer(t)
+	st.set(1235, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
+	cfg := bnbConfig(st.URL)
+	clock := time.Now()
+	tr := ethTracker(t, n, cfg, clock)
+	tr.now = func() time.Time { return clock }
+	refresh := func(tr *PoolTracker, p entity.Pool) (entity.Pool, int) {
+		t.Helper()
+		clock = clock.Add(time.Second)
+		before := n.requestCounts()["eth_call"]
+		got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		require.NoError(t, err)
+		return got, n.requestCounts()["eth_call"] - before
+	}
+	first, whole := refresh(tr, ethListed(t, n, cfg))
+	require.NotEmpty(t, extraOf(t, first).Ladders[0])
+
+	w := deskSlot0(1235, false)
+	w.SetBit(w, 101, 1)
+	st.set(1235, 1235, map[common.Address]*big.Int{testCellA: w})
+	before := len(n.calls())
+	second, calls := refresh(tr, first)
+	assert.Equal(t, 2, calls, "a new override: the head read with the pinned read in it, and the late sample")
+	seconds := map[uint64]int{}
+	for _, q := range quotesAfter(n, before) {
+		seconds[q.at]++
+	}
+	assert.Positive(t, seconds[now+1], "the target block's second")
+	assert.Positive(t, seconds[now+2], "the second after")
+	fresh, calls := refresh(ethTracker(t, n, cfg, clock), first)
+	assert.Equal(t, whole, calls, "nothing held: the facts, the head read, the pinned read, the late sample")
+	samePriced(t, fresh, second, "asked ahead, the state a read after the head read gives")
+}
+
+// Where no answer covers the listing's update for the head's next block, a refresh reads the head's facts alone: no
+// read under an override and no sample, and its state quotes nothing. Its standing reasons are read from the facts as
+// from the head read: a desk not approved is idle, an approved one is not (its next answer is a block away).
+func TestBuilderListingNoAnswerCoversReadsTheFactsAlone(t *testing.T) {
+	r := newHeadRig(t)
+	r.answer(0, 1)
+	r.refresh()
+	require.NotEmpty(t, extraOf(t, r.p).Ladders[0], "quoted where the answer covers it")
+
+	r.newHead()
+	r.st.setEntries(0, 1234, nil)
+	assert.Equal(t, map[string]int{"eth_call": 1, "eth_getStorageAt": 3, "eth_getBlockByNumber": 1}, r.refresh(),
+		"a new head, no answer: the facts in one batch, its binding known")
+	unserved(t, r.p, "no answer")
+	e := extraOf(t, r.p)
+	assert.False(t, e.Idle, "its desk approved: not idle")
+	assert.True(t, e.Builder)
+	assert.Equal(t, int64(r.n.time), r.p.Timestamp, "the head's second")
+	assert.Equal(t, uint64(1234), r.p.BlockNumber)
+	assert.Equal(t, map[string]int{"eth_call": 0, "eth_getStorageAt": 0, "eth_getBlockByNumber": 1}, r.refresh(),
+		"the same head, still no answer: held")
+
+	r.tr.desks.static = map[common.Address]struct{}{}
+	r.newHead()
+	r.refresh()
+	assert.True(t, extraOf(t, r.p).Idle, "its desk not approved: idle")
+}
+
+// A listing whose pair slot moved between two heads is read again at the new one: the facts asked ahead under the
+// earlier binding are not taken, and the listing is quoted from its new slot.
+func TestBuilderFactsReadAgainWhereTheBindingMoved(t *testing.T) {
+	r := newHeadRig(t)
+	r.answer(0, 1)
+	r.refresh()
+	require.NotEmpty(t, extraOf(t, r.p).Ladders[0])
+
+	r.chain.listings[1].view.WordIndex = 3
+	r.newHead()
+	r.answer(3, 2)
+	d := r.refresh()
+	assert.Equal(t, 1, d["eth_call"]-2, "one more facts read than a head whose binding stood")
+	served(t, r.chain, 1, r.p, slotTime(slotAfter(r.n.time)), "quoted from its new pair slot")
+
+	// and a listing bound since to a source not approved is not quoted: its new id's entry is read
+	r.chain.listings[1].sourceIds = big.NewInt(3)
+	r.chain.sources[3] = new(big.Int).SetBytes(testThird[:])
+	r.newHead()
+	r.answer(3, 3)
+	r.refresh()
+	unserved(t, r.p, "a source not approved")
+	assert.NotEmpty(t, storageReads(r.chain, r.n, sourceEntrySlot(3)), "the new id's entry is read")
+}
+
+// At a new head whose answer is already there, the head read under it is asked while the head's facts are read, on
+// the plan the facts of the head before draw (the listing's binding, slots and source ids, at the new head's block and
+// second): where the facts read name the same plan it stands, and the state is the one a tracker that asked nothing
+// ahead reads. Where they name another (the listing bound since to one of the two price contracts the answer holds),
+// it is asked again on the plan they name.
+func TestBuilderNewHeadAsksTheHeadReadBesideTheFacts(t *testing.T) {
+	r := newHeadRig(t)
+	r.answer(0, 1)
+	r.refresh()
+	r.newHead()
+	r.answer(0, 2)
+	last := r.p
+	d := r.refresh()
+	assert.Equal(t, map[string]int{"eth_call": 2, "eth_getStorageAt": 3, "eth_getBlockByNumber": 1}, d,
+		"the facts in one batch, and beside them the head read with the pinned read in it")
+	samePriced(t, r.fresh(last), r.p, "on the plan the head before drew, the state a read after the facts gives")
+
+	r.chain.listings[1].sourceIds = big.NewInt(int64(printIDs[0]))
+	r.newHead()
+	w := quoteWordAt(1235, 0, false, false)
+	w.SetBit(w, 103, 1)
+	r.st.setEntries(slotAfter(r.n.time), 1235, map[string]stateEntry{"a": {
+		cellOf(7): {quoteKey(0): common.BigToHash(w)}, create3Child(testFront, printIDs[0]): printSlots,
+		create3Child(testFront, printIDs[1]): printSlots}})
+	last = r.p
+	d = r.refresh()
+	assert.Equal(t, 3, d["eth_call"], "the head read asked again on the facts' plan")
+	samePriced(t, r.fresh(last), r.p, "on the facts' plan, the same state")
+}
+
+// A window sample asked ahead in the head read's batch counts only where the node ran it in its block, as one asked
+// after the pinned read does. The node here ignores the block override of every multicall that asks the door's quotes
+// and not each side's top: the window samples, asked ahead or not. The head read asks both, so it runs where it is
+// told, and the pinned read asked inside it stands. A sample run elsewhere is no sample: the direction is quoted no
+// later than its cap, the target block's time.
+func TestBuilderSampleAskedAheadIsCheckedForItsBlock(t *testing.T) {
+	quote, fillable := common.FromHex("0xb6466384"), doorABI.Methods["quoteFillable"].ID
+	samples := func(data []byte) bool { return bytes.Contains(data, quote) && !bytes.Contains(data, fillable) }
+	for _, bnb := range []bool{true, false} {
+		name := "Ethereum, the carried word's next block"
+		if bnb {
+			name = "BNB Chain, the late sample"
+		}
+		t.Run(name, func(t *testing.T) {
+			var chain *fakeChain
+			var n *node
+			var cfg *Config
+			var targetMs, slot uint64
+			st := newStateServer(t)
+			if bnb {
+				now := uint64(time.Now().Unix()) + 1
+				headMs := now*1000 + 610
+				targetMs, slot = headMs+450, 1235
+				chain = bnbChain()
+				n = bnbNode(t, chain, 1234, headMs, true, nil)
+				cfg = bnbConfig(st.URL)
+			} else {
+				chain = printChain(false, false)
+				chain.listings[1].view.Scopes |= 8 // a carry life, which the word's carry bit makes one block
+				n = builderNode(t, chain, 1234)
+				slot = slotAfter(n.time)
+				targetMs = slotTime(slot) * 1000
+				// the door fills on the answer's state in any block, so only the sample's own block check can tell
+				n.respondState = func(to common.Address, data []byte, at, number uint64, sub int64,
+					state stateDiffs) (bool, []byte) {
+					if _, l := chain.doorListing(to); l != nil {
+						number = 1235
+					}
+					return chain.builderRespond(to, data, at, number, sub, state)
+				}
+				cfg = printConfig(st.URL)
+			}
+			// the maker's k-th post of the listing's word for block 1235
+			post := func(k int) {
+				if !bnb {
+					st.setEntries(slot, 1235, map[string]stateEntry{"a": {testCellA: cellSlots(1235, true, uint(100+k)),
+						create3Child(testFront, printIDs[0]): printSlots}})
+					return
+				}
+				w := deskSlot0(1235, false)
+				w.SetBit(w, 100+k, 1)
+				st.set(slot, 1235, map[common.Address]*big.Int{testCellA: w})
+			}
+			clock := time.Now()
+			tr := ethTracker(t, n, cfg, clock)
+			tr.now = func() time.Time { return clock }
+			refresh := func(p entity.Pool) entity.Pool {
+				t.Helper()
+				clock = clock.Add(time.Second)
+				got, err := tr.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+				require.NoError(t, err)
+				return got
+			}
+			post(1)
+			first := refresh(ethListed(t, n, cfg))
+			require.NotEmpty(t, extraOf(t, first).Ladders[0])
+			if !bnb {
+				require.Greater(t, extraOf(t, first).ValidUntilMs, targetMs, "the carried word's block sampled")
+			}
+
+			n.ignoreOverridesIf = samples
+			post(2)
+			e := extraOf(t, refresh(first))
+			require.NotEmpty(t, e.Ladders[0], "the pinned read asked ahead ran in the target block")
+			assert.Equal(t, targetMs, e.ValidUntilMs, "the sample run elsewhere is none: to the cap")
+		})
+	}
+}

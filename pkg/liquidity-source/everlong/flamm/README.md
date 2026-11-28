@@ -125,9 +125,14 @@ are left out. It then reads, in one multicall, each live venue account's `capabi
 only an account that holds a minimum position (`CAP_HELD_REPAY`) answers. A pair is routed only where every record and
 every `capabilities()` read, some live venue holds or lends one of its tokens, and every such venue is of a kind its
 chain routes with cells for the pricer's build and the side: Base and Ethereum route kinds 0 (Morpho Blue) and 1 (Aave
-V3), BSC kinds 1 (Aave V3), 2 (Venus Core) and 3 (Lista Moolah). `venueKinds` narrows the kinds, never widens them. A
+V3), BSC kinds 1 (Aave V3), 2 (Venus Core) and 3 (Lista Moolah). Ethereum also routes kinds 16 and 17, Aave V4's Core
+Hub and Prime Hub (Aave V4 takes one kind number a pair of Hubs, from 16 up), for the one build measured on them: no
+other build has their cells, and no fill was measured borrowing on Ethereum's other Aave V4 kinds, which stay
+unrouted. An Aave V4 venue holds no minimum position. `venueKinds` narrows the kinds, never widens them. A
 pair with a live venue of any other kind, or priced by a build the table does not measure, is not routed: no charge
-stands in for a fill that was not measured.
+stands in for a fill that was not measured. The EverlongHook build Ethereum runs (0x8d89…7d55) has cells on Ethereum
+alone; the table's Base and BSC rows are earlier builds'. A pool of that build on Base or BNB Chain is not routed until
+its fills there are measured, and none is deployed there yet.
 
 A Lista Moolah venue holds a minimum position: the Router passes it over where a draw would leave its debt under
 that minimum, or within 4 units over it while it owes, and the pool's quote then refuses. With F what the pool frees
@@ -156,14 +161,16 @@ its own where the executor received the input earlier in the same transaction, h
 balance warm and already written, and returns it to its starting value, which earns a refund), and where an earlier
 leg paid the recipient the same token. The route saving is the most a fill's net fell from the one form to the other,
 on the same state and size: Base 25,400, Ethereum 25,400, BSC 14,900; for the EverlongIdleEntryHook build, measured on
-its own fills, Base 27,992, BSC 14,900. The EverlongIdleEntryHook build's cells stand above EverlongHook's by the
-leverage route's pure computation, and on an unlocked hook by its variance fold and its read of a posted row besides:
-on like fills, the venue idle, locked 28,185 to 35,728, unlocked 28,149 to 35,590, unlocked with a keeper's row posted
-30,823 to 38,264 gas a fill; each cell is the least measured over every setting. Fills measured in the route form
-count as they are. A cell is the hook build (the Hook column), the chain, the venue kind, the side (a sale pays token
-1 for token 0) and the fill's path: what pays the output, and whether the input repays a debt first. Every key has a
-custody cell, measured on fills whose input stays in custody too, as a supply of the input is never assumed: a fill
-that supplies its input is charged under its gas.
+its own fills, Base 27,992, BSC 14,900; for the EverlongHook build Ethereum runs (family
+`0x8d897c2c0b01a40ec5dcab9c6e159df3360ba495fe22cbfad8edf9e8406f7d55`, the rows named EverlongHook (0x8d89…7d55)
+below), measured on its own fills there, 28,009. The EverlongIdleEntryHook build's cells stand above EverlongHook's by
+the leverage route's pure computation, and on an unlocked hook by its variance fold and its read of a posted row
+besides: on like fills, the venue idle, locked 28,185 to 35,728, unlocked 28,149 to 35,590, unlocked with a keeper's
+row posted 30,823 to 38,264 gas a fill; each cell is the least measured over every setting. Fills measured in the
+route form count as they are. A cell is the hook build (the Hook column), the chain, the venue kind, the side (a sale
+pays token 1 for token 0) and the fill's path: what pays the output, and whether the input repays a debt first. Every
+key has a custody cell, measured on fills whose input stays in custody too, as a supply of the input is never assumed:
+a fill that supplies its input is charged under its gas.
 
 | Hook | Chain | Venue kind | Side | Output paid by | Input repays | Charge |
 |---|---|---|---|---|---|---|
@@ -236,6 +243,34 @@ that supplies its input is charged under its gas.
 | EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | custody | no | 215,000 |
 | EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | custody | yes | 476,000 |
 | EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | a venue withdrawal or release | yes | 661,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | sale | custody | no | 186,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | sale | a venue withdrawal or release | no | 312,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | sale | a first borrow | no | 461,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | sale | an owing borrow | no | 388,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | buy | custody | no | 185,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | buy | custody | yes | 308,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | buy | a venue withdrawal or release | yes | 399,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | sale | custody | no | 186,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | sale | a venue withdrawal or release | no | 518,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | sale | a first borrow | no | 965,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | sale | an owing borrow | no | 765,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | buy | custody | no | 176,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | buy | custody | yes | 490,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | buy | a venue withdrawal or release | yes | 769,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | sale | custody | no | 186,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | sale | a venue withdrawal or release | no | 553,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | sale | a first borrow | no | 980,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | sale | an owing borrow | no | 813,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | buy | custody | no | 176,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | buy | custody | yes | 554,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | buy | a venue withdrawal or release | yes | 862,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | sale | custody | no | 182,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | sale | a venue withdrawal or release | no | 542,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | sale | a first borrow | no | 949,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | sale | an owing borrow | no | 801,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | buy | custody | no | 161,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | buy | custody | yes | 535,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | buy | a venue withdrawal or release | yes | 833,000 |
 
 A fill on a pool that another fill of the same route moved runs in the same transaction, on what that fill warmed: it
 is charged its key's second fill, the least net gas measured of the second of two swaps of one pool in one transaction
@@ -263,6 +298,14 @@ is charged its key's second fill, the least net gas measured of the second of tw
 | EverlongIdleEntryHook | Base | 1, Aave V3 | buy | 111,000 |
 | EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | 113,000 |
 | EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | 106,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | sale | 77,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | buy | 73,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | sale | 79,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | buy | 70,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | sale | 79,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | buy | 70,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | sale | 76,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | buy | 67,000 |
 
 Gas limits, for the route's transaction: the dearest swap call measured of each key before refunds, over every path,
 state, size and recipient, times 1.10 and rounded up to 5,000. A route result carries one gas figure and no limit, so
@@ -290,6 +333,14 @@ the package carries none of these.
 | EverlongIdleEntryHook | Base | 1, Aave V3 | buy | 1,292,704 | 1,425,000 |
 | EverlongIdleEntryHook | BSC | 3, Lista Moolah | sale | 1,048,795 | 1,155,000 |
 | EverlongIdleEntryHook | BSC | 3, Lista Moolah | buy | 1,056,125 | 1,165,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | sale | 705,003 | 780,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 0, Morpho Blue | buy | 795,687 | 880,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | sale | 1,256,322 | 1,385,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 1, Aave V3 | buy | 1,248,961 | 1,375,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | sale | 1,338,143 | 1,475,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 16, Aave V4 Core Hub | buy | 1,453,818 | 1,600,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | sale | 1,293,763 | 1,425,000 |
+| EverlongHook (0x8d89…7d55) | Ethereum | 17, Aave V4 Prime Hub | buy | 1,401,359 | 1,545,000 |
 
 <!-- End of the generated tables. -->
 
@@ -320,8 +371,8 @@ the package carries none of these.
 
 ```yaml
 dexID: everlong-flamm
-chainID: 8453
-factories: ["0x029EB597fb328844A807DC7662023244dE698C15"]   # the protocol's Factory, one address on every chain
+chainID: 1
+factories: ["0x04D65671C15c0a230b05290c640E0292edd35C75"]   # the protocol's Factory on Ethereum
 hookFamilies:                 # optional; default: the protocol-listed builds (families.go)
   - name: everlong-hook
     codeHash: "0x..."
@@ -340,13 +391,19 @@ rungs: 20                     # optional; sizes a later refresh seeds past the o
 ```
 
 On BSC (`chainID: 56`) the source routes venue kinds 1 (Aave V3), 2 (Venus Core) and 3 (Lista Moolah), with the cells
-the table measured there, and Lista Moolah's ladders behind the guard on its minimum (see Gas). `factories` take
-the same address as on Base: the protocol deploys its Factory at one address on every chain. The default `taker` is the KyberSwap executor's Base address, which holds the
-same code on BSC; name the executor there if it differs. A first refresh seeds a direction from 10^(decimals - 3) of its
+the table measured there, and Lista Moolah's ladders behind the guard on its minimum (see Gas). `factories` name
+the Factory deployed there. The default `taker` is the KyberSwap executor's Base address, which holds the same code on
+BSC; name the executor there if it differs. A first refresh seeds a direction from 10^(decimals - 3) of its
 input, 1e15 wei of BTCB (about $75), which a pool seeded with less refuses past its price band: such a pool's sale stays
 unrouted, never quoted over, until its seed grows. A Venus Core preview costs about twice an Aave V3 one, so a full walk
 of both directions reaches the sampler's gas gate, which ends it with fewer points: never a failed refresh, and no probe
 starves at the default cap on it alone.
+
+On Ethereum (`chainID: 1`) the Factory is `0x04D65671C15c0a230b05290c640E0292edd35C75`,
+and its pools run the EverlongHook build whose cells the table names for Ethereum (family `0x8d897c2c…7d55`): venue
+kinds 0 (Morpho Blue), 1 (Aave V3), 16 and 17 (Aave V4's Core and Prime Hubs). A pool with no live venue on a pair is
+not routed by this source (no fill of such a pool is in the table), and a pair a front prices is not routed here
+either: `efficient-prop` quotes its listings.
 
 ## Fork check
 

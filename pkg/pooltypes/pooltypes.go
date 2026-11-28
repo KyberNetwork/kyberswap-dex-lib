@@ -71,6 +71,7 @@ import (
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	dodogsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/gsp"
 	doppleramm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/doppler-amm"
+	efficientprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/efficient-prop"
 	efraprop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/efra-prop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	ekubov3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/v3"
@@ -541,6 +542,7 @@ type Types struct {
 	NetStaking                 string
 	Gblin                      string
 	EverlongFlamm              string
+	EfficientProp              string
 	BTRProp                    string
 	KuruOB                     string
 	KuruOBV2                   string
@@ -818,6 +820,7 @@ var (
 		NetStaking:                 netstaking.DexType,
 		Gblin:                      gblin.DexType,
 		EverlongFlamm:              everlongflamm.DexType,
+		EfficientProp:              efficientprop.DexType,
 		BTRProp:                    btrprop.DexType,
 		KuruOB:                     kuruob.DexType,
 		KuruOBV2:                   kuruobv2.DexType,

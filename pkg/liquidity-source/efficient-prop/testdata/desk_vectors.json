@@ -1,0 +1,52 @@
+{
+ "source": "the desk contract's quote record vectors: the words a desk contract holds after each record lands",
+ "deskContract": "0x1111111111111111111111111111111111111111",
+ "layout": {
+  "deskWordSlot": 1,
+  "registrySlot": 2,
+  "wordKeySlot": 3,
+  "quoteWordBase": "0x100",
+  "firmWordBase": "0x200"
+ },
+ "records": [
+  {
+   "name": "plain, pair slot 0, desk epoch 0, unsigned",
+   "blockNumber": 26460200,
+   "deskEpoch": 0,
+   "deskWord": "0x000000000000000000000000985442e6d7c3da32f2f0c8c65fb8f8c60dcabf03",
+   "slot": 0,
+   "on": true,
+   "firm": 0,
+   "quoteSlot": "0x100",
+   "quoteWord": "0x000000000000040a01a1fa42207b012c0001012c2a003039000000000193c028",
+   "firmSlot": "0x200",
+   "firmWord": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  {
+   "name": "pair slot 7 after three desk stops, a refill and a firm section, unsigned",
+   "blockNumber": 26460201,
+   "deskEpoch": 3,
+   "deskWord": "0x000000000000000000000003985442e6d7c3da32f2f0c8c65fb8f8c60dcabf03",
+   "slot": 7,
+   "on": true,
+   "firm": 2,
+   "quoteSlot": "0x107",
+   "quoteWord": "0x000000000201a60a01a1fa4231d7019a000900fa33abcdef000000030193c029",
+   "firmSlot": "0x207",
+   "firmWord": "0x00000005ffff00000000000000000064000000000000000f0000000000000000"
+  },
+  {
+   "name": "pair slot 255, a cancel (off), at a desk epoch past 24 bits, unsigned",
+   "blockNumber": 26460202,
+   "deskEpoch": 16847216,
+   "deskWord": "0x000000000000000001011170985442e6d7c3da32f2f0c8c65fb8f8c60dcabf03",
+   "slot": 255,
+   "on": false,
+   "firm": 0,
+   "quoteSlot": "0x1ff",
+   "quoteWord": "0x000000000000000001a1fa42470f00007fff000000000000010111700193c02a",
+   "firmSlot": "0x2ff",
+   "firmWord": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  }
+ ]
+}

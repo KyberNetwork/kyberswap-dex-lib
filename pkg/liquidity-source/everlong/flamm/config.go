@@ -26,9 +26,10 @@ type Config struct {
 	// so a new family is an entry here beside them, never code, and is routed once the table measures it.
 	HookFamilies []HookFamily `json:"hookFamilies,omitempty"`
 
-	// VenueKinds narrows the Router's venue kinds routed (0 Morpho Blue, 1 Aave V3, 2 Venus Core, 3 Lista Moolah)
-	// to these, among the kinds the chain routes (chainKinds); empty: all of them. It never adds a kind: a pair with
-	// a live venue of a kind not routed is not routed.
+	// VenueKinds narrows the Router's venue kinds routed (0 Morpho Blue, 1 Aave V3, 2 Venus Core, 3 Lista Moolah,
+	// and on Ethereum 16 and 17, Aave V4's Core and Prime Hubs) to these, among the kinds the chain routes
+	// (chainKinds); empty: all of them. It never adds a kind: a pair with a live venue of a kind not routed is not
+	// routed.
 	VenueKinds []uint8 `json:"venueKinds,omitempty"`
 
 	// AnyHook adds the builds the gas table measured (gasFamilies) to HookFamilies, so a list that names others

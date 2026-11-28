@@ -42,10 +42,14 @@ const canRepay uint8 = 2
 
 // chainKinds are the Router's venue kinds each chain routes: those with cells in the table whose guards this
 // source builds. A pair with a live venue of any other kind is not routed. Lista Moolah (3) holds a minimum
-// position, which its ladders' guard keeps out of the window it opens (guard.go).
+// position, which its ladders' guard keeps out of the window it opens (guard.go). Aave V4 takes one kind number a
+// pair of Hubs, from 16 up, by chain: on Ethereum 16 is the Core Hub and 17 the Prime Hub, the two a fill was
+// measured borrowing on. An Aave V4 venue holds no minimum position, so its ladders need no guard. The table has
+// the two kinds' cells for the build measured on them alone: a pool of another build with a live Aave V4 venue
+// has none and is not routed.
 var chainKinds = map[valueobject.ChainID][]uint8{
 	valueobject.ChainIDBase:     {0, 1},
-	valueobject.ChainIDEthereum: {0, 1},
+	valueobject.ChainIDEthereum: {0, 1, 16, 17},
 	valueobject.ChainIDBSC:      {1, 2, 3},
 }
 
