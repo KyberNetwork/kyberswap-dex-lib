@@ -21,22 +21,25 @@ const (
 	// measured on the deployed build, whose desk is new code (the packed desk). The tokens' own transfer cost is in each
 	// figure, as measured on WETH and USDC (the hook pair) and cbBTC and USDC (past it). The front's mode pays the input
 	// straight to the listing's pool and calls the front's paid entry; the door's approves the door, which pulls the input
-	// to the pool. Each figure is the adapter call frame's gas less the frame's refund, 19,900 in the front's mode (the
-	// adapter's input balance, set and cleared in the transaction) and 39,800 in the door's (that and the door's
-	// allowance): what the fill adds to its transaction's receipt. A gas limit is set from the gas before refunds, never
-	// from these (README, Gas limits).
+	// to the pool. Each figure is what the fill adds to its transaction's receipt: the adapter call frame's gas less the
+	// refund the fill earns through Kyber's executor, which runs the adapter in its own frame and keeps one base unit of
+	// each token it has routed (read on Ethereum, Base and BNB Chain, 28 Nov 2026). That is 2,800 for its input balance,
+	// returned to that unit, and in the door's mode 19,900 more for the door's allowance, set and cleared. The fills were
+	// measured from a caller that held none of the input, whose balance earns 19,900: so each figure is the measured frame
+	// less 19,900 (front) or 39,800 (door), plus dustRefundGap. A gas limit is set from the gas before refunds, never from
+	// these (README, Gas limits).
 	//
 	// A WORD or NONE listing on its pool's hook pair (base index 0, quote index 1), measured on a WORD WETH/USDC listing.
-	gasWordFrontBaseIn  = 101_664
-	gasWordFrontQuoteIn = 93_570
-	gasWordDoorBaseIn   = 114_072
-	gasWordDoorQuoteIn  = 109_146
+	gasWordFrontBaseIn  = 118_764
+	gasWordFrontQuoteIn = 110_670
+	gasWordDoorBaseIn   = 131_172
+	gasWordDoorQuoteIn  = 126_246
 	// The same on a pair past the hook pair, measured on a WORD cbBTC/USDC listing (cbBTC the base) of a three-token
 	// pool.
-	gasWordFrontBaseInPast  = 129_338
-	gasWordFrontQuoteInPast = 129_007
-	gasWordDoorBaseInPast   = 145_654
-	gasWordDoorQuoteInPast  = 144_523
+	gasWordFrontBaseInPast  = 146_438
+	gasWordFrontQuoteInPast = 146_107
+	gasWordDoorBaseInPast   = 162_754
+	gasWordDoorQuoteInPast  = 161_623
 	// A listing whose fill reads a price source (PRINT or SESSION) adds the print difference measured on a PRINT
 	// WETH/USDC listing bound to the protocol's stored price lane, against the WORD listing, the same in either mode:
 	// its source word, the source's check and its slots. On the hook pair the sum is the PRINT listing's own measured
@@ -49,10 +52,10 @@ const (
 	// held at the fill (a fill inside a hold, in the post's block or the next, costs about 5,000 more); past the hook
 	// pair, the WORD figure of the class plus the guarded difference measured against the WORD listing beside it (a
 	// sum, not a measurement).
-	gasGuardedFrontBaseIn      = 120_205
-	gasGuardedFrontQuoteIn     = 112_108
-	gasGuardedDoorBaseIn       = 132_360
-	gasGuardedDoorQuoteIn      = 127_678
+	gasGuardedFrontBaseIn      = 137_305
+	gasGuardedFrontQuoteIn     = 129_208
+	gasGuardedDoorBaseIn       = 149_460
+	gasGuardedDoorQuoteIn      = 144_778
 	gasGuardedFrontBaseInDiff  = 18_288
 	gasGuardedFrontQuoteInDiff = 18_285
 	gasGuardedDoorBaseInDiff   = 18_035
@@ -67,19 +70,19 @@ const (
 	// Same-size first fills vary by up to about 500 gas from run to run, so a later run may see a fill a little under
 	// its figure. The four figures past the hook pair were measured on a fork of Ethereum holding the deployed
 	// build (front 0x0000000000403aeB66691063CC2fD42E71d6AcD6) and a pool of wstETH, WETH, USDC and USDT: the asset in
-	// on wstETH/USDC (144,744; wstETH/USDT 145,430), the other token in on wstETH/USDT (136,333; wstETH/USDC 138,338),
+	// on wstETH/USDC (161,844; wstETH/USDT 162,530), the other token in on wstETH/USDT (153,433; wstETH/USDC 155,438),
 	// and both sides of USDT/USDC. A class's figure is the least of its listings, so the class's other listing spends up
 	// to about 2,100 more than it is charged. The two hook-pair figures were measured on the same build on a pool of
 	// two tokens, wstETH and WETH, its listing with no credit mode: wstETH in and WETH in. The pool had no lender; the
 	// same pool with a lender bound and unused spent the same within 16 gas. A hook-pair listing with a credit mode is
 	// charged its configured figures instead (Front.CreditListings), which are higher: its fill reads its pool's room
 	// and its input passes through the door.
-	gasEthPrintBaseIn             = 117_708
-	gasEthPrintQuoteIn            = 116_339
-	gasEthPrintAssetInPast        = 144_744
-	gasEthPrintOtherInPast        = 136_333
-	gasEthPrintBaseInPastNoAsset  = 150_796
-	gasEthPrintQuoteInPastNoAsset = 154_012
+	gasEthPrintBaseIn             = 134_808
+	gasEthPrintQuoteIn            = 133_439
+	gasEthPrintAssetInPast        = 161_844
+	gasEthPrintOtherInPast        = 153_433
+	gasEthPrintBaseInPastNoAsset  = 167_896
+	gasEthPrintQuoteInPastNoAsset = 171_112
 	// No listing that reads no price source (WORD or NONE) was measured on the deployed build in either mode, nor a pair
 	// past the hook pair whose quote is the pool's asset: those classes have no figure, and such a listing is quoted
 	// only with figures of its own (Front.ListingGas).
@@ -87,16 +90,21 @@ const (
 	// Ethereum's figures in the front's mode, the same fills through the front's own entries (the paid entry where the
 	// front names the listing's pool): measured on the same fork of the deployed build and the same pool as the door's
 	// four above, the same runs, the same frame. Past the hook pair with the pool's asset one of the pair's tokens:
-	// the asset in on wstETH/USDC (133,036; wstETH/USDT 133,722), the other token in on wstETH/USDC (125,307;
-	// wstETH/USDT 126,448); with neither token the pool's asset, both sides of USDT/USDC. Each is 9,885 to 13,031
+	// the asset in on wstETH/USDC (150,136; wstETH/USDT 150,822), the other token in on wstETH/USDC (142,407;
+	// wstETH/USDT 143,548); with neither token the pool's asset, both sides of USDT/USDC. Each is 9,885 to 13,031
 	// under the door's figure for the same fill (29,785 to 32,931 before refunds: the door's mode earns 19,900 more).
 	// The hook pair's two were measured on the two-token pool of the door's hook-pair figures, the same fills.
-	gasEthFrontPrintBaseIn             = 106_000
-	gasEthFrontPrintQuoteIn            = 106_561
-	gasEthFrontPrintAssetInPast        = 133_036
-	gasEthFrontPrintOtherInPast        = 125_307
-	gasEthFrontPrintBaseInPastNoAsset  = 140_911
-	gasEthFrontPrintQuoteInPastNoAsset = 141_041
+	gasEthFrontPrintBaseIn             = 123_100
+	gasEthFrontPrintQuoteIn            = 123_661
+	gasEthFrontPrintAssetInPast        = 150_136
+	gasEthFrontPrintOtherInPast        = 142_407
+	gasEthFrontPrintBaseInPastNoAsset  = 158_011
+	gasEthFrontPrintQuoteInPastNoAsset = 158_141
+
+	// dustRefundGap is what each figure above adds to its measured receipt: the refund of an input balance cleared to
+	// zero (19,900, as measured) less that of one returned to the one base unit Kyber's executor keeps (2,800). A token
+	// the executor has never routed, and so holds none of, earns the larger refund on its first route alone.
+	dustRefundGap = 17_100
 
 	// gasFirstOfInput is what a fill costs more where its pool holds none of the input token before it: the pool's
 	// balance of the token is then written from zero. The least difference measured, on the wstETH/WETH listing with

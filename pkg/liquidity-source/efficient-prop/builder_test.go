@@ -619,11 +619,11 @@ func TestSimulatorChargesEthereumsGas(t *testing.T) {
 	type figures struct{ door, front [2]int64 }
 	want := map[[4]bool]figures{
 		// {print, past, noAsset, assetQuote}: base in, quote in
-		{true, false, false, false}: {door: [2]int64{117_708, 116_339}, front: [2]int64{106_000, 106_561}},
-		{true, true, false, false}:  {door: [2]int64{144_744, 136_333}, front: [2]int64{133_036, 125_307}},
-		{true, true, true, false}:   {door: [2]int64{150_796, 154_012}, front: [2]int64{140_911, 141_041}},
+		{true, false, false, false}: {door: [2]int64{134_808, 133_439}, front: [2]int64{123_100, 123_661}},
+		{true, true, false, false}:  {door: [2]int64{161_844, 153_433}, front: [2]int64{150_136, 142_407}},
+		{true, true, true, false}:   {door: [2]int64{167_896, 171_112}, front: [2]int64{158_011, 158_141}},
 		// noAsset sets nothing on the hook pair, whose base is the pool's asset
-		{true, false, true, false}: {door: [2]int64{117_708, 116_339}, front: [2]int64{106_000, 106_561}},
+		{true, false, true, false}: {door: [2]int64{134_808, 133_439}, front: [2]int64{123_100, 123_661}},
 	}
 	unmeasured := [][4]bool{
 		{true, true, false, true}, // past the hook pair, the quote the pool's asset

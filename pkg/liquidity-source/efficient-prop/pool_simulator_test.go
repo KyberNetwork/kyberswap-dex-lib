@@ -116,36 +116,38 @@ func withStatic(t *testing.T, p entity.Pool, edit func(*StaticExtra)) entity.Poo
 // to the WORD figure of its class; a guarded one is charged its own measured figure on the hook pair and, past it, the
 // WORD figure plus the guarded difference.
 func TestSimulatorChargesEachDirectionsGas(t *testing.T) {
-	// the least first fill of each class on the counted clock, less its refund, the recipient holding the output
-	assert.Equal(t, 101_664, gasWordFrontBaseIn)
-	assert.Equal(t, 93_570, gasWordFrontQuoteIn)
-	assert.Equal(t, 114_072, gasWordDoorBaseIn)
-	assert.Equal(t, 109_146, gasWordDoorQuoteIn)
-	assert.Equal(t, 129_338, gasWordFrontBaseInPast)
-	assert.Equal(t, 129_007, gasWordFrontQuoteInPast)
-	assert.Equal(t, 145_654, gasWordDoorBaseInPast)
-	assert.Equal(t, 144_523, gasWordDoorQuoteInPast)
+	// the least first fill of each class on the counted clock, less its refund through Kyber's executor (dustRefundGap),
+	// the recipient holding the output
+	assert.Equal(t, 17_100, dustRefundGap)
+	assert.Equal(t, 118_764, gasWordFrontBaseIn)
+	assert.Equal(t, 110_670, gasWordFrontQuoteIn)
+	assert.Equal(t, 131_172, gasWordDoorBaseIn)
+	assert.Equal(t, 126_246, gasWordDoorQuoteIn)
+	assert.Equal(t, 146_438, gasWordFrontBaseInPast)
+	assert.Equal(t, 146_107, gasWordFrontQuoteInPast)
+	assert.Equal(t, 162_754, gasWordDoorBaseInPast)
+	assert.Equal(t, 161_623, gasWordDoorQuoteInPast)
 	assert.Equal(t, 12_562, gasPrintBaseIn)
 	assert.Equal(t, 12_806, gasPrintQuoteIn)
-	assert.Equal(t, 120_205, gasGuardedFrontBaseIn)
-	assert.Equal(t, 112_108, gasGuardedFrontQuoteIn)
-	assert.Equal(t, 132_360, gasGuardedDoorBaseIn)
-	assert.Equal(t, 127_678, gasGuardedDoorQuoteIn)
+	assert.Equal(t, 137_305, gasGuardedFrontBaseIn)
+	assert.Equal(t, 129_208, gasGuardedFrontQuoteIn)
+	assert.Equal(t, 149_460, gasGuardedDoorBaseIn)
+	assert.Equal(t, 144_778, gasGuardedDoorQuoteIn)
 	// base in, quote in, by mode, print, guarded and past
 	want := map[[4]bool][2]int{
 		// {door, print, guarded, past}
-		{false, false, false, false}: {101_664, 93_570},
-		{false, true, false, false}:  {114_226, 106_376}, // measured on the PRINT listing too
-		{false, false, false, true}:  {129_338, 129_007},
-		{false, true, false, true}:   {141_900, 141_813}, // a sum
-		{false, true, true, false}:   {120_205, 112_108}, // measured on the guarded PRINT listing
-		{false, true, true, true}:    {147_626, 147_292}, // a sum
-		{true, false, false, false}:  {114_072, 109_146},
-		{true, true, false, false}:   {126_634, 121_952}, // measured on the PRINT listing too
-		{true, false, false, true}:   {145_654, 144_523},
-		{true, true, false, true}:    {158_216, 157_329}, // a sum
-		{true, true, true, false}:    {132_360, 127_678}, // measured on the guarded PRINT listing
-		{true, true, true, true}:     {163_689, 162_802}, // a sum
+		{false, false, false, false}: {118_764, 110_670},
+		{false, true, false, false}:  {131_326, 123_476}, // measured on the PRINT listing too
+		{false, false, false, true}:  {146_438, 146_107},
+		{false, true, false, true}:   {159_000, 158_913}, // a sum
+		{false, true, true, false}:   {137_305, 129_208}, // measured on the guarded PRINT listing
+		{false, true, true, true}:    {164_726, 164_392}, // a sum
+		{true, false, false, false}:  {131_172, 126_246},
+		{true, true, false, false}:   {143_734, 139_052}, // measured on the PRINT listing too
+		{true, false, false, true}:   {162_754, 161_623},
+		{true, true, false, true}:    {175_316, 174_429}, // a sum
+		{true, true, true, false}:    {149_460, 144_778}, // measured on the guarded PRINT listing
+		{true, true, true, true}:     {180_789, 179_902}, // a sum
 	}
 	for k, w := range want {
 		for _, base1 := range []bool{false, true} {

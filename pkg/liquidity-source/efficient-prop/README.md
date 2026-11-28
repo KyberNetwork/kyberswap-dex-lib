@@ -173,17 +173,17 @@ front in the front's. The front's mode is the cheaper, by 9,885 to 13,031 gas a 
 stays for an executor that will only approve a contract that cannot change.
 
 Gas is one figure a mode, an input token and a class of listing: what the fill adds to its transaction's receipt, that
-is the adapter call frame's gas less the refund the fill earns, the least first fill measured of its class. On
-Ethereum, for a listing that reads a price source:
+is the adapter call frame's gas less the refund the fill earns through Kyber's executor (Refunds), the least first fill
+measured of its class. On Ethereum, for a listing that reads a price source:
 
 | Class | Input | Door mode | Front mode |
 |---|---|---|---|
-| on the pool's hook pair | the base, the pool's asset | 117,708 | 106,000 |
-| on the pool's hook pair | the quote | 116,339 | 106,561 |
-| past the hook pair, the base the pool's asset | the asset | 144,744 | 133,036 |
-| past the hook pair, the base the pool's asset | the quote | 136,333 | 125,307 |
-| past the hook pair, neither token the pool's asset | the base | 150,796 | 140,911 |
-| past the hook pair, neither token the pool's asset | the quote | 154,012 | 141,041 |
+| on the pool's hook pair | the base, the pool's asset | 134,808 | 123,100 |
+| on the pool's hook pair | the quote | 133,439 | 123,661 |
+| past the hook pair, the base the pool's asset | the asset | 161,844 | 150,136 |
+| past the hook pair, the base the pool's asset | the quote | 153,433 | 142,407 |
+| past the hook pair, neither token the pool's asset | the base | 167,896 | 158,011 |
+| past the hook pair, neither token the pool's asset | the quote | 171,112 | 158,141 |
 
 Each was measured on a fork of Ethereum holding the deployed build, over wstETH, WETH, USDC and USDT pairs; a class's
 figure is the least of its listings, so a new listing of an approved desk in one of these classes is quoted with no
@@ -202,9 +202,13 @@ No class was measured on BNB Chain: a listing there is quoted only with figures 
 - **A pool holding none of the input.** Such a fill writes the pool's balance from zero and costs 17,044 more. The
   state marks it (`noneHeld`), and the simulator charges it until a fill of the route, through any listing of the
   pool, pays the pool some.
-- **Refunds.** A refund is paid up to one fifth of its transaction's gas, and every figure nets all of it. A fill
-  alone behind a bare test hop was paid all of it on every class but the credit listing's custody fill in the door's
-  mode, whose figure is short by up to 9,435 there.
+- **Refunds.** Kyber's executor runs the adapter in its own frame and keeps one base unit of each token it has routed
+  (read on Ethereum, Base and BNB Chain). A fill returns the executor's input balance to that unit, which earns 2,800,
+  and in the door's mode clears the door's allowance, which earns 19,900. Every figure nets those. The fills were
+  measured from a caller that held none of the input, whose cleared balance earns 19,900, so each figure is that
+  receipt plus 17,100 (`dustRefundGap`). A token the executor has never routed earns the larger refund on its first
+  route alone. A refund is paid up to one fifth of its transaction's gas, which held for every figure's refund behind
+  a bare test hop.
 - **Gas limits.** Every figure is what a fill adds to a receipt, never a limit: the least gas limit that let a fill
   through the adapter was 21% to 29% above its receipt's gas, since each call forwards at most 63/64 of the gas left.
   Set a route's limit at 1.3 times its expected gas or more.
@@ -254,8 +258,10 @@ adapter fills both; the gas differs several times over. So such a listing is quo
 - The route reads state the sample cannot pin (the lending venue's rate, a feed update). A fill that meets a change
   reverts at the taker's gas, as a `NoWord` does.
 - **Measured** on a fork of Ethereum holding the deployed build, on the wstETH/WETH listing of a pool whose WETH is
-  borrowed at Morpho Blue, through the door and through the front: a custody fill of wstETH in 135,485 and 118,241, of
-  WETH in 128,913 and 117,064, and a route fill of wstETH in 841,583 and 824,339 (982,875 and 945,731 before refunds).
+  borrowed at Morpho Blue, through the door and through the front, from a caller that held none of the input: a
+  custody fill of wstETH in 135,485 and 118,241, of WETH in 128,913 and 117,064, and a route fill of wstETH in 841,583
+  and 824,339 (982,875 and 945,731 before refunds). Through Kyber's executor each receipt here is 17,100 higher
+  (Refunds), and the Config example adds it.
   A fill of WETH in just past the custody is a route too. With no loan open it filled from 1.008 to 1.028 times the
   custody (to 1.036 with the pool holding some WETH) and reverted `NotEnoughDepth()` at the next size tried; with the
   pool owing 0.37 WETH it filled to 1.5 times the custody and reverted at 3. It cost 948,309 and 936,460 with the pool
@@ -348,8 +354,8 @@ Every address is a config field with no default. A front on Ethereum:
       "approvedSources": ["0xF166e802fb1994929b522f1ca5410a5f5BD1A366", "0xCa143657998DbeFb3AC6bb78342B8Cf3Db04dee8", "0xb9e048a763b0A6e57c8dEA7F53559b39B6c58949", "0x8f8F0f5c14F11024DBa87D3737Dd1c403F7d8D9B"],
       "titan": {"urls": ["https://<api host>/v1/1/state", "<a builder's data host>"], "timeout": 2000000000},
       "creditListings": [
-        {"listing": 1, "custodyBaseIn": 118241, "custodyQuoteIn": 117064,
-         "routeBaseIn": 824339, "routeQuoteIn": 936460}
+        {"listing": 1, "custodyBaseIn": 135341, "custodyQuoteIn": 134164,
+         "routeBaseIn": 841439, "routeQuoteIn": 953560}
       ]
     }
   ]
@@ -361,7 +367,7 @@ rules.
 
 These are Ethereum's deployed front (proxy and implementation), its door factory, its `CELL_CODEHASH()`, its four
 price contracts and its first maker's desk contract (desk 1). The `creditListings` entry is the fork measurement above
-for a wstETH/WETH listing with id 1; ids and figures are checked against the live pool before the config is used.
+plus 17,100 (Refunds) for a wstETH/WETH listing with id 1; ids and figures are checked against the live pool before the config is used.
 
 A front on Base, read at the head: its deployed front, door factory, its price lane for USDe/USDC and its first
 maker's desk contract (desk 1, the CREATE2 child of the front under the packed desk's code hash):
