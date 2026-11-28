@@ -3,9 +3,11 @@ package efficientprop
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,6 +35,18 @@ const beaconGenesis = 1_606_824_023
 
 // stateMethod is the JSON-RPC method a /state url answers.
 const stateMethod = "titan_getPammStateOverrides"
+
+// methodVenues is the method Titan's takers docs list: it answers {venues: [...]}, each venue with its own block,
+// slot and stateOverride (parseAnswers reads both shapes, whichever method asked).
+const methodVenues = "titan_getPammVenues"
+
+// stateMethodOf is the method a front's /state urls are asked: its config's, else the old one.
+func stateMethodOf(configured string) string {
+	if configured == "" {
+		return stateMethod
+	}
+	return configured
+}
 
 // fenceNone is the fence kind NONE (scopes bits 1-2), whose word the front never carries into a later block.
 const fenceNone = 2
@@ -152,6 +166,8 @@ type stateAccount struct {
 type stateClient struct {
 	url    string
 	client *rpc.Client
+	// method is the JSON-RPC method asked ("": stateMethod)
+	method string
 }
 
 // fetchAnswers asks each of a front's /state urls (clients, in the config's order) for its answer, as Kyber's titan
@@ -185,7 +201,7 @@ func fetchAnswers(ctx context.Context, clients []stateClient, timeout, merge tim
 	for k, c := range clients {
 		go func() {
 			var result map[string]json.RawMessage
-			if err := c.client.CallContext(ctx, &result, stateMethod); err != nil {
+			if err := c.client.CallContext(ctx, &result, stateMethodOf(c.method)); err != nil {
 				if failed != nil && !errors.Is(err, context.Canceled) {
 					failed(c.url, err)
 				}
@@ -203,19 +219,125 @@ collect:
 			if g.result == nil {
 				continue
 			}
-			a := parseAnswer(g.rank, g.result)
-			if window == nil && len(a.accounts) > 0 {
-				window = time.After(merge)
+			parsed, skipped := parseAnswers(g.rank, g.result)
+			if n := skippedCount(skipped); n > 0 && failed != nil {
+				failed(clients[g.rank].url, fmt.Errorf("%d venues skipped: %s", n, skippedText(skipped)))
 			}
-			answers = append(answers, a)
+			for _, a := range parsed {
+				if window == nil && len(a.accounts) > 0 {
+					window = time.After(merge)
+				}
+			}
+			answers = append(answers, parsed...)
 		case <-window:
 			break collect
 		case <-ctx.Done():
 			break collect
 		}
 	}
-	slices.SortFunc(answers, func(a, b answer) int { return a.rank - b.rank })
+	slices.SortStableFunc(answers, func(a, b answer) int { return a.rank - b.rank })
 	return answers
+}
+
+// skippedCount is the venues skipped in all.
+func skippedCount(skipped map[string]int) (n int) {
+	for _, c := range skipped {
+		n += c
+	}
+	return n
+}
+
+// skippedText is the skipped venues' reasons with their counts, in one stable line.
+func skippedText(skipped map[string]int) string {
+	parts := make([]string, 0, len(skipped))
+	for reason, c := range skipped {
+		parts = append(parts, fmt.Sprintf("%s x%d", reason, c))
+	}
+	slices.Sort(parts)
+	return strings.Join(parts, ", ")
+}
+
+// parseAnswers is a /state result as its answers, whichever method asked. The old shape ({slot, blockNumber, one member
+// an entry}) is one answer (parseAnswer). The venues shape ({venues: [{blockNumber, slot, stateOverride, ...}]}, found
+// by a venues member that is a list, which no entry of the old shape is) is one answer a block, each venue's
+// stateOverride read under its own blockNumber and slot, so that the answer for the highest block keeps its venues
+// whatever the list's order (pick). A venue that names no block, is no object, or has no readable stateOverride is
+// skipped and counted by reason; a venues member that is no list is counted too. Pure: no I/O.
+func parseAnswers(rank int, result map[string]json.RawMessage) (answers []answer, skipped map[string]int) {
+	raw, named := result["venues"]
+	if !named {
+		return []answer{parseAnswer(rank, result)}, nil
+	}
+	if len(raw) == 0 || raw[0] != '[' {
+		// a member named venues that is an old-shape entry (an object with a stateOverride) is that, not a venues list
+		var entry map[string]json.RawMessage
+		if json.Unmarshal(raw, &entry) == nil {
+			if _, isEntry := entry["stateOverride"]; isEntry {
+				return []answer{parseAnswer(rank, result)}, nil
+			}
+		}
+		return nil, map[string]int{"venues is not a list": 1}
+	}
+	var venues []json.RawMessage
+	if json.Unmarshal(raw, &venues) != nil {
+		return nil, map[string]int{"venues is not a list": 1}
+	}
+	skipped = map[string]int{}
+	type group struct {
+		number *big.Int
+		result map[string]json.RawMessage
+	}
+	var groups []*group
+	for k, v := range venues {
+		var venue map[string]json.RawMessage
+		if json.Unmarshal(v, &venue) != nil {
+			skipped["venue is not an object"]++
+			continue
+		}
+		var number string
+		var n *big.Int
+		if b, ok := venue["blockNumber"]; ok && json.Unmarshal(b, &number) == nil {
+			n, _ = new(big.Int).SetString(strings.TrimPrefix(number, "0x"), 16)
+		}
+		if n == nil {
+			skipped["venue has no block number"]++
+			continue
+		}
+		so, ok := venue["stateOverride"]
+		if !ok {
+			skipped["venue has no state override"]++
+			continue
+		}
+		var probe map[string]json.RawMessage
+		if json.Unmarshal(so, &probe) != nil {
+			skipped["venue state override unreadable"]++
+			continue
+		}
+		var g *group
+		for _, c := range groups {
+			if c.number.Cmp(n) == 0 {
+				g = c
+			}
+		}
+		if g == nil {
+			g = &group{number: n, result: map[string]json.RawMessage{"blockNumber": venue["blockNumber"]}}
+			groups = append(groups, g)
+		}
+		if _, has := g.result["slot"]; !has {
+			if s, ok := venue["slot"]; ok {
+				g.result["slot"] = s
+			}
+		}
+		g.result["venue-"+strconv.Itoa(k)] = json.RawMessage(`{"stateOverride":` + string(so) + `}`)
+	}
+	slices.SortStableFunc(groups, func(a, b *group) int { return b.number.Cmp(a.number) })
+	for _, g := range groups {
+		answers = append(answers, parseAnswer(rank, g.result))
+	}
+	if len(skipped) == 0 {
+		skipped = nil
+	}
+	return answers, skipped
 }
 
 // parseAnswer is a /state result as one answer: its blockNumber, its slot and that slot's beacon second, and every

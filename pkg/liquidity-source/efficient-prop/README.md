@@ -219,9 +219,10 @@ A maker's update on Ethereum (its quote contract's quote for one block and, wher
 print) lands only in a block a builder built with it ahead of a fill, and stands for that block alone. At the head a
 door refuses every size. So on chain 1 the source reads the state the next block will hold:
 
-- **The read path.** Each front names a `titan` block: the urls answering `titan_getPammStateOverrides`, dialled and
-  awaited as Kyber's `titan` package does. An answer names its target block, its beacon slot and, per quote contract,
-  the slots that block's update writes.
+- **The read path.** Each front names a `titan` block: the urls answering `titan_getPammStateOverrides` (or
+  `titan_getPammVenues`, set by the front's `stateMethod`; the old method stays the default, and either answer shape is
+  read whichever method asked), dialled and awaited as Kyber's `titan` package does. An answer names its target block, its beacon slot and, per quote
+  contract, the slots that block's update writes; a venues answer names them per venue, and its venues are grouped by block.
 - **One answer per listing.** The answers are never merged: a listing is read from the first answer, in the configured
   url order, of those for the highest block, that holds the listing's own update whole. A slot two entries of one
   answer disagree on is left out.

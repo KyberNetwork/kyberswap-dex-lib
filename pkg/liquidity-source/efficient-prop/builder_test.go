@@ -42,7 +42,7 @@ func newStateServer(t *testing.T) *stateServer {
 			ID     json.RawMessage `json:"id"`
 			Method string          `json:"method"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&msg); err != nil || msg.Method != "titan_getPammStateOverrides" {
+		if err := json.NewDecoder(r.Body).Decode(&msg); err != nil || msg.Method != stateMethod {
 			t.Errorf("a request the /state server does not answer: %s, %v", msg.Method, err)
 			return
 		}

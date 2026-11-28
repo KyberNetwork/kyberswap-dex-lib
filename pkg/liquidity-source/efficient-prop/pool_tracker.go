@@ -110,7 +110,7 @@ func newPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client, warn func(url stri
 				t.stateFailed(shownURL(url), err)
 				continue
 			}
-			t.titan[f.Address] = append(t.titan[f.Address], stateClient{url: shownURL(url), client: c})
+			t.titan[f.Address] = append(t.titan[f.Address], stateClient{url: shownURL(url), client: c, method: f.StateMethod})
 		}
 	}
 	return t, nil

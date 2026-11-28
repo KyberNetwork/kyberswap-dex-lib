@@ -102,6 +102,10 @@ type Front struct {
 	// refresh samples the door under the overrides and the target block of that answer. Required on a builder chain,
 	// refused on any other.
 	Titan *titan.Config `json:"titan,omitempty"`
+	// StateMethod is the JSON-RPC method Titan's urls are asked: "" or titan_getPammStateOverrides (the default), or
+	// titan_getPammVenues, the method Titan's takers docs list. The answer's shape is read whichever method asked
+	// (parseAnswers), so a url that answers the other shape is still read. Read on a builder chain only.
+	StateMethod string `json:"stateMethod,omitempty"`
 	// BundleOnly states that every route through this front's listings goes to the chain's builder as a bundle. On BNB
 	// Chain the builder (48 Club) places a desk's update ahead of the bundles sent to it alone, so a fill sent to the
 	// public mempool lands with no update and reverts (NoWord) at the taker's gas: a front there is listed but quoted
@@ -427,6 +431,10 @@ func (c *Config) validateBuilder(i int) error {
 				c.ChainID)
 		}
 		return nil
+	}
+	if f.StateMethod != "" && f.StateMethod != stateMethod && f.StateMethod != methodVenues {
+		return fmt.Errorf("%w: fronts[%d].stateMethod=%q, want %q or %q", ErrInvalidConfig, i, f.StateMethod,
+			stateMethod, methodVenues)
 	}
 	if f.Titan == nil || len(f.Titan.URLs) == 0 {
 		return fmt.Errorf("%w: fronts[%d].titan.urls is empty on chain %d", ErrInvalidConfig, i, c.ChainID)
