@@ -39,6 +39,7 @@ func TestGetAmountOut(t *testing.T) {
 		tokenAmountIn     poolPkg.TokenAmount
 		tokenOut          string
 		expectedAmountOut *poolPkg.TokenAmount
+		expectedGas       int64
 		expectedErr       error
 	}{
 		{
@@ -53,6 +54,7 @@ func TestGetAmountOut(t *testing.T) {
 				Token:  "0xdc035d45d973e3ec169d2276ddab16f1e407384f",
 				Amount: bignumber.NewBig("1000000000000000000"),
 			},
+			expectedGas: 144433, // DAI -> USDS
 			expectedErr: nil,
 		}, {
 			name:       "test token1 as tokenIn",
@@ -66,6 +68,7 @@ func TestGetAmountOut(t *testing.T) {
 				Token:  "0x6b175474e89094c44da98b954eedeac495271d0f",
 				Amount: bignumber.NewBig("1000000000000000000"),
 			},
+			expectedGas: 163472, // USDS -> DAI
 			expectedErr: nil,
 		},
 	}
@@ -84,6 +87,7 @@ func TestGetAmountOut(t *testing.T) {
 
 			assert.Equal(t, tc.expectedErr, err)
 			assert.Equal(t, tc.expectedAmountOut, calcAmountOutResult.TokenAmountOut)
+			assert.Equal(t, tc.expectedGas, calcAmountOutResult.Gas)
 		})
 	}
 }

@@ -14,6 +14,8 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
+	// Unused: CalcAmountOut picks the gas by direction. Kept because a simulator is msgpack-encoded as a
+	// positional array, so removing a field breaks snapshots written by another version.
 	gas int64
 }
 
@@ -60,7 +62,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex: %v or tokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	totalGas := p.gas
+	totalGas := GasUsdsToDai
+	if tokenInIndex == 0 {
+		totalGas = GasDaiToUsds
+	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
