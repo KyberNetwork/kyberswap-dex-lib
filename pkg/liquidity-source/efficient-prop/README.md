@@ -221,8 +221,10 @@ door refuses every size. So on chain 1 the source reads the state the next block
 
 - **The read path.** Each front names a `titan` block: the urls answering `titan_getPammStateOverrides` (or
   `titan_getPammVenues`, set by the front's `stateMethod`; the old method stays the default, and either answer shape is
-  read whichever method asked), dialled and awaited as Kyber's `titan` package does. An answer names its target block, its beacon slot and, per quote
-  contract, the slots that block's update writes; a venues answer names them per venue, and its venues are grouped by block.
+  read whichever method asked), dialled and awaited as Kyber's `titan` package does, except that the merge window
+  closes at once when url 0 has answered with an account for the highest block seen, so a slow later url cannot hold
+  the front's lock. An answer names its target block, its beacon slot and, per quote contract, the slots that block's
+  update writes; a venues answer names them per venue, and its venues are grouped by block.
 - **One answer per listing.** The answers are never merged: a listing is read from the first answer, in the configured
   url order, of those for the highest block, that holds the listing's own update whole. A slot two entries of one
   answer disagree on is left out.
@@ -353,7 +355,7 @@ Every address is a config field with no default. A front on Ethereum:
       "fillMode": "front",
       "implementations": ["0x48C6efab497EeC8501483Ceb23B6623f626d8371"],
       "approvedSources": ["0xF166e802fb1994929b522f1ca5410a5f5BD1A366", "0xCa143657998DbeFb3AC6bb78342B8Cf3Db04dee8", "0xb9e048a763b0A6e57c8dEA7F53559b39B6c58949", "0x8f8F0f5c14F11024DBa87D3737Dd1c403F7d8D9B"],
-      "titan": {"urls": ["https://<api host>/v1/1/state", "<a builder's data host>"], "timeout": 2000000000},
+      "titan": {"urls": ["https://<api host>/v1/1/state"]},
       "creditListings": [
         {"listing": 1, "custodyBaseIn": 135341, "custodyQuoteIn": 134164,
          "routeBaseIn": 841439, "routeQuoteIn": 953560}

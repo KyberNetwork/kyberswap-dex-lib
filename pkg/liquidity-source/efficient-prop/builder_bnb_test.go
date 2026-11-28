@@ -412,7 +412,8 @@ func TestBNBCapZeroIsNoCap(t *testing.T) {
 }
 
 // BNB Chain's /state fetch waits 100 ms for the other urls once one answer holds an account, where Ethereum's waits
-// titan's 300 ms: a url answering 250 ms in is left out on BNB Chain and kept on Ethereum.
+// titan's 300 ms: a url answering 250 ms in is left out on BNB Chain and kept on Ethereum. The slow url is listed first, so
+// the fast url's answer is not url 0's and does not close the window early.
 func TestBNBStateFetchMergeWindow(t *testing.T) {
 	fast, slow := newStateServer(t), newStateServer(t)
 	fast.set(1235, 1235, map[common.Address]*big.Int{testCellA: deskSlot0(1235, false)})
@@ -425,7 +426,7 @@ func TestBNBStateFetchMergeWindow(t *testing.T) {
 		cfg  *Config
 		held int
 	}{{"BNB Chain: 100 ms", bnbConfig(fast.URL), 1}, {"Ethereum: 300 ms", ethConfig(fast.URL), 2}} {
-		c.cfg.Fronts[0].Titan.URLs = []string{fast.URL, slow.URL}
+		c.cfg.Fronts[0].Titan.URLs = []string{slow.URL, fast.URL}
 		answers := ethTracker(t, n, c.cfg, time.Now()).stateAnswers(context.Background(), &c.cfg.Fronts[0])
 		assert.Len(t, answers, c.held, c.name)
 	}

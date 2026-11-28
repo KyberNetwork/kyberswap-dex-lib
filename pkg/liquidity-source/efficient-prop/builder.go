@@ -229,6 +229,17 @@ collect:
 				}
 			}
 			answers = append(answers, parsed...)
+			if closesEarly(answers) {
+				// the answers already in are kept: only a url still out is left to the next fetch
+				for len(results) > 0 {
+					g := <-results
+					if g.result != nil {
+						parsed, _ := parseAnswers(g.rank, g.result)
+						answers = append(answers, parsed...)
+					}
+				}
+				break collect
+			}
 		case <-window:
 			break collect
 		case <-ctx.Done():
@@ -237,6 +248,25 @@ collect:
 	}
 	slices.SortStableFunc(answers, func(a, b answer) int { return a.rank - b.rank })
 	return answers
+}
+
+// closesEarly is whether the merge window is over: url 0 has answered with an account for a block no other answer
+// seen so far is past, so a later url can add a listing's alternative at most, never a newer block, and a slow url
+// must not hold the front's lock for the window. An answer with no account or no block does not close it.
+func closesEarly(answers []answer) bool {
+	var top, first *big.Int
+	for _, a := range answers {
+		if a.number == nil {
+			continue
+		}
+		if top == nil || a.number.Cmp(top) > 0 {
+			top = a.number
+		}
+		if a.rank == 0 && len(a.accounts) > 0 && (first == nil || a.number.Cmp(first) > 0) {
+			first = a.number
+		}
+	}
+	return first != nil && first.Cmp(top) >= 0
 }
 
 // skippedCount is the venues skipped in all.

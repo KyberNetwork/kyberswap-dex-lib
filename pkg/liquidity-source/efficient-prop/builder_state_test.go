@@ -230,6 +230,7 @@ func TestBuilderTakesAListingsEntriesFromOneAnswer(t *testing.T) {
 	n = builderNode(t, chain, 1234)
 	first, second = newStateServer(t), newStateServer(t)
 	first.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"x": {testCellA: cellSlots(1235, false, 100)}})
+	first.delay = 100 * time.Millisecond // url 0 answers last: the window is still open for the second url's answer
 	second.delay = 50 * time.Millisecond
 	second.setEntries(slotAfter(n.time), 1235, map[string]stateEntry{"x": full(101)})
 	cfg = printConfig(first.URL, second.URL)

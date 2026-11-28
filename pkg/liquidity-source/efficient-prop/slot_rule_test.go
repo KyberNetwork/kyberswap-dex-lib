@@ -601,6 +601,7 @@ func TestBuilderDeskTakesEachListingFromOneAnswer(t *testing.T) {
 	both := joined(wordsOf(slotA, 1235, 0, false, false), map[common.Hash]common.Hash{firmKey(slotA): id(8)},
 		wordsOf(slotB, 1235, 0, false, false))
 	first.setEntries(slot, 1235, map[string]stateEntry{"a": {cellOf(7): onlyA}})
+	first.delay = 100 * time.Millisecond // url 0 answers last, so the early close keeps the second url's answer
 	second.delay = 50 * time.Millisecond
 	second.setEntries(slot, 1235, map[string]stateEntry{"ab": {cellOf(7): both}})
 	cfg := ethConfig(first.URL)
@@ -1094,6 +1095,7 @@ func TestAnswerWithAMalformedEntryCoversNoListing(t *testing.T) {
 	bad.m["a-2"] = rawEntry(cellOf(7), deskWrite, 1)
 	bad.mu.Unlock()
 	clean.setEntries(slot, 1235, map[string]stateEntry{"a-1": {cellOf(7): word}})
+	bad.delay = 50 * time.Millisecond // url 0 answers last, so the early close keeps the clean url's answer
 	cfg := ethConfig(bad.URL)
 	cfg.Fronts[0].Titan.URLs = []string{bad.URL, clean.URL}
 	got, _ := ruledTrack(t, n, cfg, 1)
