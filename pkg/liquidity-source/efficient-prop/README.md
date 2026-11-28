@@ -20,11 +20,11 @@ The front (`0x0000000000403aeB66691063CC2fD42E71d6AcD6`, implementation
 `0x48C6efab497EeC8501483Ceb23B6623f626d8371`) and its door factory (`0x39eD9993449C96503f6a629cCD2BB5F132D7cc93`)
 have one address on every chain, each chain's own code behind it:
 
-| Chain | The front's build | Read | Deployed |
-|---|---|---|---|
-| Ethereum (1) | builder build: a maker's update lands only in a block a builder builds with it | `/state` (Ethereum) | Yes |
-| Base (8453) | storage build with the packed desk: a maker's word stands in storage | the head (Base) | Yes. No listing of desk 1 at block 62,193,110 (25 Nov 2026) |
-| BNB Chain (56) | builder build, Ethereum's desk code | `/state` (BNB Chain) | Yes: the front since block 135,698,348 and the door factory since 135,700,303 (25 Nov 2026). No pool and no listing yet, and no url answers `/v1/56/state` yet |
+| Chain | The front's build | Read |
+|---|---|---|
+| Ethereum (1) | builder build: a maker's update lands only in a block a builder builds with it | `/state` (Ethereum) |
+| Base (8453) | storage build with the packed desk: a maker's word stands in storage | the head (Base) |
+| BNB Chain (56) | builder build, Ethereum's desk code | `/state` (BNB Chain) |
 
 Everything below holds on every chain unless a chain's section says otherwise.
 
@@ -308,8 +308,7 @@ BNB Chain's front is the builder build with Ethereum's desk code, so it is read 
   450 ms, one block. A state that is not idle is asked for again at once (Refresh).
 - **Logs.** A fill's `Swapped` is the desk contract's in either mode, as on Ethereum. The builder's own door, which
   settles the bundles it places, logs none.
-- **Live.** The front and its door factory are deployed (Chains), with no pool or listing yet. No url answers
-  `/v1/56/state`; until one does, nothing on chain 56 is quoted.
+- **Urls.** Nothing on chain 56 is quoted until the front's `titan.urls` name a url that answers for chain 56.
 
 ## Base
 
@@ -327,7 +326,6 @@ every listing is read at the head and its window sampled by block overrides (Pri
   (Execution and gas). Measure them again on the deployed build, or give a listing its own (`listingGas`).
 - **Tip cap.** A listing whose tip cap is 0 fills nothing on this build, so with no ladder it is idle.
 - **Credit listings** are quoted where `creditListings` names them (Credit-mode listings).
-- **Live.** Deployed, with no listing of desk 1 yet (Chains).
 
 ## Config
 
