@@ -324,11 +324,7 @@ func parseAnswers(rank int, result map[string]json.RawMessage) (answers []answer
 			skipped["venue is not an object"]++
 			continue
 		}
-		var number string
-		var n *big.Int
-		if b, ok := venue["blockNumber"]; ok && json.Unmarshal(b, &number) == nil {
-			n, _ = new(big.Int).SetString(strings.TrimPrefix(number, "0x"), 16)
-		}
+		n := blockNumberOf(venue["blockNumber"])
 		if n == nil {
 			skipped["venue has no block number"]++
 			continue
@@ -370,6 +366,24 @@ func parseAnswers(rank int, result map[string]json.RawMessage) (answers []answer
 	return answers, skipped
 }
 
+// blockNumberOf is a /state answer's blockNumber as a number: the old method types it as a hex string ("0x19486de"),
+// the venues method as a JSON number (26511070); nil where it is neither or is negative.
+func blockNumberOf(raw json.RawMessage) *big.Int {
+	var s string
+	if json.Unmarshal(raw, &s) == nil {
+		n, ok := new(big.Int).SetString(strings.TrimPrefix(s, "0x"), 16)
+		if !ok || n.Sign() < 0 {
+			return nil
+		}
+		return n
+	}
+	var u uint64
+	if json.Unmarshal(raw, &u) == nil {
+		return new(big.Int).SetUint64(u)
+	}
+	return nil
+}
+
 // parseAnswer is a /state result as one answer: its blockNumber, its slot and that slot's beacon second, and every
 // entry's accounts (each entry's stateOverride, an account with no slot skipped as Kyber's titan client skips it),
 // merged slot by slot. A slot two entries give different values is left out of its account's override, and a balance
@@ -378,11 +392,8 @@ func parseAnswers(rank int, result map[string]json.RawMessage) (answers []answer
 func parseAnswer(rank int, result map[string]json.RawMessage) answer {
 	a := answer{rank: rank, accounts: map[common.Address]gethclient.OverrideAccount{},
 		split: map[common.Address]*splitValues{}}
-	var number string
-	if raw, ok := result["blockNumber"]; ok && json.Unmarshal(raw, &number) == nil {
-		if n, ok := new(big.Int).SetString(strings.TrimPrefix(number, "0x"), 16); ok {
-			a.number = n
-		}
+	if raw, ok := result["blockNumber"]; ok {
+		a.number = blockNumberOf(raw)
 	}
 	var slot uint64
 	if raw, ok := result["slot"]; ok && json.Unmarshal(raw, &slot) == nil && slot > 0 {
